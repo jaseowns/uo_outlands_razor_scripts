@@ -2,7 +2,7 @@
 
 ## Training Alchemy
 [Train Alchemy Using a Shelf](Train_Alchemy_Have_Shelf.razor)  
-[Train Alchemy Using Restock Container](Train_Alchemy_Have_Shelf.razor)
+[Train Alchemy Using Restock Container](Train_Alchemy_Restock_Only.razor)
 
 Check out the video on how to use these scripts here:
 

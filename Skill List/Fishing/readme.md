@@ -1,7 +1,7 @@
 # Fishing Scripts for UO Outlands by Jaseowns
 
 ## Training Fishing
-[Train Fishing using Double Click](Train_Fishing_Using_dClickType.razor)
+[Train Fishing using Double Click](Train_Fishing_Using_dClickType.razor)  
 [Train Fishing using Dress Macro](Train_Fishing_Using_Dress.razor)
 
 Check out the video on how to use these scripts here:

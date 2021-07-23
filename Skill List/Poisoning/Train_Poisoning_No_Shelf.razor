@@ -1,0 +1,142 @@
+# Training Poisoning with no shelf by Jaseowns
+# UO Outlands
+# Make sure to update the max skill on line 38 if you want to go over 100 
+#################
+# Requirements:  seperate bags containing the different types of poisons, 
+# heals and cures optional but at least someone healing you on a loop
+# one weapon (ex: kryss selected by default)
+##################
+#   One Empty bottle in your backpack
+#   Each type of Posion keg in different containers
+#   Restock Agent 1 as keg
+#   Script variable called "restock_container_regular_kegs"
+#   Script variable called "restock_container_greater_kegs"
+#   Script variable called "restock_container_deadly_kegs"
+#   Script variable called "restock_container_lethal_kegs"
+#   Organizer Agent 1 as keg - Set to a different container then your restock containers
+##################
+# How to heal through failed posion?
+##################
+#   Training poison has the ability to kill you if you do not heal or cure yourself.  
+#   This script attempts to use heal and cure pots to survive.  You should also
+#   have another character constantly bandaging you since this script does not use 
+#   and has no extra restock agent related to heal/cure pots
+
+if not findtype "kryss" backpack and not listexists 'select_train_weapon'
+    overhead 'Please select your target weapon to train poison on' 88
+    setvar 'select_train_weapon'
+    createlist 'select_train_weapon'
+endif
+
+removelist 'skill_check'
+removelist 'keg_container'
+createlist 'skill_check'
+createlist 'keg_container'
+
+while not dead
+    
+    if skill 'poisoning' >= 100
+        overhead 'Maxed out' 88
+        wait 2500
+        replay
+    elseif skill 'poisoning' < 50
+        overhead 'Go train at vendor to 50' 34
+        wait 2500
+        replay
+    elseif skill 'poisoning' < 55
+        pushlist "skill_check" 55
+        pushlist "keg_container" "restock_container_regular_kegs"
+    elseif skill 'poisoning' < 80
+        pushlist "skill_check" 80
+        pushlist "keg_container" "restock_container_greater_kegs"
+    elseif skill 'poisoning' < 100
+        pushlist "skill_check" 100
+        pushlist "keg_container" "restock_container_deadly_kegs"
+    elseif skill 'poisoning' < 120
+        pushlist "skill_check" 120
+        pushlist "keg_container" "restock_container_lethal_kegs"
+    else
+        replay
+    endif
+        
+    if not findtype "empty bottle%s%" backpack
+        overhead 'Need at least one empty bottle!' 34
+        wait 1000
+        replay
+    endif
+    
+    if findtype "keg" backpack
+        overhead 'Clear bag of kegs'
+        organizer 1
+        wait 500
+    endif
+    
+    foreach skillchecker in skill_check
+        while skill 'poisoning' < skillchecker
+            overhead skillchecker
+            if not findtype "keg" backpack
+                restock 1
+                waitfortarget 
+                foreach kegcontainer in keg_container
+                    overhead kegcontainer
+                    target kegcontainer
+                endfor
+                wait 2500
+            endif
+            
+            if not findtype "keg" backpack
+                overhead "Missing keg!" 34
+                wait 2500
+                replay
+            endif
+            
+            dclicktype "keg" backpack
+            wait 500
+            
+            if not insysmsg "place it into your backpack"
+                organizer 1
+                wait 500
+            endif
+            
+            if findtype "Green Potion" backpack and hp > 50
+                skill 'Poisoning'
+                waitfortarget
+                targettype "Green Potion" backpack
+                waitfortarget
+                if findtype "kryss" backpack
+                    targettype "kryss" backpack
+                else
+                    target 'select_train_weapon'
+                endif
+                wait 3500
+            endif
+            
+            if findtype "Yellow Potion" backpack and hp < 50
+                hotkey 'Drink Heal'
+                wait 500
+            endif
+
+            if poisoned
+                overhead 'Posioned'
+                while poisoned
+                    if findtype "Orange Potion" backpack
+                        hotkey 'Drink Cure'
+                        wait 500
+                    else
+                        overhead "Out of cures... you gonna die" 34
+                        wait 1000
+                    endif
+                    
+                    if findtype "Yellow Potion" backpack and hp < 40
+                        hotkey 'Drink Heal'
+                        wait 500
+                    endif
+                endwhile
+                wait 2000
+            else
+                wait 3500
+            endif
+        endwhile
+    endfor
+    
+endwhile

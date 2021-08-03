@@ -1,9 +1,9 @@
 # List Skill Scripts for UO Outlands by Jaseowns
 
-## <a href="./">🔙 View All</a>
+## <a href="https://github.com/jaseowns/uo_outlands_razor_scripts">🔙 View All</a>
 
 | Skill | Type |
 | --- | --- |
-| <a href="./Skill%20List/Alchemy">Alchemy</a> | Trade |
-| <a href="./Skill%20List/Camping">Camping</a> | Utility |
+| <a href="./Alchemy">Alchemy</a> | Trade |
+| <a href="./Camping">Camping</a> | Utility |
 

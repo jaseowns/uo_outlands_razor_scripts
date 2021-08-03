@@ -2,7 +2,7 @@
 
 ## Training Hiding
 [Train Hiding Only](Train_Hiding_Only.razor)  
-[Train Hiding and Stealth](Train_Hiding_and_Stealth.razor)  
+[Train Hiding and Stealth](Train_Hiding_And_Stealth.razor)  
 
 Check out the video on how to use these scripts here:
 

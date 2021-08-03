@@ -1,6 +1,6 @@
 # List Skill Scripts for UO Outlands by Jaseowns
 
-## <a href="../">🔙 View All</a>
+## <a href="./">🔙 View All</a>
 
 | Skill | Type |
 | --- | --- |

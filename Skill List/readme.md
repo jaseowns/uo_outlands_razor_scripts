@@ -1,2 +1,9 @@
-# List of all the different Skill Scripts for UO Outlands by Jaseowns
-I will be adding scripts for all skills to this list.  
+# List Skill Scripts for UO Outlands by Jaseowns
+
+## <a href="../">🔙 View All</a>
+
+| Skill | Type |
+| --- | --- |
+| <a href="./Skill%20List/Alchemy">Alchemy</a> | Trade |
+| <a href="./Skill%20List/Camping">Camping</a> | Utility |
+

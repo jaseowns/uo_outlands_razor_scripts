@@ -1,6 +1,6 @@
 # Forensic Evaluation Scripts for UO Outlands by Jaseowns
 
-<a href="https://github.com/jaseowns/uo_outlands_razor_scripts/tree/main/Skill%20List">🔙</a> to skill list
+<a href="https://github.com/jaseowns/uo_outlands_razor_scripts/tree/main/Skill%20List">🔙 to skill list</a> | <a href="https://www.patreon.com/jaseowns">Donate on pateron</a> | <a href="https://youtube.com/jaseowns">Subscribe on Youtube</a>
 
 ## Training Forensic Evaluation
 [Skinning with Forensic Evaluation](https://raw.githubusercontent.com/jaseowns/uo_outlands_razor_scripts/main/Skill%20List/Forensic%20Evaluation/Skinning.razor)  

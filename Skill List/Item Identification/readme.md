@@ -6,7 +6,7 @@
 [Train Item Identification](https://raw.githubusercontent.com/jaseowns/uo_outlands_razor_scripts/main/Skill%20List/Item%20Identification/Train_Item_Identification.razor)  
 
 ### Check out the video on how to use these scripts here:
-[![Training Item ID](https://img.youtube.com/vi/hELkTYPB23M/0.jpg)](https://youtu.be/hELkTYPB23M)  
+[![Training Item ID](https://img.youtube.com/vi/Hwh8hW2LEaw/0.jpg)](https://youtu.be/Hwh8hW2LEaw)  
 
 ## References about Item Identification
 [Item Id Armor and Save Best](https://raw.githubusercontent.com/jaseowns/uo_outlands_razor_scripts/main/Skill%20List/Item%20Identification/Run_Item_Id_Armor.razor)  

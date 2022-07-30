@@ -1,5 +1,6 @@
 # UO Outlands Razor Scripts
-I've been making videos on YouTube about Razor scripts, I'll use this github repo for reference at the end of the videos.
+I've been making videos on YouTube about Razor scripts, I'll use this github repo for reference at the end of the videos.  I've also made a public script repository site that you can browse and share scripts - be sure to check out <a href="https://outlands.uorazorscripts.com/">https://outlands.uorazorscripts.com/</a>
+
 
 ## Check out the [Skill List](./Skill%20List) or browse based on the images below
 

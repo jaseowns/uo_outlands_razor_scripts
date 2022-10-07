@@ -6,10 +6,17 @@
 // for now using timers
 
 @setvar! cdLightning 60000
-@setvar! cdMagicArrow 60000
+@setvar! cdMagicArrow 40000
 @setvar! cdHarm 60000
 @setvar! cdFireball 60000
 @setvar! cdEvilOmen 30000
+@setvar! cdVampiricEmbrace 30000
+@setvar! cdMushroom 60000
+
+if not timerexists magicMushroomTimer
+    createtimer magicMushroomTimer
+    settimer magicMushroomTimer cdMushroom
+endif
 
 if not timerexists magicArrowTimer
     createtimer magicArrowTimer
@@ -35,6 +42,13 @@ if not timerexists evilOmenTimer
     createtimer evilOmenTimer
     settimer evilOmenTimer cdEvilOmen
 endif
+
+if not timerexists vampiricEmbraceTimer
+    createtimer vampiricEmbraceTimer
+    settimer vampiricEmbraceTimer cdVampiricEmbrace
+endif
+
+
 
 
 say "all kill"
@@ -69,68 +83,139 @@ if timer evilOmenTimer >= cdEvilOmen
     wait 500
 endif
 
-
-if timer lightningTimer >= cdLightning
-    while not targetexists and not dead myKillTarget
-        cast 'Lightning'
-        wait 50
-    endwhile
-    target myKillTarget
-    settimer lightningTimer 0
-    wait 500
-endif
-
-if timer magicArrowTimer >= cdMagicArrow
-    while not targetexists and not dead myKillTarget
-        cast 'magic arrow'
-        wait 50
-    endwhile
-    target myKillTarget
-    settimer magicArrowTimer 0
-    wait 500
-endif
-
-if timer harmTimer >= cdHarm
-    while not targetexists and not dead myKillTarget
-        cast 'harm'
-        wait 50
-    endwhile
-    target myKillTarget
-    settimer harmTimer 0
-    wait 500
-endif
-
-if timer fireballTimer >= cdFireball
-    while not targetexists and not dead myKillTarget
-        cast 'fireball'
-        wait 50
-    endwhile
-    target myKillTarget
-    settimer fireballTimer 0
-    wait 500
-endif
+clearsysmsg 
 
 while not dead myKillTarget
+    
+    if timer vampiricEmbraceTimer >= cdVampiricEmbrace and findtype 8198 ground -1 -1 4 as jorpse
+        say "[VampiricEmbrace"
+        wft 500
+        target jorpse
+        settimer vampiricEmbraceTimer 0
+    endif
+   
+    
+    if insysmsg "You may now use another magic mushroom"
+        // mushroom ready
+    elseif insysmsg "You may now cast a wizardry lightning spell again."
+        settimer lightningTimer cdLightning
+    elseif insysmsg "You may now cast a wizardry magic arrow spell again."
+        settimer magicArrowTimer cdMagicArrow
+    elseif insysmsg "You may now cast a wizardry fireball spell again."
+        settimer fireballTimer cdFireball
+    elseif insysmsg "You may now cast a wizardry harm spell again."
+        settimer harmTimer cdHarm
+    endif
+    
+    if mana > 12 and timer lightningTimer >= cdLightning
+        while not targetexists
+            cast 'Lightning'
+            wait 50
+            if dead myKillTarget
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target myKillTarget
+        settimer lightningTimer 0
+        wait 500
+    endif
 
-    if mana > 40
+    if mana > 10 and timer magicArrowTimer >= cdMagicArrow
+        while not targetexists
+            cast 'magic arrow'
+            wait 50
+            if dead myKillTarget
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target myKillTarget
+        settimer magicArrowTimer 0
+        wait 500
+    endif
+
+    if mana > 12 and timer harmTimer >= cdHarm
+        while not targetexists
+            cast 'harm'
+            wait 50
+            if dead myKillTarget
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target myKillTarget
+        settimer harmTimer 0
+        wait 500
+    endif
+
+    if mana > 12 and timer fireballTimer >= cdFireball
+        while not targetexists
+            cast 'fireball'
+            wait 50
+            if dead myKillTarget
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target myKillTarget
+        settimer fireballTimer 0
+        wait 500
+    endif
+
+    if diffhits >= 30 and mana > 12
+        while not targetexists
+            cast 'Greater Heal'
+            wait 50
+            if hp = maxhp
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target self
+    elseif mana > 40
         while not targetexists and mana > 40
             cast 'Flamestrike'
             wait 50
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            endif
         endwhile
         target myKillTarget
-    elseif not findbuff "actively meditating" and findtype "mushroom" backpack as mushy
+    elseif not findbuff "actively meditating" and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
         dclick mushy
-        if mana < 40 and not findbuff "actively meditating"
-            useskill 'meditation'
-        endif
+        settimer magicMushroomTimer 0
     elseif not findbuff "actively meditating" 
         useskill 'meditation'
+        wait 500
     endif
-
     wait 50
 endwhile
 wait 500
-
+if targetexists 
+    hotkey 'Cancel Current Target'
+endif
+say "all guard me"
+if counttype "mushroom" backpack < 5
+    while counttype "mushroom" backpack < 15
+        cast "Create Food"
+        wait 200
+    endwhile
+endif
+while mana < 50
+    if not findbuff "actively meditating" 
+        useskill 'meditation'
+    endif
+    wait 500
+endwhile
+if timer vampiricEmbraceTimer >= cdVampiricEmbrace and findtype 8198 ground -1 -1 4 as jorpse
+    say "[VampiricEmbrace"
+    wft 500
+    target jorpse
+    settimer vampiricEmbraceTimer 0
+endif
+   
 
 
 // curse

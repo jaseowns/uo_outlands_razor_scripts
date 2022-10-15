@@ -5,13 +5,28 @@
 // cooldowns for mushrooms, mana vampire and healpots
 // for now using timers
 
-@setvar! cdLightning 60000
-@setvar! cdMagicArrow 40000
-@setvar! cdHarm 60000
+// Make sure we have a spell book attached
+if findlayer self righthand as item
+    // do nothing
+elseif findtype "3834" backpack as item
+    dclick item
+endif
+
+# Update this variable to 1 for ALL KILL
+# Update this variable to 0 for target nearest
+@setvar! setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster 0
+
+
+@setvar! cdLightning 40000
+@setvar! cdMagicArrow 20000
+@setvar! cdHarm 40000
 @setvar! cdFireball 60000
 @setvar! cdEvilOmen 30000
 @setvar! cdVampiricEmbrace 30000
+@setvar! cdCorpseSkin 30000
+@setvar! cdMindRot 30000
 @setvar! cdMushroom 60000
+
 
 if not timerexists magicMushroomTimer
     createtimer magicMushroomTimer
@@ -48,45 +63,147 @@ if not timerexists vampiricEmbraceTimer
     settimer vampiricEmbraceTimer cdVampiricEmbrace
 endif
 
+if not timerexists corpseSkinTimer
+    createtimer corpseSkinTimer
+    settimer corpseSkinTimer cdCorpseSkin
+endif
+
+if not timerexists mindRotTimer
+    createtimer mindRotTimer
+    settimer mindRotTimer cdMindRot
+endif
 
 
 
-say "all kill"
-wait 200
-while targetexists 
-    // wait
-    wait 50
-endwhile
+
+if setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster = 1
+    say "all kill"
+    wait 200
+    while targetexists 
+        // wait
+        wait 50
+    endwhile
+else
+    hotkey 'Target Closest Non-Friendly Monster'
+    wait 200
+    if insysmsg "No one matching that was found"
+        overhead "found no one" 34
+        stop
+    endif    
+endif
+
 @setvar myKillTarget lasttarget 
+
+if not varexist myPreviousKillTarget
+    @setvar myPreviousKillTarget 0     
+endif
 
 getlabel myKillTarget desc
 overhead desc
 
-while not targetexists and not dead myKillTarget
-    cast 'Curse'
-    wait 50
-endwhile
-target myKillTarget
-wait 500
+if not varexist myEarthPet or dead myEarthPet
+    overhead "Your pet is dead, demonic summon time" 34
+else
+    menu myEarthPet 1
+    wft 500
+    target myKillTarget
+endif
 
+if find myKillTarget -1 -1 12 as killy
+   // do nothing
+else
+    overhead "Out of range" 34
+    stop
+endif
 
-while not targetexists and not dead myKillTarget
-    cast 'mana drain'
-    wait 50
-endwhile
-target myKillTarget
-wait 500
-
-if timer evilOmenTimer >= cdEvilOmen
-    say "[EvilOmen"
-    settimer evilOmenTimer 0
+if myKillTarget = myPreviousKillTarget
+    // do nthoing
+else
+    
+    while not targetexists and not dead myKillTarget
+        cast 'Curse'
+        wait 50
+        if diffhits >= 30 
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    target myKillTarget
     wait 500
+
+
+    while not targetexists and not dead myKillTarget
+        cast 'mana drain'
+        wait 50
+        if diffhits >= 30 
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    target myKillTarget
+    wait 500
+
+    @setvar myPreviousKillTarget myKillTarget
+
 endif
 
 clearsysmsg 
 
+say "all guard"
+
+@setvar! isLethalPoison 0
+
 while not dead myKillTarget
     
+
+
+    if timer corpseSkinTimer >= cdCorpseSkin
+        overhead "Should be CorpseSkin!" 34
+        say "[CorpseSkin"
+        settimer corpseSkinTimer 0
+        wait 500
+    endif
+    
+    if skill "poisoning" >= 100
+
+        if timer mindRotTimer >= cdMindRot
+            overhead "Should be mind rotting!" 34
+            say "[MindRot"
+            settimer mindRotTimer 0
+            wait 500
+        endif
+        
+        while isLethalPoison = 0
+            getlabel myKillTarget desc2
+            overhead desc2 66
+            // poison lethal
+            if "Lethal" in desc2
+                @setvar! isLethalPoison 1
+                break
+            elseif diffhits >= 30 
+                // need a heal
+                break
+            elseif mana >= 9
+                while not targetexists
+                    cast 'poison'
+                    wait 50
+                    if dead myKillTarget
+                        hotkey '> Interrupt'
+                        break
+                    endif
+                endwhile
+                target myKillTarget
+            else
+                wait 200
+            endif
+        endwhile
+    endif
+    if timer evilOmenTimer >= cdEvilOmen
+        say "[EvilOmen"
+        settimer evilOmenTimer 0
+        wait 200
+    endif
+
     if timer vampiricEmbraceTimer >= cdVampiricEmbrace and findtype 8198 ground -1 -1 4 as jorpse
         say "[VampiricEmbrace"
         wft 500
@@ -94,21 +211,15 @@ while not dead myKillTarget
         settimer vampiricEmbraceTimer 0
     endif
    
-    
-    if insysmsg "You may now use another magic mushroom"
-        // mushroom ready
-    elseif insysmsg "You may now cast a wizardry lightning spell again."
-        settimer lightningTimer cdLightning
-    elseif insysmsg "You may now cast a wizardry magic arrow spell again."
-        settimer magicArrowTimer cdMagicArrow
-    elseif insysmsg "You may now cast a wizardry fireball spell again."
-        settimer fireballTimer cdFireball
-    elseif insysmsg "You may now cast a wizardry harm spell again."
-        settimer harmTimer cdHarm
+    if find myKillTarget -1 -1 12 as killy
+       // do nothing
+    else
+        overhead "Out of range" 34
+        break
     endif
     
-    if mana > 12 and timer lightningTimer >= cdLightning
-        while not targetexists
+    if diffhits < 30 and mana > 12 and timer lightningTimer >= cdLightning
+        while not targetexists or diffhits >= 30 
             cast 'Lightning'
             wait 50
             if dead myKillTarget
@@ -121,8 +232,8 @@ while not dead myKillTarget
         wait 500
     endif
 
-    if mana > 10 and timer magicArrowTimer >= cdMagicArrow
-        while not targetexists
+    if diffhits < 30 and mana > 10 and timer magicArrowTimer >= cdMagicArrow
+        while not targetexists or diffhits >= 30 
             cast 'magic arrow'
             wait 50
             if dead myKillTarget
@@ -135,11 +246,11 @@ while not dead myKillTarget
         wait 500
     endif
 
-    if mana > 12 and timer harmTimer >= cdHarm
+    if diffhits < 30 and mana > 12 and timer harmTimer >= cdHarm
         while not targetexists
             cast 'harm'
             wait 50
-            if dead myKillTarget
+            if dead myKillTarget or diffhits >= 30 
                 hotkey '> Interrupt'
                 break
             endif
@@ -149,11 +260,11 @@ while not dead myKillTarget
         wait 500
     endif
 
-    if mana > 12 and timer fireballTimer >= cdFireball
+    if diffhits < 30 and mana > 12 and timer fireballTimer >= cdFireball
         while not targetexists
             cast 'fireball'
             wait 50
-            if dead myKillTarget
+            if dead myKillTarget or diffhits >= 30 
                 hotkey '> Interrupt'
                 break
             endif
@@ -165,7 +276,11 @@ while not dead myKillTarget
 
     if diffhits >= 30 and mana > 12
         while not targetexists
-            cast 'Greater Heal'
+            if diffhits >= 60
+                cast 'Heal'
+            else
+                cast 'Greater Heal'                
+            endif
             wait 50
             if hp = maxhp
                 hotkey '> Interrupt'
@@ -173,6 +288,8 @@ while not dead myKillTarget
             endif
         endwhile
         target self
+    elseif mana < 55 and findbuff "actively meditating" 
+        // wait for mana
     elseif mana > 40
         while not targetexists and mana > 40
             cast 'Flamestrike'

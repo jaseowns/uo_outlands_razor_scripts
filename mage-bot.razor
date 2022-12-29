@@ -5,6 +5,14 @@
 # Make cooldowns match the names of skills 
 # (check out for details: https://outlands.uorazorscripts.com/mage-bot)
 #
+# VERISON: v2.2.0
+#
+#    
+// 12/26/2022
+// - updated poison strike and how it deals with poison
+// - added earth elemental as pet only instead of mummy
+// 12/21/2022
+// - fixed bug with mindblast and two lich summons
 // 12/17/2022
 // - V2 of AutoBot created.  Idea is to leverage things from mining script
 ##################
@@ -28,6 +36,9 @@
 @setvar! castSummonFireElementalCount 1
 @setvar! castSummonCreatureCount 1
 @setvar! castSummonEarthElementalCount 1
+@setvar! castSummonEarthElementalAsMummy 0
+
+
 
 ###############
 ###  Choose your spells
@@ -39,11 +50,11 @@
 @setvar! castHarm 1
 @setvar! castMagicArrow 1
 # When other spells are on cooldown, do you want to cast MindBlast or Flamestrike or both
-@setvar! castMindBlast 0
+@setvar! castMindBlast 1
 @setvar! castFlamestrike 1
 
 ### Buffs
-@setvar! castBless 1
+@setvar! castBless 0
 @setvar! castMagicShield 1
 @setvar! castReactiveArmor 1
 # Drink Magic resist potion (only if magic shield buff not found)
@@ -56,8 +67,10 @@
 @setvar! castCorpseSkin 1
 @setvar! castVampiricEmbrace 0
 @setvar! castMindRot 1
+@setvar! castPoisonStrike 1
 @setvar! castBloodOath 1
 @setvar! castPainSpike 1
+@setvar! requireWitherBeforeSummons 0
 
 ###############
 ### Edit these cooldowns to match your wizard grimoire
@@ -79,6 +92,8 @@
 @setvar! cdVengefulSpirit 30500
 @setvar! cdBloodOath 30500
 @setvar! cdPainSpike 30500
+@setvar! cdPoisonStrike 30500
+
 
 #### Buff Cooldowns
 @setvar! cdMushroom 61000
@@ -141,8 +156,9 @@ endif
 ##################################################################
 
 if not varexist JaseOwns
+    overhead "v2.2.0" 34
+    overhead "uorazorscripts.com/mage-bot" 34
     say "This script was brought to you by youtube.com/Jaseowns" 88
-    overhead "uorazorscripts.com" 34
     wait 500
     @setvar! JaseOwns 1
 endif
@@ -296,6 +312,11 @@ if not timerexists painSpikeTimer
     settimer painSpikeTimer cdPainSpike
 endif
 
+if not timerexists poisonStrikeTimer
+    createtimer poisonStrikeTimer
+    settimer poisonStrikeTimer cdPoisonStrike
+endif
+
 if not timerexists preventOverheadSpamTimer
     createtimer preventOverheadSpamTimer
     settimer preventOverheadSpamTimer cdPreventOverheadSpam
@@ -312,7 +333,7 @@ if not varexist myEarthPet
 endif
 
 // make sure we have enough symbols to summon (6 for wither + vengful spirit)
-if skill "Necromancy" >= 90
+if skill "Necromancy" >= 90 and requireWitherBeforeSummons = 1
     while followers < 4 and 6 > necroSymbols
         // we already have vengeful spirit active, skip the check
         if timer vengefulSpiritTimer < cdVengefulSpirit
@@ -467,10 +488,16 @@ if castSummonEarthElementalCount > 0
                     endif
                     wait 200
                 endwhile
-                if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
+                
+                if castSummonEarthElementalAsMummy = 1
+                    if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
+                        yell "[VengefulSpirit"
+                        settimer vengefulSpiritTimer 0
+                        wait 500
+                    endif
+                elseif timer vengefulSpiritTimer <= cdVengefulSpirit and skill "Necromancy" >= 50
+                    overhead  "Waiting for spirit to go away" 
+                    replay
                 endif
                 while followers = followCount
                     cast "Earth elemental"
@@ -572,6 +599,14 @@ endif
 
 if castSummonFireElementalCount > 0
     if diffhits < 30
+    
+        if lichOne = 0 
+            // do nothing
+        elseif lichOne = lichTwo
+            overhead "Duplicated"
+            unsetvar lichOne
+        endif
+        
         if followers = 0
             @setvar! followCount 0
         elseif followers = 1
@@ -605,6 +640,7 @@ if castSummonFireElementalCount > 0
                     settimer vengefulSpiritTimer 0
                     wait 500
                 endif
+                @ignore lichTwo
                 while followers = followCount
                     cast "fire elemental"
                     wait 500
@@ -629,7 +665,9 @@ if castSummonFireElementalCount > 0
                         poplist petNameList "front"
                     endif
                     @setvar! lichOne myPet
+                    overhead "Lich One Set" 88 lichOne
                     say "all guard me"
+                    @clearignore 
                     replay
                 endif
             endif
@@ -670,6 +708,7 @@ if castSummonFireElementalCount > 0
                     settimer vengefulSpiritTimer 0
                     wait 500
                 endif
+                @ignore lichOne
                 while followers = followCount
                     cast "fire elemental"
                     wait 500
@@ -693,10 +732,13 @@ if castSummonFireElementalCount > 0
                         endfor
                         poplist petNameList "front"
                     endif
+                    @clearignore
                     @setvar! lichTwo myPet
+                    overhead "Lich Two Set" 88 lichTwo
                     say "all guard me"
                     replay
                 endif
+                
             endif
         endif
     endif
@@ -1289,15 +1331,86 @@ while not dead myKillTarget and find myKillTarget -1 -1 12 as killy
                     endif
                 endif
                 
-                while isLethalPoison = 0
+                                
+                getlabel myKillTarget desc2
+                overhead desc2
+                
+                if castPoisonStrike = 1 and timer preventSpamNecroAbilitiesTimer >= cdPreventSpamNecroAbilities and timer poisonStrikeTimer >= cdPoisonStrike and skill "Necromancy" >= 55 and 1 < necroSymbols 
+                    if "Ticks" in desc2
+                        if "[8" in desc2 or "[7" in desc2 or "[6" in desc2  or "[5" in desc2  or "[4" in desc2  or "[3" in desc2  or "[2" in desc2  or "[1 " in desc2 
+                            yell "[PoisonStrike"
+                            wft 500
+                            target myKillTarget
+                            wait 200
+                            settimer preventSpamNecroAbilitiesTimer 0
+                            settimer poisonStrikeTimer 0
+                            wait 500
+                            if gumpexists 622436516
+                                if ingump "12/" 622436516
+                                    @setvar! necroSymbols 12
+                                elseif ingump "13/" 622436516
+                                    @setvar! necroSymbols 13
+                                elseif ingump "14/" 622436516
+                                    @setvar! necroSymbols 14
+                                elseif ingump "15/" 622436516
+                                    @setvar! necroSymbols 15
+                                elseif ingump "16/" 622436516
+                                    @setvar! necroSymbols 16
+                                elseif ingump "17/" 622436516
+                                    @setvar! necroSymbols 17
+                                elseif ingump "18/" 622436516
+                                    @setvar! necroSymbols 18
+                                elseif ingump "19/" 622436516
+                                    @setvar! necroSymbols 19
+                                elseif ingump "20/" 622436516
+                                    @setvar! necroSymbols 20
+                                elseif ingump "21/" 622436516
+                                    @setvar! necroSymbols 21
+                                elseif ingump "11/" 622436516
+                                    @setvar! necroSymbols 11
+                                elseif ingump "10/" 622436516
+                                    @setvar! necroSymbols 10
+                                elseif ingump "9/" 622436516
+                                    @setvar! necroSymbols 9
+                                elseif ingump "8/" 622436516
+                                    @setvar! necroSymbols 8
+                                elseif ingump "7/" 622436516
+                                    @setvar! necroSymbols 7
+                                elseif ingump "6/" 622436516
+                                    @setvar! necroSymbols 6
+                                elseif ingump "5/" 622436516
+                                    @setvar! necroSymbols 5
+                                elseif ingump "4/" 622436516
+                                    @setvar! necroSymbols 4
+                                elseif ingump "3/" 622436516
+                                    @setvar! necroSymbols 3
+                                elseif ingump "2/" 622436516
+                                    @setvar! necroSymbols 2
+                                elseif ingump "1/" 622436516
+                                    @setvar! necroSymbols 1
+                                elseif ingump "0/" 622436516
+                                    @setvar! necroSymbols 0
+                                endif
+                            endif
+                        endif
+                    endif
+                endif
+                
+                
+                
+                if isLethalPoison = 0
                     
+                    if diffmana >= 30 and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
+                        overhead "Eating shrooms" 66
+                        dclick mushy
+                        settimer magicMushroomTimer 0
+                    endif
+                
                     if insysmsg "Target cannot be seen." 
                         overhead "CANNOT BE SEEN MOVE TO NEXT TARGET" 34
                         replay
                     endif 
-                
-                    getlabel myKillTarget desc2
-                    overhead desc2 66
+
                     // poison lethal
                     if "Lethal" in desc2
                         @setvar! isLethalPoison 1
@@ -1329,7 +1442,7 @@ while not dead myKillTarget and find myKillTarget -1 -1 12 as killy
                     else
                         wait 200
                     endif
-                endwhile
+                endif
             endif
         endif
         
@@ -1819,7 +1932,7 @@ while not dead myKillTarget and find myKillTarget -1 -1 12 as killy
         // wait for mana
     elseif timer meditiationTimer < cdMeditationMini and findbuff "actively meditating" 
         // wait for mana
-    elseif castMindBlast = 1 mana >= 32
+    elseif castMindBlast = 1 and mana >= 32
         while not targetexists and mana > 30
             if diffmana >= 30 and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
                 overhead "Eating shrooms" 66
@@ -1983,3 +2096,14 @@ endif
 
 // thanks for using a Jaseowns script!
 // https://www.youtube.com/jaseowns
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+// We did it

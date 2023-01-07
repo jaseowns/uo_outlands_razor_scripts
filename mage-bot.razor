@@ -8,6 +8,10 @@
 # VERISON: v2.3.0
 #
 #    
+// 01/07/2023
+// - control mana break requirement
+// - fix pet selection to avoid others summoned pets (reds/grays)
+// - must setup IgnoreMobs friends list and checkbox Ignore 
 // 12/26/2022
 // - updated poison strike and how it deals with poison
 // - added earth elemental as pet only instead of mummy
@@ -19,6 +23,9 @@
 ## Always room for improvment, thanks for watching!
 ############
 
+# make sure you add a friends list called: IgnoreMobs
+@setvar! didYouSetupIgnoreMobs 1
+@setvar! minimumManaToCast 40 
 
 # Set this to one, if you want to cast poison once no matter what
 # If you have 100 poisoning and want Lethal, set this to 0
@@ -106,7 +113,6 @@
 
 #### Random cooldowns
 @setvar! cdPreventOverheadSpam 2000
-@setvar! cdHealPot 10000
 
 #### Mushroom count (I like a lot of shroomies)
 @setvar! makeThisManyMushroomsCount 15
@@ -163,6 +169,19 @@ if not varexist JaseOwns
     say "This script was brought to you by youtube.com/Jaseowns" 88
     wait 500
     @setvar! JaseOwns 1
+endif
+
+if didYouSetupIgnoreMobs = 0
+    overhead "For this script to work, make sure you add a friends list called: IgnoreMobs" 34
+    sysmsg  "For this script to work, make sure you add a friends list called: IgnoreMobs" 34
+    wait 1500
+    overhead "Click Friends Tab -> [checkmark] enabled -> [checkmark] Next/Prev Target ignores 'IgnoreMobs'" 88
+    sysmsg "Click Friends Tab -> [checkmark] enabled -> [checkmark] Next/Prev Target ignores 'IgnoreMobs'" 88
+    wait 5000
+    overhead "If everything is setup, update didYouSetupIgnoreMobs to 1"
+    sysmsg "If everything is setup, update didYouSetupIgnoreMobs to 1"
+    wait 5000
+    replay
 endif
 
 if not gumpexists 622436516 and skill "Necromancy" >= 50
@@ -965,6 +984,20 @@ else
         endif
         stop
     elseif not find lasttarget ground -1 -1 8
+    
+        @setvar checkForSummons lasttarget 
+        getlabel checkForSummons checkForSummonsDesc
+    
+        if "(summoned" in checkForSummonsDesc or "(bonded" in checkForSummonsDesc
+            overhead "▼ Player pet - IGNORE ▼" 77 lasttarget
+            while not targetexists 
+                hotkey 'Add Target To: IgnoreMobs'
+                wait 200
+            endwhile
+            target myKillTarget 
+            replay
+        endif    
+    
         overhead "● ▼ OUT OF RANGE ▼ ●" 88 lasttarget
         if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
             overhead "Move closer, more then 8 tiles away" 34
@@ -993,6 +1026,16 @@ endif
 
 getlabel myKillTarget desc
 overhead desc
+
+if "(summoned" in desc or "(bonded" in desc
+    overhead "▼ Player pet - IGNORE ▼" 77 lasttarget
+    while not targetexists 
+        hotkey 'Add Target To: IgnoreMobs'
+        wait 200
+    endwhile
+    target myKillTarget 
+    replay
+endif    
 
 if not varexist myEarthPet or dead myEarthPet
     if not dead earthOne
@@ -1737,7 +1780,6 @@ while not dead myKillTarget and find myKillTarget -1 -1 12 as killy
                     // do nothing
                 else
                     dclick pot
-                    cooldown "Heal Potion" cdHealPot
                     wait 500
                 endif
             endif
@@ -1909,7 +1951,6 @@ while not dead myKillTarget and find myKillTarget -1 -1 12 as killy
                 // do nothing
             else
                 dclick pot
-                cooldown "Heal Potion" cdHealPot
                 wait 500
             endif
         endif
@@ -2017,7 +2058,7 @@ endif
 if not findbuff "actively meditating" 
     say "all guard me"
 endif
-while mana < 50
+while mana < minimumManaToCast
     if setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster = 0
         hotkey 'Target Closest Non-Friendly Monster'
         wait 200
@@ -2044,7 +2085,6 @@ while mana < 50
                 // do nothing
             else
                 dclick pot
-                cooldown "Heal Potion" cdHealPot
                 wait 200
             endif
         endif
@@ -2091,7 +2131,6 @@ endif
 if castSummonEarthElementalAsMummy = 0
     useskill "spiritspeak"
     settimer meditiationTimer 8000
-    wait 500
 endif
 if timer killTargetTimer >= cdKillTarget
     overhead "We cleared curse and mana drain targets" 34

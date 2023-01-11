@@ -1,0 +1,521 @@
+# Dexxer Bot by Jaseowns
+# UO Outlands
+#######
+# Working on this during the live streams: Monday / Wednesday / Friday
+# https://youtube.com/jaseowns/live
+#######
+# Basic Heal and Chivalry abilties to heal by Jaseowns
+# UO Outlands
+@setvar! cdPreventOverheadSpam 2000
+
+# Check potion buffs controllers
+@setvar! checkStr 1
+@setvar! checkDex 1
+@setvar! checkMagic 1
+
+@setvar! minimumWaitForPing 200
+
+##############################################
+###########  DO NOT EDIT BELOW THIS
+#######
+
+if not findtype "White Potion" backpack
+    @setvar! checkStr 0
+endif
+
+if not findtype "Blue Potion" backpack
+    @setvar! checkDex 0
+endif
+
+if not findtype "Black Potion" backpack
+    @setvar! checkMagic 0
+endif
+
+@setvar! cdAids 15000
+if dex >= 100
+    @setvar! cdAids 10000    
+endif
+
+if not timerexists preventOverheadSpamTimer
+    createtimer preventOverheadSpamTimer
+    settimer preventOverheadSpamTimer cdPreventOverheadSpam
+endif
+
+if not timerexists aidsTimer
+    createtimer aidsTimer
+    settimer aidsTimer cdAids
+endif
+
+@setvar! myKillTarget 0 
+@setvar! targetInRange 0 
+
+if not varexist myPreviousKillTarget
+    @setvar myPreviousKillTarget 0     
+endif
+
+hotkey 'Target Closest Non-Friendly Monster'
+wait minimumWaitForPing
+if insysmsg "No one matching that was found"
+    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+        overhead "found no one" 34
+        settimer preventOverheadSpamTimer 0
+    endif
+else
+    @setvar! myKillTarget lasttarget 
+endif    
+
+if myKillTarget = 0
+    // do nothing
+elseif not find lasttarget ground -1 -1 1
+    overhead "● ▼ OUT OF RANGE ▼ ●" 88 lasttarget
+    if find lasttarget ground -1 -1 8
+        attack lasttarget 
+    endif
+else
+    @setvar! targetInRange 1
+    overhead "● ▼▼ HERE ▼▼ ●" 88 lasttarget    
+    attack lasttarget 
+endif
+
+if targetInRange = 1
+    # Eat food if we got it
+    if not findbuff "food" and findtype "tray" backpack as jood
+        dclick jood
+        wait minimumWaitForPing
+    endif
+
+    @setvar! needStrBuff 0
+    @setvar! needDexBuff 0
+    @setvar! needMagicBuff 0
+
+    if checkStr = 1 and not findbuff "Strength"
+        @setvar! needStrBuff 1
+    endif
+
+    if checkDex = 1 and not findbuff "Agility"
+        @setvar! needDexBuff 1 
+    endif
+
+    if checkMagic = 1 and not findbuff "Magic Resist Potion"
+        @setvar! needMagicBuff 1 
+    endif
+
+    @setvar! jaseCanDrinkPotion 0
+
+    if needStrBuff = 1 or needDexBuff = 1 or needMagicBuff = 1
+
+        // katana and battleaxe are hardcoded
+        @setvar! minimumWaitForPing 200
+
+        @setvar! jaseRightHand 0
+        @setvar! jaseLeftHand 0
+        @setvar! needTwoHandSwap 0
+        @setvar! needShieldSwap 0
+
+        if skill "Alchemy" >= 80
+            @setvar! jaseCanDrinkPotion 1
+        else
+            if not findlayer self lefthand and not findlayer self righthand
+                @setvar! jaseCanDrinkPotion 1
+            else
+                if findlayer self lefthand as myLefthand
+                    @setvar! jaseLeftHand myLefthand
+                endif
+                if findlayer self righthand as myRightHand
+                    @setvar! jaseRightHand myRightHand
+                endif 
+                if not lhandempty 
+                    if not rhandempty 
+                        @setvar! jaseCanDrinkPotion 0
+                    else
+                        // handle two handed weapons
+                        getlabel jaseLeftHand desc
+                        if skill "Swordsmanship" > 0
+                           if "axe" in desc or "bardiche" in desc or "halberd" in desc
+                                @setvar! jaseCanDrinkPotion 0
+                                @setvar! needTwoHandSwap 1
+                            else   
+                                @setvar! jaseCanDrinkPotion 1
+                            endif
+                        elseif skill "Mace Fighting" > 0
+                            if "staff" in desc or "crook" in desc or "war hammer" in desc
+                                @setvar! jaseCanDrinkPotion 0
+                                @setvar! needTwoHandSwap 1
+                            else   
+                                @setvar! jaseCanDrinkPotion 1
+                            endif
+                        elseif skill "Fencing" > 0
+                            if "spear" in desc or "pitchfork" in desc
+                                @setvar! jaseCanDrinkPotion 0
+                                @setvar! needTwoHandSwap 1
+                            else   
+                                @setvar! jaseCanDrinkPotion 1
+                            endif
+                        elseif skill "Archery" > 0
+                            if "bow" in desc or "heavy crossbow" in desc
+                                @setvar! jaseCanDrinkPotion 0
+                                @setvar! needTwoHandSwap 1
+                            else   
+                                @setvar! jaseCanDrinkPotion 1
+                            endif
+                        elseif skill "Wrestling" > 0
+                            @setvar! jaseCanDrinkPotion 1
+                        endif  
+                    endif
+                endif
+                if not rhandempty 
+                    if lhandempty 
+                        @setvar! jaseCanDrinkPotion 1
+                    else
+                        @setvar! needShieldSwap 1
+                    endif
+                endif
+            endif
+        endif
+
+        if jaseCanDrinkPotion = 1
+            // do nothing
+        else
+            if needTwoHandSwap = 1
+                if skill "Swordsmanship" > 0 and findtype "cutlass|broadsword|scimitar|viking sword|longsword|katana" backpack as item
+                    dclick item
+                    wait minimumWaitForPing
+                elseif skill "Mace Fighting" > 0 and findtype "maul|war axe|war mace|mace|hammer pick|club" backpack as item
+                    dclick item
+                    wait minimumWaitForPing
+                elseif skill "Fencing" > 0 and findtype "kryss|war fork|dagger" backpack as item
+                    dclick item
+                    wait minimumWaitForPing
+                elseif skill "Archery" > 0 and findtype "crossbow" backpack as item
+                    dclick item
+                    wait minimumWaitForPing
+                else
+                    hotkey 'Arm/Disarm Left Hand'    
+                    wait minimumWaitForPing
+                endif
+                @setvar! jaseCanDrinkPotion 1
+            elseif needShieldSwap = 1
+                hotkey 'Arm/Disarm Left Hand'
+                @setvar! jaseCanDrinkPotion 1
+                wait minimumWaitForPing
+            endif
+        endif
+
+        if jaseCanDrinkPotion = 1
+            if needStrBuff = 1
+                if findtype "White Potion" backpack as jotion
+                    overhead "chug"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No STR potion found!" 34
+                endif
+            endif
+            
+            if needDexBuff = 1
+                if findtype "Blue Potion" backpack as jotion
+                    overhead "chug"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No AGI potion found!" 34
+                endif
+            endif
+            
+            if needMagicBuff = 1
+                if findtype "Black Potion" backpack as jotion
+                    overhead "chug"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No MR potion found!" 34
+                endif
+            endif
+
+            if needTwoHandSwap = 1
+                dclick jaseLeftHand
+                wait minimumWaitForPing
+            elseif needShieldSwap = 1
+                hotkey 'Arm/Disarm Left Hand'
+            endif
+        endif
+    endif
+    
+endif
+
+if skill "Camping" > 0
+    if not findbuff "campfire"
+        overhead "Camping Buff" 88
+        if not findtype "campfire" ground -1 -1 2 and findtype "kindling" as jindling
+            dclick jindling
+            wait minimumWaitForPing
+        endif
+        if not findtype "campfire" ground -1 -1 2
+            overhead "We have camping, but can not make a campfire!" 34
+        else
+            overhead "Make sure you stand by your camp fire!" 88
+        endif
+    endif
+endif
+
+if skill "Tracking" > 0
+    if not findbuff "tracking"
+        clearsysmsg
+        while not gumpexists 4267467659
+            useskill 'tracking'
+            wait minimumWaitForPing
+        endwhile
+        if gumpexists 4267467659
+            while not insysmsg "You will now hunt all hostile players."
+                gumpresponse 8 4267467659
+                waitforgump 4267467659 5000
+            endwhile
+            gumpresponse 6 4267467659
+            wait minimumWaitForPing
+        endif
+        gumpclose 4267467659
+    endif
+endif
+
+if skill "Chivalry" >= 50
+
+    @setvar! chivSymbols 0
+    @setvar! showChivUsageAsOverhead 1
+    @setvar! showChivUsageAsSystemMessage 1
+    @setvar! showChivUsageAsOverheadColor 88
+    @setvar! showChivUsageAsSystemMessageColor 88
+    
+    @setvar! useHolyLightAutomatically 1
+    @setvar! useDivineFuryAutomatically 1
+    @setvar! hpTriggerForHolyLight 35
+
+    @setvar! cdCleanseByFire 31000
+    @setvar! cdCloseWounds 31000
+    @setvar! cdHolyLight 31000
+    @setvar! cdDivineFury 31000
+
+    if not timerexists cleanseByFireTimer
+        createtimer cleanseByFireTimer
+        settimer cleanseByFireTimer cdCleanseByFire
+    endif
+
+    if not timerexists closeWoundsTimer
+        createtimer closeWoundsTimer
+        settimer closeWoundsTimer cdCloseWounds
+    endif
+    
+    if not timerexists holyLightTimer
+        createtimer holyLightTimer
+        settimer holyLightTimer cdHolyLight
+    endif
+    
+    if not timerexists divineFuryTimer
+        createtimer divineFuryTimer
+        settimer divineFuryTimer cdDivineFury
+    endif
+    
+    while not gumpexists 1387930325
+        say "[ChivalryHotbar"
+        wait 200
+    endwhile
+    
+    if gumpexists 1387930325
+        if ingump "12/" 1387930325
+            @setvar! chivSymbols 12
+        elseif ingump "13/" 1387930325
+            @setvar! chivSymbols 13
+        elseif ingump "14/" 1387930325
+            @setvar! chivSymbols 14
+        elseif ingump "15/" 1387930325
+            @setvar! chivSymbols 15
+        elseif ingump "16/" 1387930325
+            @setvar! chivSymbols 16
+        elseif ingump "17/" 1387930325
+            @setvar! chivSymbols 17
+        elseif ingump "18/" 1387930325
+            @setvar! chivSymbols 18
+        elseif ingump "19/" 1387930325
+            @setvar! chivSymbols 19
+        elseif ingump "20/" 1387930325
+            @setvar! chivSymbols 20
+        elseif ingump "21/" 1387930325
+            @setvar! chivSymbols 21
+        elseif ingump "11/" 1387930325
+            @setvar! chivSymbols 11
+        elseif ingump "10/" 1387930325
+            @setvar! chivSymbols 10
+        elseif ingump "9/" 1387930325
+            @setvar! chivSymbols 9
+        elseif ingump "8/" 1387930325
+            @setvar! chivSymbols 8
+        elseif ingump "7/" 1387930325
+            @setvar! chivSymbols 7
+        elseif ingump "6/" 1387930325
+            @setvar! chivSymbols 6
+        elseif ingump "5/" 1387930325
+            @setvar! chivSymbols 5
+        elseif ingump "4/" 1387930325
+            @setvar! chivSymbols 4
+        elseif ingump "3/" 1387930325
+            @setvar! chivSymbols 3
+        elseif ingump "2/" 1387930325
+            @setvar! chivSymbols 2
+        elseif ingump "1/" 1387930325
+            @setvar! chivSymbols 1
+        elseif ingump "0/" 1387930325
+            @setvar! chivSymbols 0
+        endif
+    endif
+    
+    if poisoned and skill "Chivalry" >= 60
+        if timer cleanseByFireTimer >= cdCleanseByFire and 2 < chivSymbols
+            if showChivUsageAsOverhead = 1
+                overhead "Cleanse by fire" showChivUsageAsOverheadColor
+            endif
+            if showChivUsageAsSystemMessage = 1
+                sysmsg "Cleanse by fire" showChivUsageAsSystemMessageColor
+            endif
+            yell "[CleanseByFire"
+            settimer cleanseByFireTimer 0
+            cooldown CleanseByFire cdCleanseByFire
+        endif
+    elseif findbuff "bleed" or findbuff "disease" and skill "Chivalry" >= 70
+        if timer closeWoundsTimer >= cdCleanseByFire and 3 < chivSymbols
+            if showChivUsageAsOverhead = 1
+                overhead "Close Wounds" showChivUsageAsOverheadColor
+            endif
+            if showChivUsageAsSystemMessage = 1
+                sysmsg "Close Wounds" showChivUsageAsSystemMessageColor
+            endif
+            yell "[CloseWounds"
+            settimer closeWoundsTimer 0
+            cooldown CloseWounds cdCloseWounds
+        endif
+    endif
+    
+    if gumpexists 1387930325
+        if ingump "12/" 1387930325
+            @setvar! chivSymbols 12
+        elseif ingump "13/" 1387930325
+            @setvar! chivSymbols 13
+        elseif ingump "14/" 1387930325
+            @setvar! chivSymbols 14
+        elseif ingump "15/" 1387930325
+            @setvar! chivSymbols 15
+        elseif ingump "16/" 1387930325
+            @setvar! chivSymbols 16
+        elseif ingump "17/" 1387930325
+            @setvar! chivSymbols 17
+        elseif ingump "18/" 1387930325
+            @setvar! chivSymbols 18
+        elseif ingump "19/" 1387930325
+            @setvar! chivSymbols 19
+        elseif ingump "20/" 1387930325
+            @setvar! chivSymbols 20
+        elseif ingump "21/" 1387930325
+            @setvar! chivSymbols 21
+        elseif ingump "11/" 1387930325
+            @setvar! chivSymbols 11
+        elseif ingump "10/" 1387930325
+            @setvar! chivSymbols 10
+        elseif ingump "9/" 1387930325
+            @setvar! chivSymbols 9
+        elseif ingump "8/" 1387930325
+            @setvar! chivSymbols 8
+        elseif ingump "7/" 1387930325
+            @setvar! chivSymbols 7
+        elseif ingump "6/" 1387930325
+            @setvar! chivSymbols 6
+        elseif ingump "5/" 1387930325
+            @setvar! chivSymbols 5
+        elseif ingump "4/" 1387930325
+            @setvar! chivSymbols 4
+        elseif ingump "3/" 1387930325
+            @setvar! chivSymbols 3
+        elseif ingump "2/" 1387930325
+            @setvar! chivSymbols 2
+        elseif ingump "1/" 1387930325
+            @setvar! chivSymbols 1
+        elseif ingump "0/" 1387930325
+            @setvar! chivSymbols 0
+        endif
+    endif
+    
+    if useHolyLightAutomatically = 1 and hp <= hpTriggerForHolyLight and skill "Chivalry" >= 95
+        
+        @setvar! doubleCheckHolyLight 1
+    
+        if cdAids = 10000 and timer aidsTimer >= 9000
+            // skip holy light
+            overhead "Skipping Holy Light" 34
+            @setvar! doubleCheckHolyLight 0
+            // unless we gonna die
+            if hp <= 20 or poisoned
+                overhead "Just kidding, do not wanna die" 34
+                @setvar! doubleCheckHolyLight 1
+            endif
+        endif
+        
+        if doubleCheckHolyLight = 1
+            if timer holyLightTimer >= cdHolyLight and 5 < chivSymbols
+                if showChivUsageAsOverhead = 1
+                    overhead "Holy Light" showChivUsageAsOverheadColor
+                endif
+                if showChivUsageAsSystemMessage = 1
+                    sysmsg "Holy Light" showChivUsageAsSystemMessageColor
+                endif
+                yell "[HolyLight"
+                settimer holyLightTimer 0
+                cooldown HolyLight cdHolyLight
+            endif
+        endif
+    endif
+    
+    if targetInRange = 1 and useDivineFuryAutomatically = 1 and skill "Chivalry" >= 85
+        if timer divineFuryTimer >= cdDivineFury and 4 < chivSymbols
+            if showChivUsageAsOverhead = 1
+                overhead "Divine Fury" showChivUsageAsOverheadColor
+            endif
+            if showChivUsageAsSystemMessage = 1
+                sysmsg "Divine Fury" showChivUsageAsSystemMessageColor
+            endif
+            yell "[DivineFury"
+            settimer divineFuryTimer 0
+            cooldown DivineFury cdDivineFury
+        endif
+    endif
+endif
+
+if skill "Healing" > 0
+    if findtype "clean bandage%s%" backpack as aids
+        if not bandaging and hp < maxhp
+            overhead "Missing health"
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+            settimer aidsTimer 0
+        elseif not bandaging and poisoned
+            overhead "Poison"
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+            settimer aidsTimer 0
+        elseif not bandaging and findbuff "bleed"
+            overhead "Bleed"
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+            settimer aidsTimer 0
+        elseif not bandaging and findbuff "disease"
+            overhead "Diease"
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+            settimer aidsTimer 0
+        endif
+    else
+        overhead "No bandages" 34
+    endif
+endif
+wait 200
+loop

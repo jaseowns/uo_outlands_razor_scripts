@@ -4,20 +4,121 @@
 # Working on this during the live streams: Monday / Wednesday / Friday
 # https://youtube.com/jaseowns/live
 #######
+#####
+##  Verison 0.2.0
+##  Last Edit: 1/19/2023 - adding codex stance checks
+###
+
 # Basic Heal and Chivalry abilties to heal by Jaseowns
 # UO Outlands
+@setvar! showTargetOverheadMessages 1
 @setvar! cdPreventOverheadSpam 2000
 
 # Check potion buffs controllers
 @setvar! checkStr 1
 @setvar! checkDex 1
 @setvar! checkMagic 1
+@setvar! checkHealPot 1
+@setvar! checkCurePot 1
+@setvar! checkRefreshPot 1
 
+################################
+###### Chiv abilities
+################
+@setvar! useCleanseByFireAutomatically 1
+@setvar! useCloseWoundsAutomatically 1
+@setvar! useHolyLightAutomatically 1
+@setvar! useDivineFuryAutomatically 1
+@setvar! hpTriggerForHolyLight 35
+@setvar! lowHealthTriggerForNobleSacrifice 40
+
+@setvar! cdCleanseByFire 31000
+@setvar! cdCloseWounds 31000
+@setvar! cdHolyLight 31000
+@setvar! cdDivineFury 31000
+@setvar! cdNobleSacrifice 31000
+
+################################
+###### Chiv abilities overheads
+################
+@setvar! showChivUsageAsOverhead 1
+@setvar! showChivUsageAsSystemMessage 1
+@setvar! showChivUsageAsOverheadColor 88
+@setvar! showChivUsageAsSystemMessageColor 88
+
+
+
+# These control when the potion will be drank
+# Edit to your liking
+@setvar! hpCheckToTriggerHealPotion 35
+@setvar! hpCheckToTriggerCurePotion 40
+@setvar! stamDiffCheckToTriggerRedPotion 10
+
+################################
+###### Codex Stance Switch
+################
+@setvar! switchShieldCodexAutomatically 1
+@setvar! switchToWardingStanceDuringBleed 1
+@setvar! switchToWardingStanceDuringDisease 1
+@setvar! switchToWardingStanceDuringPoison 1
+@setvar! cdSwitchStance 10000
+
+# Automatically Select Next Target
+@setvar! autoTargetNextMob 1
+
+###########
+# If shit is not working right, adjust this number to ping
+#####
 @setvar! minimumWaitForPing 200
+@setvar! minimumWaitForPingUnequipping 650
 
 ##############################################
 ###########  DO NOT EDIT BELOW THIS
 #######
+
+if dead 
+    overhead "Rip" 34
+
+    if gumpexists 2957810225
+        gumpresponse 1 2957810225
+    endif
+
+    wait 5000
+    replay
+endif
+
+if not varexist jaseCrimHealCheck
+    gumpclose 3587807212
+    while not gumpexists 3587807212
+        say '[commands'
+        wait 200
+    endwhile
+    gumpresponse 11 3587807212
+    waitforgump 3587807212 5000
+    gumpresponse 3 3587807212
+    waitforgump 3587807212 5000
+    if ingump "[PreventCriminalHealing" 3587807212
+        if ingump "Prevented"
+            gumpclose 3587807212
+        else
+            gumpresponse 29 3587807212
+            waitforgump 3587807212 5000
+            gumpclose 3587807212
+        endif
+    endif
+    @setvar! jaseCrimHealCheck 1
+endif
+
+if insysmsg 'world is saving'
+    for 60
+        overhead 'Waiting for world save...'
+        wait 100
+        if insysmsg 'save complete'
+            overhead 'Save complete - continue on!' 88
+            break
+        endif
+    endfor
+endif
 
 if not findtype "White Potion" backpack
     @setvar! checkStr 0
@@ -53,30 +154,55 @@ if not varexist myPreviousKillTarget
     @setvar myPreviousKillTarget 0     
 endif
 
-hotkey 'Target Closest Non-Friendly Monster'
-wait minimumWaitForPing
-if insysmsg "No one matching that was found"
-    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-        overhead "found no one" 34
-        settimer preventOverheadSpamTimer 0
-    endif
-else
-    @setvar! myKillTarget lasttarget 
-endif    
-
-if myKillTarget = 0
-    // do nothing
-elseif not find lasttarget ground -1 -1 1
-    overhead "● ▼ OUT OF RANGE ▼ ●" 88 lasttarget
-    if find lasttarget ground -1 -1 8
+if autoTargetNextMob = 1
+    @hotkey 'Target Closest Non-Friendly Monster'
+    wait minimumWaitForPing
+    if insysmsg "No one matching that was found"
+        if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+            overhead "found no one" 34
+            settimer preventOverheadSpamTimer 0
+        endif
+    else
+        @setvar! myKillTarget lasttarget 
+    endif    
+    
+    if myKillTarget = 0
+        // do nothing
+    elseif not find lasttarget ground -1 -1 1
+        if showTargetOverheadMessages = 1 and timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+            overhead "● ▼ OUT OF RANGE ▼ ●" 88 lasttarget
+            settimer preventOverheadSpamTimer 0
+        endif
+        if find lasttarget ground -1 -1 8
+            attack lasttarget 
+        endif
+    else
+        @setvar! targetInRange 1
+        if showTargetOverheadMessages = 1 and timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+            overhead "● ▼▼ HERE ▼▼ ●" 88 lasttarget    
+            settimer preventOverheadSpamTimer 0
+        endif
         attack lasttarget 
     endif
-else
+elseif dead myKillTarget
+    @hotkey 'Target Closest Non-Friendly Monster'
+    wait minimumWaitForPing
+    if insysmsg "No one matching that was found"
+        // do nothing
+    else
+        @setvar! myKillTarget lasttarget 
+        if myKillTarget = 0
+            // do nothing
+        elseif not find lasttarget ground -1 -1 1
+            // do nothing
+        else
+            @setvar! targetInRange 1
+        endif
+    endif    
+elseif find myKillTarget ground -1 -1 1
     @setvar! targetInRange 1
-    overhead "● ▼▼ HERE ▼▼ ●" 88 lasttarget    
-    attack lasttarget 
 endif
-
+ 
 if targetInRange = 1
     # Eat food if we got it
     if not findbuff "food" and findtype "tray" backpack as jood
@@ -87,6 +213,9 @@ if targetInRange = 1
     @setvar! needStrBuff 0
     @setvar! needDexBuff 0
     @setvar! needMagicBuff 0
+    @setvar! needHealPot 0
+    @setvar! needCurePot 0
+    @setvar! needRefreshPot 0
 
     if checkStr = 1 and not findbuff "Strength"
         @setvar! needStrBuff 1
@@ -100,12 +229,52 @@ if targetInRange = 1
         @setvar! needMagicBuff 1 
     endif
 
+    if checkHealPot = 1 and hp <= hpCheckToTriggerHealPotion
+        @setvar! needHealPot 1 
+    endif
+
+    if checkCurePot = 1 and poisoned and hp <= hpCheckToTriggerCurePotion
+        @setvar! needCurePot 1 
+    endif
+
+    if checkRefreshPot = 1 and diffstam >= stamDiffCheckToTriggerRedPotion
+        @setvar! needRefreshPot 1 
+    endif
+
+    if needStrBuff = 1 and not findtype "White Potion" backpack
+        @setvar! needStrBuff 0
+    endif
+
+    if needDexBuff = 1 and not findtype "Blue Potion" backpack
+        @setvar! needDexBuff 0
+    endif
+
+    if needMagicBuff = 1 and not findtype "Black Potion" backpack
+        @setvar! needMagicBuff 0
+    endif
+
+    if needHealPot = 1 and not findtype "Yellow Potion" backpack
+        @setvar! needHealPot 0
+    elseif needHealPot = 1 and findtype "Yellow Potion" backpack as item
+        getlabel item healPotDesc
+        if "next usable" in healPotDesc
+            @setvar! needHealPot 0
+        else
+            @setvar! needHealPot 1
+        endif
+    endif
+
+    if needCurePot = 1 and not findtype "Orange Potion" backpack
+        @setvar! needCurePot 0
+    endif
+
+    if needRefreshPot = 1 and not findtype "Red Potion" backpack
+        @setvar! needRefreshPot 0
+    endif
+    
     @setvar! jaseCanDrinkPotion 0
 
-    if needStrBuff = 1 or needDexBuff = 1 or needMagicBuff = 1
-
-        // katana and battleaxe are hardcoded
-        @setvar! minimumWaitForPing 200
+    if needStrBuff = 1 or needDexBuff = 1 or needMagicBuff = 1 or needHealPot = 1 or needCurePot = 1 or needRefreshPot = 1
 
         @setvar! jaseRightHand 0
         @setvar! jaseLeftHand 0
@@ -195,13 +364,50 @@ if targetInRange = 1
                 endif
                 @setvar! jaseCanDrinkPotion 1
             elseif needShieldSwap = 1
-                hotkey 'Arm/Disarm Left Hand'
-                @setvar! jaseCanDrinkPotion 1
-                wait minimumWaitForPing
+                overhead "we should be disarming left hand"
+                while not lhandempty
+                    hotkey 'Arm/Disarm Left Hand'
+                    wait minimumWaitForPingUnequipping
+                    while queued
+                        wait 100
+                    endwhile
+                endwhile
+                setvar! jaseCanDrinkPotion 1
             endif
         endif
 
         if jaseCanDrinkPotion = 1
+            if needHealPot = 1
+                if findtype "Yellow Potion" backpack as jotion
+                    overhead "chug heal"
+                    dclick jotion
+                    wait minimumWaitForPing
+                    cooldown "Yellow Potion" 10000
+                else
+                    overhead "No Heal potion found!" 34
+                endif
+            endif
+            
+            if needCurePot = 1
+                if findtype "Orange Potion" backpack as jotion
+                    overhead "chug cure"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No Cure potion found!" 34
+                endif
+            endif
+            
+            if needRefreshPot = 1
+                if findtype "Red Potion" backpack as jotion
+                    overhead "chug refresh"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No Refresh potion found!" 34
+                endif
+            endif
+        
             if needStrBuff = 1
                 if findtype "White Potion" backpack as jotion
                     overhead "chug"
@@ -237,10 +443,91 @@ if targetInRange = 1
                 wait minimumWaitForPing
             elseif needShieldSwap = 1
                 hotkey 'Arm/Disarm Left Hand'
+                wait minimumWaitForPingUnequipping
             endif
         endif
     endif
     
+endif
+
+#############
+### CODEX
+#############
+if skill "Parrying" >= 80 and findtype "shield codex" backpack as item
+
+    if not timerexists jaseSwitchStanceTimer
+        settimer jaseSwitchStanceTimer cdSwitchStance
+    endif
+    
+    if not varexist canUseShieldFinisher
+        @setvar! canUseShieldFinisher 1
+    endif
+    
+    while not gumpexists 1066647553
+        overhead "Loading hotbar"
+        yell "[CodexHotBar"
+        wait minimumWaitForPing
+    endwhile
+
+    if switchShieldCodexAutomatically = 1 and timer jaseSwitchStanceTimer >= cdSwitchStance
+        getlabel item codexDesc
+        
+        // make sure we are in warding stance
+        @setvar! switchToWarding 0
+
+        if switchToWardingStanceDuringBleed = 1 and findbuff "bleed" 
+            @setvar! switchToWarding 1
+        elseif switchToWardingStanceDuringDisease = 1 and findbuff "disease" 
+            @setvar! switchToWarding 1
+        elseif switchToWardingStanceDuringPoison = 1 and findbuff "disease" 
+            @setvar! switchToWarding 1
+        endif
+
+        if switchToWarding = 1
+            if "Warding" in codexDesc
+                // we good
+            else
+                yell [ShieldsStance2
+                settimer jaseSwitchStanceTimer 0
+                wait 200
+            endif    
+            
+            if "Barrier" in codexDesc
+                // we good
+            elseif canUseShieldFinisher = 1
+                yell [ShieldsFinisher2
+                wait 200
+                if insysmsg "You must first reach rank 5"
+                    @setvar! canUseShieldFinisher 0
+                endif
+            endif    
+        else
+            if "Bulwark" in codexDesc
+                // we good
+            else
+                yell [ShieldsStance5
+                settimer jaseSwitchStanceTimer 0
+                wait 200
+            endif
+            
+            if "Last Stand" in codexDesc
+                // we good
+            elseif canUseShieldFinisher = 1
+                yell [ShieldsFinisher1
+                wait 200
+                if insysmsg "You must first reach rank 5"
+                    @setvar! canUseShieldFinisher 0
+                endif
+            endif
+        endif
+    endif
+endif
+
+# Use Taste ID if possible
+if skill "Taste Identification" >= 50 and not findbuff "herb"
+    useskill 'tasteidentification'
+    wft 500
+    target backpack
 endif
 
 if skill "Camping" > 0
@@ -280,19 +567,16 @@ endif
 if skill "Chivalry" >= 50
 
     @setvar! chivSymbols 0
-    @setvar! showChivUsageAsOverhead 1
-    @setvar! showChivUsageAsSystemMessage 1
-    @setvar! showChivUsageAsOverheadColor 88
-    @setvar! showChivUsageAsSystemMessageColor 88
-    
-    @setvar! useHolyLightAutomatically 1
-    @setvar! useDivineFuryAutomatically 1
-    @setvar! hpTriggerForHolyLight 35
-
     @setvar! cdCleanseByFire 31000
     @setvar! cdCloseWounds 31000
     @setvar! cdHolyLight 31000
     @setvar! cdDivineFury 31000
+    @setvar! cdNobleSacrifice 31000
+
+    if not timerexists nobleSacrificeTimer
+        createtimer nobleSacrificeTimer
+        settimer nobleSacrificeTimer cdCleanseByFire
+    endif
 
     if not timerexists cleanseByFireTimer
         createtimer cleanseByFireTimer
@@ -367,8 +651,72 @@ if skill "Chivalry" >= 50
         endif
     endif
     
+    if hp <= lowHealthTriggerForNobleSacrifice and skill "Chivalry" >= 80
+         if timer nobleSacrificeTimer >= cdNobleSacrifice and 4 < chivSymbols
+            if showChivUsageAsOverhead = 1
+                overhead "Noble Sacrifice" showChivUsageAsOverheadColor
+            endif
+            if showChivUsageAsSystemMessage = 1
+                sysmsg "Noble Sacrifice" showChivUsageAsSystemMessageColor
+            endif
+            yell "[NobleSacrifice"
+            wft 500
+            hotkey "Target Self"
+            settimer nobleSacrificeTimer 0
+            cooldown NobleSacrifice cdNobleSacrifice
+            
+            if gumpexists 1387930325
+                if ingump "12/" 1387930325
+                    @setvar! chivSymbols 12
+                elseif ingump "13/" 1387930325
+                    @setvar! chivSymbols 13
+                elseif ingump "14/" 1387930325
+                    @setvar! chivSymbols 14
+                elseif ingump "15/" 1387930325
+                    @setvar! chivSymbols 15
+                elseif ingump "16/" 1387930325
+                    @setvar! chivSymbols 16
+                elseif ingump "17/" 1387930325
+                    @setvar! chivSymbols 17
+                elseif ingump "18/" 1387930325
+                    @setvar! chivSymbols 18
+                elseif ingump "19/" 1387930325
+                    @setvar! chivSymbols 19
+                elseif ingump "20/" 1387930325
+                    @setvar! chivSymbols 20
+                elseif ingump "21/" 1387930325
+                    @setvar! chivSymbols 21
+                elseif ingump "11/" 1387930325
+                    @setvar! chivSymbols 11
+                elseif ingump "10/" 1387930325
+                    @setvar! chivSymbols 10
+                elseif ingump "9/" 1387930325
+                    @setvar! chivSymbols 9
+                elseif ingump "8/" 1387930325
+                    @setvar! chivSymbols 8
+                elseif ingump "7/" 1387930325
+                    @setvar! chivSymbols 7
+                elseif ingump "6/" 1387930325
+                    @setvar! chivSymbols 6
+                elseif ingump "5/" 1387930325
+                    @setvar! chivSymbols 5
+                elseif ingump "4/" 1387930325
+                    @setvar! chivSymbols 4
+                elseif ingump "3/" 1387930325
+                    @setvar! chivSymbols 3
+                elseif ingump "2/" 1387930325
+                    @setvar! chivSymbols 2
+                elseif ingump "1/" 1387930325
+                    @setvar! chivSymbols 1
+                elseif ingump "0/" 1387930325
+                    @setvar! chivSymbols 0
+                endif
+            endif
+        endif
+    endif
+    
     if poisoned and skill "Chivalry" >= 60
-        if timer cleanseByFireTimer >= cdCleanseByFire and 2 < chivSymbols
+        if useCleanseByFireAutomatically = 1 and timer cleanseByFireTimer >= cdCleanseByFire and 2 < chivSymbols
             if showChivUsageAsOverhead = 1
                 overhead "Cleanse by fire" showChivUsageAsOverheadColor
             endif
@@ -380,7 +728,7 @@ if skill "Chivalry" >= 50
             cooldown CleanseByFire cdCleanseByFire
         endif
     elseif findbuff "bleed" or findbuff "disease" and skill "Chivalry" >= 70
-        if timer closeWoundsTimer >= cdCleanseByFire and 3 < chivSymbols
+        if useCloseWoundsAutomatically = 1 and timer closeWoundsTimer >= cdCleanseByFire and 3 < chivSymbols
             if showChivUsageAsOverhead = 1
                 overhead "Close Wounds" showChivUsageAsOverheadColor
             endif
@@ -487,30 +835,32 @@ if skill "Chivalry" >= 50
 endif
 
 if skill "Healing" > 0
-    if findtype "clean bandage%s%" backpack as aids
-        if not bandaging and hp < maxhp
-            overhead "Missing health"
-            dclick aids
-            wft 500
-            hotkey 'Target Self'
+        
+    @setvar! cdAids 15000
+    if dex >= 100
+        @setvar! cdAids 10000    
+    endif
+
+    if not timerexists aidsTimer
+        createtimer aidsTimer
+        settimer aidsTimer cdAids
+    endif
+
+    if findtype "clean bandage%s%" backpack
+        if skill "Chivalry" >= 80 and timer nobleSacrificeTimer <= 5000 and timer aidsTimer >= 5000 and hp < maxhp
+            hotkey 'Bandage Self'
+            settimer aidsTimer 0
+        elseif not bandaging and hp < maxhp
+            hotkey 'Bandage Self'
             settimer aidsTimer 0
         elseif not bandaging and poisoned
-            overhead "Poison"
-            dclick aids
-            wft 500
-            hotkey 'Target Self'
+            hotkey 'Bandage Self'
             settimer aidsTimer 0
         elseif not bandaging and findbuff "bleed"
-            overhead "Bleed"
-            dclick aids
-            wft 500
-            hotkey 'Target Self'
+            hotkey 'Bandage Self'
             settimer aidsTimer 0
         elseif not bandaging and findbuff "disease"
-            overhead "Diease"
-            dclick aids
-            wft 500
-            hotkey 'Target Self'
+            hotkey 'Bandage Self'
             settimer aidsTimer 0
         endif
     else

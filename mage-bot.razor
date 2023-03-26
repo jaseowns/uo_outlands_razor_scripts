@@ -1,11 +1,12 @@
 # One hotkey mage cycle, nox, poison by Jaseowns
 # UO Outlands - https://outlands.uorazorscripts.com/mage-bot
 #
-# Version: v8.1.0
+# Version: v8.1.1
 #
 #    
-// 03/24/2023
-//  - new summon code and findtype enabled by default
+// 03/26/2023
+//  - fix getting stuck on summons if already at 4
+//  - fix heal and summon issue
 #
 ##################
 ## Always room for improvment, thanks for watching!
@@ -217,7 +218,7 @@ endif
 ##################################################################
 
 if not varexist JaseOwns
-    overhead "v8.1.0" 34
+    overhead "v8.1.1" 34
     overhead "uorazorscripts.com/mage-bot" 34
     say "This script was brought to you by youtube.com/Jaseowns" 88
     wait 500
@@ -820,6 +821,7 @@ if followers < 5
     endif
     while targetexists 
         hotkey 'Cancel Current Target'
+        wait 200
     endwhile
 endif
 
@@ -905,6 +907,14 @@ foreach summon in summonList
             @setvar! followCount 5
         endif
         
+        if summon = "Summ. Creature" or summon = "Blade Spirits"
+            // these only take 1 - so keep trying to cast
+        elseif followers >= 4
+            // if we already at 4, skip to next summon
+            break
+        endif
+        
+        
         while followers = followCount
             if followers = 5
                 break
@@ -920,9 +930,25 @@ foreach summon in summonList
                 settimer witherTimer 0
             endif
             if diffhits >= hpCheckToTriggerGreaterHealSpell
+                if targetexists 
+                    hotkey "Cancel Current target"
+                endif
                 overhead "Need a heal!"
                 hotkey '> Interrupt'
-                break
+                while diffhits >= hpCheckToTriggerGreaterHealSpell and mana > 12
+                    while not targetexists beneficial
+                        if diffhits >= hpCheckToTriggerMiniEmergencyHealSpell
+                            cast 'Heal'
+                        else
+                            cast 'Greater Heal'                
+                        endif
+                        wait 50
+                    endwhile
+                    while targetexists beneficial
+                        hotkey "Target Self"
+                        wait 50
+                    endwhile
+                endwhile
             endif
         endwhile
         wait 200

@@ -1,11 +1,11 @@
 # One hotkey mage cycle, nox, poison by Jaseowns
 # UO Outlands - https://outlands.uorazorscripts.com/mage-bot
 #
-# VERISON: v7.1.0
+# Version: v8.1.0
 #
 #    
-// 03/17/2023
-//  - fixing curse of cursor 
+// 03/24/2023
+//  - new summon code and findtype enabled by default
 #
 ##################
 ## Always room for improvment, thanks for watching!
@@ -45,10 +45,16 @@
 
 @setvar! manaReserve 50
 
+# Ultimate Summoner Hotkey Choose your summons by Jaseowns
+# UO Outlands
+# This is part of the mage bot, but you can have it
+# as its own hotkey
+
 ###############
 ###  Choose your summons
 ######
 @setvar! breakSpellCastAndResummonIfLessThanXFollowers 4
+@setvar! renamePets 1
 
 # Earth: 0, 1, 2
 @setvar! castSummonEarthElementalCount 0
@@ -73,32 +79,13 @@
 # Creature: 0, 1, 2, 3, 4, 5
 @setvar! castSummonCreatureCount 1
 
-if name = "Jaseowns"
-    # Earth: 0, 1, 2
-    @setvar! castSummonEarthElementalCount 0
-    @setvar! castSummonMummyCount 0
+# Energy Vortex: 0, 1
+@setvar! castEnergyVortexCount 0
+@setvar! castJackalSpiritCount 0
 
-    # Fire: 0, 1, 2
-    @setvar! castSummonFireElementalCount 0
-    @setvar! castSummonLichCount 0
-
-    # Demon: 0, 1, 2
-    @setvar! castSummonDemonCount 2
-    @setvar! castSummonThrallCount 0
-
-    # Air: 0, 1, 2
-    @setvar! castSummonAirCount 0
-    @setvar! castSummonFiendCount 0
-
-    # Water: 0, 1, 2
-    @setvar! castSummonWaterCount 0
-    @setvar! castSummonRagWitchCount 0
-
-    # Creature: 0, 1, 2, 3, 4, 5
-    @setvar! castSummonCreatureCount 1
-endif
-
-# eventually rename these to be liches, firelement, earth, mummy, demon/thrall whatever it is
+# Blade Spirit: 0, 1
+@setvar! castBladeSpiritCount 0
+@setvar! castSkeletalHuskCount 0
 
 ###############
 ###  Choose your spells
@@ -230,7 +217,7 @@ endif
 ##################################################################
 
 if not varexist JaseOwns
-    overhead "v7.1.0" 34
+    overhead "v8.1.0" 34
     overhead "uorazorscripts.com/mage-bot" 34
     say "This script was brought to you by youtube.com/Jaseowns" 88
     wait 500
@@ -272,33 +259,6 @@ if skill "Animal Taming" > 50
     endif
 endif
  
-if castSummonFireElementalCount > 0 and castSummonLichCount > 0
-    overhead "I am not going to do that. Update lich/fire to one or the other." 34
-    sysmsg "I am not going to do that. Update lich/fire to one or the other." 34
-    wait 2000
-    replay
-elseif castSummonEarthElementalCount > 0 and castSummonMummyCount > 0
-    overhead "I am not going to do that. Update earth/mummy to one or the other." 34
-    sysmsg "I am not going to do that. Update earth/mummy to one or the other." 34
-    wait 2000
-    replay
-elseif castSummonDemonCount > 0 and castSummonThrallCount > 0
-    overhead "I am not going to do that. Update demon/thrall to one or the other." 34
-    sysmsg "I am not going to do that. Update demon/thrall to one or the other." 34
-    wait 2000
-    replay
-elseif castSummonAirCount > 0 and castSummonFiendCount > 0
-    overhead "I am not going to do that. Update air/fiend to one or the other." 34
-    sysmsg "I am not going to do that. Update air/fiend to one or the other." 34
-    wait 2000
-    replay
-elseif castSummonWaterCount > 0 and castSummonRagWitchCount > 0
-    overhead "I am not going to do that. Update water/witch to one or the other." 34
-    sysmsg "I am not going to do that. Update water/witch to one or the other." 34
-    wait 2000
-    replay
-endif
-
 if weight >= maxweight and not findbuff "strength" and automaticallyDrinkStrPotIfOverWeight = 1 and findtype "white potion" backpack as pot
     dclick pot
     wait 200
@@ -532,9 +492,9 @@ if skill "Necromancy" >= 90 and requireWitherBeforeSummons = 1
            break
         endif
         if diffhits >= hpCheckToTriggerGreaterHealSpell
-            while targetexists 
+            if targetexists 
                 hotkey 'Cancel Current Target'
-            endwhile
+            endif
             while not targetexists 'beneficial'
                 if diffhits >= hpCheckToTriggerMiniEmergencyHealSpell
                     cast 'Heal'
@@ -606,12 +566,74 @@ if skill "Necromancy" >= 90 and requireWitherBeforeSummons = 1
 endif
 
 
-if not varexist lichOne
-    @setvar! lichOne 0
+if diffhits >= hpCheckToTriggerGreaterHealSpell
+    if targetexists 
+        hotkey 'Cancel Current Target'
+    endif
+    while not targetexists 'beneficial'
+        if diffhits >= hpCheckToTriggerMiniEmergencyHealSpell
+            cast 'Heal'
+        else
+            cast 'Greater Heal'                
+        endif
+        wait 50
+        if hp = maxhp
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    if targetexists 'beneficial'
+        hotkey "Target Self"
+    endif
+    replay
 endif
 
-if not varexist lichTwo
-    @setvar! lichTwo 0
+if renamePets = 0
+    clearlist petNameList
+endif
+ 
+if castSummonFireElementalCount > 0 and castSummonLichCount > 0
+    overhead "I am not going to do that. Update lich/fire to one or the other." 34
+    sysmsg "I am not going to do that. Update lich/fire to one or the other." 34
+    wait 2000
+    replay
+elseif castSummonEarthElementalCount > 0 and castSummonMummyCount > 0
+    overhead "I am not going to do that. Update earth/mummy to one or the other." 34
+    sysmsg "I am not going to do that. Update earth/mummy to one or the other." 34
+    wait 2000
+    replay
+elseif castSummonDemonCount > 0 and castSummonThrallCount > 0
+    overhead "I am not going to do that. Update demon/thrall to one or the other." 34
+    sysmsg "I am not going to do that. Update demon/thrall to one or the other." 34
+    wait 2000
+    replay
+elseif castSummonAirCount > 0 and castSummonFiendCount > 0
+    overhead "I am not going to do that. Update air/fiend to one or the other." 34
+    sysmsg "I am not going to do that. Update air/fiend to one or the other." 34
+    wait 2000
+    replay
+elseif castSummonWaterCount > 0 and castSummonRagWitchCount > 0
+    overhead "I am not going to do that. Update water/witch to one or the other." 34
+    sysmsg "I am not going to do that. Update water/witch to one or the other." 34
+    wait 2000
+    replay
+endif
+
+if not gumpexists 622436516 and skill "Necromancy" >= 50
+    say '[NecromancyHotbar'
+    wait 500
+endif
+
+if not varexist myMainTankPet
+    @setvar! myMainTankPet 0
+endif
+
+if not varexist fireOne
+    @setvar! fireOne 0
+endif
+
+if not varexist fireTwo
+    @setvar! fireTwo 0
 endif
 
 if not varexist earthOne
@@ -646,930 +668,165 @@ if not varexist waterTwo
     @setvar! waterTwo 0
 endif
 
-if lichOne = creatureOne or lichTwo = creatureOne or earthOne = creatureOne or earthTwo = creatureOne
-    overhead "Duplicated"
-    unsetvar creatureOne
+if not varexist evOne
+    @setvar! evOne 0
 endif
 
-while targetexists 
-    hotkey 'Cancel Current Target'
-endwhile
-
-if diffhits >= hpCheckToTriggerGreaterHealSpell
-    while not targetexists 'beneficial'
-        if diffhits >= hpCheckToTriggerMiniEmergencyHealSpell
-            cast 'Heal'
-        else
-            cast 'Greater Heal'                
-        endif
-        wait 50
-        if hp = maxhp
-            hotkey '> Interrupt'
-            break
-        endif
-    endwhile
-    if targetexists 'beneficial'
-        hotkey "Target Self"
-    endif
-    replay
+if not varexist bsOne
+    @setvar! bsOne 0
 endif
 
+removelist summonList
+createlist summonList
+    
+if followers = 0
+    @setvar! followCount 0
+elseif followers = 1
+    @setvar! followCount 1
+elseif followers = 2
+    @setvar! followCount 2
+elseif followers = 3
+    @setvar! followCount 3
+elseif followers = 4
+    @setvar! followCount 4
+elseif followers = 5
+    @setvar! followCount 5
+endif
 
 if castSummonEarthElementalCount > 0 or castSummonMummyCount > 0
-    if diffhits < 30
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
-        if dead earthOne or not find earthOne ground -1 -1 12
-            if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                
-                if castSummonMummyCount > 0
-                    if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                        yell "[VengefulSpirit"
-                        settimer vengefulSpiritTimer 0
-                        wait 500
-                    endif
-                elseif timer vengefulSpiritTimer <= cdVengefulSpirit and skill "Necromancy" >= 50
-                    overhead  "Waiting for spirit to go away" 
-                    replay
-                endif
-                while followers = followCount
-                    cast "Earth elemental"
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 158 - an ancient mummy
-                // 14 - an earth elemental
-                if findtype 158|14 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @setvar! earthOne myPet
-                    if followers > 0 
-                        say "all guard me"
-                    endif
-                    replay
-                endif
-            endif
+    if dead earthOne or not find earthOne ground -1 -1 18
+        if followers < 4
+            pushlist summonList "Earth Elemental"
+            @setvar! earthOne 1
         endif
     endif
-    
-    if diffhits > 30 
-        // do nothing
-    elseif castSummonEarthElementalCount > 1 or castSummonMummyCount > 1
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
-        if dead earthTwo or not find earthTwo ground -1 -1 12
+    if castSummonEarthElementalCount > 1 or castSummonMummyCount > 1
+        if dead earthTwo or not find earthTwo ground -1 -1 18
             if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                if castSummonMummyCount > 0 and timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
-                endif
-                while followers = followCount
-                    cast "Earth elemental"
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 158 - an ancient mummy
-                // 14 - an earth elemental
-                if findtype 158|14 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @setvar! earthTwo myPet
-                    if followers > 0
-                        say "all guard me"
-                    endif
-                    replay
-                endif
+                pushlist summonList "Earth Elemental"
+                @setvar! earthTwo 1
             endif
         endif
     endif
 endif
-
-
 
 if castSummonFireElementalCount > 0 or castSummonLichCount > 0
-    if diffhits < 30
-    
-        if lichOne = 0 
-            // do nothing
-        elseif lichOne = lichTwo
-            overhead "Duplicated"
-            unsetvar lichOne
-        endif
-        
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
-        if dead lichOne or not find lichOne ground -1 -1 18
-            if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                if castSummonLichCount > 0 and timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
-                endif
-                @ignore lichTwo
-                while followers = followCount
-                    cast "fire elemental"
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 24 - a lich
-                // 15 - a fire elemental
-                if findtype 24|15 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @setvar! lichOne myPet
-                    overhead "Lich One Set" 88 lichOne
-                    if followers > 0
-                        say "all guard me"
-                    endif
-                    @clearignore 
-                    replay
-                endif
-            endif
+    if dead fireOne or not find fireOne ground -1 -1 18
+        if followers < 4
+            pushlist summonList "Fire Elemental"
+            @setvar! fireOne 1
         endif
     endif
-    
-    if diffhits > 30
-        // do nothing
-    elseif castSummonFireElementalCount > 1 or castSummonLichCount > 1
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
-        if dead lichTwo or not find lichTwo ground -1 -1 18
+    if castSummonFireElementalCount > 1 or castSummonLichCount > 1
+        if dead fireTwo or not find fireTwo ground -1 -1 18
             if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                if castSummonLichCount > 0 and timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
-                endif
-                @ignore lichOne
-                while followers = followCount
-                    cast "fire elemental"
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 24 - a lich
-                // 15 - a fire elemental
-                if findtype 24|15 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @clearignore
-                    @setvar! lichTwo myPet
-                    overhead "Lich Two Set" 88 lichTwo
-                    if followers > 0
-                        say "all guard me"
-                    endif
-                    replay
-                endif
-                
+                pushlist summonList "Fire Elemental"
+                @setvar! fireTwo 1
             endif
         endif
     endif
 endif
 
-############ DEMON
 if castSummonDemonCount > 0 or castSummonThrallCount > 0
-    if diffhits < 30
-    
-        if demonOne = 0 
-            // do nothing
-        elseif demonOne = demonTwo
-            overhead "Duplicated"
-            unsetvar demonTwo
-        endif
-        
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
-        if dead demonOne or not find demonOne ground -1 -1 18
-            if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                if castSummonThrallCount > 0 and timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
-                endif
-                @ignore demonTwo
-                while followers = followCount
-                    cast 'Summon Daemon'
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 9 - a demon
-                // 722 - a vampire thrall
-                if findtype 9|722 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @setvar! demonOne myPet
-                    overhead "Demon One Set" 88 demonOne
-                    if followers > 0
-                        say "all guard me"
-                    endif
-                    @clearignore 
-                    replay
-                endif
-            endif
+    if dead demonOne or not find demonOne ground -1 -1 18
+        if followers < 4
+            pushlist summonList "Summon Daemon"
+            @setvar! demonOne 1
         endif
     endif
-    
-    if diffhits > 30
-        // do nothing
-    elseif castSummonDemonCount > 1 or castSummonThrallCount > 1
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
+    if castSummonDemonCount > 1 or castSummonThrallCount > 1
         if dead demonTwo or not find demonTwo ground -1 -1 18
             if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                if castSummonThrallCount > 0 and timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
-                endif
-                @ignore demonOne
-                while followers = followCount
-                    cast "Summon Daemon"
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 9 - a deamon
-                // 722 - a vampire thrall
-                if findtype 9|722 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @clearignore
-                    @setvar! demonTwo myPet
-                    overhead "Demon Two Set" 88 demonTwo
-                    if followers > 0
-                        say "all guard me"
-                    endif
-                    replay
-                endif
-                
+                pushlist summonList "Summon Daemon"
+                @setvar! demonTwo 1
             endif
         endif
     endif
 endif
 
-############ Water Elemental
-if castSummonWaterCount > 0 or castSummonRagWitchCount > 0
-    if diffhits < 30
-    
-        if waterOne = 0 
-            // do nothing
-        elseif waterOne = waterTwo
-            overhead "Duplicated"
-            unsetvar waterTwo
-        endif
-        
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
-
-        if dead waterOne or not find waterOne ground -1 -1 18
-            if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                if castSummonRagWitchCount > 0 and timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
-                endif
-                @ignore waterTwo
-                while followers = followCount
-                    cast 'Water Elemental'
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 16 - water elemental
-                // 740 - a rag witch
-                if findtype 16|740 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @setvar! waterOne myPet
-                    overhead "Water One Set" 88 waterOne
-                    if followers > 0
-                        say "all guard me"
-                    endif
-                    @clearignore 
-                    replay
-                endif
-            endif
-        endif
-    endif
-
-    if diffhits > 30
-        // do nothing
-    elseif castSummonWaterCount > 1 or castSummonRagWitchCount > 1
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
-        if dead waterTwo or not find waterTwo ground -1 -1 18
-            if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                if castSummonRagWitchCount > 0 and timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
-                endif
-
-                @ignore waterOne
-                while followers = followCount
-                    cast "Water Elemental"
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 16 - water elemental
-                // 740 - a rage witch
-                if findtype 16|740 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @clearignore
-                    @setvar! waterTwo myPet
-                    overhead "Water Two Set" 88 waterTwo
-                    if followers > 0
-                        say "all guard me"
-                    endif
-                    replay
-                endif
-                
-            endif
-        endif
-    endif
-endif
-
-############ Air Elemental
 if castSummonAirCount > 0 or castSummonFiendCount > 0
-    if diffhits < 30
-    
-        if airOne = 0 
-            // do nothing
-        elseif airOne = airTwo
-            overhead "Duplicated"
-            unsetvar airTwo
-        endif
-        
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
-        
-        if dead airOne or not find airOne ground -1 -1 18
-            if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                if castSummonFiendCount > 0 and timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
-                endif
-                @ignore airTwo
-                while followers = followCount
-                    cast 'Air Elemental'
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 13 - air elemental
-                // 306 - a skeletal fiend
-                if findtype 13|306 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @setvar! airOne myPet
-                    overhead "Air One Set" 88 airOne
-                    if followers > 0
-                        say "all guard me"
-                    endif
-                    @clearignore 
-                    replay
-                endif
-            endif
+    if dead airOne or not find airOne ground -1 -1 18
+        if followers < 4
+            pushlist summonList "Air Elemental"
+            @setvar! airOne 1
         endif
     endif
-    
-    if diffhits > 30
-        // do nothing
-    elseif castSummonAirCount > 1 or castSummonFiendCount > 1
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
-        endif
+    if castSummonAirCount > 1 or castSummonFiendCount > 1
         if dead airTwo or not find airTwo ground -1 -1 18
             if followers < 4
-                while mana < 50
-                    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                        overhead "Eating shrooms" 66
-                        dclick mushy
-                        @setvar! jase_shrooms mushy
-                        wait 200
-                        if insysmsg "You consume a magic mushroom and restore some mana."
-                            settimer magicMushroomTimer 0    
-                        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                            settimer magicMushroomTimer 30000
-                        endif
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        replay
-                    endif
-                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                        overhead "waiting for mana" 88
-                        settimer preventOverheadSpamTimer 0
-                    endif
-                    if not findbuff "Actively Meditating"
-                        useskill "meditation"
-                    endif
-                    wait 200
-                endwhile
-                if castSummonFiendCount > 0 and timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                    yell "[VengefulSpirit"
-                    settimer vengefulSpiritTimer 0
-                    wait 500
-                endif
-
-                @ignore airOne
-                while followers = followCount
-                    cast "Air Elemental"
-                    wait 500
-                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                        yell "[Wither"
-                        settimer witherTimer 0
-                    endif
-                    if diffhits >= hpCheckToTriggerGreaterHealSpell
-                        hotkey '> Interrupt'
-                        break
-                    endif
-                endwhile
-                // 13 - air elemental
-                // 306 - a skeletal fiend
-                if findtype 13|306 ground -1 -1 6 as myPet
-                    if noto myPet = "friend" and list petNameList > 0
-                        overhead "Renaming..."
-                        foreach petName in petNameList
-                            rename myPet petName
-                            break
-                        endfor
-                        poplist petNameList "front"
-                    endif
-                    @clearignore
-                    @setvar! airTwo myPet
-                    overhead "Air Two Set" 88 airTwo
-                    if followers > 0
-                        say "all guard me"
-                    endif
-                    replay
-                endif
-                
+                pushlist summonList "Air Elemental"
+                @setvar! airTwo 1
             endif
         endif
     endif
 endif
 
-if castSummonCreatureCount = 0
-    // do nothing
-elseif castSummonCreatureCount = 1 and not dead creatureOne
-    // do nothing
-elseif castSummonCreatureCount = 1
-    if followers = 4 and diffhits < 30
-        if followers = 0
-            @setvar! followCount 0
-        elseif followers = 1
-            @setvar! followCount 1
-        elseif followers = 2
-            @setvar! followCount 2
-        elseif followers = 3
-            @setvar! followCount 3
-        elseif followers = 4
-            @setvar! followCount 4
-        elseif followers = 5
-            @setvar! followCount 5
+if castSummonWaterCount > 0 or castSummonRagWitchCount > 0
+    if dead waterOne or not find waterOne ground -1 -1 18
+        if followers < 4
+            pushlist summonList "Water Elemental"
+            @setvar! waterOne 1
         endif
-        while mana < 14
+    endif
+    if castSummonWaterCount > 1 or castSummonRagWitchCount > 1
+        if dead waterTwo or not find waterTwo ground -1 -1 18
+            if followers < 4
+                pushlist summonList "Water Elemental"
+                @setvar! waterTwo 1
+            endif
+        endif
+    endif
+endif
+
+if castEnergyVortexCount > 0 or castJackalSpiritCount > 0
+    if dead evOne or not find evOne ground -1 -1 18
+        if followers < 5
+            pushlist summonList "Energy Vortex"
+            @setvar! evOne 1
+        endif
+    endif
+endif
+
+if castBladeSpiritCount > 0 or castSkeletalHuskCount > 0
+    if dead bsOne or not find bsOne ground -1 -1 18
+        if followers < 5
+            pushlist summonList "Blade Spirits"
+            @setvar! bsOne 1
+        endif
+    endif
+endif
+
+if followers < 5
+    if castSummonCreatureCount = 1
+        pushlist summonList "Summ. Creature"
+    elseif castSummonCreatureCount = 2
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+    elseif castSummonCreatureCount = 3
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+    elseif castSummonCreatureCount = 4
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+    elseif castSummonCreatureCount = 5
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+        pushlist summonList "Summ. Creature"
+    endif
+    while targetexists 
+        hotkey 'Cancel Current Target'
+    endwhile
+endif
+
+foreach summon in summonList
+    if followers < 5
+        overhead "Casting Summon: {{summon}}" 88
+        while mana < 50
             if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
                 overhead "Eating shrooms" 66
                 dclick mushy
@@ -1581,191 +838,220 @@ elseif castSummonCreatureCount = 1
                     settimer magicMushroomTimer 30000
                 endif
             endif
+            if diffhits >= hpCheckToTriggerGreaterHealSpell
+                replay
+            endif
             if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
                 overhead "waiting for mana" 88
                 settimer preventOverheadSpamTimer 0
-            endif
-            if diffhits >= hpCheckToTriggerGreaterHealSpell
-                replay
             endif
             if not findbuff "Actively Meditating"
                 useskill "meditation"
             endif
             wait 200
         endwhile
-        if timer vengefulSpiritTimer >= cdVengefulSpirit
-            yell "[VengefulSpirit"
-            settimer vengefulSpiritTimer 0
-            wait 200
+        
+        @setvar! needVengefulSpirit 0
+        
+        if summon = "Earth Elemental" and castSummonMummyCount > 0
+            @setvar! needVengefulSpirit 1
+        elseif summon = "Fire Elemental" and castSummonLichCount > 0
+            @setvar! needVengefulSpirit 1
+        elseif summon = "Summon Daemon" and castSummonThrallCount > 0
+            @setvar! needVengefulSpirit 1
+        elseif summon = "Air Elemental" and castSummonFiendCount > 0
+            @setvar! needVengefulSpirit 1
+        elseif summon = "Water Elemental" and castSummonRagWitchCount > 0
+            @setvar! needVengefulSpirit 1
+        elseif summon = "Summ. Creature" and skill "Necromancy" >= 50
+            @setvar! needVengefulSpirit 1
+        elseif summon = "Energy Vortex" and castJackalSpiritCount > 0
+            @setvar! needVengefulSpirit 1
+        elseif summon = "Blade Spirits" and castSkeletalHuskCount > 0
+            @setvar! needVengefulSpirit 1
+        elseif timer vengefulSpiritTimer <= cdVengefulSpirit and skill "Necromancy" >= 50
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead  "Waiting for spirit to go away" 88
+                settimer preventOverheadSpamTimer 0
+            endif
+            replay
         endif
+        
+        if needVengefulSpirit = 1
+            if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
+                yell "[VengefulSpirit"
+                settimer vengefulSpiritTimer 0
+                wait 500
+            endif
+        elseif timer vengefulSpiritTimer <= cdVengefulSpirit and skill "Necromancy" >= 50
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead  "Waiting for spirit to go away" 88
+                settimer preventOverheadSpamTimer 0
+            endif
+            replay
+        endif
+
+        if followers = 0
+            @setvar! followCount 0
+        elseif followers = 1
+            @setvar! followCount 1
+        elseif followers = 2
+            @setvar! followCount 2
+        elseif followers = 3
+            @setvar! followCount 3
+        elseif followers = 4
+            @setvar! followCount 4
+        elseif followers = 5
+            @setvar! followCount 5
+        endif
+        
         while followers = followCount
-            cast 'Summ. Creature'
-            wait 500
+            if followers = 5
+                break
+            endif
+            cast summon
+            wft 500
+            if targetexists 
+                hotkey "Target Self"
+                wait 200
+            endif
+            if timer witherTimer >= cdWither and skill "Necromancy" >= 95
+                yell "[Wither"
+                settimer witherTimer 0
+            endif
             if diffhits >= hpCheckToTriggerGreaterHealSpell
+                overhead "Need a heal!"
                 hotkey '> Interrupt'
-                replay
+                break
             endif
-        endwhile        
-        if followers > 0
-            say "all guard me"
-        endif
-    endif
-else
-    for 6
-        if index = 0
-            // do nothing
-        else
-            if diffhits < 30
-                @setvar! needToSummon 0
-                if index = 1
-                    if dead creatureOne or not find creatureOne ground -1 -1 12
-                        @setvar! needToSummon 1
-                    endif
-                elseif index = 2
-                    if dead creatureTwo or not find creatureTwo ground -1 -1 12
-                        @setvar! needToSummon 1
-                    endif
-                elseif index = 3
-                    if dead creatureThree or not find creatureThree ground -1 -1 12
-                        @setvar! needToSummon 1
-                    endif
-                elseif index = 4
-                    if dead creatureFour or not find creatureFour ground -1 -1 12
-                        @setvar! needToSummon 1
-                    endif
-                elseif index = 5
-                    if dead creatureFive or not find creatureFive ground -1 -1 12
-                        @setvar! needToSummon 1
-                    endif
-                endif
+        endwhile
+        wait 200
+        
+        @setvar! myFreshlySummonedPet 0
+
+        // 158 - an ancient mummy
+        // 14 - an earth elemental
+        if summon = "Earth Elemental" and findtype 158|14 ground -1 -1 2 as myPet
+            @setvar! myFreshlySummonedPet myPet
+            if earthOne = 1
+                @setvar! earthOne myPet
+            elseif earthTwo = 1
+                @setvar! earthTwo myPet
+            endif
+        // 24 - a lich
+        // 15 - a fire elemental
+        elseif summon = "Fire Elemental" and findtype 24|15 ground -1 -1 2 as myPet
+            @setvar! myFreshlySummonedPet myPet
+            if fireOne = 1
+                @setvar! fireOne myPet
+            elseif fireTwo = 1
+                @setvar! fireTwo myPet
+            endif
+        // 9 - a deamon
+        // 722 - a vampire thrall
+        elseif summon = "Summon Daemon" and findtype 9|722 ground -1 -1 2 as myPet
+            @setvar! myFreshlySummonedPet myPet
+            if demonOne = 1
+                @setvar! demonOne myPet
+            elseif demonTwo = 1
+                @setvar! demonTwo myPet
+            endif
+        // 16 - water elemental
+        // 740 - a rage witch
+        elseif summon = "Water Elemental" and findtype 16|740 ground -1 -1 2 as myPet
+            @setvar! myFreshlySummonedPet myPet
+            if waterOne = 1
+                @setvar! waterOne myPet
+            elseif waterTwo = 1
+                @setvar! waterTwo myPet
+            endif
+        // 13 - air elemental
+        // 306 - a skeletal fiend
+        elseif summon = "Air Elemental" and findtype 13|306 ground -1 -1 2 as myPet
+            @setvar! myFreshlySummonedPet myPet
+            if airOne = 1
+                @setvar! airOne myPet
+            elseif airTwo = 1
+                @setvar! airTwo myPet
+            endif
+        elseif summon = "Summ. Creature"
+            // TODO: gather all summon creature types
             
-                if needToSummon = 1
-                    if followers = 0
-                        @setvar! followCount 0
-                    elseif followers = 1
-                        @setvar! followCount 1
-                    elseif followers = 2
-                        @setvar! followCount 2
-                    elseif followers = 3
-                        @setvar! followCount 3
-                    elseif followers = 4
-                        @setvar! followCount 4
-                    elseif followers = 5
-                        @setvar! followCount 5
-                    endif
-                   
-                    while mana < 50
-                        if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
-                            overhead "Eating shrooms" 66
-                            dclick mushy
-                            @setvar! jase_shrooms mushy
-                            wait 200
-                            if insysmsg "You consume a magic mushroom and restore some mana."
-                                settimer magicMushroomTimer 0    
-                            elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
-                                settimer magicMushroomTimer 30000
-                            endif
-                        endif
-                        if diffhits >= hpCheckToTriggerGreaterHealSpell
-                            replay
-                        endif
-                        if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-                            overhead "waiting for mana" 88
-                            settimer preventOverheadSpamTimer 0
-                        endif
-                        if not findbuff "Actively Meditating"
-                            useskill "meditation"
-                        endif
-                        wait 200
-                    endwhile
-                    if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
-                        yell "[VengefulSpirit"
-                        settimer vengefulSpiritTimer 0
-                        wait 500
-                    endif
-                    while followers = followCount
-                        cast "Summ. Creature"
-                        wait 500
-                        if timer witherTimer >= cdWither and skill "Necromancy" >= 95
-                            yell "[Wither"
-                            settimer witherTimer 0
-                        endif
-                        if diffhits >= hpCheckToTriggerGreaterHealSpell
-                            hotkey '> Interrupt'
-                            break
-                        endif
-                    endwhile
-                    hotkey 'Next Friendly Monster Target'
-                    @setvar! checkLastTarget lasttarget
-                    if checkLastTarget = earthOne
-                        hotkey 'Next Friendly Monster Target'
-                        @setvar! checkLastTarget lasttarget 
-                    endif
-                    
-                    if checkLastTarget = earthTwo
-                       hotkey 'Next Friendly Monster Target'
-                       @setvar! checkLastTarget lasttarget 
-                    endif
-                    
-                    if checkLastTarget = lichOne
-                       hotkey 'Next Friendly Monster Target'
-                       @setvar! checkLastTarget lasttarget 
-                    endif
-                    
-                    if checkLastTarget = lichTwo
-                       hotkey 'Next Friendly Monster Target'
-                       @setvar! checkLastTarget lasttarget 
-                    endif
-                    
-                    if checkLastTarget = demonOne
-                       hotkey 'Next Friendly Monster Target'
-                       @setvar! checkLastTarget lasttarget 
-                    endif
-                    
-                    if checkLastTarget = demonTwo
-                       hotkey 'Next Friendly Monster Target'
-                       @setvar! checkLastTarget lasttarget 
-                    endif
-                    @setvar! creatureOne checkLastTarget
-                    
-                    if find checkLastTarget ground -1 -1 6 as myPet
-                        if noto myPet = "friend" and list petNameList > 0
-                            overhead "Renaming..."
-                            foreach petName in petNameList
-                                rename myPet petName
-                                break
-                            endfor
-                            poplist petNameList "front"
-                        endif
-                        if index = 1
-                            if dead creatureOne or not find creatureOne ground -1 -1 12
-                                @setvar! creatureOne myPet
-                            endif
-                        elseif index = 2
-                            if dead creatureTwo or not find creatureTwo ground -1 -1 12
-                                @setvar! creatureTwo myPet
-                            endif
-                        elseif index = 3
-                            if dead creatureThree or not find creatureThree ground -1 -1 12
-                                @setvar! creatureThree myPet
-                            endif
-                        elseif index = 4
-                            if dead creatureFour or not find creatureFour ground -1 -1 12
-                                @setvar! creatureFour myPet
-                            endif
-                        elseif index = 5
-                            if dead creatureFive or not find creatureFive ground -1 -1 12
-                                @setvar! creatureFive myPet
-                            endif
-                        endif
-                    endif
-                endif
+        // 13 - an energy vortex
+        // 391 - a jackal spirit
+        elseif summon = "Energy Vortex" and findtype 13|391 ground -1 -1 2 as myPet
+            @setvar! myFreshlySummonedPet myPet
+            if evOne = 1
+                @setvar! evOne myPet
+            endif
+        // 574 - a blade spirit
+        // 309 - a skeletal husk
+        elseif summon = "Blade Spirits" and findtype 574|309 ground -1 -1 2 as myPet
+            @setvar! myFreshlySummonedPet myPet
+            if bsOne = 1
+                @setvar! bsOne myPet
             endif
         endif
-        if index = castSummonCreatureCount
-            break
+        
+        if summon = "Summ. Creature"
+           overhead "Creature summoned!" 88
+        elseif myFreshlySummonedPet = 0
+           overhead "Not found" 88
+        else
+            if noto myFreshlySummonedPet = "friend" and list petNameList > 0
+                overhead "Renaming..." 77
+                foreach petName in petNameList
+                    overhead "Rename to {{petName}}..." 66 myFreshlySummonedPet
+                    rename myFreshlySummonedPet petName
+                    wait 200
+                    if insysmsg "That name is unacceptable."
+                        overhead "Unable to name pet: {{petName}}" 34
+                        sysmsg "Unable to name pet: {{petName}}" 34
+                    endif
+                    break
+                endfor
+                poplist petNameList "front"
+            endif
+            overhead "New Pet: {{summon}}" 88 myFreshlySummonedPet
+            if summon = "Energy Vortex" or summon = "Blade Spirits"
+                // do nothing
+            elseif skill "herding" > 0
+                // guard
+                menu myFreshlySummonedPet 4
+            else
+                // guard
+                menu myFreshlySummonedPet 3
+            endif
+            @ignore myFreshlySummonedPet
         endif
-    endfor
+        wait 500
+    else
+        break
+    endif
+endfor
+
+if dead myMainTankPet
+    if not dead earthOne
+        @setvar! myMainTankPet earthOne
+    elseif not dead earthTwo
+        @setvar! myMainTankPet earthTwo
+    elseif not dead waterOne
+        @setvar! myMainTankPet waterOne
+    elseif not dead waterTwo
+        @setvar! myMainTankPet waterTwo
+    elseif not dead demonOne
+        @setvar! myMainTankPet demonOne
+    elseif not dead demonTwo
+        @setvar! myMainTankPet demonTwo
+    elseif not dead fireOne
+        @setvar! myMainTankPet fireOne
+    elseif not dead fireTwo
+        @setvar! myMainTankPet fireTwo
+    elseif not dead airOne
+        @setvar! myMainTankPet airOne
+    elseif not dead airTwo
+        @setvar! myMainTankPet airTwo
+    endif
 endif
 
 # Eat food if we got it
@@ -1839,7 +1125,7 @@ elseif useFindTypeToTargetMonster = 0
 else
 
     // do find type     
-    //overhead "do find type"
+    // overhead "do find type"
     
     //@setvar! mobDiff 0
     
@@ -1851,17 +1137,17 @@ else
         // targeting 
         
     @setvar! myFindTypeMob 0
-
+    
     if findtype 11|631|612|281|280|313|385|21|727|689|735|74|400|732|24|776|39|400|215|717|51|716|14|12|60|37|37|21|155|14|138|787|787|395|79|259|783|782|781|58|715|738|727|1419|1504|310|99|113|214|736|204|158|29|75|9|59|61|16|303|306|30|241|730|393|1|17|314|48|21|721|53|42|1069|287|59|58|401|16|778|715|47|725|169|317|213|384|373|734|23|27|25|705|728|37|779|775|173|92|98|80|388|98|287|302|73|720|252|8|392|9|14|319|4|386|22|9|16|400|400|401|401|401|401|49|96|8|315|303|309|386|169|37|777|59|718|61|718|9|104|266|12|60|12|60|393|721|31|400|401|12|60|778|393|251|12|60|37|826|154|264|39|9|128|176|374|738|169|315|393|776|734|317|13|720|225|305|401|131|94|93|244|16|318|392|393|310|372|309|49|130|83|130|753|59|114|116|830|26|778|400|401|26|81|48|732|779|723|4|387|150|334|385|261|1069|390|304|379|307|729|384|160|74|400|400|400|9|4|784|400|400|400|400|401|4|391|214|13|724|206|16|293|40|43|24|24|285|705|199|199|829|256|160|573|259|400|776|263|375|9|241|39|39|206|202|380|13|30|8|51|4|154|16|312|79|148|401|204|1069|73|748|86|85|87|86|782|781|400|401|401|400|401|400|400|401|401|401|401|401|400|789|316|401|120|832|108|396|393|401|401|757|401|400|401|756|401|763|730|716|16|16|787|740|3|401|75|9|59|400|401|401|401|401|400|400|401|401|400|400|401|21|970|92|16|270|970|400|401|401|401|37|270|37|1419|1504|251|315|51|741|37|169|717|740|715|14|74|206|242|778|739|776|16|51|304|3|300|29|382|104|306|309|57|50|56|302|59|61|1503|24|14|13|51|252|31|400|390|23|27|400|400|704|689|383|25|293|371|21|705|30|36|8|1419|1504|721|12|60|736|788|69|71|738|72|70|780|242|400|37|737|199|401|400|401|722|317|258|229|300|380|22|59|61|15|42|45|394|1419|1504|47|97|47|285|65|225|73|30|382|739|743|62|733|17|80|18|55|41|317|81|215|31|24|35|400|225|30|3|390|72|9|384|1|41|58|400|400|119 ground -1 -1 2 as daklue
         @setvar! myFindTypeMob daklue
         overhead "● ▼▼ HERE ▼▼ ●" 88 myFindTypeMob    
-        elseif findtype 11|631|612|281|280|313|385|21|727|689|735|74|400|732|24|776|39|400|215|717|51|716|14|12|60|37|37|21|155|14|138|787|787|395|79|259|783|782|781|58|715|738|727|1419|1504|310|99|113|214|736|204|158|29|75|9|59|61|16|303|306|30|241|730|393|1|17|314|48|21|721|53|42|1069|287|59|58|401|16|778|715|47|725|169|317|213|384|373|734|23|27|25|705|728|37|779|775|173|92|98|80|388|98|287|302|73|720|252|8|392|9|14|319|4|386|22|9|16|400|400|401|401|401|401|49|96|8|315|303|309|386|169|37|777|59|718|61|718|9|104|266|12|60|12|60|393|721|31|400|401|12|60|778|393|251|12|60|37|826|154|264|39|9|128|176|374|738|169|315|393|776|734|317|13|720|225|305|401|131|94|93|244|16|318|392|393|310|372|309|49|130|83|130|753|59|114|116|830|26|778|400|401|26|81|48|732|779|723|4|387|150|334|385|261|1069|390|304|379|307|729|384|160|74|400|400|400|9|4|784|400|400|400|400|401|4|391|214|13|724|206|16|293|40|43|24|24|285|705|199|199|829|256|160|573|259|400|776|263|375|9|241|39|39|206|202|380|13|30|8|51|4|154|16|312|79|148|401|204|1069|73|748|86|85|87|86|782|781|400|401|401|400|401|400|400|401|401|401|401|401|400|789|316|401|120|832|108|396|393|401|401|757|401|400|401|756|401|763|730|716|16|16|787|740|3|401|75|9|59|400|401|401|401|401|400|400|401|401|400|400|401|21|970|92|16|270|970|400|401|401|401|37|270|37|1419|1504|251|315|51|741|37|169|717|740|715|14|74|206|242|778|739|776|16|51|304|3|300|29|382|104|306|309|57|50|56|302|59|61|1503|24|14|13|51|252|31|400|390|23|27|400|400|704|689|383|25|293|371|21|705|30|36|8|1419|1504|721|12|60|736|788|69|71|738|72|70|780|242|400|37|737|199|401|400|401|722|317|258|229|300|380|22|59|61|15|42|45|394|1419|1504|47|97|47|285|65|225|73|30|382|739|743|62|733|17|80|18|55|41|317|81|215|31|24|35|400|225|30|3|390|72|9|384|1|41|58|400|400|119 ground -1 -1 4 as daklue
+    elseif findtype 11|631|612|281|280|313|385|21|727|689|735|74|400|732|24|776|39|400|215|717|51|716|14|12|60|37|37|21|155|14|138|787|787|395|79|259|783|782|781|58|715|738|727|1419|1504|310|99|113|214|736|204|158|29|75|9|59|61|16|303|306|30|241|730|393|1|17|314|48|21|721|53|42|1069|287|59|58|401|16|778|715|47|725|169|317|213|384|373|734|23|27|25|705|728|37|779|775|173|92|98|80|388|98|287|302|73|720|252|8|392|9|14|319|4|386|22|9|16|400|400|401|401|401|401|49|96|8|315|303|309|386|169|37|777|59|718|61|718|9|104|266|12|60|12|60|393|721|31|400|401|12|60|778|393|251|12|60|37|826|154|264|39|9|128|176|374|738|169|315|393|776|734|317|13|720|225|305|401|131|94|93|244|16|318|392|393|310|372|309|49|130|83|130|753|59|114|116|830|26|778|400|401|26|81|48|732|779|723|4|387|150|334|385|261|1069|390|304|379|307|729|384|160|74|400|400|400|9|4|784|400|400|400|400|401|4|391|214|13|724|206|16|293|40|43|24|24|285|705|199|199|829|256|160|573|259|400|776|263|375|9|241|39|39|206|202|380|13|30|8|51|4|154|16|312|79|148|401|204|1069|73|748|86|85|87|86|782|781|400|401|401|400|401|400|400|401|401|401|401|401|400|789|316|401|120|832|108|396|393|401|401|757|401|400|401|756|401|763|730|716|16|16|787|740|3|401|75|9|59|400|401|401|401|401|400|400|401|401|400|400|401|21|970|92|16|270|970|400|401|401|401|37|270|37|1419|1504|251|315|51|741|37|169|717|740|715|14|74|206|242|778|739|776|16|51|304|3|300|29|382|104|306|309|57|50|56|302|59|61|1503|24|14|13|51|252|31|400|390|23|27|400|400|704|689|383|25|293|371|21|705|30|36|8|1419|1504|721|12|60|736|788|69|71|738|72|70|780|242|400|37|737|199|401|400|401|722|317|258|229|300|380|22|59|61|15|42|45|394|1419|1504|47|97|47|285|65|225|73|30|382|739|743|62|733|17|80|18|55|41|317|81|215|31|24|35|400|225|30|3|390|72|9|384|1|41|58|400|400|119 ground -1 -1 4 as daklue
         @setvar! myFindTypeMob daklue
         overhead "● ▼▼ HERE ▼▼ ●" 88 myFindTypeMob
-        elseif findtype 11|631|612|281|280|313|385|21|727|689|735|74|400|732|24|776|39|400|215|717|51|716|14|12|60|37|37|21|155|14|138|787|787|395|79|259|783|782|781|58|715|738|727|1419|1504|310|99|113|214|736|204|158|29|75|9|59|61|16|303|306|30|241|730|393|1|17|314|48|21|721|53|42|1069|287|59|58|401|16|778|715|47|725|169|317|213|384|373|734|23|27|25|705|728|37|779|775|173|92|98|80|388|98|287|302|73|720|252|8|392|9|14|319|4|386|22|9|16|400|400|401|401|401|401|49|96|8|315|303|309|386|169|37|777|59|718|61|718|9|104|266|12|60|12|60|393|721|31|400|401|12|60|778|393|251|12|60|37|826|154|264|39|9|128|176|374|738|169|315|393|776|734|317|13|720|225|305|401|131|94|93|244|16|318|392|393|310|372|309|49|130|83|130|753|59|114|116|830|26|778|400|401|26|81|48|732|779|723|4|387|150|334|385|261|1069|390|304|379|307|729|384|160|74|400|400|400|9|4|784|400|400|400|400|401|4|391|214|13|724|206|16|293|40|43|24|24|285|705|199|199|829|256|160|573|259|400|776|263|375|9|241|39|39|206|202|380|13|30|8|51|4|154|16|312|79|148|401|204|1069|73|748|86|85|87|86|782|781|400|401|401|400|401|400|400|401|401|401|401|401|400|789|316|401|120|832|108|396|393|401|401|757|401|400|401|756|401|763|730|716|16|16|787|740|3|401|75|9|59|400|401|401|401|401|400|400|401|401|400|400|401|21|970|92|16|270|970|400|401|401|401|37|270|37|1419|1504|251|315|51|741|37|169|717|740|715|14|74|206|242|778|739|776|16|51|304|3|300|29|382|104|306|309|57|50|56|302|59|61|1503|24|14|13|51|252|31|400|390|23|27|400|400|704|689|383|25|293|371|21|705|30|36|8|1419|1504|721|12|60|736|788|69|71|738|72|70|780|242|400|37|737|199|401|400|401|722|317|258|229|300|380|22|59|61|15|42|45|394|1419|1504|47|97|47|285|65|225|73|30|382|739|743|62|733|17|80|18|55|41|317|81|215|31|24|35|400|225|30|3|390|72|9|384|1|41|58|400|400|119 ground -1 -1 8 as daklue
+    elseif findtype 11|631|612|281|280|313|385|21|727|689|735|74|400|732|24|776|39|400|215|717|51|716|14|12|60|37|37|21|155|14|138|787|787|395|79|259|783|782|781|58|715|738|727|1419|1504|310|99|113|214|736|204|158|29|75|9|59|61|16|303|306|30|241|730|393|1|17|314|48|21|721|53|42|1069|287|59|58|401|16|778|715|47|725|169|317|213|384|373|734|23|27|25|705|728|37|779|775|173|92|98|80|388|98|287|302|73|720|252|8|392|9|14|319|4|386|22|9|16|400|400|401|401|401|401|49|96|8|315|303|309|386|169|37|777|59|718|61|718|9|104|266|12|60|12|60|393|721|31|400|401|12|60|778|393|251|12|60|37|826|154|264|39|9|128|176|374|738|169|315|393|776|734|317|13|720|225|305|401|131|94|93|244|16|318|392|393|310|372|309|49|130|83|130|753|59|114|116|830|26|778|400|401|26|81|48|732|779|723|4|387|150|334|385|261|1069|390|304|379|307|729|384|160|74|400|400|400|9|4|784|400|400|400|400|401|4|391|214|13|724|206|16|293|40|43|24|24|285|705|199|199|829|256|160|573|259|400|776|263|375|9|241|39|39|206|202|380|13|30|8|51|4|154|16|312|79|148|401|204|1069|73|748|86|85|87|86|782|781|400|401|401|400|401|400|400|401|401|401|401|401|400|789|316|401|120|832|108|396|393|401|401|757|401|400|401|756|401|763|730|716|16|16|787|740|3|401|75|9|59|400|401|401|401|401|400|400|401|401|400|400|401|21|970|92|16|270|970|400|401|401|401|37|270|37|1419|1504|251|315|51|741|37|169|717|740|715|14|74|206|242|778|739|776|16|51|304|3|300|29|382|104|306|309|57|50|56|302|59|61|1503|24|14|13|51|252|31|400|390|23|27|400|400|704|689|383|25|293|371|21|705|30|36|8|1419|1504|721|12|60|736|788|69|71|738|72|70|780|242|400|37|737|199|401|400|401|722|317|258|229|300|380|22|59|61|15|42|45|394|1419|1504|47|97|47|285|65|225|73|30|382|739|743|62|733|17|80|18|55|41|317|81|215|31|24|35|400|225|30|3|390|72|9|384|1|41|58|400|400|119 ground -1 -1 8 as daklue
         @setvar! myFindTypeMob daklue
         overhead "● ▼▼ HERE ▼▼ ●" 88 myFindTypeMob
-        elseif findtype 281|631|612|280|313|385|21|727|689|735|74|400|732|24|776|39|400|215|717|51|716|14|12|60|37|37|21|155|14|138|787|787|395|79|259|783|782|781|58|715|738|727|1419|1504|310|99|113|214|736|204|158|29|75|9|59|61|16|303|306|30|241|730|393|1|17|314|48|21|721|53|42|1069|287|59|58|401|16|778|715|47|725|169|317|213|384|373|734|23|27|25|705|728|37|779|775|173|92|98|80|388|98|287|302|73|720|252|8|392|9|14|319|4|386|22|9|16|400|400|401|401|401|401|49|96|8|315|303|309|386|169|37|777|59|718|61|718|9|104|266|12|60|12|60|393|721|31|400|401|12|60|778|393|251|12|60|37|826|154|264|39|9|128|176|374|738|169|315|393|776|734|317|13|720|225|305|401|131|94|93|244|16|318|392|393|310|372|309|49|130|83|130|753|59|114|116|830|26|778|400|401|26|81|48|732|779|723|4|387|150|334|385|261|1069|390|304|379|307|729|384|160|74|400|400|400|9|4|784|400|400|400|400|401|4|391|214|13|724|206|16|293|40|43|24|24|285|705|199|199|829|256|160|573|259|400|776|263|375|9|241|39|39|206|202|380|13|30|8|51|4|154|16|312|79|148|401|204|1069|73|748|86|85|87|86|782|781|400|401|401|400|401|400|400|401|401|401|401|401|400|789|316|401|120|832|108|396|393|401|401|757|401|400|401|756|401|763|730|716|16|16|787|740|3|401|75|9|59|400|401|401|401|401|400|400|401|401|400|400|401|21|970|92|16|270|970|400|401|401|401|37|270|37|1419|1504|251|315|51|741|37|169|717|740|715|14|74|206|242|778|739|776|16|51|304|3|300|29|382|104|306|309|57|50|56|302|59|61|1503|24|14|13|51|252|31|400|390|23|27|400|400|704|689|383|25|293|371|21|705|30|36|8|1419|1504|721|12|60|736|788|69|71|738|72|70|780|242|400|37|737|199|401|400|401|722|317|258|229|300|380|22|59|61|15|42|45|394|1419|1504|47|97|47|285|65|225|73|30|382|739|743|62|733|17|80|18|55|41|317|81|215|31|24|35|400|225|30|3|390|72|9|384|1|41|58|400|400|119 ground -1 -1 12 as daklue
+    elseif findtype 11|631|612|281|280|313|385|21|727|689|735|74|400|732|24|776|39|400|215|717|51|716|14|12|60|37|37|21|155|14|138|787|787|395|79|259|783|782|781|58|715|738|727|1419|1504|310|99|113|214|736|204|158|29|75|9|59|61|16|303|306|30|241|730|393|1|17|314|48|21|721|53|42|1069|287|59|58|401|16|778|715|47|725|169|317|213|384|373|734|23|27|25|705|728|37|779|775|173|92|98|80|388|98|287|302|73|720|252|8|392|9|14|319|4|386|22|9|16|400|400|401|401|401|401|49|96|8|315|303|309|386|169|37|777|59|718|61|718|9|104|266|12|60|12|60|393|721|31|400|401|12|60|778|393|251|12|60|37|826|154|264|39|9|128|176|374|738|169|315|393|776|734|317|13|720|225|305|401|131|94|93|244|16|318|392|393|310|372|309|49|130|83|130|753|59|114|116|830|26|778|400|401|26|81|48|732|779|723|4|387|150|334|385|261|1069|390|304|379|307|729|384|160|74|400|400|400|9|4|784|400|400|400|400|401|4|391|214|13|724|206|16|293|40|43|24|24|285|705|199|199|829|256|160|573|259|400|776|263|375|9|241|39|39|206|202|380|13|30|8|51|4|154|16|312|79|148|401|204|1069|73|748|86|85|87|86|782|781|400|401|401|400|401|400|400|401|401|401|401|401|400|789|316|401|120|832|108|396|393|401|401|757|401|400|401|756|401|763|730|716|16|16|787|740|3|401|75|9|59|400|401|401|401|401|400|400|401|401|400|400|401|21|970|92|16|270|970|400|401|401|401|37|270|37|1419|1504|251|315|51|741|37|169|717|740|715|14|74|206|242|778|739|776|16|51|304|3|300|29|382|104|306|309|57|50|56|302|59|61|1503|24|14|13|51|252|31|400|390|23|27|400|400|704|689|383|25|293|371|21|705|30|36|8|1419|1504|721|12|60|736|788|69|71|738|72|70|780|242|400|37|737|199|401|400|401|722|317|258|229|300|380|22|59|61|15|42|45|394|1419|1504|47|97|47|285|65|225|73|30|382|739|743|62|733|17|80|18|55|41|317|81|215|31|24|35|400|225|30|3|390|72|9|384|1|41|58|400|400|119 ground -1 -1 12 as daklue
         overhead "● ▼ OUT OF RANGE ▼ ●" 88 daklue
         getlabel daklue checkForSummonsDesc
         if "(summoned" in checkForSummonsDesc or "(bonded" in checkForSummonsDesc or "(tamed" in checkForSummonsDesc

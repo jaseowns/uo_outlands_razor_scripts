@@ -1,0 +1,197 @@
+# Ultimate Mining Script by Jaseowns
+# UO Outlands - https://youtu.be/O3zk7igFt7Y
+# Requirements: 
+####
+#   MAKE SURE FILTERS -> FILTER SYSTEM MESSAGES IS UNCHECKED
+####
+#   organizer 1 as ore - setup to packhorse or home drop off bag
+#   setup weight checks (default diff weight 30 stones) on line 62
+#  
+
+if not varexist jaseMovement
+    @setvar! jaseMovement 0
+endif
+
+if not varexist jase_miner_runebook or not find jase_miner_runebook backpack
+    if counttype "runebook" backpack = 1 and counttype "runetome" backpack = 0 and findtype "runebook" backpack as myBook
+        overhead "Automatically selected your one runebook" 88
+        @setvar jase_miner_runebook myBook
+    elseif counttype "runebook" backpack = 0 and counttype "runetome" backpack = 1 and findtype "runetome" backpack as myBook
+        overhead "Automatically selected your one runetome" 88
+        @setvar jase_miner_runebook myBook
+    elseif counttype 7956 backpack = 1 and findtype 7956 backpack as myBook
+        overhead "Automatically selected your one rune" 88
+        @setvar jase_miner_runebook myBook
+    elseif counttype "runebook" backpack > 0 or counttype 7956 backpack > 0 or counttype "runetome" backpack > 0
+        overhead "Select your escape plan (runebook or runetome)" 88
+        @setvar jase_miner_runebook 
+    endif
+endif
+
+if not listexists "jase_miner_actions"
+    createlist "jase_miner_actions"
+endif
+
+if inlist "jase_miner_actions" "red_alert"
+    overhead "Red Alert!" 34
+    poplist "jase_miner_actions" "red_alert"
+    # You could also replace this magery bit with your ultimate recaller
+    # Ultimate Recall using Tome or Book as Escape (ALT-M)
+    # https://outlands.uorazorscripts.com/script/5b3fde97-fa90-4707-9f8e-7f56dca6792b
+    # hotkey "Play Script: UltimaRecaller"
+    if skill "Magery" >= 40
+        overhead 'Recalling...'
+        while not targetexists
+            if findtype 8012 backpack as item
+                dclick item
+            else
+                cast "Recall"
+            endif
+            wait 200
+        endwhile
+        target jase_miner_runebook
+    elseif skill "Hiding" >= 40
+        useskill "Hiding"
+    endif
+    overhead "Stopping script..." 34
+    stop
+    # replay
+endif
+
+clearsysmsg 
+if diffweight <= 30
+    organizer 1
+    while queued
+        overhead 'Moving ore...'
+        wait 500
+    endwhile
+    if diffweight <= 30
+        overhead "Too heavy still.. check organizer agent 1" 34
+        replay
+    endif
+endif
+
+if rhandempty ?? 0 
+    if findtype "pickaxe" backpack
+        dclicktype 'pickaxe' backpack
+        wait 1000
+    endif
+endif
+            
+if rhandempty ?? 0 
+    overhead "No more pickaxe!" 34
+    replay
+endif
+
+overhead 'Mining' 0
+hotkey 'Use item in hand'
+wait 250
+for 7500
+    wait 10
+
+    if insysmsg "now tracking"
+        pushlist "jase_miner_actions" "red_alert"
+        replay
+    endif
+        
+        
+    if insysmsg 'world is saving'
+        for 30
+            overhead 'Waiting for world save...'
+            wait 1000
+            if insysmsg 'save complete'
+                overhead 'Save complete - continue on!' 88
+                replay
+            elseif insysmsg "now tracking"
+                pushlist "jase_miner_actions" "red_alert"
+                replay
+            endif
+        endfor
+    elseif rhandempty ?? 0 
+        overhead "Broke pickaxe" 34
+        replay
+    elseif insysmsg 'You do not see any'
+        overhead 'Move to next spot' 88
+        if jaseMovement = 0
+            // do nothing
+            wait 500
+        elseif jaseMovement = 1
+            walk 'South'
+            walk 'South'
+        elseif jaseMovement = 2
+            walk 'Down'
+            walk 'Down'
+        elseif jaseMovement = 3
+            walk 'East'
+            walk 'East'
+        elseif jaseMovement = 4
+            walk 'Left'
+            walk 'Left'
+        elseif jaseMovement = 5
+            // do nothing
+        elseif jaseMovement = 6
+            walk 'Right'
+            walk 'Right'
+        elseif jaseMovement = 7
+            walk 'West'
+            walk 'West'
+        elseif jaseMovement = 8
+            walk 'Up'
+            walk 'Up'
+        elseif jaseMovement = 9
+            walk 'North'
+            walk 'North'
+        endif
+        replay
+    elseif insysmsg "harvesting is not allowed"
+        overhead 'Move out of town...'
+        wait 1000
+        replay
+    elseif insysmsg "travel"
+        overhead 'Waiting for travel...'
+        wait 1000
+        replay
+    else
+        if insysmsg "any harvestable" or insysmsg "jase_miner_actions"
+            // No Ore
+            overhead 'Move to next spot' 88
+            replay
+        elseif insysmsg "skillgain" or insysmsg "harvesting is not allowed"
+            // Gained skill
+            replay
+        elseif insysmsg "world is saving" or insysmsg 'World save complete'
+            // World Save
+            replay
+        elseif insysmsg "You loosen"
+            // Failed
+            replay
+        elseif insysmsg "You dig"
+            // Success
+            replay
+        elseif insysmsg "You must wait"
+            // Wait message
+            overhead 'You must wait..' 34
+            wait 500
+            replay
+        endif
+    endif
+endfor
+
+if insysmsg "You must wait"
+    // Wait message
+    overhead 'You must wait..' 34
+    wait 500
+    replay
+endif
+
+overhead 'Captcha break!' 34
+for 20
+    overhead 'Awaiting Captcha...' 34
+    wait 1000
+    if insysmsg 'Captcha successful'
+        overhead 'Success - continue on!' 88
+        wait 1000
+        replay
+    endif
+endfor
+overhead 'Stopping script' 34

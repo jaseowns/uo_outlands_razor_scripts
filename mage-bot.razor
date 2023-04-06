@@ -1,11 +1,11 @@
 # One hotkey mage cycle, nox, poison by Jaseowns
 # UO Outlands - https://outlands.uorazorscripts.com/mage-bot
 #
-# Version: v8.2.0
+# Version: v8.3.0
 #
 #    
-// 03/29/2023
-//  - fixing line of site issues
+// 04/05/2023
+//  - adding timer to cannot be seen
 #
 ##################
 ## Always room for improvment, thanks for watching!
@@ -42,8 +42,8 @@
 ###### Random abilities
 ################
 @setvar! automaticallySkinCorpses 1
-
 @setvar! manaReserve 50
+@setvar! cdRetryBasedOnTargetNotSeen 12000
 
 # Ultimate Summoner Hotkey Choose your summons by Jaseowns
 # UO Outlands
@@ -217,7 +217,7 @@ endif
 ##################################################################
 
 if not varexist JaseOwns
-    overhead "v8.2.0" 34
+    overhead "v8.3.0" 34
     overhead "uorazorscripts.com/mage-bot" 34
     say "This script was brought to you by youtube.com/Jaseowns" 88
     wait 500
@@ -291,6 +291,11 @@ endif
 if not timerexists skinningCheckTimer
     settimer skinningCheckTimer cdSkinningCheck
 endif
+
+if not timerexists retryBasedOnTargetNotSeenTimer
+    settimer retryBasedOnTargetNotSeenTimer cdRetryBasedOnTargetNotSeen
+endif
+
 
 if automaticallySkinCorpses = 1 and findtype "corpse" ground -1 -1 2 as jorpse
     if findtype "Elven Spellblade" backpack and timer skinningCheckTimer >= cdSkinningCheck 
@@ -1084,7 +1089,6 @@ if not varexist lastCannotBeSeen
 endif
 
 if lastCannotBeSeen != 0 and dead lastCannotBeSeen
-    overhead "target died bro" 77
     @setvar! lastCannotBeSeen 0
     @setvar! lastCannotBeSeenLoopIndex 0
 endif
@@ -1213,29 +1217,29 @@ else
 
         if "(summoned" in checkForSummonsDesc or "(bonded" in checkForSummonsDesc or "(tamed" in checkForSummonsDesc
             overhead "▼ Player pet - IGNORE ▼" 77 myFindTypeMob
-            ignore myFindTypeMob
+            @ignore myFindTypeMob
             replay
         endif    
 
         if noto myFindTypeMob = "friend"
-            ignore myFindTypeMob
+            @ignore myFindTypeMob
             replay
         elseif noto myFindTypeMob = "innocent"
-            ignore myFindTypeMob
+            @ignore myFindTypeMob
             replay
         elseif noto myFindTypeMob = "hostile" or noto myFindTypeMob = "criminal"
-            overhead "Gray" 88
+            //overhead "Gray" 88
         elseif noto myFindTypeMob = "murderer"
-            overhead "Red" 34
+            //overhead "Red" 34
         elseif noto myFindTypeMob = "enemy"
-            overhead "Orange" 34
+            //overhead "Orange" 34
         elseif noto daklue = "invulnerable"
-            ignore myFindTypeMob
+            @ignore myFindTypeMob
             replay
         else
             overhead "Unknown" 34
             wait 500
-            ignore myFindTypeMob
+            @ignore myFindTypeMob
             replay
         endif
                 
@@ -1278,6 +1282,14 @@ elseif find myEarthPet ground -1 -1 12
     menu myEarthPet 2
     wft 500
     target myKillTarget
+    wait 200
+    if insysmsg "Target cannot be seen." 
+        if lastCannotBeSeen = 0
+            @setvar! lastCannotBeSeen myKillTarget
+        endif
+    else
+        @setvar! lastCannotBeSeen 0
+    endif
 endif
 
 if diffhits >= hpCheckToTriggerGreaterHealSpell and mana > 12
@@ -1322,26 +1334,20 @@ if not varexist lastCannotBeSeenLoopIndex
     @setvar! lastCannotBeSeenLoopIndex 0
 endif
 
+
 if lastCannotBeSeen = myKillTarget
-    overhead "Target not seen, waiting.."  88
-    wait 500
-    overhead lastCannotBeSeenLoopIndex
+    overhead "Target not seen, waiting.."  34
+    overhead "{{lastCannotBeSeenLoopIndex}} : {{retryBasedOnTargetNotSeenTimer}}"
     if lastCannotBeSeenLoopIndex = 0
-        
         @setvar! lastCannotBeSeenLoopIndex 1
-    elseif lastCannotBeSeenLoopIndex = 1
-        @setvar! lastCannotBeSeenLoopIndex 2
-    elseif lastCannotBeSeenLoopIndex = 2
-        @setvar! lastCannotBeSeenLoopIndex 3
-    elseif lastCannotBeSeenLoopIndex = 3
-        @setvar! lastCannotBeSeenLoopIndex 4
-    elseif lastCannotBeSeenLoopIndex = 4
-        @setvar! lastCannotBeSeenLoopIndex 5
-    elseif lastCannotBeSeenLoopIndex = 5
-        @setvar! lastCannotBeSeenLoopIndex 0
-        @setvar! lastCannotBeSeen 0
     endif
-    replay
+    if timer retryBasedOnTargetNotSeenTimer >= cdRetryBasedOnTargetNotSeen
+        settimer retryBasedOnTargetNotSeenTimer 0    
+        @setvar! lastCannotBeSeen 0
+    else
+        replay
+    endif
+    
 elseif find myKillTarget -1 -1 12 as killy
     if myKillTarget = myPreviousKillTarget
         // do nothing

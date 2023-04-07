@@ -1,0 +1,631 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/0d3f9e61-c1e8-42e5-83ef-78f02cd7022b for latest
+# Automation by Jaseowns
+## Script: Semi-auto Poison Necro Summoner Script - Boss Ready
+## Created by: Burger Beagle#9218
+#############################################
+
+if targetexists 
+    clearall 
+endif
+
+# If you want to recast your pets after they die, set this to 1
+@setvar! bossMode 0
+
+###############
+### Edit these cooldowns to match your wizard grimoire
+######
+@setvar! canYouMakeAMushroom 1
+@setvar! cdLightning 60000
+@setvar! cdMagicArrow 20000
+@setvar! cdHarm 20000
+@setvar! cdFireball 60000
+
+###############
+### Necro Cooldowns
+######
+@setvar! cdEvilOmen 30500
+@setvar! cdVampiricEmbrace 30500
+@setvar! cdCorpseSkin 30500
+@setvar! cdMindRot 30500
+@setvar! cdPoisonStrike 30500
+@setvar! cdWither 30500
+@setvar! cdVengefulSpirit 30500
+
+#### Buff Cooldowns
+@setvar! cdMushroom 60000
+@setvar! cdMagicShield 60000
+@setvar! cdReactiveArmor 60000
+
+#### General Spell Cooldowns (wait to cast again)
+@setvar! cdCurse 60000
+@setvar! cdManaDrain 60000
+
+##################################################################
+# 
+#   Hopefully you do not have to edit after this :)
+#
+##################################################################
+clearsysmsg
+
+// Clear certain cooldowns that don't have timers
+cooldown 'Curse' 0
+cooldown 'Mana Drain' 0
+
+// Make sure we have a spell book attached
+if findlayer self righthand as item
+    // do nothing
+elseif findtype "3834" backpack as item
+    dclick item
+else 
+    overhead ">>>>> NO SPELLBOOK FOUND <<<<<" 34
+endif
+
+# Eat food if we got it
+if not findbuff "food" and findtype "tray" backpack as jood
+    dclick jood
+    wait 200
+endif
+
+# Use Taste ID if possible
+if skill "Taste Identification" >= 50 and not findbuff "herb"
+    useskill 'tasteidentification'
+    wft 500
+    target backpack
+endif
+
+if targetexists 
+    clearall 
+endif
+
+// Initiate Kill!
+hotkey 'all kill'
+wait 200
+while targetexists 
+    // wait
+    wait 50
+endwhile
+
+@setvar myKillTarget lasttarget
+
+@setvar! isLethalPoison 0
+
+@setvar! strikeTime 0
+
+while not dead myKillTarget and find myKillTarget -1 -1 12 as killy
+    
+    // Healing Check
+    while poisoned
+        if findtype "Orange Potion" backpack as pot 
+            dclick pot
+            wait 200
+        else
+            while not targetexists
+                if not poisoned
+                    hotkey '> Interrupt'
+                    break
+                else
+                    cast 'Cure'
+                    wait 50
+                endif 
+            endwhile
+            if targetexists
+                target self
+                wait 500
+            endif
+        endif
+    endwhile
+    
+    if not cooldown 'Mushroom' and findtype "mushroom" backpack as mushy and mana < 30
+        overhead "Eating shrooms" 66
+        dclick mushy
+        cooldown 'Mushroom' cdMushroom
+    endif
+    
+    while diffhits >= 30
+        if findtype "Yellow Potion" backpack as pot 
+            getlabel pot potcheck
+            if "next usable" in potcheck
+                // do nothing
+            else
+                dclick pot
+                wait 200
+            endif
+        endif
+
+        if diffhits >= 30 and mana >= 12
+            while not targetexists
+                if diffhits >= 60
+                    cast 'Heal'
+                else
+                    cast 'Greater Heal'                
+                endif
+                wait 50
+                if hp = maxhp
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists
+                target self
+                wait 50
+            endif
+        endif
+        
+        if not cooldown 'Mushroom' and findtype "mushroom" backpack as mushy and mana < 30
+            overhead "Eating shrooms" 66
+            dclick mushy
+            cooldown 'Mushroom' cdMushroom
+        endif
+    endwhile
+    
+    if not cooldown 'Magic Reflection' and not findbuff "Magic Reflection"
+        cast "Magic Reflection"
+        cooldown 'Magic Reflection' cdMagicShield
+        wait 1000
+    elseif not findbuff "Magic Reflection" and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as pot
+        dclick pot
+        wait 200
+    endif
+    
+    if not cooldown 'Reactive Armor' and not findbuff "Reactive Armor"
+        cast "Reactive Armor"
+        cooldown 'Reactive Armor' cdReactiveArmor
+        wait 200
+    endif
+    
+    if str <= 100
+        while not targetexists
+            cast 'Bless'
+            wait 50
+            if diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        if targetexists
+            target self
+        endif
+    endif
+    
+    getlabel myKillTarget desc
+    overhead desc 66
+    
+    // Reset Poison Check
+    if "-" in desc
+        //Ignore
+    elseif "Ticks" in desc
+        //Ignore
+    elseif isLethalPoison = 1
+        @setvar! isLethalPoison 0
+    endif
+    
+    if '6 Lethal Ticks Left' in desc or '5 Lethal Ticks Left' in desc
+        @setvar! strikeTime 1
+    endif
+    
+        if strikeTime = 1 and not cooldown 'Poison Strike'
+            clearsysmsg 
+            overhead ">>> POISON STRIKE <<<" 34
+            yell [poisonstrike
+            wft 200
+            target myKillTarget
+            wait 100
+            if insysmsg 'Unholy symbols remaining'
+                cooldown 'Poison Strike' cdPoisonStrike
+            endif
+            wait 100
+            @setvar! strikeTime 0
+            wait 300
+        endif
+        if dead myKillTarget
+            hotkey '> Interrupt'
+        endif
+    
+    // Spam poison until lethal
+    while isLethalPoison = 0            
+        while poisoned
+            if findtype "Orange Potion" backpack as pot 
+                dclick pot
+                wait 200
+            else
+                while not targetexists
+                    if not poisoned
+                        hotkey '> Interrupt'
+                        break
+                    else
+                        cast 'Cure'
+                        wait 50
+                    endif 
+                endwhile
+                if targetexists
+                    target self
+                    wait 500
+                endif
+            endif
+        endwhile
+        
+        if diffhits >= 30
+            if findtype "Yellow Potion" backpack as pot 
+                getlabel pot desc
+                if "next usable" in desc
+                    // do nothing
+                else
+                    dclick pot
+                    wait 200
+                endif
+            endif
+
+            if diffhits >= 30 and mana >= 12
+                while not targetexists
+                    if diffhits >= 60
+                        cast 'Heal'
+                    else
+                        cast 'Greater Heal'                
+                    endif
+                    wait 50
+                    if hp = maxhp
+                        hotkey '> Interrupt'
+                        break
+                    endif
+                endwhile
+                if targetexists
+                    target self
+                    wait 50
+                endif
+            endif
+        endif
+    
+        getlabel myKillTarget desc2
+        // poison lethal
+        if "Lethal" in desc2
+            @setvar! isLethalPoison 1
+            break
+        elseif castPoisonAnyway = 1 and "Ticks" in desc2
+            @setvar! isLethalPoison 1
+            break
+        elseif castPoisonAnyway = 1 and "Poison" in desc2
+            @setvar! isLethalPoison 1
+            break
+        elseif diffhits >= 30 
+            // need a heal
+            break
+        elseif mana >= 9
+            while not targetexists and not dead myKillTarget
+                cast 'poison'
+                wait 50
+                if dead myKillTarget
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists
+                target myKillTarget
+                wait 200
+            endif
+            if insysmsg "Target cannot be seen." 
+                 overhead "CANNOT BE SEEN MOVE TO NEXT TARGET" 34
+                 @setvar! isLethalPoison 1
+            endif 
+        elseif not cooldown 'Mushroom' and findtype "mushroom" backpack as mushy
+            overhead "Eating shrooms" 66
+            dclick mushy
+            cooldown 'Mushroom' cdMushroom   
+        else
+            wait 200
+        endif
+    endwhile  
+    
+    if mana > 10 and not cooldown 'Curse'
+        while not targetexists and not dead myKillTarget
+            if diffhits < 30
+                cast 'Curse'
+                wait 50
+            elseif diffhits >= 30 
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        if targetexists
+            target myKillTarget
+            cooldown 'Curse' cdCurse
+            wait 200
+        endif
+    endif
+    
+    if mana > 10 and not cooldown 'Mana Drain'
+        while not targetexists and not dead myKillTarget
+            if diffhits < 30
+                cast 'mana drain'
+                wait 50
+            elseif diffhits >= 30 
+                hotkey '> Interrupt'
+                break
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            cooldown 'Mana Drain' cdManaDrain
+            wait 200
+        endif
+    endif
+    
+    if not cooldown 'Mind Rot' and skill "Necromancy" >= 75
+        clearsysmsg
+        yell [MindRot
+        wait 100
+        if not insysmsg "You do not have enough holy symbols for that"
+            cooldown 'Mind Rot' cdMindRot
+        endif
+        wait 400
+    endif
+    
+    if not cooldown 'Corpse Skin' and skill "Necromancy" >= 65
+        clearsysmsg
+        yell [CorpseSkin
+        wait 100
+        if not insysmsg "You do not have enough holy symbols for that"
+            cooldown 'Corpse Skin' cdCorpseSkin
+        endif
+        wait 400
+    endif
+   
+    if not cooldown 'Evil Omen' and skill "Necromancy" >= 60
+        clearsysmsg
+        yell [EvilOmen
+        wait 100
+        if not insysmsg "You do not have enough holy symbols for that"
+            cooldown 'Evil Omen' cdEvilOmen
+        endif
+        wait 400
+    endif
+    
+    if mana > 42
+        while not targetexists and mana > 40
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'Flamestrike'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            wait 500
+        endif
+    elseif not findbuff "actively meditating" and not cooldown 'Mushroom' and findtype "mushroom" backpack as mushy
+        overhead "Eating shrooms" 66
+        dclick mushy
+        cooldown 'Mushroom' cdMushroom
+    elseif not findbuff "actively meditating" and not cooldown 'Meditation'
+        useskill 'meditation'
+        while mana < 50
+            wait 1000
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+    endif
+    
+    getlabel myKillTarget desc
+    overhead desc 66
+
+    if '6 Lethal Ticks Left' in desc or '5 Lethal Ticks Left' in desc
+        @setvar! strikeTime 1
+    endif
+    
+    if diffhits < 30 and mana >= 12 and not cooldown 'Lightning' and strikeTime = 0
+        while not targetexists
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'Lightning'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            cooldown 'Lightning' cdLightning
+            wait 500
+        endif
+    endif
+    
+    getlabel myKillTarget desc
+    overhead desc 66
+
+    if '6 Lethal Ticks Left' in desc or '5 Lethal Ticks Left' in desc
+        @setvar! strikeTime 1
+    endif
+
+    if diffhits < 30 and mana >= 5 and not cooldown 'Magic Arrow' and strikeTime = 0
+        while not targetexists
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'magic arrow'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            cooldown 'Magic Arrow' cdMagicArrow
+            wait 500
+        endif
+    endif
+    
+    getlabel myKillTarget desc
+    overhead desc 66
+
+    if '6 Lethal Ticks Left' in desc or '5 Lethal Ticks Left' in desc
+        @setvar! strikeTime 1
+    endif
+
+    if diffhits < 30 and mana >= 9 and not cooldown 'Harm' and strikeTime = 0
+        while not targetexists
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'harm'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            cooldown 'Harm' cdHarm
+            wait 500
+        endif
+    endif
+    
+    getlabel myKillTarget desc
+    overhead desc 66
+
+    if '6 Lethal Ticks Left' in desc or '5 Lethal Ticks Left' in desc
+        @setvar! strikeTime 1
+    endif
+
+    if diffhits < 30 and mana >= 12 and not cooldown 'Fireball' and strikeTime = 0
+        while not targetexists
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'fireball'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            cooldown 'Fireball' cdFireball
+            wait 500
+        endif
+    endif
+    
+    if diffhits < 30 and bossMode = 1 and followers < 4
+        if ingump "12/" 622436516
+            @setvar! necro_has_enough_symbols 12
+        elseif ingump "11/" 622436516
+            @setvar! necro_has_enough_symbols 11
+        elseif ingump "10/" 622436516
+            @setvar! necro_has_enough_symbols 10
+        elseif ingump "9/" 622436516
+            @setvar! necro_has_enough_symbols 9
+        elseif ingump "8/" 622436516
+            @setvar! necro_has_enough_symbols 8
+        elseif ingump "7/" 622436516
+            @setvar! necro_has_enough_symbols 7
+        elseif ingump "6/" 622436516
+            @setvar! necro_has_enough_symbols 6
+        elseif ingump "5/" 622436516
+            @setvar! necro_has_enough_symbols 5
+        elseif ingump "4/" 622436516
+            @setvar! necro_has_enough_symbols 4
+        elseif ingump "3/" 622436516
+            @setvar! necro_has_enough_symbols 3
+        elseif ingump "2/" 622436516
+            @setvar! necro_has_enough_symbols 2
+        elseif ingump "1/" 622436516
+            @setvar! necro_has_enough_symbols 1
+        elseif ingump "0/" 622436516
+            @setvar! necro_has_enough_symbols 0
+        endif
+        while 6 > necro_has_enough_symbols
+            overhead "Waiting on Necro Symbols"
+            wait 1000
+            if ingump "12/" 622436516
+                @setvar! necro_has_enough_symbols 12
+            elseif ingump "11/" 622436516
+                @setvar! necro_has_enough_symbols 11
+            elseif ingump "10/" 622436516
+                @setvar! necro_has_enough_symbols 10
+            elseif ingump "9/" 622436516
+                @setvar! necro_has_enough_symbols 9
+            elseif ingump "8/" 622436516
+                @setvar! necro_has_enough_symbols 8
+            elseif ingump "7/" 622436516
+                @setvar! necro_has_enough_symbols 7
+            elseif ingump "6/" 622436516
+                @setvar! necro_has_enough_symbols 6
+            elseif ingump "5/" 622436516
+                @setvar! necro_has_enough_symbols 5
+            elseif ingump "4/" 622436516
+                @setvar! necro_has_enough_symbols 4
+            elseif ingump "3/" 622436516
+                @setvar! necro_has_enough_symbols 3
+            elseif ingump "2/" 622436516
+                @setvar! necro_has_enough_symbols 2
+            elseif ingump "1/" 622436516
+                @setvar! necro_has_enough_symbols 1
+            elseif ingump "0/" 622436516
+                @setvar! necro_has_enough_symbols 0
+            endif
+            if diffhits >= 30 
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        while cooldown 'Wither'
+            if diffhits >= 30 
+                hotkey '> Interrupt'
+                break
+            endif
+            clearsysmsg
+            overhead "Waiting on Wither"
+            wait 1000
+        endwhile
+
+        while cooldown 'Vengeful Spirit'
+            if diffhits >= 30 
+                hotkey '> Interrupt'
+                break
+            endif
+            clearsysmsg
+            overhead "Waiting on Vengeful Spirit"
+            wait 1000
+        endwhile
+
+        say "[VengefulSpirit"
+        cooldown "Vengeful Spirit" 31000
+        wait 600
+
+        say "[Wither"
+        cooldown "Wither" 31000
+        wait 600
+        if followers < 4
+            cast "Fire Elemental"
+            wait 5000
+        endif
+
+        say "All Guard Me"
+    endif
+    
+    wait 50
+endwhile
+
+wait 500
+
+if targetexists 
+    hotkey 'Cancel Current Target'
+endif
+
+hotkey 'all guard me'
+
+if canYouMakeAMushroom = 1 and counttype "mushroom" backpack < 5
+    while counttype "mushroom" backpack < 15
+        cast "Create Food"
+        wait 200
+        if counttype "mushroom" backpack = 0
+            break
+        endif
+    endwhile
+endif
+
+while mana < 50
+    if not findbuff "actively meditating" and not cooldown 'Meditate'
+        useskill 'meditation'
+    endif
+    wait 500
+endwhile

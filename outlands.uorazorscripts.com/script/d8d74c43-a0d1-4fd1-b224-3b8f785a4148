@@ -1,0 +1,184 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/d8d74c43-a0d1-4fd1-b224-3b8f785a4148 for latest
+# Automation by Jaseowns
+## Script: Restock Quick
+## Created by: AreYouKidden=2#0403
+#############################################
+
+//Scroll Container & Restock Agent
+# if not 1 - change
+# Set Restock HotBag-01 below to match.
+@setvar 'RestockAgent' 1  
+@setvar 'ScrollContainer' 0x40680C8A
+
+//create list of containers to open for organizers to use
+removelist 'Containers'
+createlist 'Containers'
+pushlist 'Containers' 0x40E56A55
+pushlist 'Containers' 0x43C3870D
+pushlist 'Containers' 0x4117D4DE
+pushlist 'Containers' 0x40A46C89
+
+//create list of organizer agents
+removelist 'OrgAgents'
+createlist 'OrgAgents'
+pushlist 'OrgAgents' 6
+pushlist 'OrgAgents' 7
+pushlist 'OrgAgents' 8
+
+//create list of Tome Colors
+removelist 'TomeColors'
+createlist 'TomeColors'
+pushlist 'TomeColors' 2618
+pushlist 'TomeColors' 2963
+pushlist 'TomeColors' 2990
+pushlist 'TomeColors' 1495
+pushlist 'TomeColors' 1494
+pushlist 'TomeColors' 2085
+pushlist 'TomeColors' 2796
+pushlist 'TomeColors' 2651
+pushlist 'TomeColors' 2722
+pushlist 'TomeColors' 2799
+pushlist 'TomeColors' 2091
+
+removelist 'StorageTomes'
+createlist 'StorageTomes'
+
+if skill 'Musicianship' > 25
+    if not find 'MyInstrument' 'backpack'
+        overhead 'Choose your current instrument' 48        
+        setvar 'MyInstrument'
+        dclick 'MyInstrument'
+    endif
+endif
+
+overhead 'Finding Shelf, Container, Recycler...' 48
+if findtype '44997' ground any any 2 as SShelf
+    setvar 'Storage Shelf' SShelf
+endif    
+if findtype '23035' ground any any 2 as RContainer
+    setvar 'Resource Container' RContainer
+endif
+if findtype '11761' ground any any 2 as IRecycler
+    setvar 'Item Recycler' IRecycler
+endif
+
+if not hidden 'self'
+    skill 'Hiding'
+    pause 500
+endif
+
+overhead 'Finding Tomes on ground...' 48
+foreach x in 'TomeColors'
+    if findtype '29104' ground x any 2 as Book
+        overhead 'x'
+        pushlist 'StorageTomes' Book
+    endif   
+endfor
+
+overhead 'Finding Tomes in containers...' 48
+foreach x in 'Containers'
+    if find 'x' 'ground'
+        dclick x
+        pause 750
+        foreach y in 'TomeColors'
+        if findtype '29104' x y any 2 as STome
+                overhead 'y'
+                pushlist 'StorageTomes' STome
+            endif   
+        endfor 
+    endif
+endfor
+
+overhead 'Using Storage Tomes...' 48
+foreach x in 'StorageTomes'
+    menu x 0
+    pause 250
+endfor
+
+overhead 'Using Shelf, Container, Recyler...' 48
+if find 'Storage Shelf' 'ground' 'any' 'any' 2
+    menu 'Storage Shelf' 0
+    wft 5000
+    target 'self'
+    pause 500
+    gumpclose 'Storage Shelf'
+endif
+    
+if find 'Resource Container' 'ground' 'any' 'any' 2
+    menu 'Resource Container' 0
+    wft 5000
+    target 'self'
+    pause 500
+    gumpclose 'Resource Container'
+endif
+if find 'Item Recycler' 'ground' 'any' 'any' 2
+    dclick 'Item Recycler'
+    pause 500
+    gumpresponse 3
+    waitfortarget 5000
+    target 'self'
+    pause 500
+    gumpclose 'Item Recycler'    
+endif
+if find 'Storage Shelf' 'ground' 'any' 'any' 2
+    menu 'Storage Shelf' 1
+    pause 500
+endif
+
+overhead 'Using Organizers...' 48
+foreach x in 'OrgAgents'
+    organizer x
+    pause 100
+    while queued
+    endwhile
+endfor
+
+overhead 'Finishing UP...' 48
+if findlayer 'self' 'outerbody' as 'found' or findtype 30765 'self' as 'found'
+    overhead 'Satchel Found' 33  
+    setvar 'satchel' 'found'
+    hotkey 'Grab Item'
+    wft 200
+    target 'satchel'
+    pause 200
+endif
+
+if skill 'Inscription' > 50
+    hotkey 'Set Restock HotBag-01'
+    wft 200
+    target 'satchel'
+    pause 500
+    restock 'RestockAgent' 
+    waitfortarget 5000
+    target 'ScrollContainer'
+    pause 500
+endif
+
+if not findbuff 'Food Satisfaction'
+    overhead 'Eat some Food!!' 32
+    overhead 'Eat some Food!!' 32
+endif
+
+if skill 'Camping' > 0
+    if not findbuff 'Campfire Visit'
+        dclicktype 'kindling'
+    endif
+endif
+
+if skill 'Musicianship' > 25
+    hotkey 'Grab Item'
+    wft 200
+    target 'MyInstrument'
+endif
+
+if find 'satchel' 'self'
+    pause 1000
+    while queued
+    endwhile
+    pause 500
+    lift 'satchel'
+    pause 500
+    drop 'self' 'FirstValid'
+    pause 500
+    dclick 'satchel'
+endif

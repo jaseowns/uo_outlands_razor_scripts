@@ -1,0 +1,693 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/21f16203-0ec1-4538-ae72-1a4d42846a79 for latest
+# Automation by Jaseowns
+## Script: Lurch Ultimate Bulter Bot
+## Created by: Mags (Avron)#1175
+#############################################
+
+# LURCH HOUSE BUTLER BOT COMPILED AND TWEAKED BY MAGS(AVRON)#1175
+# 100% of the credit goes to Jaseowns and AreYouKidden. 
+# I have learned so much from them and the code is theirs with just some of my own person tweaks and modifications.
+# THEY ARE THE REAL MVP'S
+# GO OUT AND SUPPORT THEM BOTH!!!
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+## OVERVIEW
+## What can the script do?
+## - DETECH HIDDEN AND BAN GREYS/REDS
+## - MAKE DISTILLS FROM EXTRACTS IN BOX
+## - UNLOCK PARAGON CHESTS THAT ARE PUT IN THE BOX
+## - IF THE PARAGON CHEST HAS EXTRACTS OR MAPS IN IT IT WILL MAKE THEM INTO A DISTILL OR DECODE THEM
+## - CHIV GATE TO TOWNS/DUNGEONS/FRND GUILD HOUSE
+## - DECODE ALL MAPS THAT ARE IN THE BOX
+## - ID ALL ITEMS IN MAGIC RECYCLER
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+## BEST USE TIPS FOR THE SCRIPT
+## - FOR BEST USE ONLY PUT 1 PARAGON CHEST IN THE BOX AT A TIME (I am working on trying to update this to recongize more paragons and handle more)
+## - DOES NOT WORK WITH TOMES YET FOR PULLING OUT MAPS OR EXTRACTS
+## - YOU CAN PUT MULTIPLE EXTRACTS IN THE CHEST AT ONCE THOUGH AND EVEN PUT THEM IN A BAG OR POUCH FOR EASY DUMPING.... SAME WITH TMAPS JUST DON'T PLACE A TOMB YET
+## - I ADDED THE RESUPLY STEP ALL THROUGHOUT THE SCRIPT TOO SO THAT YOU ALWAYS HAVE ENOUGH TOOLS AS LONG AS YOUR SHELF HAS ENOUGH TOOLS AND YOU CAN AVOID THAT CHECK
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+## AGENTS NEED AND OTHER SETUP REQUIREMENTS
+## Restock 1 for Bottles/Extracts
+## Restock 2 for Maps
+## Organize 12 for all paragon chests
+## Shelf with Lockpicks, Remove Traps and Spyglasses in and the loadout set with them
+## YOU WILL WANT A SECOND BOX OR POUCH TO PUT THE COMPLETED MAPS IN AND YOU SHOULD NOT USE THE MAIN BOX FOR THAT OR THE SCRIPT WILL JUST REPEAT PULLING AND PLACE THE COMPLETED MAPS OVER AND OVER
+## YOU WILL NEED TO CHANGE THE MENU ID'S TO "YOUR" RESTOCK SHELF ANYPLACE YOU SEE "menu 0x41BF29F7 1"
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+## LURCH'S RECOMMENDED CHARACTER TEMPLATE
+## - 120 Remove Traps
+## - 120 Item Identification
+## - 100 Lock Picking
+## - 100 Cartography
+## - 100 Alchemy
+## - 90 Chiv
+## - 90 Tactics
+## - You won't be able to decode T8s with this build and LARGER paragon chests will be hard to lock pick without a higher end tool
+## - I recommend rocking fortune aspect if you have it as while slow it you will gain some points with opening Paragon chests.
+## - You could also go 110 Remove Traps and 110 Lockpicking but Lurch doesn't like getting blown up so we go with the 120 Remove Traps
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////// SETTING VARIABLES /////////////////////////////////////////////////////////////////////////////////
+// Pargon Chest Lockpicking
+if not varexist haveParagonToOpen
+    @setvar! haveParagonToOpen 0
+endif
+///////////////////////////////////////////////////////////////////////////
+## STIL WORKING ON SOME CODE FOR THIS ONE BUT MY HOPES IS TO DO MORE THAN 1 PARAGON AT A TIME
+if not varexist paragonInPack
+    @setvar! paragonInPack 1
+endif
+////////////////////////////////////////////////////////////////////
+// GLOBAL WAIT TIME.... Example 'wait globalTimeout' instead of 'wait 1000'
+@setvar! globalTimeout 650
+
+// CHIV BOT HUE SETUP
+## Custom - (lantern /w ossuary hue)
+@setvar! jase_chiv_custom_trigger 2594
+@setvar! jase_chiv_custom_trigger_hue 1182
+
+## City (Store bought Lantern)
+@setvar! jase_chiv_city_trigger 2594
+@setvar! jase_chiv_city_trigger_hue 0
+
+## Dungeon (Store bought Torch)
+@setvar! jase_chiv_dung_trigger 2578
+@setvar! jase_chiv_dung_trigger_hue 0
+
+## Shrine (Store bought Candle)
+@setvar! jase_chiv_shrine_trigger 2575
+@setvar! jase_chiv_shrine_trigger_hue 0
+
+// Select Storage Shelf
+if not varexist storageShelf
+    overhead 'Select your storage shelf'
+    setvar storageShelf
+endif
+// Select your Resource Stock Pile
+if not varexist resourceSP
+    overhead 'Select your resource stock pile (some call it the ingot pile)'
+    setvar resourceSP
+endif    
+// Select the drop bag/chest where people will place extracts for the bot to use. 
+// I set it as the same box as where they will drop the maps and paragon chests
+// I recommend using a chest for players to drop items into (other then the unidentified items) and one chest for the bot to drop them into
+
+// SETTING UP CONTAINERS
+## Container for all extracts, maps, and paragon chests to go in given by a player
+if not varexist playerContainer
+    overhead 'Select the container to watch for items in.(Players Chest)'
+    setvar playerContainer
+endif
+
+## Container for Lurch to drop all extracts, maps, and paragon chest in to when they are done with them
+// Select your bot's container
+if not varexist botContainer
+    overhead 'Select the container for bot to drop items in to when done with them'
+    setvar botContainer
+endif    
+## Magic Recycler for all unidentified items to go in to be ID'ed
+// Select your magic recycler
+if not varexist recycleChest
+    overhead 'Select your Magic Recycler Chest!'
+    setvar recycleChest    
+endif
+
+
+// Resuply all Tools from Shelf
+
+////////////////////////////////////////////////////////
+///// THIS IS WHERE THE BOT ACTUALLY BEGGINS!! ////////
+///////////////////////////////////////////////////////
+while not dead 
+@setvar! foundExtract 0    
+if insysmsg "Detect Off"
+    script '_ButlerDetectOff'
+endif
+//// LET PEOPLE KNOW THE BOT IS ONLINE BUT DON'T WANT TO SPAM
+if not timerexists "lurchTimer"
+    createtimer "lurchTimer"
+    settimer "lurchTimer" 0
+endif
+if timer lurchTimer >= 60000
+    wait 1000
+    say "Master... Lurch Bot is online!" 88
+    wait 500
+    settimer "lurchTimer" 0
+endif
+/////////////////////////////////////////////////
+
+////////////////////////////////////////////////
+//// BEG FOR TIPS AND TELL THEM WHERE TO STICK IT
+
+if not varexist tipJar
+    overhead 'Select the container you want to use as a tip jar!'
+    setvar tipJar
+endif
+
+if not timerexists  "tipTimer"
+    createtimer "tipTimer"
+    settimer "tipTimer" 0
+endif
+
+if not varexist tipPouch
+    overhead 'Select your secure for other "tipped" items'
+    setvar tipPouch
+endif
+
+if timer tipTimer > 120000
+     menu resourceSP 0
+     waitfortarget
+     target tipJar
+     menu storageShelf 0
+     waitfortarget
+     target tipJar
+     waitforgump 3232825965
+     wait 500
+     gumpclose 3232825965
+     settimer "tipTimer" 0
+endif
+
+while findtype 12686 tipJar as item
+     wait 650    
+     lift item 100
+     wait 650
+     drop backpack -1 -1 -1
+     wait 650
+endwhile
+while findtype 'map' tipJar as map
+     restock 2
+     wft
+     wait 500
+     target tipJar
+     wait 5000
+     say "Master Thank you for the TMap Tip!" 66
+     wait 650
+     organize 13
+     wait 2000
+endwhile
+while findtype 3821 tipJar as goldpile
+     lift goldpile 10000
+     wait 650
+     drop backpack -1 -1 -1
+     wait 650
+     organize 11
+     wait 2000
+     say "Thank you Master for the Gold Tip!" 66
+endwhile
+
+///////////////////////////////////////////////////
+///////////////////////////////////
+// Magic Recycle and ITEM ID by Mags(Avron)#1175
+// Will check that you have an unidentied item in the magic recycler and then countdown and recycle it.
+// You can remove all the say and wait commands if you want it to happen faster
+// Script will loop till items have then either been recycled or removed from the chest.
+
+
+if skill 'Item Identification'>= 120
+
+ 
+      while findtype 5117|3920|3721|5042|5089|7031|3719|5046|7610|3568|5207|5129|5103|3713|5125|5139|7177|5063|5205|3570|5056|3573|5123|5143|5204|5101|5135|5203|5090|5078|5061|5059|3937|3932|5121|3909|3938|5106|7035|7026|5142|5138|5201|7169|7173|5112|3571|7181|7170|3913|5127|5132|3742|5044|5144|5187|5185|5085|5177|5181|5131|3763|7029|7027|5074|5070|9917|7034|7033|5075|10245|7175|3915|3911|5105|3934|5060|3917|5049|5182|5146|5040|3572|5179|7179|5119|5115|5076|3762|3740|22187|3834 recycleChest as unidentifiedItem
+                getlabel unidentifiedItem desc
+        if "unidentified" in desc
+               overhead "Recycle Bot Triggered"
+               wait 500
+               say "Master, I see you have an item for me to ID and recycle" 77
+               wait 1000
+               say "In 5 seconds I will ID all items in the Magic Recycler!" 77
+               wait 1000
+               say "Countdown Begins Now" 77
+               wait 1000
+               say "5" 77
+               wait 1000
+               say "4" 77
+               wait 1000
+               say "3" 77
+               wait 1000
+               say "2" 77
+               wait 1000
+               say "1" 77
+               wait 500
+               useskill "itemId"
+               wft
+               wait 500
+               target recycleChest
+               wait 1000
+               say "Master, Your items have now been identified!" 77
+               wait 1000
+               say "Please remove ALL tiems from the magic recycler or recycle them now and then remove them" 77
+               wait 1000 
+        endif
+        endwhile         
+              
+ endif           
+        
+///// END OF MAGIC RECYCLER AND ID BOT /////////////////
+
+
+
+////////////////////////////////////////////////////////////////
+/////////////////////////////////////
+// Paragon Chest Lockpicking by Jaseowns
+// Snipped from Amish House Butler Script.
+
+if not timerexists "unlockChestTimer"
+    createtimer "unlockChestTimer"
+    settimer "unlockChestTimer" 2000
+endif
+
+if skill "Lockpicking" >= 50
+    if findtype "lockpicks" backpack and findtype "drill" backpack
+        @clearignore
+        if not find playerContainer ground -1 -1 2
+            unsetvar playerContainer
+            replay
+        endif
+
+        if haveParagonToOpen = 0
+            while findtype 2473|3644|3645|3646|3647|3710|3701|3702|29832|29833|2472|2475|3648|3649|3708|29078|41449|41450|3705|3712|2474|3709|3650|3651|29077 playerContainer as container
+                getlabel container desc
+                if "sealed" in desc
+                    overhead "paragon found"
+                    lift container
+                    drop backpack -1 -1 -1
+                    wait globalTimeout
+                    say "Master, I have your paragon chest. Please give me a moment" 55
+                endif
+                
+                if find container backpack
+                    @setvar! haveParagonToOpen container
+                else
+                    @ignore! container
+                endif
+            endwhile
+        elseif timer unlockChestTimer >= 3500   
+              if gumpexists 736038070
+                if ingump "Cleared of Traps" 736038070
+                    gumpresponse 4 736038070
+                    wait 1000
+                    if not timerexists "RTT"
+                       createtimer "RTT"
+                       settimer "RTT" 0
+                    endif
+                    if timer RTT >= 15000
+                        say "Master I have removed the trap and working on the lock now" 55
+                    wait 1000
+                    endif
+                    if insysmsg 'not have any lockpicks' or insysmsg 'no chance'
+                            gumpresponse 2
+                            wait 1000
+                            menu 0x41BF29F7 1
+                            wait 1000
+                            loop
+                        endif  
+                else
+                    overhead "Remove Trap"
+                    gumpresponse 7 736038070
+                     wait 1000
+                     if insysmsg 'any trap tools'
+                       gumpresponse 5
+                     wait 1000
+                     menu storageShelf 1
+                      wait 1000
+                      loop
+                    endif        
+                endif
+                settimer unlockChestTimer 0
+            else
+                getlabel haveParagonToOpen sealedDesc
+                if "sealed" in sealedDesc
+                    dclick haveParagonToOpen
+                else
+                     lift haveParagonToOpen
+                     drop botContainer -1 -1 -1
+                    wait globalTimeout
+                    organizer 12
+                    wait 5000
+                    say "Master.... The paragon chest is unlocked! Please check the BLACK chest!" 55
+                    wait 1000
+                    if not find haveParagonToOpen backpack
+                        @setvar! haveParagonToOpen 0
+                    endif
+                endif
+            endif
+        endif
+    else
+        overhead "No more lockpicks or drills bro" 34
+    endif
+
+endif
+////////// END IF PARAGON LOCKPICKING BOT//////////////////////////
+///////////////////////////////////////////////////////////////////
+// Chiv Gate Bot by Jaseowns
+// UO Outlands
+// youtube.com/jaseowns
+
+
+if not gumpexists 1387930325
+    say "[ChivalryHotbar"
+endif
+if not timerexists jase_chiv_gate_ready
+    createtimer jase_chiv_gate_ready
+    settimer jase_chiv_gate_ready 35000
+endif
+
+if timer jase_chiv_gate_ready >= 60000
+ 
+    settimer jase_chiv_gate_ready 35000
+endif
+
+@setvar! jase_chiv_has_enough_symbols 0
+
+if ingump "12/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 1
+elseif ingump "11/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 1
+elseif ingump "10/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 1
+elseif ingump "9/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 1
+elseif ingump "8/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 1
+elseif ingump "7/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 1
+elseif ingump "6/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 1
+elseif ingump "5/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 1
+elseif ingump "4/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 0
+elseif ingump "3/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 0
+elseif ingump "2/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 0
+elseif ingump "1/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 0
+elseif ingump "0/" 1387930325
+    @setvar! jase_chiv_has_enough_symbols 0
+endif
+
+if jase_chiv_has_enough_symbols = 1
+
+    if findtype jase_chiv_custom_trigger ground jase_chiv_custom_trigger_hue -1 2 as trigger
+        if timer jase_chiv_gate_ready > 35000 
+        say "Master... Great News!! I Can Send You Home Now! Please come back soon!" 88
+            say '[SacredJourney'
+            waitforgump 1482653814 5000
+            gumpresponse 4 1482653814
+            wait 500
+            dclick trigger
+            settimer jase_chiv_gate_ready 0
+        else
+            say "Master... My apologies.. My gate is down till I rest a little!" 88
+            wait 4000
+        endif
+    endif
+
+    if findtype jase_chiv_city_trigger ground jase_chiv_city_trigger_hue -1 2 as trigger
+        if timer jase_chiv_gate_ready > 35000 
+            say "Master... Great News!! I can send you to the city of your choice now!" 88
+            say '[SacredJourney'
+            waitforgump 1482653814 5000
+            gumpresponse 1 1482653814
+            wait 500
+            dclick trigger
+            settimer jase_chiv_gate_ready 0
+        else
+            say "Master... My apologies.. My gate is down till I rest a little!" 88
+            wait 4000
+        endif
+    endif
+    wait 100
+    
+    if findtype jase_chiv_dung_trigger ground jase_chiv_dung_trigger_hue -1 2 as trigger
+        if timer jase_chiv_gate_ready > 35000 
+            say "Master.... Please becareful in the Dungeons. There dangerous!" 88
+            say '[SacredJourney'
+            waitforgump 1482653814 5000
+            gumpresponse 2 1482653814
+            wait 500
+            dclick trigger
+            settimer jase_chiv_gate_ready 0
+        else
+            say "Master... My apologies.. My gate is down till I rest a little!" 88
+            wait 4000
+        endif
+    endif
+    wait 100
+    
+    if findtype jase_chiv_shrine_trigger ground jase_chiv_shrine_trigger_hue -1 2 as trigger
+        if timer jase_chiv_gate_ready > 35000 
+            say "Master... Enjoy the Shrines! Wish I could come with you... " 88
+            say '[SacredJourney'
+            waitforgump 1482653814 5000
+            gumpresponse 3 1482653814
+            wait 500
+            dclick trigger
+            settimer jase_chiv_gate_ready 0
+        else
+            say "Master... My apologies.. My gate is down till I rest a little!" 88
+            wait 4000
+        endif
+    endif
+    wait 100
+
+else
+    wait 2000
+endif
+wait 1000
+
+/////////////////////////////////// END OF CHIV GATE BOT /////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////
+// DETECT HIDDEN BOT
+// BAN REDS AND GREYS!!
+clearsysmsg 
+
+if not listexists "friendsofthehouse"
+    createlist "friendsofthehouse"
+endif
+
+if not timerexists "detectHidingPlayersTimer"
+    createtimer "detectHidingPlayersTimer"
+    settimer "detectHidingPlayersTimer" 11000
+endif
+
+if not timerexists "sayBanTimer"
+    createtimer "sayBanTimer"
+    settimer "sayBanTimer" 2000
+endif
+
+if timer "detectHidingPlayersTimer" >= 11000
+    useskill 'detectinghidden'
+    wft 500
+    target 'self'
+    settimer "detectHidingPlayersTimer" 0
+endif
+
+hotkey 'Next non-friendly player target'
+wait 200
+if insysmsg "no one matching"
+    // do nothing
+else 
+    say "Master.... I have spoted the intruder!!" 33
+    wait 500
+    @setvar! removeTarget lasttarget
+    if inlist "friendsofthehouse" removeTarget 
+        // do nothing
+    elseif timer sayBanTimer >= 2000
+        say "Don't worry Master!! I'll remove them for you!"
+        wait 500
+        say "I ban thee" 
+        wft 1000
+        target removeTarget 
+        wait 200
+        if insysmsg 'You cannot eject a friend of the house!'
+        wait 500
+            pushlist "friendsofthehouse" removeTarget 
+        endif  
+        settimer "sayBanTimer" 0
+    endif
+endif
+
+/////////////////////////////////////////////// END OF DETECT HIDING BOT ///////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////
+// GRAB TMAPS AND DECODE
+// Map Decoder by AreYouKidden
+
+while findtype 'map' playerContainer as map
+    restock 2
+    wft
+    wait 500
+    target playerContainer
+    wait 5000
+    say "Master I have your maps and soon will begin decoding them" 88
+@removelist 'ToolHues'
+@createlist 'ToolHues'
+@removelist 'MapHues'
+@createlist 'MapHues'
+@removelist 'MapGumps'
+@createlist 'MapGumps'
+
+pushlist 'ToolHues' 0
+pushlist 'ToolHues' 2419
+pushlist 'ToolHues' 2406
+pushlist 'ToolHues' 2413
+pushlist 'ToolHues' 2418
+pushlist 'ToolHues' 2213
+pushlist 'ToolHues' 2425
+pushlist 'ToolHues' 2207
+pushlist 'ToolHues' 2219
+pushlist 'ToolHues' 1763
+
+pushlist 'MapHues' 0
+pushlist 'MapHues' 2091
+pushlist 'MapHues' 2904
+pushlist 'MapHues' 2651
+pushlist 'MapHues' 2799
+pushlist 'MapHues' 2796
+
+pushlist 'MapGumps' 1520869851 'front'
+pushlist 'MapGumps' 1520869851 'front'
+pushlist 'MapGumps' 2589357942 'front'
+pushlist 'MapGumps' 3473029237 'front'
+pushlist 'MapGumps' 1332805401 'front'
+pushlist 'MapGumps' 3367641484 'front'
+
+foreach 'Color' in 'MapHues'
+    foreach 'x' in 'MapGumps'
+         @setvar 'Gump' 'x' 
+    endfor
+    poplist 'MapGumps' 'back'
+
+    while findtype '5356' 'backpack' 'Color' as 'Map'
+        while find 'Map' 'backpack'
+        wait 500
+    wait 500
+        if not find 'Tool1' 'backpack'
+            foreach 'y' in 'ToolHues'
+                if @findtype '5365' 'backpack' 'y' as 'found' and not find 'Tool1' 'backpack'
+                    @setvar 'Tool1' 'found'
+                    @setvar 'Hue1' 'y'
+                endif
+            endfor
+        endif
+        if not find 'Tool1' 'backpack'
+            overhead 'Low End Tool not found' 33
+            stop
+        endif
+        if not find 'Tool2' 'backpack'
+            foreach 'y' in 'ToolHues'
+                if @findtype '5365' 'backpack' 'y' as 'found'
+                    @setvar 'Tool2' 'found'
+                    @setvar 'Hue2' 'y'
+                endif
+            endfor
+        endif
+        if not find 'Tool2' 'backpack'
+            overhead 'High End Tool not found' 33
+            stop
+        endif
+
+        overhead 'Using Low End Tool' 'Hue1'
+        clearsysmsg 
+        dclick 'Tool1'
+        pause 100
+        wft 5000
+        target 'Map'
+        pause 100
+        waitforgump 'Gump'
+        gumpresponse 4
+        pause 1500
+        if insysmsg "no chance"
+            lift 'Map' 9999
+        drop 'botContainer' -1 -1 -1
+        pause 500
+        endif
+        
+        if not findtype "lockpicks" backpack or not findtype "drill" backpack or not findtype "spyglass" backpack or insysmsg 'You have reached the maximum' or insysmsg "worn out"
+              menu storageShelf 1
+               wait 500
+           endif
+            clearsysmsg 
+            pause 1000
+            while find 'Map' 'backpack' and find 'Tool2' 'backpack'
+                overhead 'Using High End Tool' 'Hue2'
+                clearsysmsg 
+                dclick 'Tool2'
+                pause 100
+                wft 5000
+                target 'Map'
+                pause 100
+                waitforgump 'Gump'
+                gumpresponse 4
+                pause 1500
+                if insysmsg "no chance"
+                lift 'Map' 9999
+                drop 'botContainer' -1 -1 -1
+                pause 500
+                endif
+
+                if insysmsg 'You have reached the maximum accuracy'
+                    overhead 'Map Decoded!' 88
+                    pause 200
+                    wait 500
+                    say "Master I completed a map and will put it in the BLACK chest now for you!"
+                    wait 1000
+                    lift 'Map' 9999
+                    drop 'botContainer' -1 -1 -1
+                    pause 500
+                endif
+            endwhile
+        endif
+        endwhile
+    endwhile
+endfor
+endwhile
+
+////////////////////////////// END OF MAP DECODING BOT ////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////// Make Distills from extracts found in the Player Conatainer
+//////
+while findtype 'bottle' playerContainer as extract
+    @setvar! foundExtract 1
+    getlabel extract extractName
+    say 'Ah ha! I see you have an extract for me to distill!' 66
+    wait 2000
+    restock 1
+    wft 
+    target playerContainer
+    wait 10000
+    say "I have your extracts Master... Making Distills Now!" 66
+    wait 1000
+    menu resourceSP 0
+    waitfortarget
+    target 'self'
+     say [CraftingQueue
+     wait 1000
+     waitforgump 453554062
+     gumpresponse 7
+  for 60000 
+       wait 1000
+        if insysmsg 'Crafting queue complete'
+            wait 500
+        say "Your Distills are ready Master!" 66
+            wait 1000
+            say "If you like my services master, Please consider giving me a tip at my tip vendor"
+            wait 500
+            loop
+   else 
+       say "Master... Mixing is in progress please wait!" 66
+    wait 10000
+    endif
+    endfor
+endwhile
+
+wait 1000
+replay
+endwhile
+////////////////////////////////////////////////////END OF DISTILL MAKING BOT //////////////////////////////////

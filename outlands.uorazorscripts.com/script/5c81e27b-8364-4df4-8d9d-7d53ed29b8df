@@ -1,0 +1,136 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/5c81e27b-8364-4df4-8d9d-7d53ed29b8df for latest
+# Automation by Jaseowns
+## Script: Plant Care
+## Created by: adamtwelve#0302
+#############################################
+
+#PlantCare by AdamTwelve
+#
+#This script will inventory all planters within range then: 
+#    Harvest any plants that are ready
+#    Plant seeds in empty planters (seed prioritization is a work in progress)
+#    Taste ID for Heat, Water, and Soil
+#    Add dirt and water to estimated amounts
+#    
+#Requirements:
+#    Planters in range
+#    Water tile or source within range
+#    Seeds, planters spade and dirt in backpack
+    
+overhead 'select 1 type of seeds to plant'
+setvar seeds
+
+
+clearignore
+clearlist pots
+createlist pots
+setvar globaltimeout 1100
+
+
+//createlist of all pots in range
+while findtype 6327|6328|6330|4551|6341|28987 true -1 -1 -1 as pot
+    setvar foundpot pot
+    if not inlist pots foundpot
+        pushlist pots foundpot
+        ignore pot
+    endif
+endwhile
+
+
+//harvest if ready
+overhead 'checking for ready plants'
+foreach x in pots
+    dclick x
+    waitforgump 3224608375
+    pause globaltimeout
+    if ingump 'Ready to Harvest' any
+        overhead 'harvesting plant'
+        gumpresponse 2
+        pause globaltimeout
+    endif
+    pause globaltimeout
+endfor
+
+
+//plant seed if needed
+overhead 'planting seeds in empty pots'
+if find seeds backpack -1 -1 -1
+foreach x in pots
+    dclick x
+    waitforgump 3224608375
+    pause globaltimeout
+    if ingump 'No Seed' any
+        overhead 'planting seed'
+        gumpresponse 2
+        pause globaltimeout
+        target seeds backpack -1 -1 -1
+     endif
+endfor
+else
+  overhead 'no seeds in backpack' 33
+endif
+        
+//TasteID all pots
+overhead 'Estimating ideal heat, water, and soil'
+if findtype 'spade' backpack -1 -1 -1
+foreach x in pots
+    dclick x
+    waitforgump 
+    pause globaltimeout
+    gumpresponse 3
+    waitforgump 3224608375
+    pause globaltimeout
+    gumpresponse 4
+    waitforgump 3224608375
+    pause globaltimeout
+    gumpresponse 5
+    waitforgump 3224608375
+    pause globaltimeout
+endfor
+else
+    overhead 'no planters spade found' 33
+endif
+
+
+// add dirt and water to estimated amounts
+//fill water each time (requires water tile or other source)
+overhead 'adding water and soil'
+if findtype 'watering can' backpack -1 -1 -1 and findtype 'dirt patch' backpack -1 -1 -1
+foreach x in pots
+//make sure seed exists.
+#if ingump 'No Seed Currently'
+#    overhead 'no seed'
+#    break
+#endif
+
+//water
+dclicktype 'watering can' backpack -1 -1 -1
+pause globaltimeout
+dclick x
+waitforgump 
+pause globaltimeout
+gumpresponse 2 3224608375
+waitfortarget
+waitforgump 3224608375
+targettype 'watering can' backpack -1 -1 -1
+waitforgump 3929333591
+pause globaltimeout
+gumpresponse 2 3929333591
+pause globaltimeout
+//dirt
+gumpresponse 2 3224608375
+waitforgump 
+pause globaltimeout
+targettype 'dirt patch' backpack -1 -1 -1
+waitforgump 4024474571
+pause globaltimeout
+gumpresponse 2 4024474571
+pause globaltimeout
+gumpclose
+gumpclose
+endfor
+else
+    overhead 'missing water or soil' 33
+endif
+
+overhead 'all done' 99

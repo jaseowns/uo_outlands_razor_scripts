@@ -1,0 +1,565 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/4c740f41-9b22-4e1d-9d8f-42b73b179f3c for latest
+# Automation by Jaseowns
+## Script: Halloween 2022 - Reaper of Souls mage bot
+## Created by: Jaseowns#6694
+#############################################
+
+# One hotkey mage cycle, nox, poison looking for Reaper of Souls  by Jaseowns
+# UO Outlands - https://youtu.be/K3bVPhHcInE
+
+// Beta client for cooldowns
+// cooldowns for mushrooms, mana vampire and healpots
+// for now using timers
+
+# Set this to one, if you want to cast poison once no matter what
+# If you have 100 poisoning and want Lethal, set this to 0
+@setvar! castPoisonAnyway 0
+
+# We will spam mind blast when other skills are on cooldown
+# If you set this to 0 it will use flamestrike
+@setvar! spamMindBlastOverFlamestrike 0
+
+# This will auto replay this script if you want it too
+@setvar! autoBotEnabled 1
+
+# This will make sure you have bless on
+@setvar! blessYourself 1
+
+# Update this variable to 1 for ALL KILL
+# Update this variable to 0 for target nearest
+@setvar! setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster 0
+
+###############
+### Edit these cooldowns to match your wizard grimoire
+######
+@setvar! canYouMakeAMushroom 1
+@setvar! cdLightning 60000
+@setvar! cdMagicArrow 20000
+@setvar! cdHarm 20000
+@setvar! cdFireball 60000
+
+###############
+### Necro Cooldowns
+######
+@setvar! cdEvilOmen 30000
+@setvar! cdVampiricEmbrace 30000
+@setvar! cdCorpseSkin 30000
+@setvar! cdMindRot 30000
+
+#### Buff Cooldowns
+@setvar! cdMushroom 60000
+@setvar! cdMagicShield 60000
+@setvar! cdReactiveArmor 60000
+
+##################################################################
+# 
+#   Hopefully you do not have to edit after this :)
+#
+##################################################################
+
+// Make sure we have a spell book attached
+if findlayer self righthand as item
+    // do nothing
+elseif findtype "3834" backpack as item
+    dclick item
+else 
+    overhead "No book bro!" 34
+endif
+
+if not timerexists reactiveArmorTimer
+    createtimer reactiveArmorTimer
+    settimer reactiveArmorTimer cdMagicShield
+endif
+
+if not timerexists magicShieldTimer
+    createtimer magicShieldTimer
+    settimer magicShieldTimer cdMagicShield
+endif
+
+if not timerexists magicMushroomTimer
+    createtimer magicMushroomTimer
+    settimer magicMushroomTimer cdMushroom
+endif
+
+if not timerexists magicArrowTimer
+    createtimer magicArrowTimer
+    settimer magicArrowTimer cdMagicArrow
+endif
+
+if not timerexists lightningTimer
+    createtimer lightningTimer
+    settimer lightningTimer cdLightning
+endif
+
+if not timerexists harmTimer
+    createtimer harmTimer
+    settimer harmTimer cdHarm
+endif
+
+if not timerexists fireballTimer
+    createtimer fireballTimer
+    settimer fireballTimer cdFireball
+endif
+
+if not timerexists evilOmenTimer
+    createtimer evilOmenTimer
+    settimer evilOmenTimer cdEvilOmen
+endif
+
+if not timerexists vampiricEmbraceTimer
+    createtimer vampiricEmbraceTimer
+    settimer vampiricEmbraceTimer cdVampiricEmbrace
+endif
+
+if not timerexists corpseSkinTimer
+    createtimer corpseSkinTimer
+    settimer corpseSkinTimer cdCorpseSkin
+endif
+
+if not timerexists mindRotTimer
+    createtimer mindRotTimer
+    settimer mindRotTimer cdMindRot
+endif
+
+# Eat food if we got it
+if not findbuff "food" and findtype "tray" backpack as jood
+    dclick jood
+    wait 200
+endif
+
+
+# Use Taste ID if possible
+if skill "Taste Identification" >= 50 and not findbuff "herb"
+    useskill 'tasteidentification'
+    wft 500
+    target backpack
+endif
+
+if setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster = 1
+    say "all kill"
+    wait 200
+    while targetexists 
+        // wait
+        wait 50
+    endwhile
+elseif findtype "a reaper of souls|Ayleth Geste" ground -1 -1 12 as nukethisguy
+    @setvar myKillTarget nukethisguy 
+else  
+    overhead "found no one" 34
+    if autoBotEnabled = 1
+        wait 500
+        replay
+    endif
+endif
+
+
+
+if not varexist myPreviousKillTarget
+    @setvar myPreviousKillTarget 0     
+endif
+
+getlabel myKillTarget desc
+overhead desc
+
+if not varexist myEarthPet or dead myEarthPet
+    overhead "Your pet is dead, demonic summon time..." 34
+    if findtype "an ancient mummy" ground -1 -1 10 as maybePet
+        overhead "Found a mate.. maybe?" 88
+        if noto maybePet = "friend"
+            @setvar! myEarthPet maybePet
+            replay
+        endif
+    endif
+else
+    menu myEarthPet 2
+    wft 500
+    target myKillTarget
+endif
+
+if diffhits >= 30 and mana > 12
+    while not targetexists
+        if diffhits >= 60
+            cast 'Heal'
+        else
+            cast 'Greater Heal'                
+        endif
+        wait 50
+        if hp = maxhp
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    if targetexists
+        target self
+    endif
+elseif blessYourself = 1 and str <= 100
+    while not targetexists
+        cast 'Bless'
+        wait 50
+        if diffhits >= 30
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    if targetexists
+        target self
+    endif
+endif
+
+if find myKillTarget -1 -1 12 as killy
+    if myKillTarget = myPreviousKillTarget
+        // do nthoing
+    else
+        
+        // Herding using crook
+        if skill "Herding" > 0 and findtype 3713 backpack as jrook
+            dclick jrook
+            wft 500
+            target killy
+        endif
+        
+        while not targetexists and not dead myKillTarget
+            if diffhits < 30
+                cast 'Curse'
+                wait 50
+            elseif diffhits >= 30 
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        if targetexists
+            target myKillTarget
+            wait 500
+        endif
+
+
+        while not targetexists and not dead myKillTarget
+            if diffhits < 30
+                cast 'mana drain'
+                wait 50
+            elseif diffhits >= 30 
+                hotkey '> Interrupt'
+                break
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            wait 500
+        endif
+        @setvar myPreviousKillTarget myKillTarget
+    endif
+else
+    overhead "Out of range" 34
+endif
+
+
+
+clearsysmsg 
+
+say "all guard"
+
+@setvar! isLethalPoison 0
+
+while not dead myKillTarget and find myKillTarget -1 -1 12 as killy
+    
+    if insysmsg "Target cannot be seen." 
+        overhead "CANNOT BE SEEN MOVE TO NEXT TARGET" 34
+    endif 
+    
+    if timer magicShieldTimer >= cdMagicShield and not findbuff "Magic Reflection"
+        cast "Magic Reflection"
+        wait 1000
+    elseif not findbuff "Magic Reflection" and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as pot
+        dclick pot
+        wait 200
+    endif
+
+    if findbuff "Magic Reflection"
+        settimer magicShieldTimer 0
+    endif
+    
+    if timer reactiveArmorTimer >= cdReactiveArmor and not findbuff "Reactive Armor"
+        cast "Reactive Armor"
+        wait 200
+    endif
+
+    if findbuff "Reactive Armor"
+        settimer reactiveArmorTimer 0
+    endif
+
+    if timer corpseSkinTimer >= cdCorpseSkin and skill "Necromancy" >= 65
+        overhead "Should be CorpseSkin!" 34
+        say "[CorpseSkin"
+        settimer corpseSkinTimer 0
+        wait 500
+    endif
+    
+    if skill "poisoning" >= 100 or castPoisonAnyway = 1
+
+        if timer mindRotTimer >= cdMindRot and skill "Necromancy" >= 75
+            overhead "Should be mind rotting!" 34
+            say "[MindRot"
+            settimer mindRotTimer 0
+            wait 500
+        endif
+        
+        while isLethalPoison = 0
+            
+            if insysmsg "Target cannot be seen." 
+                overhead "CANNOT BE SEEN MOVE TO NEXT TARGET" 34
+                replay
+            endif 
+        
+            getlabel myKillTarget desc2
+            overhead desc2 66
+            // poison lethal
+            if "Lethal" in desc2
+                @setvar! isLethalPoison 1
+                break
+            elseif castPoisonAnyway = 1 and "Ticks" in desc2
+                @setvar! isLethalPoison 1
+                break
+            elseif castPoisonAnyway = 1 and "Poison" in desc2
+                @setvar! isLethalPoison 1
+                break
+            elseif diffhits >= 30 
+                // need a heal
+                break
+            elseif mana >= 9
+                while not targetexists
+                    cast 'poison'
+                    wait 50
+                    if dead myKillTarget
+                        hotkey '> Interrupt'
+                        replay
+                    endif
+                endwhile
+                target myKillTarget
+                wait 200
+                if insysmsg "Target cannot be seen." 
+                     overhead "CANNOT BE SEEN MOVE TO NEXT TARGET" 34
+                     @setvar! isLethalPoison 1
+                endif 
+            else
+                wait 200
+            endif
+        endwhile
+    endif
+    if timer evilOmenTimer >= cdEvilOmen and skill "Necromancy" >= 60
+        say "[EvilOmen"
+        settimer evilOmenTimer 0
+        wait 200
+    endif
+
+    if timer vampiricEmbraceTimer >= cdVampiricEmbrace and skill "Necromancy" >= 75 and findtype 8198 ground -1 -1 4 as jorpse
+        say "[VampiricEmbrace"
+        wft 500
+        target jorpse
+        settimer vampiricEmbraceTimer 0
+    endif
+   
+    if find myKillTarget -1 -1 12 as killy
+       // do nothing
+    else
+        overhead "Out of range" 34
+        break
+    endif
+    
+    if poisoned
+        if findtype "Orange Potion" backpack as pot 
+            dclick pot
+            wait 200
+        else
+            while not targetexists
+                if not poisoned
+                    hotkey '> Interrupt'
+                    break
+                else
+                    cast 'Cure'
+                    wait 50
+                endif 
+            endwhile
+            if targetexists
+                target self
+                wait 500
+            endif
+        endif
+    endif
+
+    
+    if diffhits < 30 and mana >= 12 and timer lightningTimer >= cdLightning
+        while not targetexists
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'Lightning'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            settimer lightningTimer 0
+            wait 500
+        endif
+    endif
+
+    if diffhits < 30 and mana >= 5 and timer magicArrowTimer >= cdMagicArrow
+        while not targetexists
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'magic arrow'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            settimer magicArrowTimer 0
+            wait 500
+        endif
+    endif
+
+    if diffhits < 30 and mana >= 9 and timer harmTimer >= cdHarm
+        while not targetexists
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'harm'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            settimer harmTimer 0
+            wait 500
+        endif
+    endif
+
+    if diffhits < 30 and mana >= 12 and timer fireballTimer >= cdFireball
+        while not targetexists
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'fireball'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            settimer fireballTimer 0
+            wait 500
+        endif
+    endif
+    
+    if diffhits >= 30
+            
+        if findtype "Yellow Potion" backpack as pot 
+            getlabel pot desc
+            if "next usable" in desc
+                // do nothing
+            else
+                dclick pot
+                wait 200
+            endif
+        endif
+
+        if diffhits >= 30 and mana >= 12
+            while not targetexists
+                if diffhits >= 60
+                    cast 'Heal'
+                else
+                    cast 'Greater Heal'                
+                endif
+                wait 50
+                if hp = maxhp
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists
+                target self
+                wait 50
+            endif
+        endif
+    elseif mana < 55 and findbuff "actively meditating" 
+        // wait for mana
+    elseif spamMindBlastOverFlamestrike = 1 mana > 42
+        while not targetexists and mana > 40
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'Mind Blast'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            wait 500
+        endif
+    elseif mana > 42
+        while not targetexists and mana > 40
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'Flamestrike'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            wait 500
+        endif
+    elseif not findbuff "actively meditating" and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
+        overhead "Eatting shrooms" 66
+        dclick mushy
+        settimer magicMushroomTimer 0
+    elseif not findbuff "actively meditating" 
+        useskill 'meditation'
+        wait 500
+    endif
+    wait 50
+endwhile
+wait 500
+if targetexists 
+    hotkey 'Cancel Current Target'
+endif
+say "all guard me"
+if canYouMakeAMushroom = 1 and counttype "mushroom" backpack < 5
+    while counttype "mushroom" backpack < 15
+        cast "Create Food"
+        wait 200
+        if counttype "mushroom" backpack = 0
+            break
+        endif
+    endwhile
+endif
+while mana < 50
+    if not findbuff "actively meditating" 
+        useskill 'meditation'
+    endif
+    wait 500
+endwhile
+if timer vampiricEmbraceTimer >= cdVampiricEmbrace and skill "Necromancy" >= 70 and findtype 8198 ground -1 -1 4 as jorpse
+    say "[VampiricEmbrace"
+    wft 500
+    target jorpse
+    settimer vampiricEmbraceTimer 0
+endif
+   
+if autoBotEnabled = 1
+    replay
+endif
+
+
+// curse
+// mana drain
+// magic arrrow
+// harm
+// fireball
+// lightening

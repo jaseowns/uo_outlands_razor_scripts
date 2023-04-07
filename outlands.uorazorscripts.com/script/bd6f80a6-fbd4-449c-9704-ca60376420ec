@@ -1,0 +1,175 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/bd6f80a6-fbd4-449c-9704-ca60376420ec for latest
+# Automation by Jaseowns
+## Script: Amish House Butler 
+## Created by: Jaseowns#6694
+#############################################
+
+# Amish House Butler by Jaseowns
+# UO Outlands
+# WIP during live stream: https://youtu.be/Of39bikUMDs
+
+
+@setvar! globalTimeout 650
+
+
+#################################
+##### Item Id
+###########################
+
+if skill "Item Identification" >= 120
+    if not varexist chestToLookIn
+        overhead "Select a chest to look in" 88
+        @setvar! chestToLookIn
+    endif
+    
+    if not find chestToLookIn ground -1 -1 2
+        unsetvar chestToLookIn
+        replay
+    endif
+    
+    if not timerexists "itemIdTimer"
+        createtimer "itemIdTimer"
+        settimer "itemIdTimer" 20000
+    endif
+    
+    if not timerexists "detectHidingPlayersTimer"
+        createtimer "detectHidingPlayersTimer"
+        settimer "detectHidingPlayersTimer" 11000
+    endif
+    
+    getlabel chestToLookIn descItemId
+    
+    if "0 items, 0 stones" in descItemId
+        // do nothing
+    elseif timer "detectHidingPlayersTimer" >= 11000 and timer "itemIdTimer" >= 20000
+        useskill 'itemidentification'
+        wft 500
+        target chestToLookIn
+        settimer "detectHidingPlayersTimer" 9000
+        settimer "itemIdTimer" 0
+    endif
+endif
+
+
+#################################
+##### Open Paragons
+###########################
+
+if skill "Lockpicking" >= 50
+        
+    if not timerexists "unlockChestTimer"
+        createtimer "unlockChestTimer"
+        settimer "unlockChestTimer" 2000
+    endif
+
+    if not varexist haveParagonToOpen
+        @setvar! haveParagonToOpen 0
+    endif
+
+    if findtype "lockpicks" backpack and findtype "drill" backpack
+        @clearignore
+        if not varexist chestToLookIn
+            overhead "Select a chest to look in" 88
+            @setvar! chestToLookIn
+        endif
+
+        if not find chestToLookIn ground -1 -1 2
+            unsetvar chestToLookIn
+            replay
+        endif
+
+        if haveParagonToOpen = 0
+            while findtype 2473|3644|3645|3646|3647|3710|3701|3702|29832|29833|2472|2475|3648|3649|3708|29078|41449|41450|3705|3712|2474|3709|3650|3651|29077 chestToLookIn as container
+                getlabel container desc
+                if "sealed" in desc
+                    overhead "paragon found"
+                    lift container
+                    drop backpack -1 -1 -1
+                    wait globalTimeout
+                endif
+                
+                if find container backpack
+                    @setvar! haveParagonToOpen container
+                else
+                    @ignore! container
+                endif
+            endwhile
+        elseif timer unlockChestTimer >= 3500
+            if gumpexists 736038070
+                if ingump "Cleared of Traps" 736038070
+                    gumpresponse 4 736038070
+                else
+                    overhead "Remove Trap"
+                    gumpresponse 7 736038070        
+                endif
+                settimer unlockChestTimer 0
+            else
+                getlabel haveParagonToOpen sealedDesc
+                if "sealed" in sealedDesc
+                    dclick haveParagonToOpen
+                else
+                    overhead "we done"
+                    lift haveParagonToOpen
+                    drop chestToLookIn -1 -1 -1
+                    wait globalTimeout
+                    if not find haveParagonToOpen backpack
+                        @setvar! haveParagonToOpen 0
+                    endif
+                endif
+            endif
+        endif
+    else
+        overhead "No more lockpicks or drills bro" 34
+    endif
+
+endif
+
+#################################
+##### Ban Bot Portion
+###########################
+
+clearsysmsg 
+
+if not listexists "friendsofthehouse"
+    createlist "friendsofthehouse"
+endif
+
+if not timerexists "detectHidingPlayersTimer"
+    createtimer "detectHidingPlayersTimer"
+    settimer "detectHidingPlayersTimer" 11000
+endif
+
+if not timerexists "sayBanTimer"
+    createtimer "sayBanTimer"
+    settimer "sayBanTimer" 2000
+endif
+
+if timer "detectHidingPlayersTimer" >= 11000
+    useskill 'detectinghidden'
+    wft 500
+    target 'self'
+    settimer "detectHidingPlayersTimer" 0
+endif
+
+hotkey 'Next non-friendly player target'
+wait 200
+if insysmsg "no one matching"
+    // do nothing
+else 
+    @setvar! removeTarget lasttarget
+    if inlist "friendsofthehouse" removeTarget 
+        // do nothing
+    elseif timer sayBanTimer >= 2000
+        say "I ban thee" 
+        wft 1000
+        target removeTarget 
+        wait 200
+        if insysmsg "You cannot eject a friend of the house!"
+            pushlist "friendsofthehouse" removeTarget 
+        endif  
+        settimer "sayBanTimer" 0
+    endif
+endif
+
+wait 50
+loop

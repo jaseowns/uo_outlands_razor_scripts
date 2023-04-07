@@ -1,0 +1,109 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/ac7c1680-bc50-47bc-8d62-1cf3df0317b8 for latest
+# Automation by Jaseowns
+## Script: Two handed dexxer healing loop w/ one hand potion swap
+## Created by: Jaseowns#6694
+#############################################
+
+# Two handed dexxer healing loop, potion weapon swap by Jaseowns
+# UO Outlands
+# Requirements:
+#   use >info in game to get the item id of your
+#   favorite two handed weapon and one handed weapon
+#   these values must be numbers
+# Description:
+#   Heals with bandaids and tries to drink 
+#   cures or heals
+
+// Heal pot when below this health
+@setvar! heal_pot_hp_trigger 26
+
+// executioners axe
+@setvar! preferred_twohand_weapon_type_id 3909
+// viking sword
+@setvar! preferred_onehand_weapon_type_id 5049
+
+// General wait after actions
+@setvar! globalTimeout 650
+
+while not dead
+    if hidden
+        continue
+    endif
+    
+    if findtype "clean bandage%s%" backpack
+        if bandaging = 0 
+            if hp != maxhp
+                if targetexists any
+                    target cancel
+                endif
+                hotkey 'Bandage self' 
+                wait globalTimeout
+            endif
+        endif
+    endif
+
+    if paralyzed
+        overhead 'Paralyzed!' 38
+        if findtype "pouch" backpack 38 any any 
+            say '[pouch'
+            wait globalTimeout
+        endif
+    endif
+    
+    if poisoned
+        if findtype "Orange Potion" backpack
+            overhead 'Drinking cure!' 48
+            if findtype preferred_twohand_weapon_type_id lefthand
+                if findtype preferred_onehand_weapon_type_id backpack as swappy
+                    dclick swappy
+                else
+                    overhead "This is slow, find a damn one hander" 34
+                    undress LeftHand
+                endif
+            endif
+
+            wait globalTimeout
+            potion "cure" 
+            wait globalTimeout
+            
+            if not findtype preferred_twohand_weapon_type_id lefthand
+                if findtype preferred_twohand_weapon_type_id backpack as swappy
+                    dclick swappy
+                endif
+            endif
+            wait globalTimeout      
+        endif
+    endif
+
+    if hp < heal_pot_hp_trigger
+        if findtype 3852 backpack as PotsHeal 
+            getlabel PotsHeal LabelPotsHeal
+            if 'next usable' in LabelPotsHeal
+                sysmsg 'Unable to use Heal Potion Yet!' 33   
+                wait globalTimeout       
+            else
+                overhead 'Drinking heal!' 68
+                if findtype preferred_twohand_weapon_type_id lefthand
+                    if findtype preferred_onehand_weapon_type_id backpack as swappy
+                        dclick swappy
+                    else
+                        overhead "This is slow, find a damn one hander" 34
+                        undress LeftHand
+                    endif
+                endif
+
+                wait globalTimeout
+                dclick PotsHeal
+                wait globalTimeout
+
+                if not findtype preferred_twohand_weapon_type_id lefthand
+                    if findtype preferred_twohand_weapon_type_id backpack as swappy
+                        dclick swappy
+                    endif
+                endif    
+
+            endif
+        endif 
+    endif
+
+endwhile

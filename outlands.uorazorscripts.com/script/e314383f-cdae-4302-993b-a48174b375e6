@@ -1,0 +1,2201 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/e314383f-cdae-4302-993b-a48174b375e6 for latest
+# Automation by Jaseowns
+## Script: Ultimate Magery Summoner Nox Necro Discord + Peacemaking w/ Buffs Autobot Hotkey
+## Created by: dave5678#2661
+#############################################
+
+# One hotkey mage cycle, nox, poison by Jaseowns
+# UO Outlands - https://outlands.uorazorscripts.com/mage-bot
+# 
+# Cooldowns are live, so this script now attempts to display those
+# Make cooldowns match the names of skills 
+# (check out for details: https://outlands.uorazorscripts.com/mage-bot)
+#
+# VERISON: v2.3.0
+#
+#    
+// 01/07/2023
+// - control mana break requirement
+// - fix pet selection to avoid others summoned pets (reds/grays)
+// - must setup IgnoreMobs friends list and checkbox Ignore 
+// 12/26/2022
+// - updated poison strike and how it deals with poison
+// - added earth elemental as pet only instead of mummy
+// 12/21/2022
+// - fixed bug with mindblast and two lich summons
+// 12/17/2022
+// - V2 of AutoBot created.  Idea is to leverage things from mining script
+##################
+## Always room for improvment, thanks for watching!
+############
+
+# make sure you add a friends list called: IgnoreMobs
+@setvar! didYouSetupIgnoreMobs 1
+
+# after a kill you must have this amount of mana to continue to next target
+@setvar! minimumManaToCast 40 
+
+# Set this to one, if you want to cast poison once no matter what
+# If you have 100 poisoning and want Lethal, set this to 0
+@setvar! castPoisonAnyway 0
+
+# This will auto replay this script if you want it too
+@setvar! autoBotEnabled 1
+
+# Update this variable to 1 for ALL KILL
+# Update this variable to 0 for target nearest
+@setvar! setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster 0
+
+###############
+###  Choose your summons
+######
+@setvar! castSummonFireElementalCount 2
+@setvar! castSummonCreatureCount 1
+@setvar! castSummonEarthElementalCount 0
+@setvar! castSummonEarthElementalAsMummy 0
+
+###############
+###  Choose your spells
+######
+@setvar! castCurse 1
+@setvar! castManadrain 1
+@setvar! castLightning 1
+@setvar! castFireball 1
+@setvar! castHarm 1
+@setvar! castMagicArrow 1
+# When other spells are on cooldown, do you want to cast MindBlast or Flamestrike or both
+@setvar! castMindBlast 0
+@setvar! castFlamestrike 1
+
+### Buffs
+@setvar! castBless 0
+@setvar! castMagicShield 1
+@setvar! castReactiveArmor 1
+# Drink Magic resist potion (only if magic shield buff not found)
+@setvar! drinkMagicResistPot 1
+
+###############
+###  Choose your necro spells (ignored if less then required necro skill)
+######
+@setvar! castEvilOmen 1
+@setvar! castCorpseSkin 0
+@setvar! castVampiricEmbrace 0
+@setvar! castMindRot 0
+@setvar! castPoisonStrike 0
+@setvar! castBloodOath 0
+@setvar! castPainSpike 1
+@setvar! requireWitherBeforeSummons 1
+
+###############
+### Edit these cooldowns to match your wizard grimoire
+######
+@setvar! canYouMakeAMushroom 1
+@setvar! cdLightning 60000
+@setvar! cdMagicArrow 60000
+@setvar! cdHarm 60000
+@setvar! cdFireball 60000
+
+###############
+### Necro Cooldowns
+######
+@setvar! cdEvilOmen 30500
+@setvar! cdVampiricEmbrace 30500
+@setvar! cdCorpseSkin 30500
+@setvar! cdMindRot 30500
+@setvar! cdWither 30500
+@setvar! cdVengefulSpirit 30500
+@setvar! cdBloodOath 30500
+@setvar! cdPainSpike 30500
+@setvar! cdPoisonStrike 30500
+
+
+#### Buff Cooldowns
+@setvar! cdMushroom 61000
+@setvar! cdMagicShield 61000
+@setvar! cdReactiveArmor 61000
+@setvar! cdMeditation 10000
+@setvar! cdMeditationMini 3000
+@setvar! cdKillTarget 60000
+
+#### Random cooldowns
+@setvar! cdPreventOverheadSpam 2000
+
+#### Mushroom count (I like a lot of shroomies)
+@setvar! makeThisManyMushroomsCount 15
+@setvar! butOnlyIHaveLessThenThisCount 5
+
+@setvar! patrolPetEvenIfLastTargetIsBeyondEightTiles 1
+
+if counttype "gold coin" backpack as total
+    if 10000 < total
+        overhead "Warning: {{total}} gold!" 34
+    endif
+endif
+
+if findtype "dungeon torch" backpack as item
+    overhead "Holy crap!" 88    
+    say "I got one!" 88
+    overhead "I got one!" 88
+elseif findtype 30580 backpack as item
+    overhead "Holy crap!" 88    
+    say "I got one!" 88
+    overhead "I got one!" 88
+endif
+    
+
+#### Pet Names, unique to you
+#if not listexists petNameList
+    removelist petNameList
+	createlist petNameList
+#endif
+if list petNameList = 0
+    pushlist petNameList "ThatDude"
+    pushlist petNameList "ThisDude"
+    pushlist petNameList "ThisMan"
+    pushlist petNameList "ThatMan"
+endif
+
+#### Bard stuff
+@setvar! isDiscBuffed 0
+@setvar! isPeaceBuffed 0
+		
+			if not findbuff "song of discordance"
+                useskill 'Discordance'
+                wft 500
+                if insysmsg "What instrument"
+                    if findtype "bamboo flute" backpack as inny
+                        target inny
+                    elseif findtype "tambourine" backpack as inny
+                        target inny
+                    elseif findtype "drum" backpack as inny
+                        target inny
+                    elseif findtype "lute" backpack as inny
+                        target inny
+                    elseif findtype "harp" backpack as inny
+                        target inny
+                    elseif findtype "lap harp" backpack as inny
+                        target inny
+                    else
+                        overhead "I do not have an inny" 34
+                    endif
+                    wft 500
+                endif
+                target backpack
+				@setvar! isDiscBuffed 1
+                settimer discTimer 0
+            endif    
+            
+			if not findbuff "song of peacemaking"
+                useskill 'Peacemaking'
+                wft 500
+                if insysmsg "What instrument"
+                    if findtype "bamboo flute" backpack as inny
+                        target inny
+                    elseif findtype "tambourine" backpack as inny
+                        target inny
+                    elseif findtype "drum" backpack as inny
+                        target inny
+                    elseif findtype "lute" backpack as inny
+                        target inny
+                    elseif findtype "harp" backpack as inny
+                        target inny
+                    elseif findtype "lap harp" backpack as inny
+                        target inny
+                    else
+                        overhead "I do not have an inny" 34
+                    endif
+                    wft 500
+                endif
+                target backpack
+                settimer peaceTimer 0
+				@setvar! isPeaceBuffed 1
+            endif
+
+
+##################################################################
+# 
+#   Hopefully you do not have to edit after this :)
+#
+##################################################################
+
+if didYouSetupIgnoreMobs = 0
+    overhead "For this script to work, make sure you add a friends list called: IgnoreMobs" 34
+    sysmsg  "For this script to work, make sure you add a friends list called: IgnoreMobs" 34
+    wait 1500
+    overhead "Click Friends Tab -> [checkmark] enabled -> [checkmark] Next/Prev Target ignores 'IgnoreMobs'" 88
+    sysmsg "Click Friends Tab -> [checkmark] enabled -> [checkmark] Next/Prev Target ignores 'IgnoreMobs'" 88
+    wait 5000
+    overhead "If everything is setup, update didYouSetupIgnoreMobs to 1"
+    sysmsg "If everything is setup, update didYouSetupIgnoreMobs to 1"
+    wait 5000
+    replay
+endif
+
+if not gumpexists 622436516 and skill "Necromancy" >= 50
+    say '[NecromancyHotbar'
+    wait 500
+endif
+
+// Make sure we have a spell book attached
+if findlayer self righthand as item
+    // do nothing
+elseif findtype "3834" backpack as item
+    dclick item
+else 
+    overhead "No book bro!" 34
+endif
+
+// Setting current necro symbols - checks again it the attack loop
+@setvar! necroSymbols 12
+if gumpexists 622436516 and skill "Necromancy" >= 50
+    if ingump "12/" 622436516
+        @setvar! necroSymbols 12
+    elseif ingump "13/" 622436516
+        @setvar! necroSymbols 13
+    elseif ingump "14/" 622436516
+        @setvar! necroSymbols 14
+    elseif ingump "15/" 622436516
+        @setvar! necroSymbols 15
+    elseif ingump "16/" 622436516
+        @setvar! necroSymbols 16
+    elseif ingump "17/" 622436516
+        @setvar! necroSymbols 17
+    elseif ingump "18/" 622436516
+        @setvar! necroSymbols 18
+    elseif ingump "19/" 622436516
+        @setvar! necroSymbols 19
+    elseif ingump "20/" 622436516
+        @setvar! necroSymbols 20
+    elseif ingump "21/" 622436516
+        @setvar! necroSymbols 21
+    elseif ingump "11/" 622436516
+        @setvar! necroSymbols 11
+    elseif ingump "10/" 622436516
+        @setvar! necroSymbols 10
+    elseif ingump "9/" 622436516
+        @setvar! necroSymbols 9
+    elseif ingump "8/" 622436516
+        @setvar! necroSymbols 8
+    elseif ingump "7/" 622436516
+        @setvar! necroSymbols 7
+    elseif ingump "6/" 622436516
+        @setvar! necroSymbols 6
+    elseif ingump "5/" 622436516
+        @setvar! necroSymbols 5
+    elseif ingump "4/" 622436516
+        @setvar! necroSymbols 4
+    elseif ingump "3/" 622436516
+        @setvar! necroSymbols 3
+    elseif ingump "2/" 622436516
+        @setvar! necroSymbols 2
+    elseif ingump "1/" 622436516
+        @setvar! necroSymbols 1
+    elseif ingump "0/" 622436516
+        @setvar! necroSymbols 0
+    endif
+endif
+
+if not timerexists reactiveArmorTimer
+    createtimer reactiveArmorTimer
+    settimer reactiveArmorTimer cdMagicShield
+endif
+
+if not timerexists magicShieldTimer
+    createtimer magicShieldTimer
+    settimer magicShieldTimer cdMagicShield
+endif
+
+if not timerexists magicMushroomTimer
+    createtimer magicMushroomTimer
+    settimer magicMushroomTimer cdMushroom
+endif
+
+if not timerexists magicArrowTimer
+    createtimer magicArrowTimer
+    settimer magicArrowTimer cdMagicArrow
+endif
+
+if not timerexists lightningTimer
+    createtimer lightningTimer
+    settimer lightningTimer cdLightning
+endif
+
+if not timerexists harmTimer
+    createtimer harmTimer
+    settimer harmTimer cdHarm
+endif
+
+if not timerexists fireballTimer
+    createtimer fireballTimer
+    settimer fireballTimer cdFireball
+endif
+
+if not timerexists evilOmenTimer
+    createtimer evilOmenTimer
+    settimer evilOmenTimer cdEvilOmen
+endif
+
+if not timerexists vampiricEmbraceTimer
+    createtimer vampiricEmbraceTimer
+    settimer vampiricEmbraceTimer cdVampiricEmbrace
+endif
+
+if not timerexists corpseSkinTimer
+    createtimer corpseSkinTimer
+    settimer corpseSkinTimer cdCorpseSkin
+endif
+
+if not timerexists mindRotTimer
+    createtimer mindRotTimer
+    settimer mindRotTimer cdMindRot
+endif
+
+if not timerexists meditiationTimer
+    createtimer meditiationTimer
+    settimer meditiationTimer cdMeditation
+endif
+
+if not timerexists peaceTimer
+    createtimer peaceTimer
+    settimer peaceTimer cdPeaceMaking
+endif
+
+if not timerexists discTimer
+    createtimer discTimer
+    settimer peaceTimer cdDiscordance
+endif
+
+if not timerexists killTargetTimer
+    createtimer killTargetTimer
+    settimer killTargetTimer cdKillTarget
+endif
+
+if not timerexists witherTimer
+    createtimer witherTimer
+    settimer witherTimer cdWither
+endif
+
+if not timerexists vengefulSpiritTimer
+    createtimer vengefulSpiritTimer
+    settimer vengefulSpiritTimer cdVengefulSpirit
+endif
+
+if not timerexists bloodOathTimer
+    createtimer bloodOathTimer
+    settimer bloodOathTimer cdBloodOath
+endif
+
+if not timerexists painSpikeTimer
+    createtimer painSpikeTimer
+    settimer painSpikeTimer cdPainSpike
+endif
+
+if not timerexists poisonStrikeTimer
+    createtimer poisonStrikeTimer
+    settimer poisonStrikeTimer cdPoisonStrike
+endif
+
+if not timerexists preventOverheadSpamTimer
+    createtimer preventOverheadSpamTimer
+    settimer preventOverheadSpamTimer cdPreventOverheadSpam
+endif
+
+@setvar! cdPreventSpamNecroAbilities 750
+if not timerexists preventSpamNecroAbilitiesTimer
+    createtimer preventSpamNecroAbilitiesTimer
+    settimer preventSpamNecroAbilitiesTimer cdPreventSpamNecroAbilities
+endif
+
+if not varexist myEarthPet
+    @setvar! myEarthPet 0
+endif
+
+// make sure we have enough symbols to summon (6 for wither + vengful spirit)
+if skill "Necromancy" >= 90 and requireWitherBeforeSummons = 1
+    while followers < 4 and 6 > necroSymbols
+        // we already have vengeful spirit active, skip the check
+        if timer vengefulSpiritTimer < cdVengefulSpirit
+           break
+        endif
+        if diffhits >= 30
+            if targetexists 
+                hotkey 'Cancel Current Target'
+            endif
+            while not targetexists 'beneficial'
+                if diffhits >= 60
+                    cast 'Heal'
+                else
+                    cast 'Greater Heal'                
+                endif
+                wait 50
+                if hp = maxhp
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists 'beneficial'
+                hotkey 'Target Self'
+            endif
+        endif
+        if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+            overhead "waiting for symbols" 88
+            settimer preventOverheadSpamTimer 0
+        endif
+        if gumpexists 622436516 and skill "Necromancy" >= 50
+            if ingump "12/" 622436516
+                @setvar! necroSymbols 12
+            elseif ingump "13/" 622436516
+                @setvar! necroSymbols 13
+            elseif ingump "14/" 622436516
+                @setvar! necroSymbols 14
+            elseif ingump "15/" 622436516
+                @setvar! necroSymbols 15
+            elseif ingump "16/" 622436516
+                @setvar! necroSymbols 16
+            elseif ingump "17/" 622436516
+                @setvar! necroSymbols 17
+            elseif ingump "18/" 622436516
+                @setvar! necroSymbols 18
+            elseif ingump "19/" 622436516
+                @setvar! necroSymbols 19
+            elseif ingump "20/" 622436516
+                @setvar! necroSymbols 20
+            elseif ingump "21/" 622436516
+                @setvar! necroSymbols 21
+            elseif ingump "11/" 622436516
+                @setvar! necroSymbols 11
+            elseif ingump "10/" 622436516
+                @setvar! necroSymbols 10
+            elseif ingump "9/" 622436516
+                @setvar! necroSymbols 9
+            elseif ingump "8/" 622436516
+                @setvar! necroSymbols 8
+            elseif ingump "7/" 622436516
+                @setvar! necroSymbols 7
+            elseif ingump "6/" 622436516
+                @setvar! necroSymbols 6
+            elseif ingump "5/" 622436516
+                @setvar! necroSymbols 5
+            elseif ingump "4/" 622436516
+                @setvar! necroSymbols 4
+            elseif ingump "3/" 622436516
+                @setvar! necroSymbols 3
+            elseif ingump "2/" 622436516
+                @setvar! necroSymbols 2
+            elseif ingump "1/" 622436516
+                @setvar! necroSymbols 1
+            elseif ingump "0/" 622436516
+                @setvar! necroSymbols 0
+            endif
+        endif
+    endwhile
+endif
+
+
+if not varexist lichOne
+    @setvar! lichOne 0
+endif
+
+if not varexist lichTwo
+    @setvar! lichTwo 0
+endif
+
+if not varexist earthOne
+    @setvar! earthOne 0
+endif
+
+if not varexist earthTwo
+    @setvar! earthTwo 0
+endif
+
+if lichOne = creatureOne or lichTwo = creatureOne or earthOne = creatureOne or earthTwo = creatureOne
+    overhead "Duplicated"
+    unsetvar creatureOne
+endif
+
+if diffhits >= 30
+    if targetexists 
+        hotkey 'Cancel Current Target'
+    endif
+    while not targetexists 'beneficial'
+        if diffhits >= 60
+            cast 'Heal'
+        else
+            cast 'Greater Heal'                
+        endif
+        wait 50
+        if hp = maxhp
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    if targetexists 'beneficial'
+        target self
+    endif
+    replay
+endif
+
+
+if castSummonEarthElementalCount > 0
+    if diffhits < 30
+        if followers = 0
+            @setvar! followCount 0
+        elseif followers = 1
+            @setvar! followCount 1
+        elseif followers = 2
+            @setvar! followCount 2
+        elseif followers = 3
+            @setvar! followCount 3
+        elseif followers = 4
+            @setvar! followCount 4
+        elseif followers = 5
+            @setvar! followCount 5
+        endif
+        if dead earthOne or not find earthOne ground -1 -1 12
+            if followers < 4
+                while mana < 50
+                    if diffhits >= 30
+                        replay
+                    endif
+                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                        overhead "waiting for mana" 88
+                        settimer preventOverheadSpamTimer 0
+                    endif
+                    if not findbuff "Actively Meditating"
+                        useskill "meditation"
+                    endif
+                    wait 200
+                endwhile
+                
+                if castSummonEarthElementalAsMummy = 1
+                    if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
+                        yell "[VengefulSpirit"
+                        settimer vengefulSpiritTimer 0
+                        wait 500
+                    endif
+                elseif timer vengefulSpiritTimer <= cdVengefulSpirit and skill "Necromancy" >= 50
+                    overhead  "Waiting for spirit to go away" 
+                    replay
+                endif
+                while followers = followCount
+                    cast "Earth elemental"
+                    wait 500
+                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
+                        yell "[Wither"
+                        settimer witherTimer 0
+                    endif
+                    if diffhits >= 30
+                        hotkey '> Interrupt'
+                        break
+                    endif
+                endwhile
+                // 158 - an ancient mummy
+                // 14 - an earth elemental
+                if findtype 158|14 ground -1 -1 6 as myPet
+                    if noto myPet = "friend" and list petNameList > 0
+                        overhead "Renaming..."
+                        foreach petName in petNameList
+                            rename myPet petName
+                            break
+                        endfor
+                        poplist petNameList "front"
+                    endif
+                    @setvar! earthOne myPet
+                    say "all guard me"
+                    replay
+                endif
+            endif
+        endif
+    endif
+    
+    if diffhits < 30 and castSummonEarthElementalCount > 1
+        if followers = 0
+            @setvar! followCount 0
+        elseif followers = 1
+            @setvar! followCount 1
+        elseif followers = 2
+            @setvar! followCount 2
+        elseif followers = 3
+            @setvar! followCount 3
+        elseif followers = 4
+            @setvar! followCount 4
+        elseif followers = 5
+            @setvar! followCount 5
+        endif
+        if dead earthTwo or not find earthTwo ground -1 -1 12
+            if followers < 4
+                while mana < 50
+                    if diffhits >= 30
+                        replay
+                    endif
+                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                        overhead "waiting for mana" 88
+                        settimer preventOverheadSpamTimer 0
+                    endif
+                    if not findbuff "Actively Meditating"
+                        useskill "meditation"
+                    endif
+                    wait 200
+                endwhile
+                if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
+                    yell "[VengefulSpirit"
+                    settimer vengefulSpiritTimer 0
+                    wait 500
+                endif
+                while followers = followCount
+                    cast "Earth elemental"
+                    wait 500
+                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
+                        yell "[Wither"
+                        settimer witherTimer 0
+                    endif
+                    if diffhits >= 30
+                        hotkey '> Interrupt'
+                        break
+                    endif
+                endwhile
+                // 158 - an ancient mummy
+                // 14 - an earth elemental
+                if findtype 158|14 ground -1 -1 6 as myPet
+                    if noto myPet = "friend" and list petNameList > 0
+                        overhead "Renaming..."
+                        foreach petName in petNameList
+                            rename myPet petName
+                            break
+                        endfor
+                        poplist petNameList "front"
+                    endif
+                    @setvar! earthTwo myPet
+                    say "all guard me"
+                    replay
+                endif
+            endif
+        endif
+    endif
+endif
+
+
+if castSummonFireElementalCount > 0
+    if diffhits < 30
+    
+        if lichOne = 0 
+            // do nothing
+        elseif lichOne = lichTwo
+            overhead "Duplicated"
+            unsetvar lichOne
+        endif
+        
+        if followers = 0
+            @setvar! followCount 0
+        elseif followers = 1
+            @setvar! followCount 1
+        elseif followers = 2
+            @setvar! followCount 2
+        elseif followers = 3
+            @setvar! followCount 3
+        elseif followers = 4
+            @setvar! followCount 4
+        elseif followers = 5
+            @setvar! followCount 5
+        endif
+        if dead lichOne or not find lichOne ground -1 -1 12
+            if followers < 4
+                while mana < 50
+                    if diffhits >= 30
+                        replay
+                    endif
+                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                        overhead "waiting for mana" 88
+                        settimer preventOverheadSpamTimer 0
+                    endif
+                    if not findbuff "Actively Meditating"
+                        useskill "meditation"
+                    endif
+                    wait 200
+                endwhile
+                if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
+                    yell "[VengefulSpirit"
+                    settimer vengefulSpiritTimer 0
+                    wait 500
+                endif
+                @ignore lichTwo
+                while followers = followCount
+                    cast "fire elemental"
+                    wait 500
+                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
+                        yell "[Wither"
+                        settimer witherTimer 0
+                    endif
+                    if diffhits >= 30
+                        hotkey '> Interrupt'
+                        break
+                    endif
+                endwhile
+                // 24 - a lich
+                // 15 - a fire elemental
+                if findtype 24|15 ground -1 -1 6 as myPet
+                    if noto myPet = "friend" and list petNameList > 0
+                        overhead "Renaming..."
+                        foreach petName in petNameList
+                            rename myPet petName
+                            break
+                        endfor
+                        poplist petNameList "front"
+                    endif
+                    @setvar! lichOne myPet
+                    overhead "Lich One Set" 88 lichOne
+                    say "all guard me"
+                    @clearignore 
+                    replay
+                endif
+            endif
+        endif
+    endif
+    
+    if diffhits < 30 and castSummonFireElementalCount > 1
+        if followers = 0
+            @setvar! followCount 0
+        elseif followers = 1
+            @setvar! followCount 1
+        elseif followers = 2
+            @setvar! followCount 2
+        elseif followers = 3
+            @setvar! followCount 3
+        elseif followers = 4
+            @setvar! followCount 4
+        elseif followers = 5
+            @setvar! followCount 5
+        endif
+        if dead lichTwo or not find lichTwo ground -1 -1 12
+            if followers < 4
+                while mana < 50
+                    if diffhits >= 30
+                        replay
+                    endif
+                    if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                        overhead "waiting for mana" 88
+                        settimer preventOverheadSpamTimer 0
+                    endif
+                    if not findbuff "Actively Meditating"
+                        useskill "meditation"
+                    endif
+                    wait 200
+                endwhile
+                if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
+                    yell "[VengefulSpirit"
+                    settimer vengefulSpiritTimer 0
+                    wait 500
+                endif
+                @ignore lichOne
+                while followers = followCount
+                    cast "fire elemental"
+                    wait 500
+                    if timer witherTimer >= cdWither and skill "Necromancy" >= 95
+                        yell "[Wither"
+                        settimer witherTimer 0
+                    endif
+                    if diffhits >= 30
+                        hotkey '> Interrupt'
+                        break
+                    endif
+                endwhile
+                // 24 - a lich
+                // 15 - a fire elemental
+                if findtype 24|15 ground -1 -1 6 as myPet
+                    if noto myPet = "friend" and list petNameList > 0
+                        overhead "Renaming..."
+                        foreach petName in petNameList
+                            rename myPet petName
+                            break
+                        endfor
+                        poplist petNameList "front"
+                    endif
+                    @clearignore
+                    @setvar! lichTwo myPet
+                    overhead "Lich Two Set" 88 lichTwo
+                    say "all guard me"
+                    replay
+                endif
+                
+            endif
+        endif
+    endif
+endif
+
+if castSummonCreatureCount = 0
+    // do nothing
+elseif castSummonCreatureCount = 1 and not dead creatureOne
+    // do nothing
+elseif castSummonCreatureCount = 1
+    if followers = 4 and diffhits < 30
+        if followers = 0
+            @setvar! followCount 0
+        elseif followers = 1
+            @setvar! followCount 1
+        elseif followers = 2
+            @setvar! followCount 2
+        elseif followers = 3
+            @setvar! followCount 3
+        elseif followers = 4
+            @setvar! followCount 4
+        elseif followers = 5
+            @setvar! followCount 5
+        endif
+        while mana < 14
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "waiting for mana" 88
+                settimer preventOverheadSpamTimer 0
+            endif
+            if diffhits >= 30
+                replay
+            endif
+            if not findbuff "Actively Meditating"
+                useskill "meditation"
+            endif
+            wait 200
+        endwhile
+        if timer vengefulSpiritTimer >= cdVengefulSpirit
+            yell "[VengefulSpirit"
+            settimer vengefulSpiritTimer 0
+            wait 200
+        endif
+        while followers = followCount
+            cast 'Summ. Creature'
+            wait 500
+            if diffhits >= 30
+                hotkey '> Interrupt'
+                replay
+            endif
+        endwhile        
+        say "all guard me"
+    endif
+else
+    for 6
+        if index = 0
+            // do nothing
+        else
+            if diffhits < 30
+                @setvar! needToSummon 0
+                if index = 1
+                    if dead creatureOne or not find creatureOne ground -1 -1 12
+                        @setvar! needToSummon 1
+                    endif
+                elseif index = 2
+                    if dead creatureTwo or not find creatureTwo ground -1 -1 12
+                        @setvar! needToSummon 1
+                    endif
+                elseif index = 3
+                    if dead creatureThree or not find creatureThree ground -1 -1 12
+                        @setvar! needToSummon 1
+                    endif
+                elseif index = 4
+                    if dead creatureFour or not find creatureFour ground -1 -1 12
+                        @setvar! needToSummon 1
+                    endif
+                elseif index = 5
+                    if dead creatureFive or not find creatureFive ground -1 -1 12
+                        @setvar! needToSummon 1
+                    endif
+                endif
+            
+                if needToSummon = 1
+                    if followers = 0
+                        @setvar! followCount 0
+                    elseif followers = 1
+                        @setvar! followCount 1
+                    elseif followers = 2
+                        @setvar! followCount 2
+                    elseif followers = 3
+                        @setvar! followCount 3
+                    elseif followers = 4
+                        @setvar! followCount 4
+                    elseif followers = 5
+                        @setvar! followCount 5
+                    endif
+                   
+                    while mana < 50
+                        if diffhits >= 30
+                            replay
+                        endif
+                        if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                            overhead "waiting for mana" 88
+                            settimer preventOverheadSpamTimer 0
+                        endif
+                        if not findbuff "Actively Meditating"
+                            useskill "meditation"
+                        endif
+                        wait 200
+                    endwhile
+                    if timer vengefulSpiritTimer >= cdVengefulSpirit and skill "Necromancy" >= 50
+                        yell "[VengefulSpirit"
+                        settimer vengefulSpiritTimer 0
+                        wait 500
+                    endif
+                    while followers = followCount
+                        cast "Summ. Creature"
+                        wait 500
+                        if timer witherTimer >= cdWither and skill "Necromancy" >= 95
+                            yell "[Wither"
+                            settimer witherTimer 0
+                        endif
+                        if diffhits >= 30
+                            hotkey '> Interrupt'
+                            break
+                        endif
+                    endwhile
+                    hotkey 'Next Friendly Monster Target'
+                    @setvar! checkLastTarget lasttarget
+                    if checkLastTarget = earthOne
+                        hotkey 'Next Friendly Monster Target'
+                        @setvar! checkLastTarget lasttarget 
+                    endif
+                    
+                    if checkLastTarget = earthTwo
+                       hotkey 'Next Friendly Monster Target'
+                       @setvar! checkLastTarget lasttarget 
+                    endif
+                    
+                    if checkLastTarget = lichOne
+                       hotkey 'Next Friendly Monster Target'
+                       @setvar! checkLastTarget lasttarget 
+                    endif
+                    
+                    if checkLastTarget = lichTwo
+                       hotkey 'Next Friendly Monster Target'
+                       @setvar! checkLastTarget lasttarget 
+                    endif
+                    @setvar! creatureOne checkLastTarget
+                    
+                    if find checkLastTarget ground -1 -1 6 as myPet
+                        if noto myPet = "friend" and list petNameList > 0
+                            overhead "Renaming..."
+                            foreach petName in petNameList
+                                rename myPet petName
+                                break
+                            endfor
+                            poplist petNameList "front"
+                        endif
+                        if index = 1
+                            if dead creatureOne or not find creatureOne ground -1 -1 12
+                                @setvar! creatureOne myPet
+                            endif
+                        elseif index = 2
+                            if dead creatureTwo or not find creatureTwo ground -1 -1 12
+                                @setvar! creatureTwo myPet
+                            endif
+                        elseif index = 3
+                            if dead creatureThree or not find creatureThree ground -1 -1 12
+                                @setvar! creatureThree myPet
+                            endif
+                        elseif index = 4
+                            if dead creatureFour or not find creatureFour ground -1 -1 12
+                                @setvar! creatureFour myPet
+                            endif
+                        elseif index = 5
+                            if dead creatureFive or not find creatureFive ground -1 -1 12
+                                @setvar! creatureFive myPet
+                            endif
+                        endif
+                    endif
+                endif
+            endif
+        endif
+        if index = castSummonCreatureCount
+            break
+        endif
+    endfor
+endif
+
+# Eat food if we got it
+if not findbuff "food" and findtype "tray" backpack as jood
+    dclick jood
+    wait 200
+endif
+
+if setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster = 1
+    say "all kill"
+    wait 200
+    while targetexists 
+        // wait
+        wait 50
+    endwhile
+else
+    hotkey 'Target Closest Non-Friendly Monster'
+    wait 200
+    if insysmsg "No one matching that was found"
+        if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+            overhead "found no one" 34
+            settimer preventOverheadSpamTimer 0
+        endif
+        if autoBotEnabled = 1
+            wait 500
+            replay
+        endif
+        stop
+    elseif not find lasttarget ground -1 -1 8
+    
+        @setvar checkForSummons lasttarget 
+        getlabel checkForSummons checkForSummonsDesc
+    
+        if "(summoned" in checkForSummonsDesc or "(bonded" in checkForSummonsDesc
+            overhead "¼ Player pet - IGNORE ¼" 77 lasttarget
+            while not targetexists 
+                hotkey 'Add Target To: IgnoreMobs'
+                wait 200
+            endwhile
+            target myKillTarget 
+            replay
+        endif    
+    
+        overhead "Ï ¼ OUT OF RANGE ¼ Ï" 88 lasttarget
+        if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+            overhead "Move closer, more then 8 tiles away" 34
+            settimer preventOverheadSpamTimer 0
+        endif
+        if patrolPetEvenIfLastTargetIsBeyondEightTiles = 1 and find myEarthPet ground -1 -1 12
+            menu myEarthPet 2
+            wft 500
+            target lasttarget
+        endif
+        if autoBotEnabled = 1
+            wait 500
+            replay
+        endif
+        stop
+    else
+        overhead "Ï ¼¼ HERE ¼¼ Ï" 88 lasttarget
+    endif    
+endif
+
+@setvar myKillTarget lasttarget 
+
+if not varexist myPreviousKillTarget
+    @setvar myPreviousKillTarget 0     
+endif
+
+getlabel myKillTarget desc
+overhead desc
+
+if "(summoned" in desc or "(bonded" in desc
+    overhead "¼ Player pet - IGNORE ¼" 77 lasttarget
+    while not targetexists 
+        hotkey 'Add Target To: IgnoreMobs'
+        wait 200
+    endwhile
+    target myKillTarget 
+    replay
+endif    
+
+if not varexist myEarthPet or dead myEarthPet
+    if not dead earthOne
+        @setvar! myEarthPet earthOne
+    elseif not dead earthTwo
+        @setvar! myEarthPet earthTwo
+    endif
+endif
+
+if find myEarthPet ground -1 -1 12
+    menu myEarthPet 2
+    wft 500
+    target myKillTarget
+endif
+
+
+if diffhits >= 30 and mana > 12
+    while not targetexists
+        if diffhits >= 60
+            cast 'Heal'
+        else
+            cast 'Greater Heal'                
+        endif
+        wait 50
+        if hp = maxhp
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    if targetexists
+        target self
+    endif
+elseif castBless = 1 and str <= 100 and followers >= 4 
+    while not targetexists
+        cast 'Bless'
+        wait 50
+        if diffhits >= 30
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    if targetexists
+        target self
+    endif
+endif
+
+if not listexists myCursedTargets
+    createlist myCursedTargets
+endif
+
+if not listexists myManaDrainTargets
+    createlist myManaDrainTargets
+endif
+
+if find myKillTarget -1 -1 12 as killy
+    if myKillTarget = myPreviousKillTarget
+        // do nothing
+    else
+        
+        // Herding using crook
+        if skill "Herding" > 0 and findtype 3713 backpack as jrook
+            dclick jrook
+            wft 500
+            target killy
+        endif
+
+        if inlist myManaDrainTargets myKillTarget
+            overhead "We already mana drained this guy" 88
+            // do nothing
+        elseif castManadrain = 0
+            // do nothing 
+        elseif followers >= 4 
+            while not targetexists and not dead myKillTarget
+                if diffhits < 30
+                    cast 'mana drain'
+                    wait 50
+                elseif diffhits >= 30 
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists
+                target myKillTarget
+                pushlist myManaDrainTargets myKillTarget
+                settimer killTargetTimer 0
+                wait 500
+            endif
+        endif
+        
+        if inlist myCursedTargets myKillTarget
+            overhead "We already cursed this guy" 88
+            // do nothing
+        elseif castCurse = 0
+            // do nothing
+        elseif followers >= 4 
+            while not targetexists and not dead myKillTarget
+                if diffhits < 30
+                    cast 'Curse'
+                    wait 50
+                elseif diffhits >= 30 
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists
+                target myKillTarget
+                pushlist myCursedTargets myKillTarget
+                settimer killTargetTimer 0
+                wait 500
+            endif
+        endif
+        @setvar myPreviousKillTarget myKillTarget
+    endif
+else
+    overhead "Out of range" 34
+endif
+
+
+clearsysmsg 
+
+say "all guard"
+
+@setvar! isLethalPoison 0
+@setvar! isDiscorded 0
+@setvar! isHerded 0
+@setvar! isPeaced 0
+
+while not dead myKillTarget and find myKillTarget -1 -1 12 as killy
+
+    for 5
+        // lost a follower
+        if followers < 4
+            replay
+        endif
+    
+        if dead myKillTarget
+            break
+        elseif insysmsg "Target cannot be seen." 
+            overhead "CANNOT BE SEEN MOVE TO NEXT TARGET" 34
+            replay
+        elseif find myKillTarget -1 -1 12 as killy
+            // do nothing - in range to kill
+        else
+            break
+        endif
+          
+        if gumpexists 622436516 and skill "Necromancy" >= 50
+            if ingump "12/" 622436516
+                @setvar! necroSymbols 12
+            elseif ingump "13/" 622436516
+                @setvar! necroSymbols 13
+            elseif ingump "14/" 622436516
+                @setvar! necroSymbols 14
+            elseif ingump "15/" 622436516
+                @setvar! necroSymbols 15
+            elseif ingump "16/" 622436516
+                @setvar! necroSymbols 16
+            elseif ingump "17/" 622436516
+                @setvar! necroSymbols 17
+            elseif ingump "18/" 622436516
+                @setvar! necroSymbols 18
+            elseif ingump "19/" 622436516
+                @setvar! necroSymbols 19
+            elseif ingump "20/" 622436516
+                @setvar! necroSymbols 20
+            elseif ingump "21/" 622436516
+                @setvar! necroSymbols 21
+            elseif ingump "11/" 622436516
+                @setvar! necroSymbols 11
+            elseif ingump "10/" 622436516
+                @setvar! necroSymbols 10
+            elseif ingump "9/" 622436516
+                @setvar! necroSymbols 9
+            elseif ingump "8/" 622436516
+                @setvar! necroSymbols 8
+            elseif ingump "7/" 622436516
+                @setvar! necroSymbols 7
+            elseif ingump "6/" 622436516
+                @setvar! necroSymbols 6
+            elseif ingump "5/" 622436516
+                @setvar! necroSymbols 5
+            elseif ingump "4/" 622436516
+                @setvar! necroSymbols 4
+            elseif ingump "3/" 622436516
+                @setvar! necroSymbols 3
+            elseif ingump "2/" 622436516
+                @setvar! necroSymbols 2
+            elseif ingump "1/" 622436516
+                @setvar! necroSymbols 1
+            elseif ingump "0/" 622436516
+                @setvar! necroSymbols 0
+            endif
+        endif
+        
+        if skill "Discordance" >= 50 and skill "Peacemaking" >= 50
+            if isDiscorded = 0
+                getlabel myKillTarget discordDesc
+                if "discord" in discordDesc
+                    @setvar! isDiscorded 1
+                elseif timer meditiationTimer >= 11000 
+                    useskill 'Discordance'
+                    wft 500
+                    if insysmsg "What instrument"
+                        if findtype "bamboo flute" backpack as inny
+                            target inny
+                        elseif findtype "tambourine" backpack as inny
+                            target inny
+                        elseif findtype "drum" backpack as inny
+                            target inny
+                        elseif findtype "lute" backpack as inny
+                            target inny
+                        elseif findtype "harp" backpack as inny
+                            target inny
+                        elseif findtype "lap harp" backpack as inny
+                            target inny
+                        else
+                            overhead "I do not have an inny" 34
+                            @setvar! isDiscorded 1
+                        endif
+                        wft 500
+                    endif
+                    if targetexists 
+                        target myKillTarget
+                        overhead "Discorded" 88 myKillTarget
+                    endif
+                    settimer meditiationTimer 5000
+                endif
+            endif
+
+            if isPeaced = 0
+                getlabel myKillTarget peaceDesc
+                if "peace" in peaceDesc
+                    @setvar! isPeaced 1
+                elseif timer meditiationTimer >= 11000 
+                    useskill 'Peacemaking'
+                    wft 500
+                    if insysmsg "What instrument"
+                        if findtype "bamboo flute" backpack as inny
+                            target inny
+                        elseif findtype "tambourine" backpack as inny
+                            target inny
+                        elseif findtype "drum" backpack as inny
+                            target inny
+                        elseif findtype "lute" backpack as inny
+                            target inny
+                        elseif findtype "harp" backpack as inny
+                            target inny
+                        elseif findtype "lap harp" backpack as inny
+                            target inny
+                        else
+                            overhead "I do not have an inny" 34
+                            @setvar! isPeaced 1
+                        endif
+                        wft 500
+                    endif
+                    if targetexists 
+                        target myKillTarget
+                        overhead "Peaced" 88 myKillTarget
+                    endif
+                    settimer meditiationTimer 5000
+                endif
+            endif
+		endif
+			
+
+		
+
+        if castMagicShield = 1 and timer magicShieldTimer >= cdMagicShield and not findbuff "Magic Reflection"
+            cast "Magic Reflection"
+            wait 1000
+        elseif drinkMagicResistPot = 1 and not findbuff "Magic Reflection" and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as pot
+            dclick pot
+            wait 200
+        endif
+
+        if findbuff "Magic Reflection"
+            settimer magicShieldTimer 0
+        endif
+        
+        if castReactiveArmor = 1 and timer reactiveArmorTimer >= cdReactiveArmor and not findbuff "Reactive Armor"
+            cast "Reactive Armor"
+            wait 200
+        endif
+
+        if findbuff "Reactive Armor"
+            settimer reactiveArmorTimer 0
+        endif
+        
+        if skill "poisoning" >= 100 or castPoisonAnyway = 1
+            if timer meditiationTimer >= cdMeditationMini
+                if castMindRot = 1 and timer preventSpamNecroAbilitiesTimer >= cdPreventSpamNecroAbilities and timer mindRotTimer >= cdMindRot and skill "Necromancy" >= 75 and 3 < necroSymbols 
+                    yell "[MindRot"
+                    settimer preventSpamNecroAbilitiesTimer 0
+                    settimer mindRotTimer 0
+                    wait 500
+                    if gumpexists 622436516
+                        if ingump "12/" 622436516
+                            @setvar! necroSymbols 12
+                        elseif ingump "13/" 622436516
+                            @setvar! necroSymbols 13
+                        elseif ingump "14/" 622436516
+                            @setvar! necroSymbols 14
+                        elseif ingump "15/" 622436516
+                            @setvar! necroSymbols 15
+                        elseif ingump "16/" 622436516
+                            @setvar! necroSymbols 16
+                        elseif ingump "17/" 622436516
+                            @setvar! necroSymbols 17
+                        elseif ingump "18/" 622436516
+                            @setvar! necroSymbols 18
+                        elseif ingump "19/" 622436516
+                            @setvar! necroSymbols 19
+                        elseif ingump "20/" 622436516
+                            @setvar! necroSymbols 20
+                        elseif ingump "21/" 622436516
+                            @setvar! necroSymbols 21
+                        elseif ingump "11/" 622436516
+                            @setvar! necroSymbols 11
+                        elseif ingump "10/" 622436516
+                            @setvar! necroSymbols 10
+                        elseif ingump "9/" 622436516
+                            @setvar! necroSymbols 9
+                        elseif ingump "8/" 622436516
+                            @setvar! necroSymbols 8
+                        elseif ingump "7/" 622436516
+                            @setvar! necroSymbols 7
+                        elseif ingump "6/" 622436516
+                            @setvar! necroSymbols 6
+                        elseif ingump "5/" 622436516
+                            @setvar! necroSymbols 5
+                        elseif ingump "4/" 622436516
+                            @setvar! necroSymbols 4
+                        elseif ingump "3/" 622436516
+                            @setvar! necroSymbols 3
+                        elseif ingump "2/" 622436516
+                            @setvar! necroSymbols 2
+                        elseif ingump "1/" 622436516
+                            @setvar! necroSymbols 1
+                        elseif ingump "0/" 622436516
+                            @setvar! necroSymbols 0
+                        endif
+                    endif
+                endif
+                
+                                
+                getlabel myKillTarget desc2
+                overhead desc2
+                
+                if castPoisonStrike = 1 and timer preventSpamNecroAbilitiesTimer >= cdPreventSpamNecroAbilities and timer poisonStrikeTimer >= cdPoisonStrike and skill "Necromancy" >= 55 and 1 < necroSymbols 
+                    if "Ticks" in desc2
+                        if "[8" in desc2 or "[7" in desc2 or "[6" in desc2  or "[5" in desc2  or "[4" in desc2  or "[3" in desc2  or "[2" in desc2  or "[1 " in desc2 
+                            yell "[PoisonStrike"
+                            wft 500
+                            target myKillTarget
+                            wait 200
+                            settimer preventSpamNecroAbilitiesTimer 0
+                            settimer poisonStrikeTimer 0
+                            wait 500
+                            if gumpexists 622436516
+                                if ingump "12/" 622436516
+                                    @setvar! necroSymbols 12
+                                elseif ingump "13/" 622436516
+                                    @setvar! necroSymbols 13
+                                elseif ingump "14/" 622436516
+                                    @setvar! necroSymbols 14
+                                elseif ingump "15/" 622436516
+                                    @setvar! necroSymbols 15
+                                elseif ingump "16/" 622436516
+                                    @setvar! necroSymbols 16
+                                elseif ingump "17/" 622436516
+                                    @setvar! necroSymbols 17
+                                elseif ingump "18/" 622436516
+                                    @setvar! necroSymbols 18
+                                elseif ingump "19/" 622436516
+                                    @setvar! necroSymbols 19
+                                elseif ingump "20/" 622436516
+                                    @setvar! necroSymbols 20
+                                elseif ingump "21/" 622436516
+                                    @setvar! necroSymbols 21
+                                elseif ingump "11/" 622436516
+                                    @setvar! necroSymbols 11
+                                elseif ingump "10/" 622436516
+                                    @setvar! necroSymbols 10
+                                elseif ingump "9/" 622436516
+                                    @setvar! necroSymbols 9
+                                elseif ingump "8/" 622436516
+                                    @setvar! necroSymbols 8
+                                elseif ingump "7/" 622436516
+                                    @setvar! necroSymbols 7
+                                elseif ingump "6/" 622436516
+                                    @setvar! necroSymbols 6
+                                elseif ingump "5/" 622436516
+                                    @setvar! necroSymbols 5
+                                elseif ingump "4/" 622436516
+                                    @setvar! necroSymbols 4
+                                elseif ingump "3/" 622436516
+                                    @setvar! necroSymbols 3
+                                elseif ingump "2/" 622436516
+                                    @setvar! necroSymbols 2
+                                elseif ingump "1/" 622436516
+                                    @setvar! necroSymbols 1
+                                elseif ingump "0/" 622436516
+                                    @setvar! necroSymbols 0
+                                endif
+                            endif
+                        endif
+                    endif
+                endif
+                
+                
+                
+                if isLethalPoison = 0
+                    
+                    if diffmana >= 30 and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
+                        overhead "Eating shrooms" 66
+                        dclick mushy
+                        settimer magicMushroomTimer 0
+                    endif
+                
+                    if insysmsg "Target cannot be seen." 
+                        overhead "CANNOT BE SEEN MOVE TO NEXT TARGET" 34
+                        replay
+                    endif 
+
+                    // poison lethal
+                    if "Lethal" in desc2
+                        @setvar! isLethalPoison 1
+                        break
+                    elseif castPoisonAnyway = 1 and "Ticks" in desc2
+                        @setvar! isLethalPoison 1
+                        break
+                    elseif castPoisonAnyway = 1 and "Poison" in desc2
+                        @setvar! isLethalPoison 1
+                        break
+                    elseif diffhits >= 30 
+                        // need a heal
+                        break
+                    elseif mana >= 9
+                        while not targetexists
+                            cast 'poison'
+                            wait 50
+                            if dead myKillTarget
+                                hotkey '> Interrupt'
+                                replay
+                            endif
+                        endwhile
+                        target myKillTarget
+                        wait 200
+                        if insysmsg "Target cannot be seen." 
+                             overhead "CANNOT BE SEEN MOVE TO NEXT TARGET" 34
+                             @setvar! isLethalPoison 1
+                        endif 
+                    else
+                        wait 200
+                    endif
+                endif
+            endif
+        endif
+        
+        if castCorpseSkin = 1 and timer preventSpamNecroAbilitiesTimer >= cdPreventSpamNecroAbilities and timer corpseSkinTimer >= cdCorpseSkin and skill "Necromancy" >= 65 and timer meditiationTimer >= cdMeditationMini and 2 < necroSymbols
+            yell "[CorpseSkin"
+            settimer preventSpamNecroAbilitiesTimer 0
+            settimer corpseSkinTimer 0
+            cooldown CorpseSkin cdCorpseSkin
+            wait 500
+            if gumpexists 622436516
+                if ingump "12/" 622436516
+                    @setvar! necroSymbols 12
+                elseif ingump "13/" 622436516
+                    @setvar! necroSymbols 13
+                elseif ingump "14/" 622436516
+                    @setvar! necroSymbols 14
+                elseif ingump "15/" 622436516
+                    @setvar! necroSymbols 15
+                elseif ingump "16/" 622436516
+                    @setvar! necroSymbols 16
+                elseif ingump "17/" 622436516
+                    @setvar! necroSymbols 17
+                elseif ingump "18/" 622436516
+                    @setvar! necroSymbols 18
+                elseif ingump "19/" 622436516
+                    @setvar! necroSymbols 19
+                elseif ingump "20/" 622436516
+                    @setvar! necroSymbols 20
+                elseif ingump "21/" 622436516
+                    @setvar! necroSymbols 21
+                elseif ingump "11/" 622436516
+                    @setvar! necroSymbols 11
+                elseif ingump "10/" 622436516
+                    @setvar! necroSymbols 10
+                elseif ingump "9/" 622436516
+                    @setvar! necroSymbols 9
+                elseif ingump "8/" 622436516
+                    @setvar! necroSymbols 8
+                elseif ingump "7/" 622436516
+                    @setvar! necroSymbols 7
+                elseif ingump "6/" 622436516
+                    @setvar! necroSymbols 6
+                elseif ingump "5/" 622436516
+                    @setvar! necroSymbols 5
+                elseif ingump "4/" 622436516
+                    @setvar! necroSymbols 4
+                elseif ingump "3/" 622436516
+                    @setvar! necroSymbols 3
+                elseif ingump "2/" 622436516
+                    @setvar! necroSymbols 2
+                elseif ingump "1/" 622436516
+                    @setvar! necroSymbols 1
+                elseif ingump "0/" 622436516
+                    @setvar! necroSymbols 0
+                endif
+            endif
+        endif
+            
+        if castBloodOath = 1 and timer preventSpamNecroAbilitiesTimer >= cdPreventSpamNecroAbilities and timer bloodOathTimer >= cdBloodOath and 5 < necroSymbols
+            yell "[BloodOath"
+            settimer preventSpamNecroAbilitiesTimer 0
+            settimer bloodOathTimer 0
+            if gumpexists 622436516
+                if ingump "12/" 622436516
+                    @setvar! necroSymbols 12
+                elseif ingump "13/" 622436516
+                    @setvar! necroSymbols 13
+                elseif ingump "14/" 622436516
+                    @setvar! necroSymbols 14
+                elseif ingump "15/" 622436516
+                    @setvar! necroSymbols 15
+                elseif ingump "16/" 622436516
+                    @setvar! necroSymbols 16
+                elseif ingump "17/" 622436516
+                    @setvar! necroSymbols 17
+                elseif ingump "18/" 622436516
+                    @setvar! necroSymbols 18
+                elseif ingump "19/" 622436516
+                    @setvar! necroSymbols 19
+                elseif ingump "20/" 622436516
+                    @setvar! necroSymbols 20
+                elseif ingump "21/" 622436516
+                    @setvar! necroSymbols 21
+                elseif ingump "11/" 622436516
+                    @setvar! necroSymbols 11
+                elseif ingump "10/" 622436516
+                    @setvar! necroSymbols 10
+                elseif ingump "9/" 622436516
+                    @setvar! necroSymbols 9
+                elseif ingump "8/" 622436516
+                    @setvar! necroSymbols 8
+                elseif ingump "7/" 622436516
+                    @setvar! necroSymbols 7
+                elseif ingump "6/" 622436516
+                    @setvar! necroSymbols 6
+                elseif ingump "5/" 622436516
+                    @setvar! necroSymbols 5
+                elseif ingump "4/" 622436516
+                    @setvar! necroSymbols 4
+                elseif ingump "3/" 622436516
+                    @setvar! necroSymbols 3
+                elseif ingump "2/" 622436516
+                    @setvar! necroSymbols 2
+                elseif ingump "1/" 622436516
+                    @setvar! necroSymbols 1
+                elseif ingump "0/" 622436516
+                    @setvar! necroSymbols 0
+                endif
+            endif
+        endif
+        
+        
+        if castEvilOmen = 1 and timer preventSpamNecroAbilitiesTimer >= cdPreventSpamNecroAbilities and timer evilOmenTimer >= cdEvilOmen and skill "Necromancy" >= 60 and timer meditiationTimer >= cdMeditationMini and 2 < necroSymbols
+            yell "[EvilOmen"
+            settimer evilOmenTimer 0
+            settimer preventSpamNecroAbilitiesTimer 0
+            cooldown EvilOmen cdEvilOmen
+            wait 500
+            if gumpexists 622436516
+                if ingump "12/" 622436516
+                    @setvar! necroSymbols 12
+                elseif ingump "13/" 622436516
+                    @setvar! necroSymbols 13
+                elseif ingump "14/" 622436516
+                    @setvar! necroSymbols 14
+                elseif ingump "15/" 622436516
+                    @setvar! necroSymbols 15
+                elseif ingump "16/" 622436516
+                    @setvar! necroSymbols 16
+                elseif ingump "17/" 622436516
+                    @setvar! necroSymbols 17
+                elseif ingump "18/" 622436516
+                    @setvar! necroSymbols 18
+                elseif ingump "19/" 622436516
+                    @setvar! necroSymbols 19
+                elseif ingump "20/" 622436516
+                    @setvar! necroSymbols 20
+                elseif ingump "21/" 622436516
+                    @setvar! necroSymbols 21
+                elseif ingump "11/" 622436516
+                    @setvar! necroSymbols 11
+                elseif ingump "10/" 622436516
+                    @setvar! necroSymbols 10
+                elseif ingump "9/" 622436516
+                    @setvar! necroSymbols 9
+                elseif ingump "8/" 622436516
+                    @setvar! necroSymbols 8
+                elseif ingump "7/" 622436516
+                    @setvar! necroSymbols 7
+                elseif ingump "6/" 622436516
+                    @setvar! necroSymbols 6
+                elseif ingump "5/" 622436516
+                    @setvar! necroSymbols 5
+                elseif ingump "4/" 622436516
+                    @setvar! necroSymbols 4
+                elseif ingump "3/" 622436516
+                    @setvar! necroSymbols 3
+                elseif ingump "2/" 622436516
+                    @setvar! necroSymbols 2
+                elseif ingump "1/" 622436516
+                    @setvar! necroSymbols 1
+                elseif ingump "0/" 622436516
+                    @setvar! necroSymbols 0
+                endif
+            endif
+        endif
+        
+        if castVampiricEmbrace = 1 and timer preventSpamNecroAbilitiesTimer >= cdPreventSpamNecroAbilities and timer vampiricEmbraceTimer >= cdVampiricEmbrace and skill "Necromancy" >= 75 and timer meditiationTimer >= cdMeditationMini and 3 < necroSymbols and findtype 8198 ground -1 -1 4 as jorpse
+            yell "[VampiricEmbrace"
+            wft 500
+            target jorpse
+            settimer preventSpamNecroAbilitiesTimer 0
+            settimer vampiricEmbraceTimer 0
+            cooldown VampiricEmbrace cdVampiricEmbrace
+            wait 500
+            if gumpexists 622436516
+                if ingump "12/" 622436516
+                    @setvar! necroSymbols 12
+                elseif ingump "13/" 622436516
+                    @setvar! necroSymbols 13
+                elseif ingump "14/" 622436516
+                    @setvar! necroSymbols 14
+                elseif ingump "15/" 622436516
+                    @setvar! necroSymbols 15
+                elseif ingump "16/" 622436516
+                    @setvar! necroSymbols 16
+                elseif ingump "17/" 622436516
+                    @setvar! necroSymbols 17
+                elseif ingump "18/" 622436516
+                    @setvar! necroSymbols 18
+                elseif ingump "19/" 622436516
+                    @setvar! necroSymbols 19
+                elseif ingump "20/" 622436516
+                    @setvar! necroSymbols 20
+                elseif ingump "21/" 622436516
+                    @setvar! necroSymbols 21
+                elseif ingump "11/" 622436516
+                    @setvar! necroSymbols 11
+                elseif ingump "10/" 622436516
+                    @setvar! necroSymbols 10
+                elseif ingump "9/" 622436516
+                    @setvar! necroSymbols 9
+                elseif ingump "8/" 622436516
+                    @setvar! necroSymbols 8
+                elseif ingump "7/" 622436516
+                    @setvar! necroSymbols 7
+                elseif ingump "6/" 622436516
+                    @setvar! necroSymbols 6
+                elseif ingump "5/" 622436516
+                    @setvar! necroSymbols 5
+                elseif ingump "4/" 622436516
+                    @setvar! necroSymbols 4
+                elseif ingump "3/" 622436516
+                    @setvar! necroSymbols 3
+                elseif ingump "2/" 622436516
+                    @setvar! necroSymbols 2
+                elseif ingump "1/" 622436516
+                    @setvar! necroSymbols 1
+                elseif ingump "0/" 622436516
+                    @setvar! necroSymbols 0
+                endif
+            endif
+        endif
+        
+        if castPainSpike = 1 and timer preventSpamNecroAbilitiesTimer >= cdPreventSpamNecroAbilities and timer painSpikeTimer >= cdPainSpike and skill "Necromancy" >= 95 and timer meditiationTimer >= cdMeditationMini and 5 < necroSymbols and findtype 8198 ground -1 -1 6 as jorpse
+            yell "[PainSpike"
+            wft 500
+            target myKillTarget
+            wait 200
+            settimer preventSpamNecroAbilitiesTimer 0
+            if insysmsg "You do not see any corpses"
+                // do nothing
+            else
+                settimer painSpikeTimer 0
+                cooldown PainSpike cdPainSpike            
+            endif
+            if gumpexists 622436516
+                if ingump "12/" 622436516
+                    @setvar! necroSymbols 12
+                elseif ingump "13/" 622436516
+                    @setvar! necroSymbols 13
+                elseif ingump "14/" 622436516
+                    @setvar! necroSymbols 14
+                elseif ingump "15/" 622436516
+                    @setvar! necroSymbols 15
+                elseif ingump "16/" 622436516
+                    @setvar! necroSymbols 16
+                elseif ingump "17/" 622436516
+                    @setvar! necroSymbols 17
+                elseif ingump "18/" 622436516
+                    @setvar! necroSymbols 18
+                elseif ingump "19/" 622436516
+                    @setvar! necroSymbols 19
+                elseif ingump "20/" 622436516
+                    @setvar! necroSymbols 20
+                elseif ingump "21/" 622436516
+                    @setvar! necroSymbols 21
+                elseif ingump "11/" 622436516
+                    @setvar! necroSymbols 11
+                elseif ingump "10/" 622436516
+                    @setvar! necroSymbols 10
+                elseif ingump "9/" 622436516
+                    @setvar! necroSymbols 9
+                elseif ingump "8/" 622436516
+                    @setvar! necroSymbols 8
+                elseif ingump "7/" 622436516
+                    @setvar! necroSymbols 7
+                elseif ingump "6/" 622436516
+                    @setvar! necroSymbols 6
+                elseif ingump "5/" 622436516
+                    @setvar! necroSymbols 5
+                elseif ingump "4/" 622436516
+                    @setvar! necroSymbols 4
+                elseif ingump "3/" 622436516
+                    @setvar! necroSymbols 3
+                elseif ingump "2/" 622436516
+                    @setvar! necroSymbols 2
+                elseif ingump "1/" 622436516
+                    @setvar! necroSymbols 1
+                elseif ingump "0/" 622436516
+                    @setvar! necroSymbols 0
+                endif
+            endif
+        endif
+        
+        if diffhits >= 30
+            if findtype "Yellow Potion" backpack as pot 
+                getlabel pot desc
+                if "next usable" in desc
+                    // do nothing
+                else
+                    dclick pot
+                    wait 500
+                endif
+            endif
+
+            if diffhits >= 30 and mana >= 12
+                while not targetexists
+                    if diffhits >= 60
+                        cast 'Heal'
+                    else
+                        cast 'Greater Heal'                
+                    endif
+                    wait 50
+                    if hp = maxhp
+                        hotkey '> Interrupt'
+                        break
+                    endif
+                endwhile
+                if targetexists
+                    target self
+                    wait 50
+                endif
+            endif
+        endif
+        
+        if poisoned
+            if findtype "Orange Potion" backpack as pot 
+                dclick pot
+                wait 200
+            else
+                while not targetexists
+                    if not poisoned
+                        hotkey '> Interrupt'
+                        break
+                    else
+                        cast 'Cure'
+                        wait 50
+                    endif 
+                endwhile
+                if targetexists
+                    target self
+                    wait 500
+                endif
+            endif
+        endif
+
+        if diffmana >= 30 and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
+            overhead "Eating shrooms" 66
+            dclick mushy
+            settimer magicMushroomTimer 0
+        endif
+        
+        if index = 0
+                    
+            if castLightning = 1 and diffhits < 30 and mana >= 12 and timer lightningTimer >= cdLightning and timer meditiationTimer >= cdMeditationMini
+                while not targetexists
+                    if followers < 4 or dead myKillTarget or diffhits >= 30
+                        hotkey '> Interrupt'
+                        break
+                    else
+                        cast 'Lightning'
+                        wait 50
+                    endif 
+                endwhile
+                if targetexists
+                    target myKillTarget
+                    settimer lightningTimer 0
+                    cooldown Lightning cdLightning
+                    wait 500
+                endif
+            endif
+        
+        elseif index = 1
+        
+            if castMagicArrow = 1 and diffhits < 30 and mana >= 5 and timer magicArrowTimer >= cdMagicArrow and timer meditiationTimer >= cdMeditationMini
+                while not targetexists
+                    if followers < 4 or dead myKillTarget or diffhits >= 30
+                        hotkey '> Interrupt'
+                        break
+                    else
+                        cast 'magic arrow'
+                        wait 50
+                    endif 
+                endwhile
+                if targetexists
+                    target myKillTarget
+                    settimer magicArrowTimer 0
+                    cooldown MagicArrow cdMagicArrow
+                    wait 500
+                endif
+            endif
+            
+        elseif index = 2
+                
+            if castHarm = 1 and diffhits < 30 and mana >= 9 and timer harmTimer >= cdHarm and timer meditiationTimer >= cdMeditationMini
+                while not targetexists
+                    if followers < 4 or dead myKillTarget or diffhits >= 30
+                        hotkey '> Interrupt'
+                        break
+                    else
+                        cast 'harm'
+                        wait 50
+                    endif 
+                endwhile
+                if targetexists
+                    target myKillTarget
+                    settimer harmTimer 0
+                    cooldown Harm cdHarm
+                    wait 500
+                endif
+            endif
+            
+        elseif index = 3
+                
+            if castFireball = 1 and diffhits < 30 and mana >= 12 and timer fireballTimer >= cdFireball and timer meditiationTimer >= cdMeditationMini
+                while not targetexists
+                    if followers < 4 or dead myKillTarget or diffhits >= 30
+                        hotkey '> Interrupt'
+                        break
+                    else
+                        cast 'fireball'
+                        wait 50
+                    endif 
+                endwhile
+                if targetexists
+                    target myKillTarget
+                    settimer fireballTimer 0
+                    cooldown Fireball cdFireball
+                    wait 500
+                endif
+            endif
+            
+        elseif index = 4
+                
+            if castFireball = 1 and diffhits < 30 and mana >= 12 and timer fireballTimer >= cdFireball and timer meditiationTimer >= cdMeditationMini
+                while not targetexists
+                    if followers < 4 or dead myKillTarget or diffhits >= 30
+                        hotkey '> Interrupt'
+                        break
+                    else
+                        cast 'fireball'
+                        wait 50
+                    endif 
+                endwhile
+                if targetexists
+                    target myKillTarget
+                    settimer fireballTimer 0
+                    cooldown Fireball cdFireball
+                    wait 500
+                endif
+            endif
+            
+        endif
+    
+    endfor
+   
+    if find myKillTarget -1 -1 12 as killy
+       // do nothing
+    else
+        overhead "Out of range" 34
+        break
+    endif
+    
+    
+    if diffhits >= 30
+            
+        if findtype "Yellow Potion" backpack as pot 
+            getlabel pot desc
+            if "next usable" in desc
+                // do nothing
+            else
+                dclick pot
+                wait 500
+            endif
+        endif
+
+        if diffhits >= 30 and mana >= 12
+            while not targetexists
+                if diffhits >= 60
+                    cast 'Heal'
+                else
+                    cast 'Greater Heal'                
+                endif
+                wait 50
+                if hp = maxhp
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists
+                target self
+                wait 50
+            endif
+        endif
+    elseif mana < 55 and findbuff "actively meditating" 
+        // wait for mana
+    elseif timer meditiationTimer < cdMeditationMini and findbuff "actively meditating" 
+        // wait for mana
+    elseif castMindBlast = 1 and mana >= 32
+        while not targetexists and mana > 30
+            if diffmana >= 30 and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
+                overhead "Eating shrooms" 66
+                dclick mushy
+                settimer magicMushroomTimer 0
+            endif
+            if followers < 4 or dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'Mind Blast'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            wait 500
+        endif
+        if castFlamestrike = 1 and mana > 42
+            while not targetexists and mana > 40
+            
+                if diffmana >= 30 and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
+                    overhead "Eating shrooms" 66
+                    dclick mushy
+                    settimer magicMushroomTimer 0
+                endif
+        
+                if followers < 4 or dead myKillTarget or diffhits >= 30
+                    hotkey '> Interrupt'
+                    break
+                else
+                    cast 'Flamestrike'
+                    wait 50
+                endif 
+            endwhile
+            if targetexists
+                target myKillTarget
+                wait 500
+            endif
+        endif
+    elseif castFlamestrike = 1 and mana > 42
+        while not targetexists and mana > 40
+        
+            if diffmana >= 30 and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
+                overhead "Eating shrooms" 66
+                dclick mushy
+                settimer magicMushroomTimer 0
+            endif
+    
+            if followers < 4 or dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            else
+                cast 'Flamestrike'
+                wait 50
+            endif 
+        endwhile
+        if targetexists
+            target myKillTarget
+            wait 500
+        endif
+    elseif not findbuff "actively meditating" and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
+        overhead "Eating shrooms" 66
+        dclick mushy
+        settimer magicMushroomTimer 0
+    elseif not findbuff "actively meditating" and timer meditiationTimer >= cdMeditation
+        say "all guard me"
+        useskill 'meditation'
+        settimer meditiationTimer 0
+        wait 500
+    endif
+    wait 50
+endwhile
+wait 500
+if targetexists 
+    hotkey 'Cancel Current Target'
+endif
+if not findbuff "actively meditating" 
+    say "all guard me"
+endif
+while mana < minimumManaToCast
+    if setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster = 0
+        hotkey 'Target Closest Non-Friendly Monster'
+        wait 200
+        if insysmsg "No one matching that was found"
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "no next target" 34
+                settimer preventOverheadSpamTimer 0
+            endif
+        elseif not find lasttarget ground -1 -1 8
+            overhead "¼ NEXT TARGET HERE ¼" 88 lasttarget
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "Move closer, more then 8 tiles away" 34
+                settimer preventOverheadSpamTimer 0
+            endif
+        else
+            overhead "¼ NEXT TARGET HERE ¼" 88 lasttarget
+            attack lasttarget
+        endif    
+    endif
+    if diffhits >= 30
+        if findtype "Yellow Potion" backpack as pot 
+            getlabel pot desc
+            if "next usable" in desc
+                // do nothing
+            else
+                dclick pot
+                wait 200
+            endif
+        endif
+        if diffhits >= 30 and mana >= 12
+            while not targetexists
+                if diffhits >= 60
+                    cast 'Heal'
+                else
+                    cast 'Greater Heal'                
+                endif
+                wait 50
+                if hp = maxhp
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists
+                target self
+                wait 50
+            endif
+        endif
+    endif
+    if not findbuff "actively meditating" 
+        useskill 'meditation'
+    endif
+    wait 500
+endwhile
+if canYouMakeAMushroom = 1 and counttype "mushroom" backpack < butOnlyIHaveLessThenThisCount
+    while counttype "mushroom" backpack < makeThisManyMushroomsCount
+        cast "Create Food"
+        wait 200
+        if diffhits >= 20 or counttype "mushroom" backpack = 0
+            break
+        endif
+    endwhile
+endif
+if castVampiricEmbrace = 1 and timer vampiricEmbraceTimer >= cdVampiricEmbrace and skill "Necromancy" >= 70 and findtype 8198 ground -1 -1 4 as jorpse
+    say "[VampiricEmbrace"
+    wft 500
+    target jorpse
+    settimer vampiricEmbraceTimer 0
+    cooldown VampiricEmbrace cdVampiricEmbrace
+endif
+if castSummonEarthElementalAsMummy = 0
+    useskill "spiritspeak"
+    settimer meditiationTimer 8000
+endif
+if timer killTargetTimer >= cdKillTarget
+    overhead "We cleared curse and mana drain targets" 34
+    removelist myCursedTargets      
+    removelist myManaDrainTargets
+endif
+   
+if autoBotEnabled = 1
+    replay
+endif
+
+// thanks for using a Jaseowns script!
+// https://www.youtube.com/jaseowns   
+// We did it
+// Senor Borracho v2

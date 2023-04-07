@@ -1,0 +1,262 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/77aa5a06-04a2-4ab0-8bc9-1b39cd493670 for latest
+# Automation by Jaseowns
+## Script: Auto Chiv Dexxer/Tamer
+## Created by: Hayes#3296
+#############################################
+
+# Auto Dexxer Tamer Script 
+
+//Set this to 1 if you have a tanking pet or are grouping with another player to crossheal
+//Set this to 2 to auto heal any nearby mobile in friends list ##WIP##
+@setvar hasCrossHealTarget 0
+
+if hasCrossHealTarget == 1
+    overhead "Target your crosshealing buddy or tank"
+    setvar 'crossHealTarget'
+endif
+
+if not findbuff "camp" and skill "Camping" > 39
+    overhead "Camping buff not active."
+endif
+
+if not findbuff "track" and skill "tracking" > 0
+    overhead "Enable tracking!"
+endif
+
+@setvar! cdCleanseByFire 31000
+@setvar! cdCloseWounds 31000
+@setvar! cdNobleSacrifice 31000
+@setvar! cdHolyLight 31000
+@setvar! cdHealPot 10250
+@setvar! cdVetSupply 5100
+@setvar! cdSpamFilter 3000
+
+if not timerexists cleanseByFireTimer
+    createtimer cleanseByFireTimer
+    settimer cleanseByFireTimer cdCleanseByFire
+endif
+
+if not timerexists closeWoundsTimer
+    createtimer closeWoundsTimer
+    settimer closeWoundsTimer cdCloseWounds
+endif
+
+if not timerexists nobleSacrificeTimer
+    createtimer nobleSacrificeTimer
+    settimer nobleSacrificeTimer cdNobleSacrifice
+endif
+
+if not timerexists holyLightTimer
+    createtimer holyLightTimer
+    settimer holyLightTimer cdHolyLight
+endif
+
+if not timerexists healPotTimer
+    createtimer healPotTimer
+    settimer healPotTimer cdHealPot
+endif
+
+if not timerexists vetSupplyTimer
+    createtimer vetSupplyTimer
+    settimer vetSupplyTimer cdVetSupply
+endif
+
+if not timerexists spamFilterTimer
+    createtimer spamFilterTimer
+    settimer spamFilterTimer cdSpamFilter
+endif
+
+@setvar combatTarget 0
+
+//initiate Combat and attack closest
+    
+while not dead
+  if combatTarget == 0
+    clearsysmsg 
+    hotkey "Cancel Current Target"
+    hotkey "Target Closest Non-Friendly Monster"
+    if timer spamFilterTimer >= cdSpamFilter
+        overhead "Searching for next target"
+        settimer spamFilterTimer 0
+        cooldown SpamFilter cdSpamFilter
+    endif
+    
+  //Remove this portion below if you do not want to attack Grey/Reds.
+  //hotkey "Next Non-Friendly Player Target"
+  //Remove this portion above if you do not want to attack Grey/Reds.
+  
+    wait 250
+    if not insysmsg 'no one matching'
+        if followers > 4
+            say "all guard"
+        endif
+        @setvar myKillTarget lasttarget 
+        if skill "Herding" > 99 and findtype 3713 backpack as herdCrook
+            dclick herdCrook
+            wft 500
+            target myKillTarget
+        endif
+        @setvar combatTarget 1 
+        warmode "on"
+        overhead "¼ Current Combatant ¼" 600 lasttarget
+        wait 250
+    endif
+  endif
+  if combatTarget == 1
+  hotkey "Attack Last Target"
+  endif
+  //remove Para
+  if insysmsg 'you cannot move' or insysmsg 'You must wait before using this command again'
+       say '[pouch'
+  endif
+
+  //////////////////////START OF HEALING MODULE/////////////////////////////// 
+
+    if not bandaging and hp < maxhp and not targetexists and count 'bandages' > 0
+        hotkey 'Bandage Self'
+        wait 300
+    endif
+    if not bandaging and hp = maxhp and not targetexists and findtype '25750' 'self' > 0 and timer vetSupplyTimer >= cdVetSupply
+        dclicktype '25750' 'backpack'
+        settimer vetSupplyTimer 0
+        cooldown VetSupply cdVetSupply
+        wait 250
+    endif
+    if not bandaging and hp = maxhp and not targetexists and not findtype '25750' 'self' and count 'bandages' > 0 and timer vetSupplyTimer >= cdVetSupply and find crossHealTarget ground -1 -1 2
+            @setvar combatTarget 0
+            dclicktype '3617' 'backpack'
+            wait 50
+            target crossHealTarget
+            hotkey "Cancel Current Target"
+            wait 250
+     endif
+    
+  //poison removal sequence
+  if poisoned and hp > 50 and not findbuff "I cannot gate travel" and timer cleanseByFireTimer >= cdCleanseByFire
+      overhead "Activating Cleanse By Fire"
+      say '[CleanseByFire'
+      settimer cleanseByFireTimer 0
+      cooldown CleanseByFire cdCleanseByFire
+      wait 250
+  endif
+  
+  if poisoned and hp < 51 
+      overhead "Emergency Poison Removal Activated"
+      
+  if not findbuff "I cannot gate travel" and timer holyLightTimer >= cdHolyLight
+      say '[HolyLight'
+      settimer holyLightTimer 0
+      cooldown HolyLight cdHolyLight
+      endif
+      wait 250
+      if not lhandempty and skill 'alchemy' < 79
+      hotkey "Arm/Disarm Left Hand"
+      endif
+      wait 250
+      while poisoned
+          hotkey "Drink Cure"
+          wait 250
+      endwhile
+  endif
+  
+  //Reduce Bleed Damage
+  if findbuff "bleed" and not findbuff "I cannot gate travel" and timer closeWoundsTimer >= cdCloseWounds
+      overhead "Bleed detected.  Activating Close Wounds."
+  wait 250
+    say '[closewounds'
+    settimer closeWoundsTimer 0
+      cooldown CloseWounds cdCloseWounds
+  endif
+  
+  //Reduce Disease Damage
+  if findbuff "disease" and not findbuff "I cannot gate travel" and timer closeWoundsTimer >= cdCloseWounds
+      overhead "Disease detected. Activating Close Wounds."
+  wait 250
+    say '[closewounds'
+    settimer closeWoundsTimer 0
+      cooldown CloseWounds cdCloseWounds
+  endif
+  
+  //Emergency Heal Sequence
+ if hp < 45
+      if not findbuff "I cannot gate travel" and timer holyLightTimer >= cdHolyLight
+      say '[holylight'
+      wait 250
+      settimer holyLightTimer 0
+      cooldown HolyLight cdHolyLight
+      endif 
+      if hp < 45 and timer healPotTimer >= cdHealPot
+          if not lhandempty and skill 'alchemy' < 80
+              hotkey "Arm/Disarm Left Hand"
+          endif
+              wait 250
+              hotkey 'Drink Heal'
+              settimer healPotTimer 0
+              cooldown HealPot cdHealPot
+      endif 
+      if hp < 45
+          if not findbuff "I cannot gate travel" and timer nobleSacrificeTimer >= cdNobleSacrifice
+          say '[NobleSacrifice'
+          wait 250
+          target self
+          overhead 'Noble Sacrifice used on self, currently cannot be healed'
+          wait 250
+          hotkey 'cancel current target'
+          wait 250
+          hotkey 'clear target queue'
+          wait 250
+          settimer nobleSacrificeTimer 0
+          cooldown NobleSacrifice cdNobleSacrifice
+          endif
+      endif
+  endif
+
+  //////////////////////END OF HEALING MODULE///////////////////////////////
+  
+  //////////////////////GEAR AND BUFF CHECK MODULE///////////////////////////////
+
+ //check for low stamina
+  if stam < 81
+      if not lhandempty and skill 'alchemy' < 80
+         hotkey "Arm/Disarm Left Hand"
+      endif
+      hotkey 'Drink Refresh'
+      wait 500
+  endif
+  
+  //if overweight use str pot
+  if weight > maxweight
+      
+      if not lhandempty and skill 'alchemy' < 80
+         hotkey "Arm/Disarm Left Hand"
+      endif 
+      hotkey 'Drink Strength'
+      wait 500
+  endif
+  
+  //check and equip shield if no shield equipped.
+  if lhandempty and skill 'parrying' > 79
+    if skill 'wrestling' > 79 
+        // do nothing
+    elseif lhandempty
+        overhead 'Attempting to Equip Shield' 33
+        wait 250
+        hotkey "Arm/Disarm Left Hand"
+        wait 750
+    endif
+  endif
+  
+  //check for food buffs
+  if not findbuff "food satisfaction" and findtype "tray" backpack as food
+    dclick food
+    wait 500
+  endif
+  
+  if not find myKillTarget ground -1 -1 8
+    @setvar combatTarget 0
+    warmode "off"
+    wait 250
+  endif
+      
+  //////////////////////GEAR AND BUFF CHECK MODULE///////////////////////////////
+endwhile

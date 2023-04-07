@@ -1,0 +1,192 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/c719ac6d-2ef8-4e31-9834-700b84dc85c2 for latest
+# Automation by Jaseowns
+## Script: Train Poisoning using a Shelf
+## Created by: Jaseowns#6694
+#############################################
+
+# Training Poisoning with a shelf by Jaseowns
+# UO Outlands - Updated 3/1/2023 updated for shelf
+# Make sure to update the max skill on line 47 if you want to go over 100 
+#################
+# Disclaimer: This script will edit your shelf loadout to only grab neccesary 
+# items to train.  To learn how to do this, check out my videos: youtube.com/jaseowns
+#################
+# Requirements:  a shelf stocked with poison, heals and cures & one weapon (ex: kryss)
+##################
+# Additional Info 
+##################
+# If your skill is less than 55 you also need:
+#   One Empty bottle in your backpack
+#   Regular posion kegs in a container
+#   Restock Agent 1 as keg
+#   Script variable called "restock_container_regular_kegs"
+#   Organizer Agent 1 as keg - Set to a different container then your restock_container_regular_kegs
+##################
+# How to heal through failed posion?
+##################
+#   Training poison has the ability to kill you if you do not heal or cure yourself.  
+#   This script attempts to use heal and cure pots to survive.  You could also
+#   have another character constantly bandaging you but this script should be enough.
+
+if not findtype "kryss" backpack and not find select_train_weapon backpack
+    overhead 'Please select your target weapon to train poison on' 88
+    @setvar! 'select_train_weapon'
+endif
+
+clearsysmsg 
+
+while not dead
+    
+    if insysmsg 'world will save'
+        overhead "World save coming soon.."
+    elseif insysmsg 'world is saving'
+        for 100
+            overhead 'Waiting for world save...'
+            wait 100
+            if insysmsg 'save complete'
+                overhead 'Save complete - continue on!' 88
+                break
+            endif
+        endfor
+    endif
+
+    if skill 'poisoning' >= 100
+        overhead 'Maxed out' 88
+        wait 2500
+        replay
+    elseif skill 'poisoning' < 50
+        overhead 'Go train at vendor to 50' 34
+        wait 2500
+        replay
+    elseif skill 'poisoning' < 55
+        if not findtype "empty bottle%s%" backpack
+            overhead 'Need at least one empty bottle!' 34
+            wait 1000
+            replay
+        endif
+    
+        // target a container that has reg kegs
+        if not findtype "keg" backpack
+            restock 1
+            waitfortarget 
+            target 'restock_container_regular_kegs'
+        endif
+
+        if not findtype "keg" backpack
+            overhead "Missing regular keg!" 34
+            wait 2500
+            replay
+        endif
+
+        overhead 'Using keg of Regular Posion' 88
+        dclicktype "keg" backpack
+        wait 500
+        
+        // keg is empty, make sure to organizer to a different container
+        if not insysmsg "place it into your backpack"
+            organizer 1
+            wait 500
+            replay
+        endif
+     endif
+ 
+    overhead 'Using restock shelf' 88
+    gumpclose 3232825965
+    if not gumpexists 3232825965 and findtype "storage shelf" ground -1 -1 2 as shelf
+        dclick shelf
+        waitforgump 3232825965 5000
+    endif
+
+    // Restock shelf
+    gumpresponse 1000 3232825965
+    waitfortarget 5000
+    hotkey 'Target Self'
+    
+    // Clear loadout
+    while not insysmsg "Loadout cleared"
+        gumpresponse 16 3232825965
+        waitforgump 3232825965 5000
+    endwhile
+    
+    // edit loadout
+    gumpresponse 1001 3232825965
+    waitforgump 3232825965 5000
+
+    // 10 heal pots
+    gumpresponse 300 3232825965
+    waitforgump 3232825965 5000
+    gumpresponse 315 3232825965
+    waitforgump 3232825965 5000
+    
+    // 10 cure pots
+    gumpresponse 301 3232825965
+    waitforgump 3232825965 5000
+    gumpresponse 316 3232825965
+    waitforgump 3232825965 5000
+    
+    if skill 'poisoning' < 50
+        overhead 'Go train at vendor' 34
+        wait 2500
+        replay
+    elseif skill 'poisoning' < 55
+        overhead '55 Regular'
+    elseif skill 'poisoning' < 80
+        overhead '80 Greater'
+        gumpresponse 307 3232825965
+        waitforgump 3232825965 5000
+    elseif skill 'poisoning' < 100
+        overhead '100 Deadly'
+        gumpresponse 308 3232825965
+        waitforgump 3232825965 5000
+    elseif skill 'poisoning' < 120
+        overhead '120 Lethal'
+        gumpresponse 309 3232825965
+        waitforgump 3232825965 5000
+    else
+        replay
+    endif
+    
+    // Resupply
+    gumpresponse 7 3232825965
+    waitforgump 3232825965 5000
+    
+    wait 500
+
+    if findtype "Green Potion" backpack and hp > 50
+        skill 'Poisoning'
+        wft 500
+        targettype "Green Potion" backpack
+        wft 500
+        if findtype "kryss" backpack
+            targettype "kryss" backpack
+        else
+            target 'select_train_weapon'
+        endif
+    endif
+
+    if findtype "Yellow Potion" backpack and hp < 50
+        hotkey 'Drink Heal'
+        wait 500
+    endif
+
+    if poisoned
+        overhead 'Posioned'
+        while poisoned
+            if findtype "Orange Potion" backpack
+                hotkey 'Drink Cure'
+                wait 500
+            else
+                overhead "Out of cures... you gonna die" 34
+                wait 1000
+            endif
+            
+            if findtype "Yellow Potion" backpack and hp < 40
+                hotkey 'Drink Heal'
+                wait 500
+            endif
+        endwhile
+        wait 5000
+    else
+        wait 5000
+    endif
+endwhile

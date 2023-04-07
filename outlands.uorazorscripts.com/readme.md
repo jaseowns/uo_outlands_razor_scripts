@@ -1,2 +1,2 @@
-# Backup and History of [outlands.uoazorscripts.com](https://outlands.uorazorscripts.com/) scripts.
+# Backup and History of [outlands.uorazorscripts.com](https://outlands.uorazorscripts.com/) scripts.
 

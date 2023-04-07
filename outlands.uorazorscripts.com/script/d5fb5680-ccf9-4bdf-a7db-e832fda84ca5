@@ -1,0 +1,162 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/d5fb5680-ccf9-4bdf-a7db-e832fda84ca5 for latest
+# Automation by Jaseowns
+## Script: Sword and Shield Dexxer Healing Loop (removes shield to drink pots)
+## Created by: Jaseowns#6694
+#############################################
+
+# Sword and shield healing loop, unequips shield to drink pot by Jaseowns
+# UO Outlands
+# Requirements:
+#   use a one handed weapon and shield when running this script
+# Description:
+#   Heals with bandaids and tries to drink 
+#   cures or heals (handles unequipping shield)
+
+// Heal pot when below this health ex: (hp < heal_pot_hp_trigger)
+@setvar! heal_pot_hp_trigger 31
+
+// Drink red pots when drink_red is 1
+@setvar! drink_red 1
+// when below stam ex: (diffstam < red_pot_stamdiff_trigger)
+@setvar! red_pot_stamdiff_trigger 20
+
+// General wait after actions
+@setvar! globalTimeout 650
+
+
+
+##########################################################
+#
+# You do not need to edit anything below this.... 
+# unless you are a wild beast - youtube.com/jaseowns
+#
+##########################################################
+
+@setvar! weapon_equipped 0
+@setvar! sheild_equipped 0
+
+if findlayer self righthand as found
+    @setvar! weapon_equipped found
+endif  
+
+if findlayer self lefthand as found
+    @setvar! sheild_equipped found
+endif  
+
+
+if not timerexists '_refreshTimer'
+    createtimer '_refreshTimer'
+    settimer '_refreshTimer' 999999
+endif
+
+while not dead
+
+    if hidden
+        continue
+    endif
+
+    if findtype "clean bandage%s%" backpack
+        if bandaging = 0 
+            if hp != maxhp
+                if targetexists any
+                    target cancel
+                endif
+                hotkey 'Bandage self' 
+                wait globalTimeout
+            endif
+        endif
+    endif
+
+    if insysmsg 'You cannot move!' or paralyzed
+        overhead 'Paralyzed!' 38
+        if findtype "pouch" backpack 38
+            say '[pouch'
+            wait globalTimeout
+        endif
+    endif
+
+    if poisoned
+        if findtype "Orange Potion" backpack as pot
+            if hits < 90
+                if not rhandempty and not lhandempty
+                    overhead "Remove shield..."
+                    if findlayer self lefthand as found
+                        @setvar! sheild_equipped found
+                        lift sheild_equipped
+                        drop backpack
+                        wait globalTimeout
+                    endif  
+                endif
+    
+                dclick pot
+                wait globalTimeout
+            endif
+        else
+            overhead "Out of cure pots!" 34
+            if lhandempty and hp > heal_pot_hp_trigger
+                overhead "Requip shield..." 0
+                if sheild_equipped != 0
+                    dclick sheild_equipped
+                else
+                    overhead "Unable to find your shield, re-equip manually!" 34
+                endif
+            endif
+            wait globalTimeout
+        endif
+    elseif lhandempty and hp > heal_pot_hp_trigger
+        overhead "Requip shield..." 0
+        if sheild_equipped != 0
+            dclick sheild_equipped
+        else
+            overhead "Unable to find your shield, re-equip manually!" 34
+        endif
+        wait globalTimeout
+    endif
+
+    // If Dex is at least 76.
+    // If stamina is 75 or less, drink a Refesh potion.
+    // Set the refresh timer lower or higher, to adjust.
+    if drink_red = 1 and timer '_refreshTimer' >= 300 and findtype 'Red Potion' backpack as pot
+        if diffstam > red_pot_stamdiff_trigger
+                if not rhandempty and not lhandempty
+                    overhead "Remove shield..."
+                    if findlayer self lefthand as found
+                        @setvar! sheild_equipped found
+                        lift sheild_equipped
+                        drop backpack
+                        wait globalTimeout
+                    endif  
+                endif
+            
+                dclick pot
+                settimer '_refreshTimer' 0
+                overhead 'Total Refreshed.' 69
+                wait globalTimeout
+            endif
+        endif
+    endif
+
+    if hp < heal_pot_hp_trigger
+        if findtype 3852 backpack as PotsHeal 
+            getlabel PotsHeal LabelPotsHeal
+            if 'next usable' in LabelPotsHeal
+                sysmsg 'Unable to use Heal Potion Yet!' 33   
+                wait globalTimeout       
+                wait globalTimeout
+            else
+                overhead 'Drinking heal!' 68
+                if not rhandempty and not lhandempty
+                    overhead "Remove shield..."
+                    if findlayer self lefthand as found
+                        @setvar! sheild_equipped found
+                        lift sheild_equipped
+                        drop backpack
+                    endif  
+                endif
+                dclick PotsHeal
+                wait globalTimeout
+            endif
+        endif 
+    endif
+
+endwhile

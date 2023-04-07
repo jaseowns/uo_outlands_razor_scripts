@@ -1,0 +1,506 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/11fd0082-1e79-4aa8-8015-b62fac929481 for latest
+# Automation by Jaseowns
+## Script: Organize and Drop Off Script (Control Shift O)
+## Created by: Jaseowns#6694
+#############################################
+
+# Organize all our dungeon loot by Jaseowns
+# UO Outlands
+# Put regs and stuff on shelf, put other resources on resource pile
+# Put gold in depsoit box, any tomes we have run that, items into recycler
+# restock from shelf
+
+####################
+### Use >info to fill in tomeChest and myRecallScrollsChest
+#####
+@setvar! globalTimeout 650
+@setvar! tomeChest 0x411EDE22
+@setvar! myRecallScrollsChest 0x479D6FC8
+@setvar! bandagesToMoveIntoTrappedPouches 25
+@setvar! putPotsInUnTrappedLootPouch 0
+
+if not varexist lootdropoff or not find lootdropoff ground -1 -1 2
+    overhead "Where should items go?"
+    @setvar! lootdropoff
+endif
+
+if name = "Jaseowns" or name = "Jase Owns"
+    if not position 1825 996
+        overhead "Not at home" 34
+        stop
+    endif
+endif
+
+if findtype "repair bench" ground -1 -1 2 as bench
+    dclick bench
+    wait globalTimeout
+endif
+
+if findtype "storage shelf" ground -1 -1 2 as shelf
+    menu shelf 0
+    wft 500
+    target self
+    wait 200
+    gumpclose 3232825965
+endif
+
+// our tomes
+dclick tomeChest
+wait 200
+if tomeChest = myRecallScrollsChest
+    // do nothing
+else
+    dclick myRecallScrollsChest
+    wait 200
+endif
+@clearignore 
+while findtype 29104 ground -1 -1 2 as tome
+    menu tome 0
+    wait 200
+    @ignore tome
+endwhile
+while findtype 29104 tomeChest -1 -1 2 as tome
+    menu tome 0
+    wait 200
+    @ignore tome
+endwhile
+@clearignore 
+
+if findtype "bank deposit safe" ground -1 -1 2 as safe
+    while findtype "gold coin" backpack as gold
+        lift gold 60000
+        drop safe -1 -1 -1
+        wait globalTimeout
+    endwhile
+endif
+
+if findtype "resource container" ground -1 -1 2 as resource
+    menu resource 0
+    wft 500
+    target self
+    wait 200
+endif
+
+if findtype "ornate elven chest" ground -1 -1 2 as recycler
+    menu recycler 1
+    wait 200
+endif
+
+if findtype "spellbook" self 0 as mySpellBook
+    overhead "Ignoring spellbook"
+    ignore mySpellBook
+endif
+
+while findtype 24434|43206|29363|43166|22336|29348|17087|3985|8826|3827|29030|3836|5981|4248|5359|3839|3838|3843|2597|29036|48407|3834|3865|3859|3885|3856|3878|3877|3873|3861|3862|576|5123|7177|7027|3920|5131|5179|5075|3980|5060|5076|5042|10245|3938|3913|7169|3909|5063|5089|3981|7170|7033|3976|3762|5040|5103|5117|7181|7029|3568|6264|3742|5139|6263|7026|5125|3740|5121|3973|3974|5204|5105|5185|5078|5115|7175|5059|7034|3713|3915|5112|5070|5049|5119|5205|5046|3962|3934|7035|3911|7179|5106|5143|3573|3719|5177|7610|5181|3917|5132|3963|7031|5207|5056|5085|3763|5129|5187|3721|3972|5138|3570|5101|5061|5074|5142|5182|5146|6265|5090|5203|5044|5144|3932|5201|5127|3572|7173|5135|3937|3571|22326|27611|9917|3821|5356|8455|5362|45315|8454|22187|5901|7163|3617|3903|12686 backpack as item
+    getlabel item checkForBlessed
+    if "blessed" in checkForBlessed or "aspect" in checkForBlessed
+        overhead "Ignoring {{checkForBlessed}}" 34
+        @ignore item
+    else
+        getlabel lootdropoff desc    
+        if "125 items" in desc
+            overhead "Our box is full!" 34
+            break
+        endif
+        lift item 60000
+        drop lootdropoff -1 -1 -1
+        wait globalTimeout
+    endif
+endwhile
+
+if findtype "storage shelf" ground -1 -1 2 as shelf
+    menu shelf 1
+    wait 200
+endif
+
+# OCD your items into a "bag" by Jaseowns
+# UO Outlands 
+# Live stream: https://youtu.be/P4jbgpvM_8c
+# If you want to adjust for other bags use -info
+@setvar! globalTimeout 650
+
+if not varexist jootbag or not find jootbag backpack
+    if counttype "bag" backpack = 1 and findtype "bag" backpack as lootbag
+        overhead "Automatically setting to bag"
+        @setvar! jootbag lootbag
+    else
+        overhead "Select your loot bag"
+        @setvar! jootbag 
+    endif    
+endif
+
+hotkey "Set Grab Item Hotbag"
+wft 500
+target backpack
+
+clearsysmsg 
+
+if findtype "reagent satchel" self as jatchel
+    overhead "Organize Satchel" 88
+    menu jatchel 0
+endif
+
+lift jootbag
+drop backpack 0 0 0
+wait globalTimeout
+if jootbag = self
+    // do nothing
+else
+    dclick jootbag
+    wait 200
+endif
+
+@setvar! dropPouchOrBagForPots jootbag
+
+@clearignore
+while findtype "pouch" backpack 0 as item
+    overhead "Organize Open Pouches" 77
+    lift item
+    drop jootbag 0 0 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+        if putPotsInUnTrappedLootPouch = 1
+            @setvar! dropPouchOrBagForPots item
+        endif
+    endif
+endwhile
+
+while findtype "pouch" backpack 38 as item
+    overhead "Organize Trapped Pouches" 38
+    lift item
+    drop jootbag 0 0 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+while findtype "Purple Potion" backpack as item
+    overhead "Organize Purple Potions" 118
+    lift item 60000
+    drop jootbag 53 68 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+
+while findtype "Orange Potion" backpack as item
+    overhead "Organize Orange Potions" 48
+    lift item 60000
+    drop dropPouchOrBagForPots 58 68 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+while findtype "Red Potion" backpack as item
+    overhead "Organize Red Potions" 33
+    lift item 60000
+    drop dropPouchOrBagForPots 63 68 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+while findtype "Yellow Potion" backpack as item
+    overhead "Organize Yellow Potions" 53
+    lift item 60000
+    drop dropPouchOrBagForPots 68 68 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+while findtype "White Potion" backpack as item
+    overhead "Organize White Potions" 0
+    lift item 60000
+    drop dropPouchOrBagForPots 73 68 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+while findtype "Black Potion" backpack as item
+    overhead "Organize Black Potions" 1
+    lift item 60000
+    drop dropPouchOrBagForPots 78 68 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+
+while findtype "Green Potion" backpack as item
+    overhead "Organize Green Potions" 68
+    lift item 60000
+    drop dropPouchOrBagForPots 83 68 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+
+while findtype "Blue Potion" backpack as item
+    overhead "Organize Blue Potions" 3
+    lift item 60000
+    drop dropPouchOrBagForPots 53 68 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+while findtype "tray" backpack as item
+    overhead "Organize Food Tray" 66
+    lift item 60000
+    drop jootbag 99 68 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+// crook
+while findtype 3713 backpack as item
+    overhead "Organize Crook" 77
+    lift item 60000
+    drop jootbag 37 66 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+// aids
+while findtype "clean bandage%s%" backpack as item
+    overhead "Organize Aids" 81
+    lift item 60000
+    drop jootbag 45 70 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+// aids
+while findtype "rope" backpack as item
+    overhead "Organize Rope" 80
+    lift item 60000
+    drop jootbag 32 34 0
+    wait globalTimeout
+    if insysmsg "you may pick up an item from here"
+        // do nothing
+    else
+        @ignore item
+    endif
+endwhile
+
+@clearignore
+if bandagesToMoveIntoTrappedPouches = 0
+    // do nothing
+elseif findtype "clean bandage%s%" backpack 
+    while findtype "pouch" backpack 38 as item
+        getlabel item desc
+        if "(0 items" in desc
+            overhead "Found an empty pouch" 77
+            // empty
+            if findtype "clean bandage%s%" backpack as aids
+                getlabel aids aidsdesc
+                overhead "Moving an aid {{aidsdesc}}" 88
+                lift aids bandagesToMoveIntoTrappedPouches
+                drop item -1 -1 -1
+                wait globalTimeout
+                if "bandage" in aidsdesc
+                    ignore aids
+                endif
+            else
+                overhead "We do not have any bandages" 34
+                break
+            endif
+        endif
+        @ignore item
+    endwhile
+endif
+@clearignore
+
+// OPEN pouches
+while findtype "pouch" backpack 0 as item
+    overhead "Open Untrapped Pouches" 89
+    dclick item
+    wait globalTimeout
+    @ignore item
+endwhile
+
+while findtype "runetome|runebook" backpack as tome
+    if findtype 8012 backpack 0 as item
+        getlabel item desc
+        overhead desc 88
+        lift item 60000
+        drop tome
+    elseif findtype 8012 myRecallScrollsChest 0 as item
+        getlabel item desc
+        overhead desc 88
+        lift item 60000
+        drop tome
+    else
+        overhead "Out of scrolls!" 34
+    endif
+    @ignore tome
+endwhile
+
+while findtype "runetome|runebook" ground -1 -1 2 as tome
+    if findtype 8012 backpack 0 as item
+        getlabel item desc
+        overhead desc 88
+        lift item 60000
+        drop tome
+    elseif findtype 8012 myRecallScrollsChest 0 as item
+        getlabel item desc
+        overhead desc 88
+        lift item 60000
+        drop tome
+    else
+        overhead "Out of scrolls!" 34
+    endif
+    @ignore tome
+endwhile
+@clearignore
+
+
+### Set our gear as variables
+@setvar! jase_shrooms 0
+@setvar! jase_righthand 0
+@setvar! jase_lefthand 0
+@setvar! jase_shoes 0
+@setvar! jase_pants 0
+@setvar! jase_shirt 0
+@setvar! jase_head 0
+@setvar! jase_gloves 0
+@setvar! jase_ring 0
+@setvar! jase_talisman 0
+@setvar! jase_neck 0
+@setvar! jase_waist 0
+@setvar! jase_innertorso 0
+@setvar! jase_bracelet 0
+@setvar! jase_face 0
+@setvar! jase_middletorso 0
+@setvar! jase_earrings 0
+@setvar! jase_arms 0
+@setvar! jase_cloak 0
+@setvar! jase_outertorso 0
+@setvar! jase_outerlegs 0
+@setvar! jase_innerlegs 0
+@setvar! jase_onehandedsecondary 0
+@setvar! jase_quiver 0
+@setvar! jase_outerbody 0
+
+if findtype "mushroom" backpack as mushy
+    @setvar! jase_shrooms mushy
+endif
+if findlayer self righthand as item
+    @setvar! jase_righthand item
+endif
+if findlayer self lefthand as item
+    @setvar! jase_lefthand item
+endif
+if findlayer self shoes as item
+    @setvar! jase_shoes item
+endif
+if findlayer self pants as item
+    @setvar! jase_pants item
+endif
+if findlayer self shirt as item
+    @setvar! jase_shirt item
+endif
+if findlayer self head as item
+    @setvar! jase_head item
+endif
+if findlayer self gloves as item
+    @setvar! jase_gloves item
+endif
+if findlayer self ring as item
+    @setvar! jase_ring item
+endif
+if findlayer self talisman as item
+    @setvar! jase_talisman item
+endif
+if findlayer self neck as item
+    @setvar! jase_neck item
+endif
+if findlayer self waist as item
+    @setvar! jase_waist item
+endif
+if findlayer self innertorso as item
+    @setvar! jase_innertorso item
+endif
+if findlayer self bracelet as item
+    @setvar! jase_bracelet item
+endif
+if findlayer self face as item
+    @setvar! jase_face item
+endif
+if findlayer self middletorso as item
+    @setvar! jase_middletorso item
+endif
+if findlayer self earrings as item
+    @setvar! jase_earrings item
+endif
+if findlayer self arms as item
+    @setvar! jase_arms item
+endif
+if findlayer self cloak as item
+    @setvar! jase_cloak item
+endif
+if findlayer self outertorso as item
+    @setvar! jase_outertorso item
+endif
+if findlayer self outerlegs as item
+    @setvar! jase_outerlegs item
+endif
+if findlayer self innerlegs as item
+    @setvar! jase_innerlegs item
+endif
+if findlayer self onehandedsecondary as item
+    @setvar! jase_onehandedsecondary item
+endif
+if findlayer self quiver as item
+    @setvar! jase_quiver item
+endif
+if findlayer self outerbody as item
+    @setvar! jase_outerbody item
+endif

@@ -1,0 +1,88 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/039436fb-a9a8-443b-aa3b-bb0a2dd187a4 for latest
+# Automation by Jaseowns
+## Script: Fishing with Captcha Detection (cooldown)
+## Created by: Jaseowns#6694
+#############################################
+
+# Fishing with Captcha Detection (cooldown) by Jaseowns
+# UO Outlands
+# Requirements
+#    Setup a cooldown named "Fish" - it must match that name.
+#    If you run the script without the cooldown, it will show you instructions.
+#    but you want to have 3 entries with 10 seconds on each
+#            sysmsg: fish
+#            sysmsg: You retrieve a
+#            overhead: You catch
+#    The script works by checking the cooldown firing
+
+clearsysmsg 
+
+@setvar! jaseFishingCD 9000
+if not timerexists jaseFishingTimer
+    createtimer jaseFishingTimer
+    settimer jaseFishingTimer jaseFishingCD
+endif
+
+cooldown Fish jaseFishingCD
+
+if not cooldown Fish
+    overhead "Please setup a cooldown named:" 34
+    overhead "Fish" 88
+    sysmsg "Please setup a cooldown named:" 34
+    sysmsg "Fish" 88
+    sysmsg "Add these with 10 second cooldown" 66
+    sysmsg "sysmsg: fish"
+    sysmsg "sysmsg: You retrieve a"
+    sysmsg "overhead: You catch"
+    stop
+endif
+
+while not dead     
+
+    if lhandempty
+        if findtype "fishing pole" backpack as item
+            lift item
+            drop self lefthand
+        else
+            overhead "Out of poles!" 34
+            stop
+        endif
+        wait 650
+    endif
+    
+    if insysmsg "The world will save in 15 seconds"
+        for 30
+            overhead 'Waiting for world save...'
+            wait 1000
+            if insysmsg 'save complete'
+                overhead 'Save complete - continue on!' 88
+                replay
+            endif
+        endfor
+    endif
+    
+    if timer jaseFishingTimer >= jaseFishingCD
+        if cooldown Fish
+           hotkey 'Use item in hand'
+           settimer jaseFishingTimer 0
+           cooldown Fish 0
+        else
+            wait 1000
+            if not cooldown Fish
+                overhead 'Captcha break!' 34
+                for 20
+                    overhead 'Awaiting Captcha...' 34
+                    wait 1000
+                    if insysmsg 'Captcha successful'
+                        overhead 'Success - continue on!' 88
+                        wait 1000
+                        replay
+                    endif
+                endfor
+                overhead 'Stopping script' 34
+                stop
+            endif
+        endif
+    endif
+    
+endwhile

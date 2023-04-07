@@ -1,0 +1,156 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/d170c19c-971b-450d-afe8-a0bd4b55d7c5 for latest
+# Automation by Jaseowns
+## Script: Improved Picker waiting outside wagon to pick/loot and recall (P)
+## Created by: Jaseowns#6694
+#############################################
+
+# Automagic Tmapper Picker by Jaseowns
+# UO Outlands - https://youtu.be/gSymYQ_D01A
+@setvar! globalTimeout 650
+
+if position 1828 998
+    while not gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as jGate
+        dclick jGate
+    endwhile
+
+    if gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as jGate
+        gumpresponse 2 3899019871
+    endif
+
+    if not hidden
+        useskill 'Hiding'
+    endif
+    wait 500
+    replay
+endif
+
+
+if not varexist chestWeWannaWork
+    @setvar! chestWeWannaWork 0
+endif
+if not timerexists chestOpenTimer
+    createtimer chestOpenTimer
+    settimer chestOpenTimer 3500
+endif
+
+if dead 
+    overhead "RIP" 34
+    wait 5000
+    loop
+endif
+
+
+if findtype "metal chest|wooden chest" ground -1 -1 2 as chest
+
+    overhead "finding monsters"
+    hotkey 'Target Closest Grey Monster'
+    wait 200
+    if insysmsg "No one matching" or not find lasttarget ground -1 -1 4
+        if chestWeWannaWork = chest
+            // do nothing
+        else
+            dclick chest
+            wait 200
+            @setvar! chestWeWannaWork chest
+        endif
+    endif
+
+    if gumpexists 736038070
+        
+        if not hidden
+            useskill 'hiding'
+            wait 200
+            if not hidden
+                while not targetexists
+                    cast 'Invisibility'
+                    wait 50
+                endwhile
+                if targetexists 
+                    target 'self'
+                endif
+            endif
+        endif
+    
+        sysmsg "Working chest..." 88
+        if timer chestOpenTimer >= 3500
+            if ingump "Cleared of Traps" 736038070
+                if findtype "lockpicks" backpack as picky
+                    gumpresponse 4 736038070
+                else 
+                    overhead "No lockpicks left!" 34
+                endif
+            else
+                if findtype "drill" backpack as drilly
+                    gumpresponse 7 736038070
+                    wait 200
+                    if insysmsg "You do not have any trap tools of that material on hand."
+                        gumpresponse 5 736038070
+                    endif
+                else 
+                    overhead "No trap tools left!" 34
+                endif
+            endif
+            settimer chestOpenTimer 0
+        endif
+        wait 200
+    else
+        
+        // Gold
+        while find chest ground -1 -1 2 and findtype 5356|24434|43206|29363|43166|22336|29348|17087|3985|8826|3827|29030|3836|5981|4248|5359|3839|3838|3843|2597|29036|48407|3834|3865|3859|3885|3856|3878|3877|3873|3861|3862|576|5123|7177|7027|3920|5131|5179|5075|3980|5060|5076|5042|10245|3938|3913|7169|3909|5063|5089|3981|7170|7033|3976|3762|5040|5103|5117|7181|7029|3568|6264|3742|5139|6263|7026|5125|3740|5121|3973|3974|5204|5105|5185|5078|5115|7175|5059|7034|3713|3915|5112|5070|5049|5119|5205|5046|3962|3934|7035|3911|7179|5106|5143|3573|3719|5177|7610|5181|3917|5132|3963|7031|5207|5056|5085|3763|5129|5187|3721|3972|5138|3570|5101|5061|5074|5142|5182|5146|6265|5090|5203|5044|5144|3932|5201|5127|3572|7173|5135|3937|3571|22326|27611|9917|3821|5356|8455|5362|45315|8454|22187|5901|7163|3617|3903|12686 chest as item
+            getlabel item lootDesc
+            overhead lootDesc
+            wait 50
+            hotkey 'Grab Item'
+            target item
+            while queued
+                wait 50
+            endwhile
+        endwhile
+        
+        // Scrolls
+        while find chest ground -1 -1 2 and findtype 7981|7982|7983|7984|7985|7986|7987|7988|7989|7990|7991|7992|7993|7994|7995|7996|7997|7998|7999|8000|8001|8002|8003|8004|8005|8006|8007|8008|8009|8010|8011|8012|8013|8014|8015|8016|8017|8018|8019|8020|8021|8022|8023|8024|8025|8026|8027|8028|8029|8030|8031|8032|8033|8034|8035|8036|8037|8038|8039|8040|8041|8042|8033|8044 chest as item
+            getlabel item lootDesc
+            overhead lootDesc
+            wait 50
+            hotkey 'Grab Item'
+            target item
+            while queued
+                wait 50
+            endwhile
+        endwhile
+        
+        if findtype "reagent satchel" self as satchel
+            menu satchel 0
+            wait 200
+        endif
+        
+        // quiver
+        if findtype 12215 self as satchel
+            menu satchel 0
+            wait 200
+        endif
+        
+        getlabel chestWeWannaWork chestDesc
+        if "0 items, 0 stones" in chestDesc
+            @clearignore
+            while findtype "map" backpack as item
+                getlabel item desc
+                if "completed" in desc
+                    lift item
+                    drop chestWeWannaWork -1 -1 -1
+                    wait globalTimeout
+                endif
+                @ignore item
+            endwhile
+            @clearignore
+            menu chestWeWannaWork 1
+            @setvar! readyToShovel 1
+            script "RecallHomeAfterChest"
+        endif
+        
+    endif
+endif
+
+
+wait 200
+loop

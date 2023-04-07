@@ -1,0 +1,129 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/f43b668a-588e-455c-90e2-46dc003c55c6 for latest
+# Automation by Jaseowns
+## Script: Search Player Vendor and Prompt to Buy Item 
+## Created by: Jaseowns#6694
+#############################################
+
+# Search Player Vendor and Prompt to Buy Item by Jaseowns
+# UO Outlands
+######
+# Check out the video: https://youtu.be/xT0IzyYWmlg
+####
+# What does this scriopt do?
+# - We want to search vendors for a specific item and get the price
+# - set the item id, item hue and a description if needed
+####
+# Below are some examples:
+// Skill Orb search
+# pushlist "itemDescToLookFor" "skill"
+# @setvar! item_id_to_buy 22336
+# @setvar! item_hue_to_buy 2966
+    
+// Tinkering skill scroll search
+# pushlist "itemDescToLookFor" "tinkering"
+# itemDescToLookFor: "tinkering"
+# @setvar! item_id_to_buy 8826
+# @setvar! item_hue_to_buy 2291
+
+// if you go through a gate, this does not work right so beware
+if not varexist sneakylootbag or not find sneakylootbag backpack
+    overhead "Select your sneaky loot bag" 88
+    @setvar! sneakylootbag
+endif
+
+clearignore
+removelist "itemDescToLookFor"
+createlist "itemDescToLookFor"
+// This needs to be case sensetive
+// If your item type matches multiples (skill scroll) use
+// a helper description like this and uncomment line 34
+// pushlist "itemDescToLookFor" "tinkering"
+
+// Set your item type here using >info
+@setvar! item_id_to_buy 8826
+@setvar! item_hue_to_buy 2291
+@setvar! globalTimeout 650
+
+removelist "playVendors"
+createlist "playVendors"
+
+removelist "foundVendors"
+createlist "foundVendors"
+
+while not dead
+    hotkey "Next Monster Target"
+    wait 200
+    @setvar! playerVendor lasttarget 
+    if inlist "playVendors" playerVendor
+        // skip
+        sysmsg "Might be all done..." 34
+        overhead "All done!" 88
+        stop
+    else
+        pushlist "playVendors" playerVendor
+        if noto playerVendor = "invulnerable"
+            dclick playerVendor
+            wait globalTimeout
+            for 2
+                while findtype 2473|3644|3645|3646|3647|3710|3701|3702|29832|29833|2472|2475|3648|3649|3708|29078|41449|41450|3705|3712|2474|3709|3650|3651|29077 playerVendor as container
+                    getlabel container desc
+                    if "Price: Not for sale" in desc
+                        dclick container
+                        wait globalTimeout
+                    else
+                        sysmsg desc
+                    endif
+                    ignore container
+                endwhile
+            endfor
+            while findtype item_id_to_buy playerVendor item_hue_to_buy as item
+                getlabel playerVendor descPlayerVendor
+                getlabel item desc
+                
+                if list itemDescToLookFor = 1
+                    foreach itemDescToLook in itemDescToLookFor
+                        if itemDescToLook in desc
+                            overhead "This vendor: {{descPlayerVendor}}" 88
+                            menu item 0
+                            wait 250
+                            while gumpexists 4274928655
+                                sysmsg "Waiting on user input... {{desc}}" 88
+                                wait 250
+                            endwhile
+                            while find item backpack
+                                overhead "we bought it!"
+                                if find item sneakylootbag
+                                    break
+                                else
+                                    lift item 60000
+                                    drop sneakylootbag -1 -1 -1
+                                    wait globalTimeout
+                                endif
+                            endwhile
+                            wait globalTimeout
+                        endif
+                    endfor
+                else
+                    overhead "This vendor: {{descPlayerVendor}}" 88
+                    menu item 0
+                    wait 250
+                    while gumpexists 4274928655
+                        sysmsg "Waiting on user input... {{desc}}" 88
+                        wait 250
+                    endwhile
+                    while find item backpack
+                        overhead "we bought it!"
+                        if find item sneakylootbag
+                            break
+                        else
+                            lift item 60000
+                            drop sneakylootbag -1 -1 -1
+                            wait globalTimeout
+                        endif
+                    endwhile
+                endif
+                ignore item
+            endwhile
+        endif
+    endif
+endwhile

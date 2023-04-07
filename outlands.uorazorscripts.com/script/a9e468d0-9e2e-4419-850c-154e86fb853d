@@ -1,0 +1,215 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/a9e468d0-9e2e-4419-850c-154e86fb853d for latest
+# Automation by Jaseowns
+## Script: Spot Miner
+## Created by: Brozan (Syal)#4523
+#############################################
+
+# This script digs out one spot until no more new ore and then you move it and restart the script
+
+#Spot Miner with recall on Track
+# and dump to pack horse
+
+###
+
+// REQUIRES script "Miner Recall"
+// If you do not want to set this up
+// create a script named above
+// and just have a recall routine in it
+
+###
+// YOU MUST SET UP Organizer 15
+// To dump ore 
+// Before you Run This
+// Agents->Organizer 15->Add Target
+//    Then target a pile of ore
+###
+
+#Needs magery 60
+#Have a marked recall rune in pack
+# and regs and no unmarked
+
+#Need tracking turned on
+# and set to all hostile 
+# not in houses/party/guild
+
+clearsysmsg 
+@createlist packAnimals
+
+if not timerexists "miner"
+    #Assign pack animals to variables
+    #On first launch of UO 
+    if list packAnimals <= 0
+        @clearlist packAnimals
+        @pushlist 'packAnimals' "p1"
+        @pushlist 'packAnimals' "p2"
+        @pushlist 'packAnimals' "p3"
+        @pushlist 'packAnimals' "p4"
+    endif    
+    #We use this as a first run loop to set vars
+    overhead 'First Run!'
+    createtimer "miner"
+    settimer "miner" 1100
+    hotkey 'Tracking'
+    wait 500
+    # Setup pack variable
+    overhead 'If you have less than 4 pack animals'
+    overhead 'Just click the same ones for later animals'
+    wait 1000
+    overhead 'Select your pack1'
+    setvar! 'pack1'
+    wait 200
+    overhead 'Select your pack2'
+    setvar! 'pack2'
+    wait 200
+    overhead 'Select your pack3'
+    setvar! 'pack3'
+    wait 200
+    overhead 'Select your pack4'
+    setvar! 'pack4'
+    wait 200
+    
+    #sysmsg 'Using Follow Packies In Order' 23
+    #sysmsg pack1
+    #sysmsg pack2
+    #sysmsg pack3
+    #sysmsg pack4
+    say 'all follow me'
+    overhead 'Make Sure Tracking is on!'
+    sysmsg 'Make Sure Tracking is on!'
+endif
+
+
+overhead 'Starting'
+
+# Equip a pickaxe
+if rhandempty
+    dclicktype '3718'
+    wait 600
+endif
+
+#Hit it once
+hotkey 'use item in hand'
+settimer "miner" 0
+//long delay for lag and empty spot check
+wait 1250
+
+#Mining Loop
+while not insysmsg 'You do not see any'
+//while insysmsg 'Ore'
+    if insysmsg 'Now tracking'
+            overhead 'Ah shit!!!'
+            script 'Miner Recall'
+    endif    
+    if weight >= 365
+            overhead 'Too fat - restart'
+            break
+    endif
+    
+    if timer "miner" >= 1000
+        #wait 100
+        if insysmsg 'Harvesting is not'
+            overhead 'Cant harvest'
+            break
+        endif
+        if insysmsg 'recently travel'
+            overhead 'Just recalled'
+            break
+        endif
+        if insysmsg 'You have worn out your tool!'
+            break
+        endif 
+        
+        //captcha check
+        if not insysmsg "skill gain" and not insysmsg 'world  is saving' and not insysmsg 'world will save' and not insysmsg 'World save complete' and not insysmsg 'You dig' and not insysmsg 'You loosen' and not insysmsg 'Distance to destination' and not insysmsg  'Now tracking'
+            //pause and check again
+            wait 250
+            if not insysmsg "skill gain" and not insysmsg 'world  is saving' and not insysmsg 'world will save' and not insysmsg 'World save complete' and not insysmsg 'You dig' and not insysmsg 'You loosen' and not insysmsg 'Distance to destination' and not insysmsg  'Now tracking'
+                overhead 'Captcha break or Done!' 34
+                break
+            endif
+        endif
+    
+        #clearsysmsg 
+        hotkey 'use item in hand'
+        settimer "miner" 0
+        wait 100
+  endif
+  wait 50
+endwhile
+
+overhead 'Spot Done' 33
+sysmsg 'Spot Done' 33
+#dclicktype 'lute'
+
+#Dump ore if we have it
+
+
+
+if findtype 6585 'backpack'
+    
+    #Check if we have used all packies
+    if list packAnimals <= 0
+        @clearlist packAnimals
+        @pushlist 'packAnimals' "p1"
+        @pushlist 'packAnimals' "p2"
+        @pushlist 'packAnimals' "p3"
+        @pushlist 'packAnimals' "p4"
+    endif
+    
+    #Set Oragnizer 15 to whatever packie is next
+    if inlist 'packAnimals' 'p1'
+        overhead 'Pack 1 Dump!'
+        organizer 15 'set' 
+        wft 500
+        target 'pack1'
+        poplist 'packAnimals' 'front'
+    elseif inlist 'packAnimals' 'p2'
+        overhead 'Pack 2 Dump!'
+        organizer 15 'set' 
+        wft 500
+        target 'pack2'
+        poplist 'packAnimals' 'front'
+    elseif inlist 'packAnimals' 'p3'
+        overhead 'Pack 3 Dump!'
+        organizer 15 'set' 
+        wft 500
+        target 'pack3'
+        poplist 'packAnimals' 'front'
+    elseif inlist 'packAnimals' 'p4'
+        overhead 'Pack 4 Dump!'
+        organizer 15 'set' 
+        wft 500
+        target 'pack4'
+        poplist 'packAnimals' 'front'
+    else 
+        overhead 'Something done broke'
+    endif    
+    wait 100
+
+    #Organizer is now set, dump
+    organizer 15
+    while queued
+        wait 1000
+    endwhile
+        
+    #if counttype 6585 pack4 <= 200
+endif
+
+hotkey 'All Names'
+
+while not dead
+    if timer "miner" >= 3000
+    #dclicktype 'lute'
+        overhead 'Tracking'
+        settimer miner 0
+    endif
+    if insysmsg 'Now tracking'
+        overhead 'Ah shit!!!'
+        script 'Miner Recall'
+    endif
+    wait 500
+    
+    if weight >= 365
+        overhead 'Too fat'
+    endif
+endwhile

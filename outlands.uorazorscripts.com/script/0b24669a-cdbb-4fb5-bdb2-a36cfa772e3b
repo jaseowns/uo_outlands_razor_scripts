@@ -1,0 +1,162 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/0b24669a-cdbb-4fb5-bdb2-a36cfa772e3b for latest
+# Automation by Jaseowns
+## Script: Tinkering Crafting Queue and Sell Jewelry
+## Created by: Jaseowns#6694
+#############################################
+
+# Tinkering Crafting Queue and Sell Jewelry by Jaseowns
+# UO Outlands
+# Requirements:
+#    Magery and a desire to use the crafting queue
+#    Two runes or rune books 
+#       - one default location to your house (must be in backpack)
+#       - other to tinker vendor (must be accessible while at home)
+#    Sell Agent Enabled with Beads/Necklace
+#    A bunch of recall Regs (i am not checking to restock)
+# Description:
+#    Setup the crafting queue https://uooutlands.com/wiki/Tinkering#Training
+#    As you finish making beads, make sure those are on your SELL agent.
+#    Make sure the SELL agent is enabled, you should only need to target one bead
+#    Make sure to select one necklace when you get that far as well
+#   
+#    This script assumes you are recalling to a spot where you can run the
+#    Crafting Queue without needing to move your character (Courtyard anyone?)
+#    If you need to move your character, you can manually do that or add 
+#    walk movements to the area it says "I am lost"
+#
+#    The script checks for your house X/Y position that you set on line 30/31
+#    It also needs to know your Vendor rune X/Y position on line 33/34
+#
+#    Once you recall to your vendor rune, it will ask for the vendor to sell too
+#    After all these steps are setup, the script will continue to loop between
+#    Running the crafting queue and then selling when 120 items is met
+#    
+#    I try to handle being out of regs or not knowing where you are.. but goodluck!
+
+@setvar! myHomeX 1825
+@setvar! myHomeY 997
+
+@setvar! tinkerVendorX 1556
+@setvar! tinkerVendorY 1545
+
+@setvar! globalTimeout 650
+
+if not varexist myHomeRuneOrBook or not find myHomeRuneOrBook self
+    overhead "Select your home rune or runebook (default location)"
+    @setvar! myHomeRuneOrBook
+    replay
+endif
+
+if position myHomeX myHomeY
+
+    if not varexist tinkerVendorRuneOrBook or not find tinkerVendorRuneOrBook backpack and not find tinkerVendorRuneOrBook ground -1 -1 2 
+        overhead "Select your tinker vendor rune or runebook (default location)"
+        @setvar! tinkerVendorRuneOrBook
+        replay
+    endif
+    
+    if findtype "gold coin" backpack as gold
+        if findtype "bank deposit safe" ground -1 -1 2 as safe
+            lift gold 60000
+            drop safe -1 -1 -1
+            wait globalTimeout
+        elseif not varexist dropOffGoldContainer or not find dropOffGoldContainer ground -1 -1 2 
+            @setvar! dropOffGoldContainer
+            replay
+        elseif find dropOffGoldContainer ground -1 -1 2 
+            lift gold 60000
+            drop dropOffGoldContainer -1 -1 -1
+            wait globalTimeout
+        else
+            overhead "You have gold and I do not know where to put it!" 34
+            wait 5000
+            replay
+        endif
+
+    endif
+
+    @setvar! needToSell 0
+
+    while not gumpexists 453554062
+        say '[cq'
+        wait globalTimeout
+    endwhile
+    
+    if ingump "Begin Crafting" 453554062
+        overhead "Starting Queue..." 88
+        gumpresponse 7 453554062
+        wait globalTimeout
+    endif
+    
+    while ingump "Stop Crafting" 453554062
+        sysmsg "Working Crafting Queue..." 88
+        getlabel backpack itemCount
+        if "120 items" in itemCount or "121 items" in itemCount or "122 items" in itemCount or "123 items" in itemCount or "124 items" in itemCount or "125 items" in itemCount
+            overhead "Too many items, lets sell" 88
+            gumpresponse 7 453554062
+            @setvar! needToSell 1
+            break
+        endif
+        wait globalTimeout
+    endwhile
+
+    
+    if needToSell = 1
+        overhead "Recalling to Tinker..."
+        if targetexists 
+            hotkey 'Cancel Current Target'
+        endif
+        while not targetexists 
+            cast "Recall"
+            wait 500
+        endwhile
+        target tinkerVendorRuneOrBook
+        wait 2000
+        if position myHomeX myHomeY
+            overhead "Might be out of regs.. you never left home" 34
+            wait 5000
+            replay
+        endif
+    else
+        overhead "Might be all done..." 88
+        overhead "crafting queue stopped but bag not at max limit" 34
+        wait 5000
+        replay
+    endif
+    
+
+elseif position tinkerVendorX tinkerVendorY
+    
+    if not varexist tinkerVendorNPC or not find tinkerVendorNPC ground -1 -1 12 
+        overhead "Select the tinker vendor to sell to"
+        @setvar! tinkerVendorNPC
+        replay
+    endif
+
+    overhead "Attempting to sell..." 88
+    menu tinkerVendorNPC 2
+    wait globalTimeout
+    menu tinkerVendorNPC 2
+    wait globalTimeout
+    menu tinkerVendorNPC 2
+    wait globalTimeout
+    
+    overhead "Returning home..." 88
+    if targetexists 
+        hotkey 'Cancel Current Target'
+    endif
+    while not targetexists 
+        cast "Recall"
+        wait 500
+    endwhile
+    target myHomeRuneOrBook
+else
+    overhead "Help I am lost.. make sure you set the X,Y of your house and vendor" 34
+    sysmsg "Read the description and follow the setup" 34
+    // If you need to move (maybe you live in a wagon)
+    // add a few walk commands here to get into position
+    // This would let me walk back into my wagon by just walking west
+    // walk 'West'
+endif
+wait 1000
+loop

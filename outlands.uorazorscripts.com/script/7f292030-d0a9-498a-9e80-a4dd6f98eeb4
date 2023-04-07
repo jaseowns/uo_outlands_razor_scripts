@@ -1,0 +1,354 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/7f292030-d0a9-498a-9e80-a4dd6f98eeb4 for latest
+# Automation by Jaseowns
+## Script: Walking miner with multiple rails
+## Created by: Brozan (Syal)#4523
+#############################################
+
+#Script by Brozan
+#If you are using it you know
+# what it is designed for
+
+###
+# YOU MUST SET UP Organizer 15
+# To dump ore 
+# Before you Run This
+# Agents->Organizer 15->Add Target
+#    Then target a pile of ore
+###
+
+#Needs magery 60
+#Have a marked recall rune in pack
+# and regs
+
+#Need tracking turned on
+# and set to all hostile 
+# not in houses/party/guild
+ 
+clearsysmsg 
+@createlist packAnimals
+
+#First Run Routine
+if not timerexists "miner"
+    #Assign pack animals to variables
+    #On first launch of UO 
+    #Tracking Routine - Turn it on if we have not yet
+        while not insysmsg "You will receive"
+            hotkey 'Tracking'
+            wait 500
+            gumpresponse 6 4267467659
+            wait 550
+            gumpclose 4267467659
+        endwhile    
+    if list packAnimals <= 0
+        @clearlist packAnimals
+        @pushlist 'packAnimals' "p1"
+        @pushlist 'packAnimals' "p2"
+        @pushlist 'packAnimals' "p3"
+        @pushlist 'packAnimals' "p4"
+    endif    
+    #We use this as a first run loop to set vars
+    overhead 'First Run!'
+    createtimer "miner"
+    settimer "miner" 1100
+    createtimer "aid time"
+    settimer "aid time" 12100
+    createtimer 'healpot time'
+    settimer "healpot time" 12100
+    createtimer 'anti pot spam'
+    settimer "anti pot spam" 12100
+    createtimer 'hostility'
+    settimer "hostility" 12100
+    # Setup pack variable
+    overhead 'If you have less than 4 pack animals'
+    overhead 'Just click the same ones for later animals'
+    wait 1000
+    overhead 'Select your pack1'
+    setvar! 'pack1'
+    wait 200
+    overhead 'Select your pack2'
+    setvar! 'pack2'
+    wait 200
+    overhead 'Select your pack3'
+    setvar! 'pack3'
+    wait 200
+    overhead 'Select your pack4'
+    setvar! 'pack4'
+    wait 200        
+    overhead 'Select your escape rune/book'
+    setvar! 'escape'
+    wait 200        
+    say 'all follow me'
+    overhead 'Make Sure Tracking is on!'
+    sysmsg 'Make Sure Tracking is on!'
+    wait 200
+    overhead 'Make Sure Tracking is on!'
+    sysmsg 'Make Sure Tracking is on!'
+    wait 200
+    overhead 'Make Sure Tracking is on!'
+    sysmsg 'Make Sure Tracking is on!'
+    wait 200
+endif
+
+#####Smart(ish) movement choser######
+@createlist moveList
+overhead 'Scissors->Move up/right'
+wait 255
+overhead 'Heal Pot->Move Up/Left'
+wait 255
+overhead 'Dagger->Move left/up'
+wait 255
+overhead 'Pick->Move left/down'
+wait 255
+overhead 'Book->Move down/left'
+wait 255
+overhead 'Pouch->Move right/down'
+wait 255
+overhead 'Backpack->Move right/North'
+wait 255
+setvar! 'moveQueuePicker'
+wait 250
+
+####Modify here if you want different movement options######
+#check label
+getlabel 'moveQueuePicker' 'seriallabel'
+if "scissors" in 'seriallabel'
+    overhead 'You chose moving up/right' 53 
+    @clearlist moveList
+    for 4
+        @pushlist 'moveList' "up"
+    endfor      
+    for 6
+        @pushlist 'moveList' "right"
+    endfor  
+elseif "dagger" in 'seriallabel'
+    overhead 'You chose moving left/up' 53  
+    @clearlist moveList
+    for 4
+        @pushlist 'moveList' "left"
+    endfor      
+    for 6
+        @pushlist 'moveList' "up"
+    endfor   
+elseif "Heal" in 'seriallabel'
+    overhead 'You chose moving up/left' 53  
+    @clearlist moveList
+    for 4
+        @pushlist 'moveList' "up"
+    endfor      
+    for 6
+        @pushlist 'moveList' "left"
+    endfor      
+elseif "book" in 'seriallabel'
+    overhead 'You chose moving down/left' 53    
+    @clearlist moveList
+    for 4
+        @pushlist 'moveList' "down"
+    endfor      
+    for 6
+        @pushlist 'moveList' "left"
+    endfor  
+elseif "pouch" in 'seriallabel'
+    overhead 'You chose moving down/right' 53    
+    @clearlist moveList
+    for 6
+        @pushlist 'moveList' "right"
+    endfor      
+    for 5
+        @pushlist 'moveList' "down"
+    endfor  
+elseif "pick" in 'seriallabel'
+    overhead 'You chose moving left/down' 53    
+    @clearlist moveList
+    for 4
+        @pushlist 'moveList' "left"
+    endfor      
+    for 6
+        @pushlist 'moveList' "down"
+    endfor  
+elseif "backpack" in 'seriallabel'
+    overhead 'You chose moving right/North' 53    
+    @clearlist moveList
+    for 4
+        @pushlist 'moveList' "right"
+    endfor      
+    for 6
+        @pushlist 'moveList' "north"
+    endfor      
+else
+    overhead 'You broke something, restart script' 33
+endif   
+
+while not dead  
+
+    if insysmsg 'Now tracking'
+            overhead 'Ah shit!!!'
+            cast 'recall'
+            waitfortarget
+            target 'escape'
+            wait 500
+            while mana = maxmana
+                overhead "Recall failed"
+                cast 'recall'
+                waitfortarget
+                target 'escape'
+                wait 500
+            endwhile
+            stop
+    endif    
+    
+    overhead 'Love Tap!' 23
+    #Hit it once to start 
+    hotkey 'use item in hand'
+    settimer "miner" 0
+    wait 1250
+        
+    #######Mining Loop####### 
+    while not insysmsg 'You do not see any'
+        
+        ####### Heal Routine #######        
+        # Healing Survival
+        if skill 'Healing' > 1
+            if insysmsg 'You begin applying the bandages'
+                settimer 'aid time' 0
+            endif
+            if hits < maxhits and timer 'aid time' > 10250 
+                hotkey 'bandage self'
+                settimer 'aid time' 0
+            endif
+        endif
+        # Cure Survival
+        if poisoned 'self' and timer 'anti pot spam' > 1000
+            overhead 'Used: Cure Potion' 33
+            hotkey 'Drink Cure' 
+            settimer 'anti pot spam' 0
+        endif    
+        # Heal Potion
+        if hits < 55 and timer 'healpot time' > 10000 and timer 'anti pot spam' > 1000
+            overhead 'Used: Heal Potion' 33
+            hotkey 'Drink Heal'
+            settimer 'healpot time' 0
+            settimer 'anti pot spam' 0
+        endif 
+    
+    
+        if insysmsg 'Now tracking'
+            overhead 'Ah shit!!!'
+            cast 'recall'
+            waitfortarget
+            target 'escape'
+            wait 500
+            while mana = maxmana
+                overhead "Recall failed"
+                cast 'recall'
+                waitfortarget
+                target 'escape'
+                wait 500
+            endwhile
+            stop
+        endif    
+        
+        #Weight check
+        if weight >= 365
+                overhead 'Too fat - restart'
+                break
+        endif
+        
+        #Pick Check
+        if rhandempty
+            dclicktype '3718'
+            wait 600
+        endif
+        
+        #Above loops more often, this is where we wait for mining timer between swings
+        if timer "miner" >= 1050
+            #wait 100
+            if insysmsg 'Harvesting is not'
+                overhead 'Cant harvest'
+                break
+            endif
+            if insysmsg 'recently travel'
+                overhead 'Just recalled'
+                break
+            endif
+            if insysmsg 'You have worn out your tool!'
+                break
+            endif 
+            
+            
+            //captcha check
+            if not insysmsg "skill gain" and not insysmsg 'world  is saving' and not insysmsg 'world will save' and not insysmsg 'World save complete' and not insysmsg 'You dig' and not insysmsg 'You loosen' and not insysmsg 'Distance to destination' and not insysmsg  'Now tracking'
+                //pause and check again
+                wait 250
+                if not insysmsg "skill gain" and not insysmsg 'world  is saving' and not insysmsg 'world will save' and not insysmsg 'World save complete' and not insysmsg 'You dig' and not insysmsg 'You loosen' and not insysmsg 'Distance to destination' and not insysmsg  'Now tracking'
+                    while not insysmsg "Captcha"
+                        overhead 'Captcha break or Done!' 34
+                        wait 1000
+                    endwhile
+                endif
+            endif
+        
+            #clearsysmsg 
+            hotkey 'use item in hand'
+            settimer "miner" 0
+            wait 200
+        endif
+    endwhile
+        
+    overhead 'Spot Done' 33
+    sysmsg 'Spot Done' 33
+    
+    ######DUMP Loop#######
+    if findtype 6585 'backpack'
+        
+        #Check if we have used all packies
+        if list packAnimals <= 0
+            @clearlist packAnimals
+            @pushlist 'packAnimals' "p1"
+            @pushlist 'packAnimals' "p2"
+            @pushlist 'packAnimals' "p3"
+            @pushlist 'packAnimals' "p4"
+        endif
+        
+        #Set Oragnizer 15 to whatever packie is next
+        if inlist 'packAnimals' 'p1'
+            overhead 'Pack 1 Dump!'
+            organizer 15 'set' 
+            wft 500
+            target 'pack1'
+            poplist 'packAnimals' 'front'
+        elseif inlist 'packAnimals' 'p2'
+            overhead 'Pack 2 Dump!'
+            organizer 15 'set' 
+            wft 500
+            target 'pack2'
+            poplist 'packAnimals' 'front'
+        elseif inlist 'packAnimals' 'p3'
+            overhead 'Pack 3 Dump!'
+            organizer 15 'set' 
+            wft 500
+            target 'pack3'
+            poplist 'packAnimals' 'front'
+        elseif inlist 'packAnimals' 'p4'
+            overhead 'Pack 4 Dump!'
+            organizer 15 'set' 
+            wft 500
+            target 'pack4'
+            poplist 'packAnimals' 'front'
+        else 
+            overhead 'Something done broke'
+        endif    
+        wait 100
+    
+        #Organizer is now set, dump
+        organizer 15
+    endif
+    
+    hotkey 'All Names'
+    overhead 'Time to move!'
+    
+    foreach x in moveList
+        walk x
+        wait 150
+    endfor
+
+endwhile    

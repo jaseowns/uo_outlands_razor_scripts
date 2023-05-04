@@ -1,0 +1,172 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/4f88f5d2-763f-4a2a-8b05-9b2d9d691fed for latest
+# Automation by Jaseowns
+## Script: Fill potions from kegs
+## Created by: Nevor#9051
+#############################################
+
+########## MANUAL INPUT ##########
+# Please set the amount of pots  #
+# you want to fill down below    #
+# Empty bottles have to be prov- #
+# ided manually                  #
+##################################
+#Heal/Yellow potions
+@setvar! healpots 10
+#Orange/Cure potions
+@setvar! curepots 10
+#Red/Stamina potions
+@setvar! redpots 10
+#White/Strength potions
+@setvar! whitepots 0
+#Blue/Agility potions
+@setvar! bluepots 0
+#Black/Resist Magic potions
+@setvar! blackpots 0
+#Purple/Explosive potions
+@setvar! purplepots 0
+#Green/Poison potions
+@setvar! greenpots 0
+
+# The script will first check your backpack for kegs, then the ground.
+# If there are no kegs found you can define a specific container via target cursor.
+# That specific container is stored as a persistent variable.
+# If you want to use the bank box directly, without using a separate container inside, targeting yourself seems to work (no idea why)
+
+########## START SCRIPT ##########
+# NO CHANGES NEEDED FROM HERE ON #
+##################################
+overhead 'Filling potions from kegs'
+
+//counts up to cycle through potion types
+@setvar! myrestockcounter 0
+//short global wait-time variable in ms
+@setvar! alittlebit 50
+//long global wait-time variable in ms
+@setvar! abit 250
+
+//Main loop through the different potion types as long as we have empty bottles
+while myrestockcounter < 8 and findtype 'empty bottle%s%' backpack
+    if myrestockcounter = 0
+        //Yellow potions
+        @setvar! serialofpotion 3852
+        @setvar! colorofkeg 253
+        @setvar! amounttorestock healpots
+        @setvar! myrestockcounter 1
+    elseif myrestockcounter = 1
+        //Orange potions
+        @setvar! serialofpotion 3847
+        @setvar! colorofkeg 44
+        @setvar! amounttorestock curepots
+        @setvar! myrestockcounter 2
+    elseif myrestockcounter = 2
+        //Red potions
+        @setvar! serialofpotion 3851
+        @setvar! colorofkeg 37
+        @setvar! amounttorestock redpots
+        @setvar! myrestockcounter 3
+    elseif myrestockcounter = 3
+        //White potions
+        @setvar! serialofpotion 3849
+        @setvar! colorofkeg 956
+        @setvar! amounttorestock whitepots
+        @setvar! myrestockcounter 4
+    elseif myrestockcounter = 4
+        //Blue potions
+        @setvar! serialofpotion 3848
+        @setvar! colorofkeg 93
+        @setvar! amounttorestock bluepots
+        @setvar! myrestockcounter 5
+    elseif myrestockcounter = 5
+        //Black potions
+        @setvar! serialofpotion 3846
+        @setvar! colorofkeg 1109
+        @setvar! amounttorestock blackpots
+        @setvar! myrestockcounter 6
+    elseif myrestockcounter = 6
+        //Purple potions
+        @setvar! serialofpotion 3853
+        @setvar! colorofkeg 419
+        @setvar! amounttorestock purplepots
+        @setvar! myrestockcounter 7
+    elseif myrestockcounter = 7
+        //Green potions
+        @setvar! serialofpotion 3850
+        @setvar! colorofkeg 363
+        @setvar! amounttorestock greenpots
+        @setvar! myrestockcounter 8
+    endif
+    //loop that looks for kegs and fills up the pots
+    while counttype serialofpotion backpack < amounttorestock 
+        //as long as we have bottles
+        if not findtype 'empty bottle%s%' backpack
+            break
+        endif
+        //check our backpack for kegs
+        if findtype 'keg' backpack colorofkeg as myKeg
+            dclick myKeg
+            while queued
+                wait alittlebit
+            endwhile        
+        //check the ground for kegs
+        elseif findtype 'keg' ground colorofkeg -1 2 as myKeg
+            dclick myKeg
+            while queued
+                wait alittlebit
+            endwhile
+        //check if a container is already specified
+        elseif varexist KegContainer and findtype 'keg' KegContainer colorofkeg as myKeg
+            dclick myKeg
+            while queued
+                wait alittlebit
+            endwhile
+        else
+            //we either have no KegContainer specified yet, or we cannot find it, and there are no kegs in backpack/on the ground - user input required, target cursor will be going up
+            overhead 'Select container holding your kegs' colorofkeg
+            @setvar KegContainer
+            wait abit
+            while targetexists
+                wait abit
+            endwhile
+            //check if user selected a valid container, 
+            if varexist KegContainer 
+                dclick KegContainer
+                wait abit
+                //with kegs of the required potion type inside of it
+                if findtype 'keg' KegContainer colorofkeg as myKeg
+                    dclick myKeg
+                    while queued
+                        wait alittlebit
+                    endwhile                    
+                //no keg, no juice
+                else
+                   overhead 'No keg found' colorofkeg
+                   //switch to the next potion type
+                   break
+                endif
+            //Esc pressed
+            else
+                overhead 'Ending script - goodbye'
+                stop
+            endif
+        endif
+        if insysmsg 'You pour some'
+            //juice is flowing,
+            overhead 'Pouring...' colorofkeg
+            clearsysmsg
+        elseif insysmsg 'You must wait'
+            //maybe even a little bit too fast sometimes, all good
+            overhead 'Waiting...' colorofkeg
+            clearsysmsg
+        else
+            //fail, maybe KegContainer variable is broken, needs to be manually reset during next cycle
+            unsetvar KegContainer
+        endif
+    endwhile
+    //Check if potions are refilled as requested, or if empty bottles are missing. Ends script if there are no empty bottles left
+    if counttype serialofpotion backpack < amounttorestock and not findtype 'empty bottle%s%' backpack
+        overhead 'Not enough empty bottles' 33
+        break
+    endif
+endwhile
+overhead 'Script finished'
+########### END SCRIPT ###########

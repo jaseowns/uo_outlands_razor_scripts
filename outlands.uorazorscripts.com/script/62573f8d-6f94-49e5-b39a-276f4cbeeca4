@@ -1,0 +1,154 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/62573f8d-6f94-49e5-b39a-276f4cbeeca4 for latest
+# Automation by Jaseowns
+## Script: Script for [L%C]Amadeus
+## Created by: DaKlue#8201
+#############################################
+
+///CASTING//////////////////////
+@setvar! castMS 1
+@setvar! castChainLightning 1
+@setvar! castFlamestrike 1
+////////////////////////////////
+
+/////Auto Invisability//////////////////
+@setvar! automaticallyCastIvis 1
+////////////////////////////////////////
+
+/////////DO NOTHING BELOW///////////
+@setvar! isDiscorded 0
+
+if not varexist isStealthing
+    @setvar! isStealthing 0
+endif
+
+if not timerexists useSkillTimer
+    createtimer useSkillTimer
+    settimer useSkillTimer 11000
+endif
+////////////////////////////////
+
+if insysmsg 'world is saving'
+    for 60
+        overhead 'Waiting for world save...'
+        wait 100
+        if insysmsg 'save complete'
+            overhead 'Save complete - continue on!' 88
+            break
+        endif
+    endfor
+endif
+
+if findtype "moongate" ground -1 1 2 or findtype "blue moongate" ground -1 1 2 as jGate
+    dclick jGate
+    wait 500
+    while not gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as jGate
+        dclick jGate
+    endwhile
+
+    if gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as jGate
+        gumpresponse 2 3899019871
+        replay
+    endif
+else 
+    overhead "No gate nearby!" 34
+    wait 5000
+    replay
+endif
+
+hotkey 'Target Closest Non-Friendly Monster' as myKillTarget
+target myKillTarget
+
+if skill "Discordance" >= 50 
+    if isDiscorded = 0
+        getlabel myKillTarget discordDesc
+        if "discord" in discordDesc
+            @setvar! isDiscorded 1
+        elseif timer useSkillTimer >= 11000 
+            useskill 'Discordance'
+            wft 500
+            if insysmsg "What instrument"
+                if findtype "bamboo flute" backpack as inny
+                    target inny
+                elseif findtype "tambourine" backpack as inny
+                elseif findtype "drum" backpack as inny
+                elseif findtype "lute" backpack as inny
+                elseif findtype "harp" backpack as inny
+                elseif findtype "lap harp" backpack as inny
+                else
+                    overhead "I do not have an inny" 34
+                    @setvar! isDiscorded 1
+                endif
+                wft 500
+            endif
+            if targetexists 
+                target myKillTarget
+                overhead "Discorded" 88 myKillTarget
+            settimer useSkillTimer 5000
+        endif
+    endif
+endif
+
+if skill "magery" >= 100
+    if castMS = 1 and mana > 52
+        while not targetexists harmful and mana > 50
+            cast 'Meteor Swarm'
+            wft 500 
+        endwhile
+        
+        if targetexists harmful
+            target myKillTarget
+            wait 500
+        endif
+    endif
+
+    if castChainLightning = 1 and mana > 52
+        while not targetexists harmful and mana > 50
+            cast 'Chain Lightning'
+            wft 500 
+        endwhile
+        
+        if targetexists harmful
+            target myKillTarget
+            wait 500
+        endif
+    endif
+
+    if castFlamestrike = 1 and mana > 42
+        while not targetexists harmful and mana > 40
+            cast 'Flamestrike'
+            wft 500 
+        endwhile
+        
+        if targetexists harmful
+            target myKillTarget
+            wait 500
+        endif
+    endif
+endif
+    
+if automaticallyCastIvis = 1 
+    if not hidden or findbuff "Invisibility"
+    @setvar! isStealthing 0
+    useskill 'hiding'
+    wait 200
+        if hidden
+            overhead "Successfully hidden" 88
+            settimer useSkillTimer 0
+        elseif not hidden or findbuff "Invisibility"
+            if skill "Magery" >= 80
+                overhead "Casting Invisability" 34
+                cast 'Invisibility'
+                wft 500
+                if targetexists
+                    target self
+                    @setvar! isStealthing 0
+                    wait 200
+                    if findbuff "Invisibility" or hidden
+                        overhead "Successfully used Invisability" 34
+                        settimer useSkillTimer 0
+                    endif
+                endif
+            endif
+        endif
+    endif
+endif

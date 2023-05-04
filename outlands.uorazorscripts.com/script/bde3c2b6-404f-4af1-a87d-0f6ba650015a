@@ -1,0 +1,76 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/bde3c2b6-404f-4af1-a87d-0f6ba650015a for latest
+# Automation by Jaseowns
+## Script: Find Item on Vendor
+## Created by: Sandro#4367
+#############################################
+
+# Find Item on Vendor by Sandro
+# Finds the item you specify in the top layer or second layer of a vendor bag, and keeps those bags opened.
+# Edit this script in 2 places with the item type you seek.
+# Stand still and let the script open the backpack of all vendors in the area.
+# After all backpacks have been opened, you will be asked to
+# close any remaining open backpacks, then target yourself to re-open only the backpacks containing your item.
+
+setvar! timeout 600
+clearignore
+removelist 'vendors'
+createlist 'vendors'
+removelist 'backpacks'
+createlist 'backpacks'
+
+while not dead
+    @hotkey 'Next Monster Target'
+    @setvar! 'vendorID' lasttarget
+    if noto 'vendorID' = invulnerable 
+        if inlist 'vendors' 'vendorID'
+            # Close all vendor bags
+             walk "North"
+             walk "South"
+             overhead 'Close any open backpacks'
+             wait timeout
+             setvar! 'Target anything'
+             foreach pack in 'backpacks'
+                sysmsg 'opening pack {{index}}'
+                dclick pack
+                wait timeout
+             endfor
+            sysmsg 'done' 23
+            stop
+        else 
+            pushlist 'vendors' 'vendorID'
+        endif
+
+        if findtype 3701 'vendorID' as mainBackpack
+          dclick 'mainBackpack'
+          wait timeout
+          @ignore mainBackpack
+          # -------
+          # ITEM NAME HERE
+          # -------
+          if findtype 'aspect core' mainBackpack as foundItem
+              sysmsg 'found item 1 layer' 33
+              pushlist 'backpacks' mainBackpack
+          endif
+          while findtype 3701|29833|3705|3712|3648|3702 mainBackpack as container
+              @ignore container
+              getlabel container desc
+              if "Price: Not for sale" in desc
+                dclick container
+                wait timeout
+                # -------
+                # ITEM NAME HERE
+                # -------
+                if findtype 'aspect core' container as foundItem
+                    sysmsg 'found item 2 layer' 33
+                    if not inlist "backpacks" mainBackpack
+                        pushlist "backpacks" mainBackpack
+                    endif
+                    pushlist 'backpacks' container
+                endif
+              endif
+          endwhile
+        endif
+    else 
+        sysmsg 'not invul'
+    endif
+endwhile

@@ -1,0 +1,184 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/c773a6ca-7a04-4c55-9d30-103f423fb389 for latest
+# Automation by Jaseowns
+## Script: Open Dungeon Chest or Treasure Map Chest
+## Created by: Jaseowns#6694
+#############################################
+
+# Open Chest or TMap by Jaseowns
+# UO Outlands - uorazorscripts.com
+# Credit: based on Auto Dungeon or TMap Chest by @FewUnderstandThis
+# Description: Opens and loots chest without needing to be hidden
+
+clearsysmsg
+unsetvar chest
+setvar! locked 0
+setvar! trapped 0
+
+# Create loot list
+if not listexists 'lootTypes'
+    overhead 'Compiling list...' 1150
+    createlist 'lootTypes'
+    # Gold
+    pushlist 'lootTypes' 0xeed
+    # Chain Link
+    pushlist 'lootTypes' 0xa8c6
+    # MCD
+    pushlist 'lootTypes' 0x42bf
+    # Mastery Scroll
+    pushlist 'lootTypes' 0x227a
+    # Aspect Extract
+    pushlist 'lootTypes' 0xefc
+    # Aspect Core
+    pushlist 'lootTypes' 0xf91
+    # Skill Orb
+    pushlist 'lootTypes' 0x5740
+    # Skill Scroll
+    pushlist 'lootTypes' 0xef3
+    # Research Mats
+    pushlist 'lootTypes' 0x72a4
+    # Tmap
+    pushlist 'lootTypes' 0x14ec
+    
+    # Black Pearl
+    pushlist 'lootTypes' 0xf7a
+    # Blood Moss
+    pushlist 'lootTypes' 0xf7b
+    # Mandrake Root
+    pushlist 'lootTypes' 0xf86
+    # Garlic
+    pushlist 'lootTypes' 0xf84
+    # Ginseng
+    pushlist 'lootTypes' 0xf85
+    # Nightshade
+    pushlist 'lootTypes' 0xf88
+    # Spiders Silk
+    pushlist 'lootTypes' 0xf8d
+    # Sulphurous Ash
+    pushlist 'lootTypes' 0xf8c
+    
+    # Amber
+    pushlist 'lootTypes' 0xf25
+    # Amethyst
+    pushlist 'lootTypes' 0xf16
+    # Citrine
+    pushlist 'lootTypes' 0xf15
+    # Diamond
+    pushlist 'lootTypes' 0xf26
+    # Emerald
+    pushlist 'lootTypes' 0xf10
+    # Ruby
+    pushlist 'lootTypes' 0xf13
+    # Sapphire
+    pushlist 'lootTypes' 0xf19
+    # Star Sapphire
+    pushlist 'lootTypes' 0xf21
+    # Tourmaline
+    pushlist 'lootTypes' 0xf2d
+    
+    # Magic spellbook
+    pushlist 'lootTypes' 0xefa
+    
+    # Arrows
+    pushlist 'lootTypes' 0xf3f
+    # Bandages
+    pushlist 'lootTypes' 0xe21
+    # Bolts
+    pushlist 'lootTypes' 0x1bfb
+endif
+
+# Set loot bag
+if not find lootBag backpack
+    overhead 'Set Loot Bag:' 1150
+    setvar! lootBag
+    wait 250
+endif
+
+# Look for chest
+if findtype 'metal chest' ground any any 2 as metalChest
+    setvar! chest metalChest
+elseif findtype 'wooden chest' ground any any 2 as woodenChest
+    setvar! chest woodenChest
+endif
+getlabel chest chestLabel
+wait 100
+if 'dungeon chest' in chestLabel or 'treasure map chest' in chestLabel
+    overhead chestLabel 1150
+else
+    overhead 'No chest found!' 38
+    stop
+endif
+
+# Open chest
+dclick chest
+waitforgump 736038070 500
+if gumpexists 736038070
+    setvar! locked 1
+    setvar! trapped 1
+else
+    overhead 'Chest not locked!' 38
+    overhead 'Target chest to continue looting:' 38
+    setvar chest
+endif
+
+# Remove trap
+while trapped = 1
+    gumpresponse 7
+    wait 250
+    if insysmsg 'cleared it of traps' or insysmsg 'devoid of traps'
+        overhead 'Trap removed!' 1150
+        setvar! trapped 0
+        break
+    elseif insysmsg 'attempt to remove traps'
+        overhead 'Removing trap...' 1150
+        for 15
+            if insysmsg 'cleared it of traps' or insysmsg 'devoid of traps'
+                break
+            else
+                wait 250
+            endif
+        endfor
+    else
+        overhead 'Check Script!' 38
+        wait 250
+    endif
+endwhile
+wait 250
+
+# Pick lock
+while locked = 1
+    gumpresponse 4
+    wait 250
+    if not gumpexists 736038070 or insysmsg 'successfully pick the lock'
+        overhead 'Lock picked!' 1150
+        setvar! locked 0
+        break
+    elseif insysmsg 'attempt to pick the lock'
+        overhead 'Picking lock...' 1150
+        for 15
+            if insysmsg 'successfully pick the lock'
+                break
+            else
+                wait 250
+            endif
+        endfor
+    else
+        overhead 'Check Script!' 38
+        wait 250
+    endif
+endwhile
+wait 250
+
+# Loot
+overhead 'Looting...' 1150
+foreach t in 'lootTypes'
+    while findtype t chest as loot
+        getlabel loot lootLabel
+        overhead lootLabel 1150
+        lift loot 60000
+        drop lootBag -1 -1 -1
+        wait 500
+    endwhile
+endfor
+
+unsetvar chest
+overhead 'Script Complete!' 1150

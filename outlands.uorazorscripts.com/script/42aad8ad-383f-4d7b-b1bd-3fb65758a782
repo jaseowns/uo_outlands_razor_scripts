@@ -1,0 +1,709 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/42aad8ad-383f-4d7b-b1bd-3fb65758a782 for latest
+# Automation by Jaseowns
+## Script: Ougah Dexxer Bard Single target 
+## Created by: Jephgag#8420
+#############################################
+
+# Ougah Dexxer Bard
+# By [Myth]Ougah Ougah
+# This script is work in progress
+
+# The overhead targetting portion of the script is taken from Jasowns Autodexxer Script
+# The drinking potion part of the script is taken from Jasowns Autodexxer Script
+# The Chiv symbol counting is taken from Jasowns Autodexxer Script
+# https://outlands.uorazorscripts.com/ultimate-dexxer
+
+# This script is very specific to my style of play, but feel free to try it and modify it. 
+
+# This script requires :
+# Chivalry
+# Discord and Peace making
+# A skinning knife if you want to autocarve the bodies of your target
+
+# The philosophy behind this script is that it can be used both in solo play and group play. The goal is to target a single monster.
+# If the player needs to retreat, then the script will stop by itself (you will see the message Target Lost)
+
+# The order of priority of this script
+# 1. Heal/Cure the player
+# 2. Peace the target first to reduce damage
+# 3. Then discord the target for easier kills
+# 5. Up the chivalry buffs (musicianships buff to come)
+# 4. Once the target is dead, skin the corpse (if enabled)
+
+# This script only use Heal potion and cure potion (for now) 
+
+# There are a few user variable to setup below for what type of heal to use (Noble, Holy light, Hp pot) and which buff to use (EoO, Divine Fury)
+
+
+# The following Cooldowns must be setup in your UO Client (Options -> Cooldowns)
+# Be careful to write them as they are written below, case sensitive
+# Musicianship
+# Peacemaking
+# Pacified
+# Discordance
+# Discorded
+# Healing Potion
+# Cure Potion
+# Refresh Potion
+# Heal Preventend
+# Chivalry Ability CD
+# Noble Sacrifice
+# Divine Fury
+# Enemy Of One
+# Cleanse By Fire
+# Close Wounds
+# Holy Light
+# Song Buff Delay
+# Song Of Discordance
+# Song Of Peacemaking
+
+######################################################
+# Start of Script Setup
+######################################################
+
+#*****************************************************
+#  User Variables
+#***************************************************** 
+@setvar! PeacemakingReapply 30000
+@setvar! DiscordanceReapply 60000
+
+@setvar! AutoCarving 1
+@setvar! FindTargetRefresh 3000
+@setvar! StopWhenTargetCannotBeSeen 1
+
+@setvar! HpNobleSacrifice 65
+
+@setvar! HpHolyLight 40
+@setvar! HpHealPotion 55
+@setvar! HpCurePotion 95
+@setvar! StamRefreshPotion 90
+
+@setvar! EnableCleanseByFire 1
+@setvar! EnableCloseWounds 1
+@setvar! EnableNobleSacrifice 1
+@setvar! EnableHolyLight 1
+@setvar! EnableDivineFury 1
+@setvar! EnableEnemyOfOne 1
+
+@setvar! EnablePeacemakingBuff 1
+@setvar! EnableDiscordanceBuff 1
+
+@setvar! SongReapply 840000
+
+@setvar! EnableHealPotion 1
+@setvar! EnableCurePotion 1
+@setvar! EnableRefreshPotion 1
+
+@setvar! EnableParalyzePouch 1
+
+#variable reused from jasowns autodexxer script
+@setvar! minimumWaitForPing 300
+@setvar! minimumWaitForPingUnequipping 650
+
+#*****************************************************
+#  End of User Variables
+#***************************************************** 
+#*****************************************************
+#  Script Variables
+#*****************************************************
+
+ 
+@setvar! StopTheLoop 0
+@setvar! UseHealPotion 0
+@setvar! UseCurePotion 0
+@setvar! ChivAbilityCd 31000
+@setvar! PotionCd 10000
+@setvar! TimeBetweenChivAbility 300
+@setvar! SongBuffDelay 11000
+
+
+#*****************************************************
+#  End of Script Variables
+#***************************************************** 
+
+
+
+######################################################
+# End of script Setup
+######################################################    
+######################################################
+# Beginning of Main Loop
+######################################################
+
+
+#*****************************************************
+#  Setup of Main Loop
+#*****************************************************  
+hotkey 'Target Closest Non-Friendly Monster'
+
+if insysmsg "No one matching that was found on your screen"
+    @setvar CurrentTarget 0
+    overhead "[*** NO CREATURE ***]" 88
+else
+
+	@setvar LastTarget CurrentTarget
+    @setvar CurrentTarget lasttarget 
+
+    clearsysmsg
+    
+    #clean the cooldowns
+    
+    if LastTarget != CurrentTarget
+	    cooldown "Pacified" 0
+    	cooldown "Discorded" 0
+    endif
+#*****************************************************
+#  end of Setup of Main Loop
+#*****************************************************  
+#*****************************************************
+#  Main Loop
+#*****************************************************  
+    
+   	while not dead CurrentTarget and StopTheLoop = 0
+   	
+ 	
+   		if not timerexists "FindTarget"
+   			createtimer "FindTarget"
+   			settimer "FindTarget" FindTargetRefresh
+   		endif
+   		
+   		if timer "FindTarget" >= FindTargetRefresh
+   			attack CurrentTarget
+		    overhead "Ï ¼¼ HERE ¼¼ Ï" 88 CurrentTarget	
+       		attack CurrentTarget
+       		settimer "FindTarget" 0
+		endif
+   		
+		getlabel CurrentTarget descTarget
+
+#*****************************************************
+#  Start of Survival Loop
+#*****************************************************
+
+		if paralyzed and EnableParalyzePouch = 1
+			if findtype "pouch" backpack 38
+				yell "[pouch"
+				wait minimumWaitForPing
+			endif			
+		endif
+		
+		if EnableNobleSacrifice = 1
+			
+			if hits <= HpNobleSacrifice and skill "Chivalry" >= 80 and not cooldown "Noble Sacrifice" and not cooldown "Heal Prevented" and not cooldown "Chivalry Ability CD" 
+				yell "[NobleSacrifice"
+				
+				if not insysmsg "You do not have enough holy symbols for that ability"
+					waitfortarget 500
+					target 'self'
+					wait minimumWaitForPing	
+					cooldown "Heal Prevented" 5000
+					cooldown "Noble Sacrifice" ChivAbilityCd
+					cooldown "Chivalry Ability CD" TimeBetweenChivAbility
+				endif
+					
+			endif
+		endif
+	
+		if EnableHolyLight = 1	
+			if hits <= HpHolyLight and skill "Chivalry" >= 95 and not cooldown "Holy Light" and not cooldown "Heal Prevented" and not cooldown "Chivalry Ability CD"
+				yell "[HolyLight"
+				wait minimumWaitForPing		
+				cooldown "Holy Light" ChivAbilityCd		
+				cooldown "Chivalry Ability CD" TimeBetweenChivAbility
+			endif
+		endif
+		
+		
+		#check for both cure and heal potion to not remove the weapons 2 times.
+		if EnableHealPotion = 1
+			if hits <= HpHealPotion and not cooldown "Heal Prevented" and not cooldown "Healing Potion"
+				@setvar! UseHealPotion 1
+			else
+				@setvar! UseCurePotion 0
+			endif
+		endif
+		
+		if EnableCurePotion = 1
+			if hits <= HpCurePotion and not cooldown "Cure Potion" and poisoned
+				@setvar! UseCurePotion 1
+			else
+				@setvar! UseCurePotion 0
+			endif
+		endif
+		
+		if EnableRefreshPotion = 1
+			if stam <= StamRefreshPotion and not cooldown "Refresh Potion"
+				@setvar! UseRefreshPotion 1
+			else
+				@setvar! UseRefreshPotion 0
+			endif
+		endif
+		
+		#stole this part from the AutoDexxer Jasowns script
+		#https://outlands.uorazorscripts.com/ultimate-dexxer
+		
+		if UseCurePotion = 1 or UseHealPotion = 1 or UseRefreshPotion = 1
+			if skill "Alchemy" >= 80
+				@setvar! jaseCanDrinkPotion 1
+			else
+				if not findlayer self lefthand and not findlayer self righthand
+					@setvar! jaseCanDrinkPotion 1
+				else
+					if findlayer self lefthand as myLefthand
+						@setvar! jaseLeftHand myLefthand
+					endif
+					if findlayer self righthand as myRightHand
+						@setvar! jaseRightHand myRightHand
+					endif 
+					if not lhandempty 
+						if not rhandempty 
+							@setvar! jaseCanDrinkPotion 0
+						else
+							// handle two handed weapons
+							getlabel jaseLeftHand desc
+							if skill "Swordsmanship" > 0
+							   if "axe" in desc or "bardiche" in desc or "halberd" in desc
+								    @setvar! jaseCanDrinkPotion 0
+								    @setvar! needTwoHandSwap 1
+								else   
+								    @setvar! jaseCanDrinkPotion 1
+								endif
+							elseif skill "Mace Fighting" > 0
+								if "staff" in desc or "crook" in desc or "war hammer" in desc
+								    @setvar! jaseCanDrinkPotion 0
+								    @setvar! needTwoHandSwap 1
+								else   
+								    @setvar! jaseCanDrinkPotion 1
+								endif
+							elseif skill "Fencing" > 0
+								if "spear" in desc or "pitchfork" in desc
+								    @setvar! jaseCanDrinkPotion 0
+								    @setvar! needTwoHandSwap 1
+								else   
+								    @setvar! jaseCanDrinkPotion 1
+								endif
+							elseif skill "Archery" > 0
+								if "bow" in desc or "heavy crossbow" in desc
+								    @setvar! jaseCanDrinkPotion 0
+								    @setvar! needTwoHandSwap 1
+								else   
+								    @setvar! jaseCanDrinkPotion 1
+								endif
+							elseif skill "Wrestling" > 0
+								@setvar! jaseCanDrinkPotion 1
+							endif  
+						endif
+					endif
+					if not rhandempty 
+						if lhandempty 
+							@setvar! jaseCanDrinkPotion 1
+						else
+							@setvar! needShieldSwap 1
+						endif
+					endif
+				endif
+			endif
+		endif
+		
+		if jaseCanDrinkPotion = 1
+			// do nothing
+		else
+			if needTwoHandSwap = 1
+				if skill "Swordsmanship" > 0 and findtype "cutlass|broadsword|scimitar|viking sword|longsword|katana" backpack as item
+					dclick item
+					wait minimumWaitForPing
+				elseif skill "Mace Fighting" > 0 and findtype "maul|war axe|war mace|mace|hammer pick|club" backpack as item
+					dclick item
+					wait minimumWaitForPing
+				elseif skill "Fencing" > 0 and findtype "kryss|war fork" backpack as item
+					dclick item
+					wait minimumWaitForPing
+				elseif skill "Archery" > 0 and findtype "crossbow" backpack as item
+					dclick item
+					wait minimumWaitForPing
+				else
+					hotkey 'Arm/Disarm Left Hand'    
+					wait minimumWaitForPing
+				endif
+				@setvar! jaseCanDrinkPotion 1
+			elseif needShieldSwap = 1
+				overhead "we should be disarming left hand"
+				while not lhandempty
+					hotkey 'Arm/Disarm Left Hand'
+					wait minimumWaitForPingUnequipping
+					while queued
+						wait 100
+					endwhile
+				endwhile
+				setvar! jaseCanDrinkPotion 1
+			endif
+		endif
+
+		if jaseCanDrinkPotion = 1
+			if UseHealPotion = 1
+				if findtype "Yellow Potion" backpack as jotion
+					overhead "[Drinking Heal Potion]" 34
+					dclick jotion
+					wait minimumWaitForPing
+					cooldown "Healing Potion" PotionCd
+				else
+					overhead "No Heal potion found!" 34
+				endif
+				@setvar! UseHealPotion 0
+			endif
+			
+			if UseCurePotion = 1
+				if findtype "Orange Potion" backpack as jotion
+					overhead "[Drinking Cure Potion]" 34
+					dclick jotion
+					wait minimumWaitForPing
+					cooldown "Cure Potion" PotionCd
+				else
+					overhead "No Cure potion found!" 34
+				endif
+				@setvar! UseCurePotion 0
+			endif
+			
+			if UseRefreshPotion = 1
+				if findtype "Red Potion" backpack as jotion
+					overhead "[Drinking Refresh Potion]" 34
+					dclick jotion
+					wait minimumWaitForPing
+					cooldown "Refresh Potion" PotionCd
+				endif
+				@setvar! UseRefreshPotion 0
+			endif
+			
+			if needTwoHandSwap = 1
+				dclick jaseLeftHand
+				wait minimumWaitForPing
+			elseif needShieldSwap = 1
+				hotkey 'Arm/Disarm Left Hand'
+				wait minimumWaitForPingUnequipping
+			endif
+		endif
+		
+		
+		if EnableCleanseByFire = 1
+
+			if poisoned and not cooldown "Cleanse By Fire" and not cooldown "Chivalry Ability CD"
+				yell "[CleanseByFire"
+				wait minimumWaitForPing
+				
+				if not insysmsg "You do not have enough holy symbols for that ability"
+					cooldown "Cleanse By Fire" ChivAbilityCd
+				endif
+			endif
+		endif
+		
+		if EnableCloseWounds = 1
+			
+			if findbuff "bleed" or findbuff "disease"
+				if skill "chivalry" >= 70 and not cooldown "Close Wounds" and not cooldown "Chivalry Ability CD" 
+					yell "[CloseWounds"
+					wait minimumWaitForPing 
+					
+					if not insysmsg "You do not have enough holy symbols for that ability"
+						cooldown "Close Wounds" ChivAbilityCd
+						cooldown "Chivalry Ability CD" TimeBetweenChivAbility
+					endif
+				endif
+			endif
+		endif
+		
+	
+#*****************************************************
+#  End of Survival Loop
+#*****************************************************
+
+		
+#*****************************************************
+#  Start of PeaceMaking
+#*****************************************************  		
+		if not cooldown "Peacemaking" and not cooldown "Musicianship" and not cooldown "Pacified"
+		
+			if "pacified" in descTarget and cooldown "Pacified"
+				#do nothing
+			else
+				skill "Peacemaking"
+				waitfortarget 500
+				if insysmsg "What instrument shall you play?"
+				    if findtype "bamboo flute" backpack as inny
+				        target inny
+				    elseif findtype "tambourine" backpack as inny
+				        target inny
+				    elseif findtype "drum" backpack as inny
+				        target inny
+				    elseif findtype "lute" backpack as inny
+				        target inny
+				    elseif findtype "lap harp" backpack as inny
+				        target inny
+				    else 
+				        #Cause an error message
+				        target CurrentTarget
+				        overhead "No instrument in backpack"
+				        
+				    endif
+				endif
+		    
+				if not insysmsg "This is not a musical instrument"
+				    waitfortarget 500
+				    target CurrentTarget
+				    wait minimumWaitForPing
+				endif
+
+				if insysmsg "Target cannot be seen." and StopWhenTargetCannotBeSeen = 1
+					#stop the script
+					@setvar! StopTheLoop 1
+				break
+				
+				endif				
+				if insysmsg "You play successfully, pacifying your target"
+					cooldown "Pacified" PeacemakingReapply
+					cooldown "Musicianship" 5000
+					cooldown "Peacemaking" 11000
+				endif
+				
+				if insysmsg "you fail to pacify your opponent"
+					cooldown "Musicianship" 5000
+				endif
+				
+		    endif
+		endif
+#*****************************************************
+#  End of Peacemaking
+#*****************************************************  		
+#*****************************************************
+#  Start Discordance
+#*****************************************************  
+
+		if not cooldown "Discordance" and not cooldown "Musicianship" and not cooldown "Discorded"
+			
+			if "discord" in descTarget and cooldown "Discorded"
+				#do nothing
+			else
+			
+				skill "Discordance"
+				waitfortarget 500
+				if insysmsg "What instrument shall you play?"
+				    if findtype "bamboo flute" backpack as inny
+				        target inny
+				    elseif findtype "tambourine" backpack as inny
+				        target inny
+				    elseif findtype "drum" backpack as inny
+				        target inny
+				    elseif findtype "lute" backpack as inny
+				        target inny
+				    elseif findtype "lap harp" backpack as inny
+				        target inny
+				    else 
+				        #Cause an error message
+				        target CurrentTarget
+				        overhead "No instrument in backpack"
+				        
+				    endif
+				endif
+				
+				if not insysmsg "This is not a musical instrument"
+				    waitfortarget 500
+				    target CurrentTarget
+				    wait minimumWaitForPing
+				endif
+				
+				if insysmsg "Target cannot be seen." and StopWhenTargetCannotBeSeen = 1
+					#stop the script
+					@setvar! StopTheLoop 1
+				endif
+				
+				if insysmsg "You play successfully, disrupting your opponent"
+					cooldown "Discorded" DiscordanceReapply
+					cooldown "Musicianship" 5000
+					cooldown "Discordance" 11000
+				endif
+				
+				if insysmsg "You fail to discord your opponent"
+					cooldown "Musicianship" 5000
+				endif
+			endif
+		endif
+#*****************************************************
+#  End of Discordance
+#*****************************************************  		   
+
+#*****************************************************
+#  Chiv Abilities
+#***************************************************** 
+
+
+		if EnableDivineFury = 1 
+			if not cooldown "Divine Fury" and not cooldown "Chivalry Ability CD"
+				yell "[DivineFury"
+				wait minimumWaitForPing
+				
+				if not insysmsg "You do not have enough holy symbols for that ability" and not insysmsg "You must wait a moment before attempting to use another Chivalry ability."
+					cooldown "Divine Fury" ChivAbilityCd
+					cooldown "Chivalry Ability CD" 500
+				endif
+			endif
+		endif
+		
+		if EnableEnemyOfOne = 1 
+			if not cooldown "Enemy Of One" and not cooldown "Chivalry Ability CD"
+				yell "[EnemyOfOne"
+				wait minimumWaitForPing
+				
+				if not insysmsg "You do not have enough holy symbols for that ability" and not insysmsg "You must wait a moment before attempting to use another Chivalry ability."
+					cooldown "Enemy Of One" ChivAbilityCd
+					cooldown "Chivalry Ability CD" 500
+				endif
+			endif
+		endif
+#*****************************************************
+#  end of Chiv Abilities
+#*****************************************************
+
+#*****************************************************
+#  End of Musicianship Buff
+#*****************************************************
+
+		if EnablePeacemakingBuff = 1 and not cooldown "Song Of Peacemaking" and not cooldown "Musicianship" and not cooldown "Peacemaking" and not cooldown "Song Buff Delay"
+			skill "Peacemaking"
+			waitfortarget 500
+			if insysmsg "What instrument shall you play?"
+			    if findtype "bamboo flute" backpack as inny
+			        target inny
+			    elseif findtype "tambourine" backpack as inny
+			        target inny
+			    elseif findtype "drum" backpack as inny
+			        target inny
+			    elseif findtype "lute" backpack as inny
+			        target inny
+			    elseif findtype "lap harp" backpack as inny
+			        target inny
+			    else 
+			        #Cause an error message
+			        target CurrentTarget
+			        overhead "No instrument in backpack"
+			        
+			    endif
+			endif
+	    
+			if not insysmsg "This is not a musical instrument"
+			    waitfortarget 500
+			    target backpack 
+			    wait minimumWaitForPing
+			    cooldown "Song Of Peacemaking" SongReapply
+			    cooldown "Song Buff Delay" SongBuffDelay
+			    #no need to refresh the musicianship cooldown. 
+			endif
+		endif
+		
+		if EnableDiscordanceBuff = 1 and not cooldown "Song Of Discordance" and not cooldown "Musicianship" and not cooldown "Discordance" and not cooldown "Song Buff Delay"
+			skill "Discordance"
+			waitfortarget 500
+			if insysmsg "What instrument shall you play?"
+			    if findtype "bamboo flute" backpack as inny
+			        target inny
+			    elseif findtype "tambourine" backpack as inny
+			        target inny
+			    elseif findtype "drum" backpack as inny
+			        target inny
+			    elseif findtype "lute" backpack as inny
+			        target inny
+			    elseif findtype "lap harp" backpack as inny
+			        target inny
+			    else 
+			        #Cause an error message
+			        target CurrentTarget
+			        overhead "No instrument in backpack"
+			    endif
+			endif
+	    
+			if not insysmsg "This is not a musical instrument"
+			    waitfortarget 500
+			    target backpack 
+			    wait minimumWaitForPing
+   			    cooldown "Song Of Discordance" SongReapply
+   			    cooldown "Song Buff Delay" SongBuffDelay
+			    #no need to refresh the musicianship cooldown. 
+			endif
+		endif
+#*****************************************************
+#  End of Musicianship Buff
+#*****************************************************
+
+#*****************************************************
+#  World Save
+#*****************************************************
+
+		if insysmsg "world is saving"
+			if not timerexists "WorldSaveTimer"
+				createtimer "WorldSaveTimer"
+			endif
+			
+			settimer "WorldSaveTimer" 0
+			
+			#Wait a maximum of 5 seconds in this loop, or when the save complete message pops			
+			while timer "WorldSaveTimer" < 5000
+				if insysmsg "save complete"
+					break
+				endif
+			endwhile
+			
+			overhead "Resuming Script..." 88
+		endif   
+		
+#*****************************************************
+#  end of WorldSave
+#*****************************************************		
+		    
+    endwhile
+    
+#*****************************************************
+#  End of Main Loop
+#*****************************************************  
+	overhead "[*** TARGET LOST ***]"
+######################################################
+# End of Main Loop
+######################################################    
+endif
+
+######################################################
+# Beginning of Clean Up
+######################################################
+
+
+#Clean-up
+
+#clean the cooldowns
+cooldown "Pacified" 0
+cooldown "Discorded" 0
+
+
+#carve your kill
+
+wait 500
+if AutoCarving = 1
+
+	if findtype 'Elven SpellBlade' backpack
+		if findtype "corpse" ground -1 -1 2 as rip
+    		overhead "[Skinning]"		
+    		dclicktype "Elven Spellblade"
+    		waitfortarget 1500
+    		target 'self'
+    		
+    		@ignore rip
+		endif
+	else
+		overhead "[No Skinning Knife]" 88
+	endif
+	
+endif
+
+######################################################
+# End of Cleanup
+######################################################
+    
+
+
+

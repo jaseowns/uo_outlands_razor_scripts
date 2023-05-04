@@ -1,0 +1,370 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/34a5a207-8a1b-4853-a202-33fe010bcbdf for latest
+# Automation by Jaseowns
+## Script: Melee weapons swap and hide in a trapped pouch
+## Created by: DoubleDuke#6321
+#############################################
+
+# Melee weapons swap and hide in a trapped pouch by Double Duke
+# Version 0.6 2023/04/18
+# Script for UO Outlands
+#
+# The script ask you to set 3 weapons and a shield (optional):
+#   1x onehanded (+ shield) - 1x twohanded - 1x secondary twohanded or bow/heavycrossbow
+# Then equip the first weapon in line and hide the others in your next free trapped pouch available
+#
+# After setup, every trigger of the script, will do this for you:
+#
+#   - check for free trapped pouches available and set as safepouch (thief proof)
+#   - check if your weapons are still there
+#   - look into actually equipped weapon and swap with the next
+#   - hide all the selected weapons and shield left laying in backpack
+#
+# Remove the variables (in option section of Razor) myFirstWeapon, mySecondWeapon and myThirdWeapon if:
+#   - your char dies and lose weapons
+#   - you change your weapons
+# or....simply copy these lines to another script and run it once to re-set your weapons (remove the hash before play):
+#
+#   @setvar! myThirdWeaponEquip 1
+#   @setvar! myShieldEquip 0
+#   overhead "Set your Onehanded weapon" 2843
+#   @setvar! myFirstWeapon
+#   overhead "Set your Twohanded Weapon" 2843
+#   @setvar! mySecondWeapon
+#   if myThirdWeaponEquip = 1
+#       overhead "Set your Bow or another Twohanded weapon" 2843
+#       @setvar! myThirdWeapon
+#   endif
+#   if myShieldEquip = 1
+#       overhead "Set your Shield" 2843
+#       @setvar! myShield
+#   endif
+#
+# NOTE: try the script before intensive use (pvp or dungeon crawling), test it with your thief or friends
+#  
+# CHANGELOG:
+#   - v0.6 2023/04/18, added shield equip variable selector and third weapon selector
+#   - v0.5 2023/04/14, initial release
+#
+# ROADMAP:
+#   - free weapons type choice (ex: 3 onehanded or 3 twohanded etc..)
+#   - variable selector for more than 3 weapons
+#   - speed improvement
+#
+# WARNING: the script is not pefect, always set a stop script macro for emergency;
+# Set a normal equip weapon macro for all your weapons, for your safety.
+#
+# REPORT: any feedback or collaboration on Discord @ DoubleDuke#6321
+
+#############
+### EDIT TO MEET YOUR PREFERENCES
+#############
+
+### Fine tune this to your Latency or Personal Preferences
+# GlobalWaitTime safe value is 650
+@setvar! globalWaitTimeLiftAndDrop 650
+# WaitForPing safe value is 200
+@setvar! minimumWaitForPing 200
+
+#############
+### DEXXER VARIABLES
+### the more you add, the slower the script
+#############
+
+# Do you want to equip a Shield with your OneHanded weapon? (1=yes, 0=no [default])
+@setvar! myShieldEquip 0
+
+# Do you want to equip the Third Weapon? (twohanded or bow/heavycrossbow) (1=yes [default], 0=no)
+@setvar! myThirdWeaponEquip 1
+
+
+#############
+### DO NOT EDIT BELOW THIS
+#############
+
+
+// Automatically set your trapped pouch every time
+// Even if you or someone trigger it (thief proof)
+if findtype "pouch" backpack 38 as trappedsafepouch
+    @setvar! safepouch trappedsafepouch
+endif
+
+// Weapons Variable selector
+
+if not varexist myFirstWeapon
+    overhead "Set your Onehanded weapon" 2843
+    @setvar! myFirstWeapon
+endif
+
+if not varexist mySecondWeapon
+    overhead "Set your Twohanded Weapon" 2843
+    @setvar! mySecondWeapon
+endif
+
+if not varexist myThirdWeapon and myThirdWeaponEquip = 1
+    overhead "Set your Bow or another Twohanded weapon" 2843
+    @setvar! myThirdWeapon
+endif
+
+if not varexist myShield and myShieldEquip = 1
+    overhead "Set your Shield" 2843
+    @setvar! myShield
+endif
+    
+// Check if wrong weapon equipped
+
+if not find righthand myFirstWeapon and not find lefthand mySecondWeapon and not find lefthand myThirdWeapon
+    if find myFirstWeapon backpack as item
+        overhead "Wrong weapon! Now swapping..." 2843
+        dclick item
+        wait minimumWaitForPing
+        if myShieldEquip = 1
+            dclick myShield
+            wait minimumWaitForPing
+        endif
+    elseif find mySecondWeapon backpack as item
+        overhead "Wrong weapon! Now swapping..." 2843
+        dclick item
+        wait minimumWaitForPing
+        elseif myThirdWeaponEquip = 1 and find myThirdWeapon backpack as item
+        overhead "Wrong weapon! Now swapping..." 2843
+        dclick item
+        wait minimumWaitForPing
+    else
+        overhead "No weapon at all in backpack!" 2843
+    endif 
+
+
+// Check if you need to equip a weapon and equip the first available
+
+elseif not findlayer self lefthand and not findlayer self righthand
+    if find myFirstWeapon backpack as item
+        dclick item
+        wait minimumWaitForPing
+        if myShieldEquip = 1 and find myShield backpack as equipShield
+            dclick equipShield
+            wait minimumWaitForPing
+        endif
+        if find mySecondWeapon backpack as upSecondWpn and find myThirdWeapon backpack as upThirdWpn
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myThirdWeaponEquip = 1
+                lift upThirdWpn
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+        elseif find mySecondWeapon backpack as upSecondWpn
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        elseif myThirdWeaponEquip = 1 and find myThirdWeapon backpack as upThirdWpn
+            lift upThirdWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        endif
+    elseif find mySecondWeapon backpack as item
+        dclick item
+        wait minimumWaitForPing
+        if myThirdWeaponEquip = 1 and find myThirdWeapon backpack as upThirdWpn
+            lift upThirdWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        endif
+    elseif myThirdWeaponEquip = 1 and find myThirdWeapon backpack as item
+        dclick item
+        wait minimumWaitForPing
+    else
+        overhead "No weapon at all in backpack!" 2843
+    endif
+    
+// Equip Second Weapon
+    
+elseif find myFirstWeapon righthand
+    if find mySecondWeapon backpack as item
+        dclick item
+        wait minimumWaitForPing
+        if find myFirstWeapon backpack as upFirstWpn and find myThirdWeapon backpack as upThirdWpn
+            lift upFirstWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myShieldEquip = 1 and find myShield backpack as equipShield
+                lift equipShield
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+            if myThirdWeaponEquip = 1
+                lift upThirdWpn
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+        elseif find myFirstWeapon backpack as upFirstWpn
+            lift upFirstWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myShieldEquip = 1 and find myShield backpack as equipShield
+                lift equipShield
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+        elseif myThirdWeaponEquip = 1 and find myThirdWeapon backpack as upThirdWpn
+            lift upThirdWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        endif
+    elseif myThirdWeaponEquip = 1 and find myThirdWeapon backpack as item
+        dclick item
+        wait minimumWaitForPing
+        if find myFirstWeapon backpack as upFirstWpn and find mySecondWeapon backpack as upSecondWpn
+            lift upFirstWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myShieldEquip = 1 and find myShield backpack as equipShield
+                lift equipShield
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        elseif find myFirstWeapon backpack as upFirstWpn
+            lift upFirstWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myShieldEquip = 1 and find myShield backpack as equipShield
+                lift equipShield
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+        elseif find mySecondWeapon backpack as upSecondWpn
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        endif
+    else
+        overhead "No more weapons left!" 2843
+    endif
+    
+// Equip Third Weapon
+    
+elseif find mySecondWeapon lefthand
+    if myThirdWeaponEquip = 1 and find myThirdWeapon backpack as item
+        dclick item
+        wait minimumWaitForPing
+        if find myFirstWeapon backpack as upFirstWpn and find mySecondWeapon backpack as upSecondWpn
+            lift upFirstWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myShieldEquip = 1 and find myShield backpack as equipShield
+                lift equipShield
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        elseif find myFirstWeapon backpack as upFirstWpn
+            lift upFirstWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myShieldEquip = 1 and find myShield backpack as equipShield
+                lift equipShield
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+        elseif find mySecondWeapon backpack as upSecondWpn
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        endif
+    elseif find myFirstWeapon backpack as item
+        dclick item
+        wait minimumWaitForPing
+        if find mySecondWeapon backpack as upSecondWpn and find myThirdWeapon backpack as upThirdWpn
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myThirdWeaponEquip = 1
+                lift upThirdWpn
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+        elseif find mySecondWeapon backpack as upSecondWpn
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        elseif myThirdWeaponEquip = 1 and find myThirdWeapon backpack as upThirdWpn
+            lift upThirdWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        endif
+    else
+        overhead "No more weapons left!" 2843
+    endif
+    
+// Equip First Weapon
+    
+elseif myThirdWeaponEquip = 1 and find myThirdWeapon lefthand
+    if find myFirstWeapon backpack as item
+        dclick item
+        wait minimumWaitForPing
+        if myShieldEquip = 1 and find myShield backpack as item
+            dclick item
+            wait minimumWaitForPing
+        endif
+        if find mySecondWeapon backpack as upSecondWpn and find myThirdWeapon backpack as upThirdWpn
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myThirdWeaponEquip = 1
+                lift upThirdWpn
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+        elseif find mySecondWeapon backpack as upSecondWpn
+            lift upSecondWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        elseif myThirdWeaponEquip = 1 and find myThirdWeapon backpack as upThirdWpn
+            lift upThirdWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        endif
+    elseif find mySecondWeapon backpack as item
+        dclick item
+        wait minimumWaitForPing
+        if find myFirstWeapon backpack as upFirstWpn and find myThirdWeapon backpack as upThirdWpn
+            lift upFirstWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myShieldEquip = 1 and find myShield backpack as equipShield
+                lift equipShield
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+            if myThirdWeaponEquip = 1
+                lift upThirdWpn
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+        elseif find myFirstWeapon backpack as upFirstWpn
+            lift upFirstWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+            if myShieldEquip = 1 and find myShield backpack as equipShield
+                lift equipShield
+                drop safepouch -1 -1 -1
+                wait globalWaitTimeLiftAndDrop
+            endif
+        elseif myThirdWeaponEquip = 1 and find myThirdWeapon backpack as upThirdWpn
+            lift upThirdWpn
+            drop safepouch -1 -1 -1
+            wait globalWaitTimeLiftAndDrop
+        endif
+    else
+        overhead "No more weapons left!" 2843
+    endif
+endif
+
+// If you wish to collaborate to improve this script please contact me in Discord @ DoubleDuke#6321
+//
+//

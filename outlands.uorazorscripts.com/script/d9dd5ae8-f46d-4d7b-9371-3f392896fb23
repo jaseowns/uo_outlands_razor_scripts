@@ -1,0 +1,195 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/d9dd5ae8-f46d-4d7b-9371-3f392896fb23 for latest
+# Automation by Jaseowns
+## Script: Potion Buffs: Handle all weapon types
+## Created by: Jaseowns#6694
+#############################################
+
+# Potion Buffs: Handle all weapon types by Jaseowns
+# UO Outlands
+# https://youtube.com/jaseowns/live
+# This handles: Alchemy, all two handed, one handed and shield builds
+# This only drinks buff potions if you need them
+# There will be another script for healing, cures and red pots.
+
+// Check buff controllers
+@setvar! checkStr 1
+@setvar! checkDex 1
+@setvar! checkMagic 1
+
+@setvar! needStrBuff 0
+@setvar! needDexBuff 0
+@setvar! needMagicBuff 0
+
+if checkStr = 1 and not findbuff "Strength"
+    @setvar! needStrBuff 1
+endif
+
+if checkDex = 1 and not findbuff "Agility"
+    @setvar! needDexBuff 1 
+endif
+
+if checkMagic = 1 and not findbuff "Magic Resist Potion"
+    @setvar! needMagicBuff 1 
+endif
+
+
+if needStrBuff = 1 and not findtype "White Potion" backpack
+    overhead "No white potions!" 34
+    @setvar! needStrBuff 0
+endif
+
+if needDexBuff = 1 and not findtype "Blue Potion" backpack
+    overhead "No blue agi potions!" 34
+    @setvar! needDexBuff 0
+endif
+
+if needMagicBuff = 1 and not findtype "Black Potion" backpack
+    @setvar! needMagicBuff 0
+endif
+
+@setvar! jaseCanDrinkPotion 0
+
+if needStrBuff = 1 or needDexBuff = 1 or needMagicBuff = 1
+
+    // katana and battleaxe are hardcoded
+    @setvar! minimumWaitForPing 200
+
+    @setvar! jaseRightHand 0
+    @setvar! jaseLeftHand 0
+    @setvar! needTwoHandSwap 0
+    @setvar! needShieldSwap 0
+
+    if skill "Alchemy" >= 80
+        @setvar! jaseCanDrinkPotion 1
+    else
+        if not findlayer self lefthand and not findlayer self righthand
+            @setvar! jaseCanDrinkPotion 1
+        else
+            if findlayer self lefthand as myLefthand
+                @setvar! jaseLeftHand myLefthand
+            endif
+            if findlayer self righthand as myRightHand
+                @setvar! jaseRightHand myRightHand
+            endif 
+            if not lhandempty 
+                if not rhandempty 
+                    @setvar! jaseCanDrinkPotion 0
+                else
+                    // handle two handed weapons
+                    getlabel jaseLeftHand desc
+                    if skill "Swordsmanship" > 0
+                       if "axe" in desc or "bardiche" in desc or "halberd" in desc
+                            @setvar! jaseCanDrinkPotion 0
+                            @setvar! needTwoHandSwap 1
+                        else   
+                            @setvar! jaseCanDrinkPotion 1
+                        endif
+                    elseif skill "Mace Fighting" > 0
+                        if "staff" in desc or "crook" in desc or "war hammer" in desc
+                            @setvar! jaseCanDrinkPotion 0
+                            @setvar! needTwoHandSwap 1
+                        else   
+                            @setvar! jaseCanDrinkPotion 1
+                        endif
+                    elseif skill "Fencing" > 0
+                        if "spear" in desc or "pitchfork" in desc
+                            @setvar! jaseCanDrinkPotion 0
+                            @setvar! needTwoHandSwap 1
+                        else   
+                            @setvar! jaseCanDrinkPotion 1
+                        endif
+                    elseif skill "Archery" > 0
+                        if "bow" in desc or "heavy crossbow" in desc
+                            @setvar! jaseCanDrinkPotion 0
+                            @setvar! needTwoHandSwap 1
+                        else   
+                            @setvar! jaseCanDrinkPotion 1
+                        endif
+                    elseif skill "Wrestling" > 0
+                        @setvar! jaseCanDrinkPotion 1
+                    endif  
+                endif
+            endif
+            if not rhandempty 
+                if lhandempty 
+                    @setvar! jaseCanDrinkPotion 1
+                else
+                    @setvar! needShieldSwap 1
+                endif
+            endif
+        endif
+    endif
+
+    if jaseCanDrinkPotion = 1
+        // do nothing
+    else
+        if needTwoHandSwap = 1
+            if skill "Swordsmanship" > 0 and findtype "cutlass|broadsword|scimitar|viking sword|longsword|katana" backpack as item
+                dclick item
+                wait minimumWaitForPing
+            elseif skill "Mace Fighting" > 0 and findtype "maul|war axe|war mace|mace|hammer pick|club" backpack as item
+                dclick item
+                wait minimumWaitForPing
+            elseif skill "Fencing" > 0 and findtype "kryss|war fork|dagger" backpack as item
+                dclick item
+                wait minimumWaitForPing
+            elseif skill "Archery" > 0 and findtype "crossbow" backpack as item
+                dclick item
+                wait minimumWaitForPing
+            else
+                hotkey 'Arm/Disarm Left Hand'    
+                wait minimumWaitForPing
+            endif
+            @setvar! jaseCanDrinkPotion 1
+        elseif needShieldSwap = 1
+            hotkey 'Arm/Disarm Left Hand'
+            @setvar! jaseCanDrinkPotion 1
+            wait minimumWaitForPing
+        endif
+    endif
+
+    if jaseCanDrinkPotion = 1
+        if needStrBuff = 1
+            if findtype "White Potion" backpack as jotion
+                overhead "chug"
+                dclick jotion
+                wait minimumWaitForPing
+            else
+                overhead "No STR potion found!" 34
+            endif
+        endif
+        
+        if needDexBuff = 1
+            if findtype "Blue Potion" backpack as jotion
+                overhead "chug"
+                dclick jotion
+                wait minimumWaitForPing
+            else
+                overhead "No AGI potion found!" 34
+            endif
+        endif
+        
+        if needMagicBuff = 1
+            if findtype "Black Potion" backpack as jotion
+                overhead "chug"
+                dclick jotion
+                wait minimumWaitForPing
+            else
+                overhead "No MR potion found!" 34
+            endif
+        endif
+
+        if needTwoHandSwap = 1
+            dclick jaseLeftHand
+            wait minimumWaitForPing
+        elseif needShieldSwap = 1
+            hotkey 'Arm/Disarm Left Hand'
+        endif
+    endif
+endif
+
+
+
+
+
+  

@@ -1,0 +1,156 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/be45898e-afe8-4a31-8fb3-e712cef6bc2c for latest
+# Automation by Jaseowns
+## Script: Remove Negative Plant Effects
+## Created by: adamtwelve#0302
+#############################################
+
+#PlantEffectRemoval by AdamTwelve
+#shoutout to Brozen on discord who helped me with the checks.
+
+
+#This script will inventory all pots/planters within range, open them, check for negative effects and attempt removal.
+#some positive effects will get removed, the sentient brain handling needs some work.
+#it's possible to get 4 positive effects on a single page, I will be working on adding a check for next page.
+
+#Requirements:
+#    Plant pots in range (2)
+#    Defoliant, Fungicide, Farmers Almanac locked down within range
+#
+#Notes:
+#Defoliant - flask 6187 0
+#Fungicide - flask 6193 0
+#Farmers Almanac - books 29343 0
+#Plant gump 3224608375
+#Effects buttons 10,11,12,13.  Next page 7, Previous page 6
+#
+#This script will inventory all pots/planters within range, open them, check for negative effects and attempt removal.
+#some positive effects will get removed, the sentient brain handling needs some work.
+#it's possible to get 4 positive effects on a single page, I will be working on adding a check for next page.
+
+
+clearignore
+clearlist pots
+createlist pots
+
+
+//createlist of all pots in range
+while findtype 6327|6328|6330|4551|6341|28987 true -1 -1 -1 as pot
+    setvar foundpot pot
+    if not inlist pots foundpot
+        pushlist pots foundpot
+        ignore pot
+    endif
+endwhile
+
+//open each pot and look for effects
+foreach y in pots
+    overhead 'checking pot number'
+    overhead index
+    dclick y
+    waitforgump 3224608375 5000
+    pause 250
+        //change the  number below to reduce or increase the amount of cycles per pot.
+        //we use a for loop in case there are more than 4 effects (multiple pages)
+            if ingump 'Perma'
+                overhead 'one page of effects'
+                setvar pages 0
+            endif
+
+            if not ingump 'Perma'
+                overhead 'Multiple pages of effects'
+                setvar pages 1
+ 
+            endif
+      
+        for 3
+            clearlist gumpbuttons
+            createlist gumpbuttons
+            pushlist gumpbuttons 13
+            pushlist gumpbuttons 12
+            pushlist gumpbuttons 11
+            pushlist gumpbuttons 10
+            
+            foreach x in gumpbuttons
+             clearsysmsg 
+             gumpresponse x
+             waitforgump 3224608375 5000
+                if insysmsg 'Reduces'
+                    gumpresponse x 3224608375 
+                     waitforgump 3224608375 5000
+                     
+                        if insysmsg 'Fungal'
+                            overhead 'Removing Fungal effect'
+                            gumpresponse 2
+                            waitforgump 3224608375 5000
+                            waitfortarget  5000
+                            targettype 6193 true -1 -1 -1
+                            waitforgump 3224608375 5000
+                        endif
+                        
+                        if insysmsg 'Pestilent'
+                            overhead 'Removing Pestilent effect'
+                            gumpresponse 2
+                            waitforgump 3224608375 5000
+                            waitfortarget  5000
+                            targettype 6187 true -1 -1 -1
+                            waitforgump 3224608375 5000
+                        endif
+                        
+                        if insysmsg 'Creature'
+                            overhead 'Remiving Creature effect'
+                            gumpresponse 2
+                            waitforgump 3224608375 5000
+                            waitfortarget  5000
+                            targettype 29343 true -1 -1 -1
+                            waitforgump 3224608375 5000
+                        endif       
+                endif                                
+                        if insysmsg 'Brain'
+                            overhead 'Ugh, brain found'
+                            gumpresponse 2
+                            waitforgump 3224608375 5000
+                            waitfortarget  5000
+                            targettype 6193 true -1 -1 -1
+                            waitforgump 3224608375 5000
+                            if insysmsg 'sentient'
+                                while not insysmsg 'Brain Fungi'
+                                    overhead 'removing brain'
+                                    gumpresponse 2
+                                    waitforgump 3224608375 5000
+                                    waitfortarget  5000
+                                    targettype 6193 true -1 -1 -1
+                                    waitforgump 3224608375 5000
+                                endwhile
+                             endif
+                        endif
+
+                endfor
+                
+            // We found nothing bad, try next page
+            if pages = 2
+                overhead 'Page 2 clean, checking for 3rd page'
+                    if not insysmsg 'reduces'
+                        gumpresponse 7 3224608375
+                    setvar pages 3
+                    endif
+            endif
+                        if pages = 1
+                overhead 'Page 1 clean, checking 2nd page'
+                    if not insysmsg 'reduces'
+                        gumpresponse 7 3224608375
+                        setvar pages 2
+                    endif
+            endif
+            
+            if pages = 0
+                overhead 'no extra pages to check'
+                        if not insysmsg 'reduces'
+                            overhead 'page 1 clean'
+                    endif
+            endif
+            
+
+        endfor
+endfor
+
+

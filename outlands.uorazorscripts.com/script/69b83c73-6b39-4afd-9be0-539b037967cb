@@ -1,0 +1,402 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/69b83c73-6b39-4afd-9be0-539b037967cb for latest
+# Automation by Jaseowns
+## Script: Ultimate Mining Script - Base Script
+## Created by: Jaseowns#6694
+#############################################
+
+# Ultimate Mining Script by Jaseowns
+# UO Outlands - https://outlands.uorazorscripts.com/miner-bot
+# Requirements: 
+###################
+#   MAKE SURE FILTERS -> FILTER SYSTEM MESSAGES IS UNCHECKED
+###########
+#
+###################
+#   Moving Ore <3
+#####
+#   This script no longer users organizer agents. It will automatically
+#   attempt to move your ore onto a near by pack horse.  Once the pack horse
+#   is full, it will move to the next horse.
+#    
+###################
+#   Automatic Smelting
+###########
+#   If you stand near a player made forge, your ignots on the packy
+#   will be automatically be smelted. 
+#  
+#   You can turn on tryAndSmeltEvenIfNotNearPlayerMadeForge as 1 if you
+#   want to attempt to smelt randomly checking for natural forges
+
+@setvar! tryAndSmeltEvenIfNotNearPlayerMadeForge 1
+@setvar! cdTryAndSmeltEvenIfNotNearPlayerMadeForge 15000
+@setvar! hideIngotsInRedPouch 1
+@setvar! oreCountToMove 30
+@setvar! cdAvoidForgeTimerStuck 15000
+
+
+@setvar! minimumWaitForPing 200
+@setvar! globalTimeout 650
+    
+if not varexist jasePacky
+    @setvar! jasePacky 0
+endif
+
+if not varexist hasAnyPacky
+    @setvar! hasAnyPacky 0
+endif
+
+
+@setvar! forgeFound 0
+
+if not timerexists forgeCheckTimer 
+    settimer forgeCheckTimer cdAvoidForgeTimerStuck
+endif
+
+if tryAndSmeltEvenIfNotNearPlayerMadeForge = 1 and findtype "iron ore" backpack as jore
+    
+    if not timerexists tryAndSmeltEvenIfNotNearPlayerMadeForgeTimer 
+        settimer tryAndSmeltEvenIfNotNearPlayerMadeForgeTimer cdTryAndSmeltEvenIfNotNearPlayerMadeForge
+    endif
+
+    if timer tryAndSmeltEvenIfNotNearPlayerMadeForgeTimer >= cdTryAndSmeltEvenIfNotNearPlayerMadeForge
+        overhead "Checking for a natural forge..." 88
+        dclick jore
+        wait globalTimeout
+        if insysmsg "You do not see any nearby forges"
+            // do nothing
+        else
+            @setvar! forgeFound 1
+        endif
+        settimer tryAndSmeltEvenIfNotNearPlayerMadeForgeTimer 0
+    endif
+endif
+
+
+if findtype "forge" ground -1 -1 2 or findtype 0x0FB1 ground -1 -1 2 or forgeFound = 1
+    overhead "Automatically Smelting..." 88
+    @clearignore 
+    while findtype 291|292 ground -1 -1 2 as smeltPacky
+        if noto smeltPacky = "friend"
+            getlabel smeltPacky testPacky
+            if "[0/2000" in testPacky
+                // do nothing
+            else
+                dclick smeltPacky
+                wait globalTimeout
+                settimer forgeCheckTimer 0
+                while findtype "iron ore" smeltPacky as jore
+                    dclick jore
+                    wait globalTimeout
+                    if timer forgeCheckTimer >= cdAvoidForgeTimerStuck
+                        break
+                    endif
+                endwhile
+            endif
+        endif
+        @ignore smeltPacky
+    endwhile
+
+    settimer forgeCheckTimer 0
+    while findtype "iron ore" backpack as jore
+        dclick jore
+        wait globalTimeout
+        if timer forgeCheckTimer >= cdAvoidForgeTimerStuck
+            break
+        endif
+    endwhile
+    
+
+    if hideIngotsInRedPouch = 1 and findtype "pouch" backpack 38 as jouch
+        while findtype 7154 backpack as jingots
+            if find jingots jouch
+                // do nothing
+            else
+                lift jingots 60000
+                drop jouch -1 -1 -1
+                wait globalTimeout
+            endif
+            @ignore jingots
+        endwhile
+    endif
+    
+    @clearignore
+endif
+
+
+    
+if not dead jasePacky
+    @setvar! hasAnyPacky 1
+    getlabel jasePacky desc
+    if "[2000/2000" in desc or "[1999/2000" in desc or "[1998/2000" in desc or "[1997/2000" in desc or "[1996/2000" in desc or "[1995/2000" in desc or "[1994/2000" in desc or "[1993/2000" in desc or "[1992/2000" in desc or "[1991/2000" in desc or "[1990/2000" in desc or "[1989/2000" in desc or "[1988/2000" in desc or "[1987/2000" in desc or "[1986/2000" in desc or "[1985/2000" in desc or "[1984/2000" in desc or "[1983/2000" in desc or "[1982/2000" in desc or "[1981/2000" in desc or "[1980/2000" in desc or "[1979/2000" in desc or "[1978/2000" in desc or "[1977/2000" in desc or "[1976/2000" in desc or "[1975/2000" in desc or "[1974/2000" in desc or "[1973/2000" in desc or "[1972/2000" in desc or "[1971/2000" in desc or "[1970/2000" in desc or "[1969/2000" in desc or "[1968/2000" in desc or "[1967/2000" in desc or "[1966/2000" in desc or "[1965/2000" in desc or "[1964/2000" in desc or "[1963/2000" in desc or "[1962/2000" in desc or "[1961/2000" in desc or "[1960/2000" in desc
+        overhead "Our packy is full, ignoring this one and moving to next" 34
+        @ignore jasePacky
+        @setvar! jasePacky 0
+        replay
+    elseif counttype 6585 backpack >= oreCountToMove
+        overhead "Moving ore"
+        while findtype 6585 backpack as jore
+            lift jore oreCountToMove
+            drop jasePacky -1 -1 -1
+            wait globalTimeout
+        endwhile
+    endif
+elseif followers > 0
+    if findtype 291|292 ground -1 -1 10 as packy
+        if noto packy = "friend"
+            @setvar! jasePacky packy
+            replay
+        else
+            @ignore packy
+            replay
+        endif
+    elseif hasAnyPacky = 1
+        overhead "we have no more packies to load.. be sure to drop off!" 34
+        overhead "if you have already dropped off, clearignore"
+        wait globalTimeout
+    endif
+endif
+    
+
+if not varexist jaseMovement
+    @setvar! jaseMovement 0
+endif
+
+if not varexist jase_miner_runebook or not find jase_miner_runebook backpack
+    if counttype "runebook" backpack = 1 and counttype "runetome" backpack = 0 and findtype "runebook" backpack as myBook
+        overhead "Automatically selected your one runebook" 88
+        @setvar jase_miner_runebook myBook
+    elseif counttype "runebook" backpack = 0 and counttype "runetome" backpack = 1 and findtype "runetome" backpack as myBook
+        overhead "Automatically selected your one runetome" 88
+        @setvar jase_miner_runebook myBook
+    elseif counttype 7956 backpack = 1 and findtype 7956 backpack as myBook
+        overhead "Automatically selected your one rune" 88
+        @setvar jase_miner_runebook myBook
+    elseif counttype "runebook" backpack > 0 or counttype 7956 backpack > 0 or counttype "runetome" backpack > 0
+        overhead "Select your escape plan (runebook or runetome)" 88
+        @setvar jase_miner_runebook 
+    endif
+endif
+
+if not listexists "jase_miner_actions"
+    createlist "jase_miner_actions"
+endif
+
+
+if inlist "jase_miner_actions" "red_alert"
+    overhead "Red Alert!" 34
+    poplist "jase_miner_actions" "red_alert"
+    # You could also replace this magery bit with your ultimate recaller
+    # Ultimate Recall using Tome or Book as Escape (ALT-M)
+    # https://outlands.uorazorscripts.com/script/5b3fde97-fa90-4707-9f8e-7f56dca6792b
+    # hotkey "Play Script: UltimaRecaller"
+    if skill "Magery" >= 40
+        overhead 'Recalling...'
+        while not targetexists
+            if findtype 8012 backpack as item
+                dclick item
+            else
+                cast "Recall"
+            endif
+            wait minimumWaitForPing
+        endwhile
+        target jase_miner_runebook
+    elseif skill "Hiding" >= 40
+        useskill "Hiding"
+    endif
+    overhead "Stopping script..." 34
+    stop
+    # replay
+endif
+
+if skill "Tracking" > 0
+    if not findbuff "tracking"
+        clearsysmsg
+        while not gumpexists 4267467659
+            useskill 'tracking'
+            wait minimumWaitForPing
+        endwhile
+        if gumpexists 4267467659
+            while not insysmsg "You will now hunt all hostile players."
+                gumpresponse 8 4267467659
+                waitforgump 4267467659 5000
+            endwhile
+            gumpresponse 6 4267467659
+            wait minimumWaitForPing
+        endif
+        gumpclose 4267467659
+    endif
+endif
+
+clearsysmsg 
+
+if rhandempty ?? 0 
+    if findtype "pickaxe" backpack
+        dclicktype 'pickaxe' backpack
+        wait minimumWaitForPing
+    endif
+endif
+            
+if rhandempty ?? 0 
+    overhead "No more pickaxe!" 34
+    wait minimumWaitForPing
+    replay
+endif
+
+
+# Basic Heal to start bandage by Jaseowns
+# https://outlands.uorazorscripts.com/script/fd1c9331-fc25-4a89-8d75-3eba6a929247
+if skill "Healing" > 0
+    if findtype "clean bandage%s%" backpack as aids
+        if not bandaging and hp < maxhp
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+        elseif not bandaging and poisoned
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+        elseif not bandaging and findbuff "bleed"
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+        elseif not bandaging and findbuff "disease"
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+        endif
+    else
+        overhead "No bandages" 34
+    endif
+endif
+
+if diffweight <= 30
+    overhead "Too heavy... make sure to drop off ore (or find a pack horse)" 34
+    wait minimumWaitForPing   
+    replay
+endif
+
+overhead 'Mining' 0
+hotkey 'Use item in hand'
+wait minimumWaitForPing
+for 30
+    wait 250
+    if insysmsg "now tracking"
+        pushlist "jase_miner_actions" "red_alert"
+        replay
+    endif
+    if insysmsg 'world is saving'
+        for 30
+            overhead 'Waiting for world save...'
+            wait 1000
+            if insysmsg 'save complete'
+                overhead 'Save complete - continue on!' 88
+                replay
+            elseif insysmsg "now tracking"
+                pushlist "jase_miner_actions" "red_alert"
+                replay
+            endif
+        endfor
+    elseif rhandempty ?? 0 
+        overhead "Broke pickaxe" 34
+        replay
+    elseif insysmsg 'You do not see any'
+        if jaseMovement = 0
+            overhead 'Move to next spot' 88
+            // do nothing
+            wait minimumWaitForPing
+        elseif jaseMovement = 1
+            overhead 'Moving South' 88
+            walk 'South'
+            walk 'South'
+            walk 'South'
+        elseif jaseMovement = 2
+            overhead 'Moving Down' 88
+            walk 'Down'
+            walk 'Down'
+            walk 'Down'
+        elseif jaseMovement = 3
+            overhead 'Moving East' 88
+            walk 'East'
+            walk 'East'
+            walk 'East'
+        elseif jaseMovement = 4
+            overhead 'Moving Left' 88
+            walk 'Left'
+            walk 'Left'
+            walk 'Left'
+        elseif jaseMovement = 5
+            // do nothing
+        elseif jaseMovement = 6
+            overhead 'Moving Right' 88
+            walk 'Right'
+            walk 'Right'
+            walk 'Right'
+        elseif jaseMovement = 7
+            overhead 'Moving West' 88
+            walk 'West'
+            walk 'West'
+            walk 'West'
+        elseif jaseMovement = 8
+            overhead 'Moving Up' 88
+            walk 'Up'
+            walk 'Up'
+            walk 'Up'
+        elseif jaseMovement = 9
+            overhead 'Moving North' 88
+            walk 'North'
+            walk 'North'
+            walk 'North'
+        endif
+        replay
+    elseif insysmsg "harvesting is not allowed"
+        overhead 'Move out of town...' 66
+        wait 1000
+        replay
+    elseif insysmsg "travel"
+        overhead 'Waiting for travel...' 77
+        wait 1000
+        replay
+    else
+        if insysmsg "any harvestable"
+            // No Ore
+            overhead 'Move to next spot' 88
+            replay
+        elseif insysmsg "harvesting is not allowed"
+            // Not allowed
+            replay
+        elseif insysmsg "world is saving" or insysmsg 'World save complete'
+            // World Save
+            replay
+        elseif insysmsg "You loosen"
+            // Failed
+            replay
+        elseif insysmsg "You dig"
+            // Success
+            replay
+        elseif insysmsg "You must wait"
+            // Wait message
+            overhead 'You must wait..' 34
+            wait minimumWaitForPing
+            replay
+        endif
+    endif
+endfor
+
+if insysmsg "You must wait"
+    // Wait message
+    overhead 'You must wait..' 34
+    wait minimumWaitForPing
+    replay
+endif
+
+overhead 'Captcha break!' 34
+for 20
+    overhead 'Awaiting Captcha...' 34
+    wait 1000
+    if insysmsg 'Captcha successful'
+        overhead 'Success - continue on!' 88
+        wait 1000
+        replay
+    endif
+endfor
+overhead 'Stopping script' 34

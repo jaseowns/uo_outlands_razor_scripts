@@ -1,0 +1,302 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/b5e06bc3-47fa-49a5-b681-1b0e1e6536d2 for latest
+# Automation by Jaseowns
+## Script: One hotkey mage cycle (1)
+## Created by: Jaseowns#6694
+#############################################
+
+# One hotkey mage cycle by Jaseowns
+# UO Outlands - WIP
+##################
+############
+#########
+#####
+# Check out https://outlands.uorazorscripts.com/script/25b38218-28e5-43d1-b9e1-01de484da5ce for latest
+##################
+############
+#########
+#######################
+############
+#########
+#######################
+############
+#########
+#######################
+############
+#########
+#######################
+############
+#########
+#####
+
+// Beta client for cooldowns
+// cooldowns for mushrooms, mana vampire and healpots
+// for now using timers
+
+# Update this variable to 1 for ALL KILL
+# Update this variable to 0 for target nearest
+@setvar! setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster 0
+
+
+@setvar! cdLightning 40000
+@setvar! cdMagicArrow 20000
+@setvar! cdHarm 40000
+@setvar! cdFireball 60000
+@setvar! cdEvilOmen 30000
+@setvar! cdVampiricEmbrace 30000
+@setvar! cdMushroom 60000
+
+if not timerexists magicMushroomTimer
+    createtimer magicMushroomTimer
+    settimer magicMushroomTimer cdMushroom
+endif
+
+if not timerexists magicArrowTimer
+    createtimer magicArrowTimer
+    settimer magicArrowTimer cdMagicArrow
+endif
+
+if not timerexists lightningTimer
+    createtimer lightningTimer
+    settimer lightningTimer cdLightning
+endif
+
+if not timerexists harmTimer
+    createtimer harmTimer
+    settimer harmTimer cdHarm
+endif
+
+if not timerexists fireballTimer
+    createtimer fireballTimer
+    settimer fireballTimer cdFireball
+endif
+
+if not timerexists evilOmenTimer
+    createtimer evilOmenTimer
+    settimer evilOmenTimer cdEvilOmen
+endif
+
+if not timerexists vampiricEmbraceTimer
+    createtimer vampiricEmbraceTimer
+    settimer vampiricEmbraceTimer cdVampiricEmbrace
+endif
+
+if setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster = 1
+    say "all kill"
+    wait 200
+    while targetexists 
+        // wait
+        wait 50
+    endwhile
+else
+    hotkey 'Target Closest Non-Friendly Monster'
+    wait 200
+    if insysmsg "No one matching that was found"
+        overhead "found no one" 34
+        stop
+    endif    
+endif
+
+@setvar myKillTarget lasttarget 
+
+if not varexist myPreviousKillTarget
+    @setvar myPreviousKillTarget 0     
+endif
+
+getlabel myKillTarget desc
+overhead desc
+
+if not varexist myEarthPet or dead myEarthPet
+    overhead "Your pet is dead, demonic summon time" 34
+else
+    menu myEarthPet 1
+    wft 500
+    target myKillTarget
+endif
+
+if find myKillTarget -1 -1 12 as killy
+   // do nothing
+else
+    overhead "Out of range" 34
+    stop
+endif
+
+if myKillTarget = myPreviousKillTarget
+    // do nthoing
+else
+    
+    while not targetexists and not dead myKillTarget
+        cast 'Curse'
+        wait 50
+        if diffhits >= 30 
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    target myKillTarget
+    wait 500
+
+
+    while not targetexists and not dead myKillTarget
+        cast 'mana drain'
+        wait 50
+        if diffhits >= 30 
+            hotkey '> Interrupt'
+            break
+        endif
+    endwhile
+    target myKillTarget
+    wait 500
+
+    @setvar myPreviousKillTarget myKillTarget
+
+endif
+
+if timer evilOmenTimer >= cdEvilOmen
+    say "[EvilOmen"
+    settimer evilOmenTimer 0
+    wait 500
+endif
+
+clearsysmsg 
+
+say "all guard"
+
+while not dead myKillTarget
+    
+    if timer vampiricEmbraceTimer >= cdVampiricEmbrace and findtype 8198 ground -1 -1 4 as jorpse
+        say "[VampiricEmbrace"
+        wft 500
+        target jorpse
+        settimer vampiricEmbraceTimer 0
+    endif
+   
+    if find myKillTarget -1 -1 12 as killy
+       // do nothing
+    else
+        overhead "Out of range" 34
+        break
+    endif
+    
+    if diffhits < 30 and mana > 12 and timer lightningTimer >= cdLightning
+        while not targetexists or diffhits >= 30 
+            cast 'Lightning'
+            wait 50
+            if dead myKillTarget
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target myKillTarget
+        settimer lightningTimer 0
+        wait 500
+    endif
+
+    if diffhits < 30 and mana > 10 and timer magicArrowTimer >= cdMagicArrow
+        while not targetexists or diffhits >= 30 
+            cast 'magic arrow'
+            wait 50
+            if dead myKillTarget
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target myKillTarget
+        settimer magicArrowTimer 0
+        wait 500
+    endif
+
+    if diffhits < 30 and mana > 12 and timer harmTimer >= cdHarm
+        while not targetexists
+            cast 'harm'
+            wait 50
+            if dead myKillTarget or diffhits >= 30 
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target myKillTarget
+        settimer harmTimer 0
+        wait 500
+    endif
+
+    if diffhits < 30 and mana > 12 and timer fireballTimer >= cdFireball
+        while not targetexists
+            cast 'fireball'
+            wait 50
+            if dead myKillTarget or diffhits >= 30 
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target myKillTarget
+        settimer fireballTimer 0
+        wait 500
+    endif
+
+    if diffhits >= 30 and mana > 12
+        while not targetexists
+            if diffhits >= 60
+                cast 'Heal'
+            else
+                cast 'Greater Heal'                
+            endif
+            wait 50
+            if hp = maxhp
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target self
+    elseif mana < 55 and findbuff "actively meditating" 
+        // wait for mana
+    elseif mana > 40
+        while not targetexists and mana > 40
+            cast 'Flamestrike'
+            wait 50
+            if dead myKillTarget or diffhits >= 30
+                hotkey '> Interrupt'
+                break
+            endif
+        endwhile
+        target myKillTarget
+    elseif not findbuff "actively meditating" and timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as mushy
+        dclick mushy
+        settimer magicMushroomTimer 0
+    elseif not findbuff "actively meditating" 
+        useskill 'meditation'
+        wait 500
+    endif
+    wait 50
+endwhile
+wait 500
+if targetexists 
+    hotkey 'Cancel Current Target'
+endif
+say "all guard me"
+if counttype "mushroom" backpack < 5
+    while counttype "mushroom" backpack < 15
+        cast "Create Food"
+        wait 200
+    endwhile
+endif
+while mana < 50
+    if not findbuff "actively meditating" 
+        useskill 'meditation'
+    endif
+    wait 500
+endwhile
+if timer vampiricEmbraceTimer >= cdVampiricEmbrace and findtype 8198 ground -1 -1 4 as jorpse
+    say "[VampiricEmbrace"
+    wft 500
+    target jorpse
+    settimer vampiricEmbraceTimer 0
+endif
+   
+
+
+// curse
+// mana drain
+// magic arrrow
+// harm
+// fireball
+// lightening

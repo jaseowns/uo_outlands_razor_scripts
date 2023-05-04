@@ -1,0 +1,208 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/d99e0dbe-170f-43b3-9a1a-4de4a9d548ef for latest
+# Automation by Jaseowns
+## Script: Provocation Hotkey
+## Created by: Nevor#9051
+#############################################
+
+//-----   MANUAL SETUP      ----//
+
+//You can prevent Razor spamming system messages by using filters
+//It is not mandatory, but highly recommended to use them
+//Go to 'Filters' tab in Razor menu -> Text & Messages -> Check Enable text filter -> Click Add
+//Make sure to check 'Filter system messages', but do not check 'Ignore filtered messages in overhead and scripts'
+//Create the following text filters:
+// target set
+// Target a new
+// No one matching that was found on your screen
+
+//This variable determines the search radius for barding targets, change at your own risk (not tested)
+@setvar! bardingTargetSearchRadius 8
+//Amount of time to wait for the server to respond with system messages (adjust according to ping if necessary)
+@setvar! forServerResponse 300
+
+//-----   AUTO SETUP      ----//
+
+if not timerexists ProvoTimer
+    createtimer! ProvoTimer
+    settimer ProvoTimer 10500
+elseif timer ProvoTimer <= 10500
+    overhead '[SKILL COOLDOWN]' 43
+    stop
+endif
+
+@setvar! firstProvocationTarget 1
+@setvar! secondProvocationTarget 3
+@setvar! needToBard 3
+@setvar! previousLastTarget 7
+
+//----    CLEANING UP    ----//
+
+clearsysmsg
+if targetexists
+    if targetexists 'beneficial'
+        target self
+        wait 50
+    else
+        hotkey 'Cancel Current Target'
+        wait 50
+    endif
+endif
+
+//----    INSTRUMENT CHECK    ----//
+
+if not varexist myInstrument or not find myInstrument backpack
+//lute 3763, drum 3740, lap harp 3762, tambourine 3742, bamboo flute 10245
+    while findtype 3740|3742|3762|3763|10245 backpack as instrucheck
+        getlabel instrucheck instrulabel
+        wait forServerResponse
+        if 'supremely' in instrulabel
+            @setvar myInstrument instrucheck
+            overhead 'New supreme instrument set'
+            wait forServerResponse
+            dclick myInstrument
+            break
+        elseif 'exceedingly' in instrulabel
+            @setvar myInstrument instrucheck
+            overhead 'New exceeding instrument set'
+            wait forServerResponse
+            dclick myInstrument
+            break
+        else
+            @ignore instrucheck
+        endif
+    endwhile
+    @clearignore
+    if not varexist myInstrument or not find myInstrument backpack
+        overhead "Instrument not found. Set a new one!"
+        @setvar myInstrument
+        wait forServerResponse
+        dclick myInstrument
+    endif
+    if not varexist myInstrument or not find myInstrument backpack
+        for 3
+            overhead '** NO INSTRUMENT **' 33
+        endfor
+        stop
+    endif
+endif
+
+//----    TARGET SEARCH      ----//
+
+@setvar! preScriptLastTarget lasttarget    
+if find preScriptLastTarget ground -1 -1 bardingTargetSearchRadius
+    if noto preScriptLastTarget = 'hostile' or noto preScriptLastTarget = 'criminal'
+        @setvar! previousLastTarget preScriptLastTarget
+    endif
+endif
+if previousLastTarget != preScriptLastTarget
+    hotkey 'Target Closest Non-Friendly Monster'
+    @setvar! previousLastTarget lasttarget
+endif
+@setvar! checkLastTarget previousLastTarget
+
+while not dead previousLastTarget
+    if find checkLastTarget ground -1 -1 bardingTargetSearchRadius
+        getlabel checkLastTarget BardingStatusCheck
+        if 'break' in BardingStatusCheck
+            //do nothing
+        elseif 'pacified' in BardingStatusCheck or 'provoked' in BardingStatusCheck
+            if find checkLastTarget ground -1 -1 bardingTargetSearchRadius and checkLastTarget != firstProvocationTarget and checkLastTarget != secondProvocationTarget
+                @setvar! possibleProvoTarget checkLastTarget
+            endif
+        else
+            if not find firstProvocationTarget ground -1 -1 bardingTargetSearchRadius and find checkLastTarget ground -1 -1 bardingTargetSearchRadius and checkLastTarget != secondProvocationTarget
+                @setvar! firstProvocationTarget checkLastTarget
+            endif
+            if not find secondProvocationTarget ground -1 -1 bardingTargetSearchRadius and find checkLastTarget ground -1 -1 bardingTargetSearchRadius and checkLastTarget != firstProvocationTarget
+                @setvar! secondProvocationTarget checkLastTarget
+            endif
+        endif
+    endif
+    if not dead firstProvocationTarget and not dead secondProvocationTarget
+        @setvar! needToBard 1
+        break
+    elseif index > 0 and checkLastTarget = previousLastTarget
+        if dead firstProvocationTarget and not dead possibleProvoTarget and possibleProvoTarget != secondProvocationTarget
+            @setvar! firstProvocationTarget possibleProvoTarget
+        elseif dead secondProvocationTarget and not dead possibleProvoTarget and possibleProvoTarget != firstProvocationTarget
+            @setvar! secondProvocationTarget possibleProvoTarget
+        endif
+        @setvar! possibleProvoTarget 0
+        if find firstProvocationTarget ground -1 -1 bardingTargetSearchRadius and find secondProvocationTarget ground -1 -1 bardingTargetSearchRadius
+            @setvar! needToBard 1
+        endif
+        break
+    endif
+    hotkey 'Next Non-Friendly Monster Target'
+    @setvar! checkLastTarget lasttarget
+endwhile
+
+//----    BARDING      ----//
+    
+if needToBard = 1
+    hotkey 'Provocation'
+    wft 3000
+    target firstProvocationTarget
+    wait forServerResponse
+    if insysmsg 'Target cannot be seen'
+        overhead "¼ Not visible ¼" 43 firstProvocationTarget
+    elseif insysmsg 'That is too far away.'
+        overhead '¼ Too far away ¼' 43 firstProvocationTarget
+    else
+        wft 3000
+        target secondProvocationTarget
+        wait forServerResponse
+        if insysmsg 'You play successfully, provoking'
+            overhead '[PROVO SUCCESS]'
+            overhead '¼ Provoked ¼' 88 firstProvocationTarget
+            overhead '¼ Provoked ¼' 88 secondProvocationTarget
+            settimer ProvoTimer 0
+        elseif insysmsg 'You fail to incite'
+            overhead '[PROVO FAIL]' 43
+            overhead '¼ Failed ¼' 43 firstProvocationTarget
+            overhead '¼ Failed ¼' 43 secondProvocationTarget
+            settimer ProvoTimer 5000
+        elseif insysmsg 'Target cannot be seen'
+            overhead "¼ Not visible ¼" 43 secondProvocationTarget
+        elseif insysmsg 'That is too far away.'
+            overhead '¼ Too far away ¼' 43 secondProvocationTarget
+        elseif insysmsg 'The creatures you are trying to provoke are too far away from each other for your music to have an effect.'
+            overhead '¼ Too far apart ¼' 43 firstProvocationTarget
+            overhead '¼ Too far apart ¼' 43 secondProvocationTarget
+        elseif insysmsg 'tell someone to attack themselves!'
+            //Oops, that should not be possible to happen
+            overhead '[SELF TARGETING FAIL]' 33
+        else
+            //maybe the server could not respond with a sysmsg in time - adjust forServerResponse variable in setup to a higher value
+            overhead '[UNEXPECTED PROVO RESULT]' 33
+            settimer ProvoTimer 5000
+        endif
+    endif
+else
+    overhead '[NO TARGETS]' 43
+endif
+
+//----    INSTRUMENT CHECK      ----//
+
+getlabel myInstrument InstruLabel
+if '(10/' in InstruLabel
+    overhead '10 Songs left to play' 33
+elseif '(3/' in InstruLabel
+    overhead '* 3 Songs left to play *' 33
+elseif '(2/' in InstruLabel
+    overhead '** 2 Songs left to play **' 33
+elseif '(1/' in InstruLabel
+    for 3
+        overhead '*** LAST SONG ***' 33
+    endfor
+endif
+
+//----    CLEANING UP    ----//
+
+hotkey 'Set Last Target'
+wft 3000
+target preScriptLastTarget
+
+if targetexists 
+    hotkey 'Cancel Current Target'
+endif

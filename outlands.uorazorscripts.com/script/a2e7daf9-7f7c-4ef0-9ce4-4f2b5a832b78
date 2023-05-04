@@ -1,0 +1,265 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/a2e7daf9-7f7c-4ef0-9ce4-4f2b5a832b78 for latest
+# Automation by Jaseowns
+## Script: All Maps Decoded from ALL Tomes
+## Created by: Jaseowns#6694
+#############################################
+
+# Map decoder from ALL Tomes by Jaseowns
+# UO Outlands
+# Requirements:
+#   50 or more cartography skill
+#   have multiple spyglass
+#   tmap tome on ground or in base level box
+#   if your tome is in a box, >info on that box and set it on line 15
+#           j_restock_undecoded_maps 0x411EDE22    <--- replace w/ your id
+#   UPDATED 2/17/2023: add ability to choose tome preference
+if skill "Cartography" < 50
+    overhead "Not on the right character..." 34
+    stop
+endif
+
+@setvar! j_restock_undecoded_maps 0x411EDE22
+
+if not varexist myTmapTome
+    @setvar! myTmapTome 0
+endif
+
+if not varexist tomeGumpReponseCheck
+    @setvar! tomeGumpReponseCheck 10
+endif
+
+##########
+## Map Override - set as 0 if you want to skip
+##  If you change these, restart your client or uncomment
+##  line 29 and 30, run the script and then recomment those lines out
+// unsetvar myTmapTome
+// stop
+#####
+@setvar! searchForTreasureMaps 1
+@setvar! searchForFishingMaps 1
+@setvar! searchForSkinningMaps 1
+@setvar! searchForOreMaps 1
+@setvar! searchForLumberMaps 1
+
+while not find myTmapTome ground and not find myTmapTome j_restock_undecoded_maps
+    overhead "checking tome.."
+    // treasure maps
+    if searchForTreasureMaps = 1 and findtype 29104 ground 2990 -1 2 as found
+        // found on ground
+        @setvar! myTmapTome found
+    elseif searchForTreasureMaps = 1 and findtype 29104 j_restock_undecoded_maps 2990 as found
+        // found somewhere else
+        @setvar! myTmapTome found
+    // lumber maps
+    elseif searchForLumberMaps = 1 and findtype 29104 ground 2799 -1 2 as found
+        // found on ground
+        @setvar! myTmapTome found
+    elseif searchForLumberMaps = 1 and findtype 29104 j_restock_undecoded_maps 2799 as found
+        // found somewhere else
+        @setvar! myTmapTome found
+    // ore maps
+    elseif searchForOreMaps = 1 and findtype 29104 ground 2796 -1 2 as found
+        // found on ground
+        @setvar! myTmapTome found
+    elseif searchForOreMaps = 1 and findtype 29104 j_restock_undecoded_maps 2796 as found
+        // found somewhere else
+        @setvar! myTmapTome found
+    // skinning maps
+    elseif searchForSkinningMaps = 1 and findtype "book" ground 2651 -1 2 as found
+        // found on ground
+        @setvar! myTmapTome found
+    elseif searchForSkinningMaps = 1 and findtype "book" j_restock_undecoded_maps 2651 as found
+        // found somewhere else
+        @setvar! myTmapTome found
+    // Fishing maps
+    elseif searchForFishingMaps = 1 and findtype 29104 ground 2722 -1 2 as found
+        // found on ground
+        @setvar! myTmapTome found
+    elseif searchForFishingMaps = 1 and findtype 29104 j_restock_undecoded_maps 2722 as found
+        // found somewhere else
+        @setvar! myTmapTome found
+    else
+        @setvar! myTmapTome 1
+        break
+    endif
+    wait 200
+endwhile
+
+if not findtype "spyglass" backpack
+    overhead "Need spyglass" 34
+    wait 2500
+    replay
+endif
+
+if myTmapTome = 0
+    overhead "No tome found!" 34
+    overhead "Make sure to >info on your chest and set j_restock_undecoded_maps (line 14)" 88
+    wait 5000
+    replay
+elseif myTmapTome = 1
+    @clearignore     
+    overhead "No more tomes found..." 34
+    overhead "clearing cache and replaying in 5 seconds" 88
+    wait 5000
+    replay
+endif
+
+getlabel myTmapTome myTomeDesc
+
+if "treasure" in myTomeDesc
+    @setvar! tomeGumpReponseId 1863945839
+elseif "fishing" in myTomeDesc
+    @setvar! tomeGumpReponseId 3448468591
+elseif "lumber" in myTomeDesc
+    @setvar! tomeGumpReponseId 3576069391
+elseif "ore" in myTomeDesc
+    @setvar! tomeGumpReponseId 1667380559
+elseif "skin" in myTomeDesc
+    @setvar! tomeGumpReponseId 4027121519
+else
+    overhead "Unknown gump for tome.. check again?" 34
+    wait 5000
+    replay
+endif
+
+
+// Only pull a map if we do not have one
+if not findtype "map" backpack
+    while not gumpexists tomeGumpReponseId
+        dclick myTmapTome    
+        wait 200
+    endwhile
+    gumpresponse tomeGumpReponseCheck tomeGumpReponseId
+    wait 200
+    if findtype "map" backpack
+        if tomeGumpReponseCheck = 10
+            overhead "Grabbed level 1" 88
+        elseif tomeGumpReponseCheck = 11
+            overhead "Grabbed level 2" 88
+        elseif tomeGumpReponseCheck = 12
+            overhead "Grabbed level 3" 88
+        elseif tomeGumpReponseCheck = 13
+            overhead "Grabbed level 4" 88
+        elseif tomeGumpReponseCheck = 14
+            overhead "Grabbed level 5" 88
+        elseif tomeGumpReponseCheck = 15
+            overhead "Grabbed level 6" 88
+        elseif tomeGumpReponseCheck = 16
+            overhead "Grabbed level 7" 88
+        else
+            overhead "Grabbed a map!"
+        endif
+    endif
+endif
+
+// We found one
+if findtype "map" backpack as my_map
+
+    # Close map gump
+    // ore
+    gumpclose 3367641484
+    // skinning
+    gumpclose 3473029237
+    // lumber
+    gumpclose 1332805401
+    // treasure
+    gumpclose 1520869851
+    // fishing
+    gumpclose 2589357942
+    
+    getlabel my_map desc
+    wait 200
+    
+    if findtype "spyglass" backpack as item
+        dclick item
+        wft 1500
+        target my_map
+    endif
+
+    
+    @setvar! gumpIdToCheck 0
+    
+    if "ore" in desc
+        @setvar! gumpIdToCheck 3367641484
+    elseif "skinning" in desc
+        @setvar! gumpIdToCheck 3473029237
+    elseif "lumber" in desc
+        @setvar! gumpIdToCheck 1332805401
+    elseif "treasure" in desc
+        @setvar! gumpIdToCheck 1520869851
+    elseif "fishing" in desc
+        @setvar! gumpIdToCheck 2589357942
+    else
+       overhead "Unknown gump!" 34
+       replay
+    endif
+    
+    waitforgump gumpIdToCheck 1000
+    
+    if "[100.0%" in desc or "(100.0%" in desc
+        menu myTmapTome 0
+        wait 650
+    else
+        overhead "Updating..."
+        clearsysmsg 
+        while gumpexists gumpIdToCheck
+            gumpresponse 4 gumpIdToCheck
+            wait 2000
+            getlabel my_map desc2
+            wait 200
+            if "[100.0%" in desc2 or "(100.0%" in desc2
+                menu myTmapTome 0
+                gumpclose gumpIdToCheck
+                wait 650
+                replay
+            elseif insysmsg "maximum accuracy"
+                gumpclose gumpIdToCheck
+                replay
+            elseif not findtype "spyglass" backpack
+                overhead "spyglass broke!" 34
+                replay
+            endif
+        endwhile
+    endif
+    
+    wait 200
+    replay
+elseif tomeGumpReponseCheck = 10
+    overhead "No level 1 found" 34
+    @setvar! tomeGumpReponseCheck 11
+    replay
+elseif tomeGumpReponseCheck = 11
+    overhead "No level 2 found" 34
+    @setvar! tomeGumpReponseCheck 12
+    replay
+elseif tomeGumpReponseCheck = 12
+    overhead "No level 3 found" 34
+    @setvar! tomeGumpReponseCheck 13
+    replay
+elseif tomeGumpReponseCheck = 13
+    overhead "No level 4 found" 34
+    @setvar! tomeGumpReponseCheck 14
+    replay
+elseif tomeGumpReponseCheck = 14
+    overhead "No level 5 found" 34
+    @setvar! tomeGumpReponseCheck 15
+    replay
+elseif tomeGumpReponseCheck = 15
+    overhead "No level 6 found" 34
+    @setvar! tomeGumpReponseCheck 16
+    replay
+elseif tomeGumpReponseCheck = 16
+    overhead "No level 7 found" 34
+    @setvar! tomeGumpReponseCheck 17
+    replay
+elseif tomeGumpReponseCheck = 17
+    overhead "No level 8 found" 34
+    @setvar! tomeGumpReponseCheck 18
+    replay
+elseif tomeGumpReponseCheck = 18
+    @setvar! tomeGumpReponseCheck 10
+    gumpclose tomeGumpReponseId
+    @ignore myTmapTome
+    overhead "Ignoring this tome, moving on to the next" 88
+    replay
+endif

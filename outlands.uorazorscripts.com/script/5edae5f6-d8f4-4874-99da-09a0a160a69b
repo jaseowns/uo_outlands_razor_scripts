@@ -1,0 +1,113 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/5edae5f6-d8f4-4874-99da-09a0a160a69b for latest
+# Automation by Jaseowns
+## Script: Tmap decoder (all map types handled)
+## Created by: Jaseowns#6694
+#############################################
+
+# All types of map decoder by Jaseowns
+# UO Outlands
+# Requirements: 
+#   have a spyglass (can also put spyglasses in maps to decode bag)
+#   selecting a bag with maps to decode
+#   selecting a bag or tome where maps should go when done
+if not varexist "j_restock_undecoded_maps"
+    overhead "Select a bag with undecoded maps" 88
+    setvar j_restock_undecoded_maps
+endif
+
+if not varexist "j_organize_decoded_maps"
+    overhead "Select a bag where decoded maps go" 88
+    setvar j_organize_decoded_maps
+endif
+
+if not findtype "spyglass" backpack
+    if findtype "spyglass" j_restock_undecoded_maps as item
+        overhead "Grabbing spyglass" 34
+        lift item
+        drop backpack -1 -1 -1
+        wait 650
+    else
+        overhead "Need spyglass" 34
+        wait 5000        
+    endif
+    replay
+endif
+
+
+if not findtype "map" backpack
+    dclick j_restock_undecoded_maps
+    wait 200
+    overhead "Restock Map" 88
+    if findtype "map" j_restock_undecoded_maps as map
+        lift map
+        drop backpack -1 -1 -1
+        wait 650
+    endif
+endif
+
+# Close map gump
+// ore
+gumpclose 3367641484
+// skinning
+gumpclose 3473029237
+// lumber
+gumpclose 1332805401
+// treasure
+gumpclose 1520869851
+// fishing
+gumpclose 2589357942
+
+
+if findtype "map" backpack as my_map
+    getlabel my_map desc
+    overhead desc
+    
+    dclicktype "spyglass" backpack
+    wft 1500
+    target my_map
+    
+    @setvar! gumpIdToCheck 0
+    
+    if "ore" in desc
+        @setvar! gumpIdToCheck 3367641484
+    elseif "skinning" in desc
+        @setvar! gumpIdToCheck 3473029237
+    elseif "lumber" in desc
+        @setvar! gumpIdToCheck 1332805401
+    elseif "treasure" in desc
+        @setvar! gumpIdToCheck 1520869851
+    elseif "fishing" in desc
+        @setvar! gumpIdToCheck 2589357942
+    else
+       overhead "Unknown gump!" 34
+    endif
+    
+    waitforgump gumpIdToCheck 1000
+    
+    if "[100.0%" in desc or "(100.0%" in desc
+        dclick j_organize_decoded_maps
+        wait 200
+        overhead "Moving map..." 88
+        lift my_map
+        drop j_organize_decoded_maps -1 -1 -1
+        wait 650
+    else
+        overhead "Updating..."
+        clearsysmsg 
+        while gumpexists gumpIdToCheck
+            gumpresponse 4 gumpIdToCheck
+            wait 500
+            if insysmsg "maximum accuracy"
+                gumpclose gumpIdToCheck
+                replay
+            endif
+        endwhile
+    endif
+    
+    wait 200
+    replay
+else
+    overhead "Out of maps!" 34
+    wait 5000
+    replay
+endif

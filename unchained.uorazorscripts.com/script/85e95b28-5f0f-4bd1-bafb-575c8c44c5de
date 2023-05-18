@@ -20,7 +20,7 @@ endif
 if name = "JaseLumber"
     @setvar! giantBeetleFriend 0x7224
 else
-    @setvar! giantBeetleFriend 0
+    @setvar! giantBeetleFriend 1
 endif
 
 if diffweight < 5 or weight > maxweight
@@ -30,7 +30,7 @@ if diffweight < 5 or weight > maxweight
         overhead "Read the instructions or set giantBeetleFriend to 0 " 34
         sysmsg "Read the instructions or set giantBeetleFriend to 0" 66
         sysmsg ">info and copy serial here  (click the blue box)" 88
-        
+        stop
     elseif giantBeetleFriend = 0
         // do nothing
     else
@@ -86,7 +86,7 @@ endif
 overhead "Mining"
 // -1,0  -2,-1  0,1  2,0  -1,-1  1,0
 for 4
-    overhead "Main Direction {{index}}" 77
+    //overhead "Main Direction {{index}}" 77
     @setvar! foundOre 1
     if index = 0
         @setvar! jaseCheck 0
@@ -97,11 +97,21 @@ for 4
     elseif index = 3
         @setvar! jaseCheck 3
     endif
-    overhead "jaseCheck {{jaseCheck}}"
+    //overhead "jaseCheck {{jaseCheck}}"
     while foundOre = 1
-        overhead "Use item in hand"
-        hotkey "Use item in hand"
+        //overhead "Use item in hand"
+    
+        if rhandempty and findtype "pickaxe" backpack as item
+            lift item
+            drop self Righthand
+            wait 650
+            hotkey "Use item in hand"
+        elseif findtype "shovel" backpack as item
+            dclick item
+        endif
+        
         wft 5000
+
         if jaseCheck = 0
             overhead "Target 0"
             targetrelloc -1 0
@@ -110,24 +120,28 @@ for 4
             targetrelloc 0 -1
         elseif jaseCheck = 2
             overhead "Target 2"
-            targetrelloc 1 -1
+            targetrelloc 0 1
         elseif jaseCheck = 3
             overhead "Target 3"
-            targetrelloc -1 1
+            targetrelloc 1 0
         endif
 
         @setvar! captchaCheck 1
         while captchaCheck = 1
             wait 100
-            if rhandempty and not findtype "shovel" backpack
+            if diffweight < 5 or weight > maxweight
                 replay
             endif
-            if insysmsg "t mine th"
-                overhead "Out!" 34
+            if insysmsg "t mine th" or insysmsg "cannot be seen"
                 wait 500
                 @setvar! foundOre 0
                 @setvar! captchaCheck 0
             elseif insysmsg "you loosen" or insysmsg "dig some"
+                @setvar! foundOre 1
+                @setvar! captchaCheck 0
+            elseif insysmsg "no metal"
+                overhead "Move to new spot" 88
+                wait 1000
                 @setvar! foundOre 1
                 @setvar! captchaCheck 0
             elseif insysmsg "Your backpack is full, so the ore you mined is lost."

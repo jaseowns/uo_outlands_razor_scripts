@@ -1,0 +1,170 @@
+# This is an automated backup - check out https://unchained.uorazorscripts.com/script/d136f0a0-0a45-48ca-afdc-1d1c52a857cc for latest
+# Automation by Jaseowns
+## Script: Unchained Dexxer Bot V2.0 
+## Created by: Jaseowns#6694
+#############################################
+
+########## Unchained Dexxer Bot V2.0 by KikRox268##########
+############### Contributions: JaseOwns ###################
+
+//targets closest enemy, buffs you w/ pots if needed, cures poison and uses heal pots when needed, applied bandages once taken damage//
+
+###################################################
+########## Setup Variables ##########
+###################################################
+@setvar! displayOverheadPotions 0
+@setvar! cdHealing 10000
+
+if not timerexists healingTimer
+    settimer 'healingTimer' cdHealing
+endif
+
+clearsysmsg 
+
+while not dead
+        
+
+
+    ##############################################
+    ########## Bandage Loop by JaseOwns ##########
+    ##############################################
+
+ 
+
+    if skill "Healing" > 0
+            
+        @setvar! cdAids 15000
+        if dex >= 100
+            @setvar! cdAids 7000    
+        endif
+
+        if not timerexists aidsTimer
+            createtimer aidsTimer
+            settimer aidsTimer cdAids
+        endif
+
+        if findtype "clean bandage%s%" backpack
+            
+            // ready to bandage if needed
+            if timer aidsTimer >= cdAids 
+                if hp < maxhp or poisoned 
+                    hotkey 'Bandage Self'
+                    wait 200
+                    if insysmsg "You begin applying the bandages."
+                        settimer aidsTimer 0
+                    endif
+                endif
+            endif
+            
+            // handle dex changes
+            if timer aidsTimer <= cdAids 
+                if insysmsg "You apply the bandages, but they barely help." or insysmsg "You finish applying the bandages."
+                    settimer aidsTimer cdAids
+                endif
+            endif
+
+        else
+            overhead "No bandages" 34
+        endif
+        wait 200
+    endif
+    
+
+    ###################################################
+    ########## Targeting Script by KikRox268 ##########
+    ###################################################
+
+    hotkey 'Target Closest Non-Friendly'
+    wait 200
+    if insysmsg "No one matching that was found on your screen."
+        overhead "«« No Target Found »»" 69
+        wait 200
+        replay
+    else
+        setvar! myTarget lasttarget
+        overhead "««« Target »»»" 69
+    endif
+        
+    attack lasttarget
+
+    ##################################################
+    ########## Potion Use Loop by KikRox268 ##########
+    ##################################################
+
+    
+    if timer healingTimer >= cdHealing and findtype "yellow potion" backpack and hp <= 45
+        hotkey 'Arm/Disarm Left Hand'
+        wait 500
+        potion 'heal'
+        settimer 'healingTimer' 0
+        cooldown 'Healing' 10 0 'ArchProtection'
+        overhead "Heal Pot Used!" 88
+        wait 500
+        hotkey 'Arm/Disarm Left Hand'
+    endif
+
+    if not findtype "yellow potion" backpack and displayOverheadPotions = 1
+        overhead "No Heal Pots!" 45
+    endif
+
+    if findtype "orange potion" backpack and poisoned
+        hotkey 'Arm/Disarm Left Hand'
+        wait 500
+        potion 'cure'
+        overhead "Cure Pot Used!" 88
+        wait 500
+        hotkey 'Arm/Disarm Left Hand'
+    endif
+
+    if not findtype "orange potion" backpack and displayOverheadPotions = 1
+        overhead "No Cure Pots!" 45
+    endif
+
+    if findtype "white potion" backpack and not findbuff 'Strength'
+        hotkey 'Arm/Disarm Left Hand'
+        wait 500
+        potion 'str'
+        overhead "Str Pot Used!" 88
+        wait 500
+        hotkey 'Arm/Disarm Left Hand'
+    endif
+
+    if not findtype "white potion" backpack and displayOverheadPotions = 1
+        overhead "No Str Pots!" 45
+    endif
+
+    if findtype "blue potion" backpack and not findbuff 'Agility'
+        hotkey 'Arm/Disarm Left Hand'
+        wait 500
+        potion 'agility'
+        overhead "Agi Pot Used!" 88
+        wait 500
+        hotkey 'Arm/Disarm Left Hand'
+    endif
+
+    if not findtype "blue potion" backpack and displayOverheadPotions = 1
+        overhead "No Agi Pots!" 45
+    endif
+
+    if findtype "red potion" backpack and diffstam > 20
+        hotkey 'Arm/Disarm Left Hand'
+        wait 500
+        potion 'refresh'
+        overhead "Refresh Pot Used!" 88
+        wait 500
+        hotkey 'Arm/Disarm Left Hand'
+    endif
+
+    if not findtype "red potion" backpack and displayOverheadPotions = 1
+        overhead "No Stm Pots!" 45
+    endif
+
+
+
+endwhile
+
+while dead
+    overhead "We dead bro" 34
+    wait 1000
+endwhile
+

@@ -1,0 +1,183 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/9fb827a9-137f-4fc1-91ce-22dc5929384b for latest
+# Automation by Jaseowns
+## Script: Mugger Bot 
+## Created by: Jaseowns#6694
+#############################################
+
+# Mugger Bot by Jaseowns
+# UO Outlands
+# WIP
+// find a target 
+ // in game, client macro to attack nearest
+ // in razor
+
+// need to be in range to mug/backstab
+// but need to be hidden
+// and stealthed
+
+// attack with 2hander, then 2 swings with 1hander
+// re-hide
+  // ^ smoke bomb
+  // ^ shadow aspect proc
+  // ^ los/ hiding out of range
+clearsysmsg 
+@setvar! stealthIsOn 0
+@setvar! fightingSomething 0
+@setvar! myKillTarget 0
+@setvar! helperTextCooldown 2000
+@setvar! helperHideCooldown 1000
+@setvar! automaticallySkinCorpses 1
+
+@setvar! cdSkinningCheck 3000
+@setvar! minimumWaitForPing 200
+
+if not timerexists helperTextTimer
+    settimer helperTextTimer helperTextCooldown
+endif
+
+if not timerexists helperHideTimer
+    settimer helperHideTimer helperHideCooldown
+endif
+
+
+if not timerexists skinningCheckTimer
+    settimer skinningCheckTimer cdSkinningCheck
+endif
+
+
+
+
+
+while not dead
+    
+    while not hidden
+            
+        if automaticallySkinCorpses = 1 and findtype "corpse" ground -1 -1 2 as jorpse
+            if findtype "Elven Spellblade" backpack and timer skinningCheckTimer >= cdSkinningCheck 
+                while not targetexists 
+                    useskill 'forensicevaluation'
+                endwhile
+                if targetexists 
+                    hotkey "Target Self"
+                    wait minimumWaitForPing
+                    settimer skinningCheckTimer 0
+                    @ignore jorpse
+                endif
+            endif
+        endif
+    
+        @setvar! stealthIsOn 0
+        if not cooldown "skill"
+            if timer helperHideTimer >= helperHideCooldown
+                useskill "Hiding"
+            endif
+            
+            if find myKillTarget ground -1 -1 10
+                if find myKillTarget ground -1 -1 1
+                    overhead "1 tiles away"
+                elseif find myKillTarget ground -1 -1 2
+                    overhead "2 tiles away"
+                elseif find myKillTarget ground -1 -1 3
+                    overhead "3 tiles away"
+                elseif find myKillTarget ground -1 -1 4
+                    overhead "4 tiles away"
+                elseif find myKillTarget ground -1 -1 5
+                    overhead "5 tiles away"
+                elseif find myKillTarget ground -1 -1 6
+                    overhead "6 tiles away"
+                elseif find myKillTarget ground -1 -1 7
+                    overhead "7 tiles away"
+                elseif find myKillTarget ground -1 -1 8
+                    overhead "8 tiles away"
+                elseif find myKillTarget ground -1 -1 9
+                    overhead "9 tiles away"
+                else
+                    overhead "10 tiles away"
+                endif
+            else
+                hotkey "Target Closest Grey Monster"
+                wait 200
+                if insysmsg "no one matching"
+                    // do nothing
+                else
+                    @setvar! myKillTarget lasttarget 
+                endif
+            endif
+            // check target range
+            // (we dont know the target tho)
+            // however, we can use target nearest creature
+            // ^ that should match our in game target
+            
+            // assuming we got a target from that, check its range
+            // if its within x tiles, assume we are fighting it
+            
+            /// maybe use a timer to know when we pop out of hiding
+            // use that timer to know for sure we are fighting
+            // then re-hide and start all over
+            
+            // we need to be fighting or running
+            // check our current weapons
+            wait 200
+            if not hidden
+                // we cannot hide (we need to move or we are fighting)
+
+    
+            endif
+        endif
+        // we could be fighting or just popped out of stealth
+    endwhile
+    
+    
+
+    if insysmsg "You begin to move quietly."
+        @setvar! stealthIsOn 1
+    endif
+    
+    if stealthIsOn = 1
+        if timer helperTextTimer > helperTextCooldown
+            sysmsg "scanning for target" 77
+            settimer helperTextTimer 0
+        endif
+        
+        if findtype "halberd" backpack 1790 as item
+            dclick item
+            wait 200
+        endif
+        
+        hotkey "Target Closest Grey Monster"
+        wait 200
+        if insysmsg "no one matching"
+            // do nothing
+        else
+                
+            @setvar! myKillTarget lasttarget 
+            
+            if find myKillTarget ground -1 -1 1
+                if cooldown "skill"
+                    overhead "waiting for skill cooldown"
+                else
+                    attack myKillTarget
+                    wait 200
+                    settimer helperHideTimer 0
+                    if findtype "katana" backpack 1790 as item
+                        dclick item
+                    endif
+                endif
+            else
+                if timer helperTextTimer > helperTextCooldown
+                    overhead "Out of range" 88  myKillTarget
+                    settimer helperTextTimer 0
+                endif
+            endif
+        endif
+    else    
+        if not cooldown "skill"
+            useskill "Stealth"
+        endif
+        
+        if timer helperTextTimer > helperTextCooldown
+            sysmsg "waiting for stealth" 88
+            settimer helperTextTimer 0
+        endif
+    endif
+endwhile

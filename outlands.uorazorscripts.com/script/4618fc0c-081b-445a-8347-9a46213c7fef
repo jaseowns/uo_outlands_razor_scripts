@@ -1,0 +1,101 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/4618fc0c-081b-445a-8347-9a46213c7fef for latest
+# Automation by Jaseowns
+## Script: Bless and Protection Bot
+## Created by: Jaseowns#6694
+#############################################
+
+# Bless and Protection Bot by Jaseowns
+# UO Outlands
+# Requirements:
+#   You need a trigger... we used a shimmer lantern
+#   >info on your trigger and set the body id and hue 
+#   to each of these variables
+@setvar! jaseLanternOnId 2594
+@setvar! jaseLanternOnHue 2664
+
+# Time between blessing the same character again (if in range)
+@setvar! cdClearBlessedPlayers 60000
+
+####################
+## No need to edit beyond this 
+#########
+
+if not timerexists skillTimer
+    settimer skillTimer 2000
+endif
+
+if not timerexists clearBlessedPlayersTimer
+    settimer clearBlessedPlayersTimer cdClearBlessedPlayers
+endif
+
+if not listexists blessedPlayers
+    createlist blessedPlayers
+endif
+
+if timer clearBlessedPlayersTimer >= cdClearBlessedPlayers
+    clearlist blessedPlayers
+    settimer clearBlessedPlayersTimer 0
+endif
+
+if findtype jaseLanternOnId ground jaseLanternOnHue -1 2 as jantern
+    if mana < 30
+        while mana < maxmana
+            if not findbuff "Actively Meditating"
+                useskill "meditation"
+            endif
+            wait 200
+        endwhile
+    endif
+
+    if timer skillTimer >= 2000
+        overhead "Targeting new player" 88
+        hotkey "Next Player Target"
+        wait 200
+        @setvar! sometarget lasttarget 
+        
+        if inlist blessedPlayers sometarget 
+            // skippem
+            say "You have been blessed bro" 88
+        else
+            useskill "evalint"
+            wft 500
+            target sometarget
+            settimer skillTimer 0
+            wait 200
+            if insysmsg "That is too far away."
+                overhead "Too far away bro" 34
+                replay
+            elseif insysmsg "Target cannot be seen."
+                overhead "Cannot be seen bro" 29
+                replay
+            endif
+            while not targetexists 
+                cast "Bless"
+                wft 500
+            endwhile
+            target sometarget
+            wait 200
+            if insysmsg "That is too far away."
+                overhead "Too far away bro" 34
+                replay
+            elseif insysmsg "Target cannot be seen."
+                overhead "Cannot be seen bro" 29
+                replay
+            endif
+            while not targetexists 
+                cast "Arch Protection"
+                wft 500
+            endwhile
+            target sometarget
+            pushlist blessedPlayers sometarget
+            dclick jantern
+            wait 200
+            if findtype "storage shelf" ground -1 -1 2 as jhelf
+                menu jhelf 1
+            endif
+        endif
+    endif
+endif
+
+wait 200
+replay

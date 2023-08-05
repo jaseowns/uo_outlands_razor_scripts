@@ -29,6 +29,32 @@
     # a drake whelp
     # a chameleon
 
+@setvar! doYouWantATankPetToTryAndStayAlive 1
+if not varexist jankPet
+    @setvar! jankPet 0
+endif
+
+if doYouWantATankPetToTryAndStayAlive = 1
+    if followers > 0 and jankPet = 0
+    
+        if tameThisThing != 0 and find tameThisThing ground -1 -1 2
+            getlabel tameThisThing tamedDesc
+            if "tame" in tamedDesc
+                overhead "Automatically setting jankPet"
+                @setvar! jankPet tameThisThing
+            endif
+        endif
+        
+        if jankPet = 0
+            overhead "Select your tank pet to keep alive" 88
+            sysmsg "Select your tank pet to keep alive" 88
+            @setvar! jankPet
+        endif
+    elseif jankPet != 0 and followers = 0
+        @setvar! jankPet 0 
+   endif
+endif
+    
 if skill "Animal Taming" < 50
     overhead "Go train to 50 skill" 88
     stop
@@ -46,6 +72,40 @@ if not timerexists sayTimer
     settimer sayTimer 0
 endif
 
+@setvar! healPetCheckTimerCd 10000
+if not timerexists healPetCheckTimer
+    settimer healPetCheckTimer healPetCheckTimerCd
+endif
+
+@setvar! overheadHelperTimerCd 2000
+if not timerexists overheadHelperTimer
+    settimer overheadHelperTimer overheadHelperTimerCd
+endif
+
+@setvar! skillTimerCd 11000
+if not timerexists skillTimer
+    settimer skillTimer skillTimerCd
+endif
+
+if dead 
+    overhead "You dead bro" 34
+    wait 1000
+    replay
+endif
+
+if doYouWantATankPetToTryAndStayAlive = 1 and skill "veterinary" > 0
+    if find jankPet ground -1 -1 2 and timer healPetCheckTimer >= healPetCheckTimerCd
+        if not bandaging and findtype "clean bandage%s%" backpack as item
+            dclick item
+            wft 200
+            target jankPet
+            settimer healPetCheckTimer 0
+            if targetexists 
+                hotkey "Cancel current target"
+            endif
+        endif        
+    endif
+endif
 
 if followers = 0
     @setvar! myFollowers 0  
@@ -61,7 +121,25 @@ elseif followers = 4
 elseif followers = 5
     @setvar! myFollowers 5
     overhead "Too many followers - release some!" 88
-    wait 2000
+    if tameThisThing != 0
+        if skill "herding" > 0
+            while not gumpexists 2426193729
+                menu tameThisThing 10
+                wait 50
+            endwhile
+        else
+            while not gumpexists 2426193729
+                menu tameThisThing 9
+                wait 50
+            endwhile
+        endif
+        while gumpexists 2426193729
+            gumpresponse 1 2426193729
+            wait 50
+        endwhile
+    else
+        wait 2000
+    endif
     replay
 endif
 
@@ -70,7 +148,7 @@ endif
 @setvar! tameThisThing 0
 
 if skill "Animal Taming" < 60
-    while findtype "a mongbat|a giant rat|a guar|a wolf|a familiar|a giant frog|a primordial whelp|a colossal frog|a giant bat|a monitor hatchling" ground -1 -1 2 as janimal
+    while findtype "a mongbat|a giant rat|a guar|a wolf|a familiar|a giant frog|a primordial whelp|a colossal frog|a giant bat|a monitor hatchling" ground -1 -1 8 as janimal
         getlabel janimal desc
         if "released" in desc
             // ignore them
@@ -83,8 +161,8 @@ if skill "Animal Taming" < 60
             break
         endif
     endwhile
-elseif skill "Animal Taming" < 70
-    while findtype "a primordial|a cave bear|a corpse eater|a familiar|a guar|a wolf|a giant frog|a primordial whelp|a colossal frog|a giant bat|a monitor hatchling" ground -1 -1 2 as janimal
+elseif skill "Animal Taming" < 75
+    while findtype "a primordial|a cave bear|a corpse eater|a familiar|a guar|a wolf|a giant frog|a primordial whelp|a colossal frog|a giant bat|a monitor hatchling" ground -1 -1 8 as janimal
         getlabel janimal desc
         if "released" in desc
             // ignore them
@@ -98,7 +176,7 @@ elseif skill "Animal Taming" < 70
         endif
     endwhile
 elseif skill "Animal Taming" >= 75
-    while findtype "a corpse eater|a primordial|a cave bear|a drake whelp|a chameleon" ground -1 -1 2 as janimal
+    while findtype "a corpse eater|a primordial|a cave bear|a drake whelp|a chameleon" ground -1 -1 8 as janimal
         getlabel janimal desc
         if "released" in desc
             // ignore them
@@ -114,7 +192,14 @@ elseif skill "Animal Taming" >= 75
 endif
 
 if tameThisThing != 0
+    
+    if timer overheadHelperTimer >= overheadHelperTimerCd
+        overhead "!! attempting to tame !!" 88 tameThisThing 
+        settimer overheadHelperTimer 0
+    endif
+
     clearsysmsg 
+
     settimer tamingTimer 0
     settimer sayTimer 0
     
@@ -124,26 +209,85 @@ if tameThisThing != 0
         target tameThisThing
         settimer sayTimer 0
         wait 200
-        while timer sayTimer < 750
+        while timer sayTimer < 2550
         endwhile
         say "all follow me"
+        wait 1000
         warmode off
     endif
     
-    while followers = myFollowers
-        useskill "taming"
-        wft 500
-        target tameThisThing
-        if timer tamingTimer >= tamingTimerCd
-            replay
-        elseif insysmsg "cannot be seen"
-            replay
-        elseif dead tameThisThing or not find tameThisThing ground -1 -1 4
+    @setvar! isTamed 0
+    @setvar! isTaming 1
+    
+    while isTaming = 1
+        
+        if dead 
             replay
         endif
-    endwhile
+    
+        if doYouWantATankPetToTryAndStayAlive = 1 and skill "veterinary" > 0
+            if find jankPet ground -1 -1 2 and timer healPetCheckTimer >= healPetCheckTimerCd
+                if not bandaging and findtype "clean bandage%s%" backpack as item
+                    dclick item
+                    wft 200
+                    target jankPet
+                    settimer healPetCheckTimer 0
+                    if targetexists 
+                        hotkey "Cancel current target"
+                    endif
+                endif        
+            endif
+        endif
+    
+        while not targetexists and not dead
+            dclicktype "dagger" backpack
+            wft 500
+        endwhile
+        if targetexists 
+            target tameThisThing
+        endif
+        wait 200
+        if insysmsg "That is too far away."
+            overhead "Too far away bro.. move closer!" 34
+            overhead "THIS IS MY TARGET" 88 tameThisThing
+            wait 500
+            if timer tamingTimer > 15000
+                @setvar! isTaming 0
+            endif
+        elseif insysmsg "use a bladed item on that"
+            clearsysmsg 
+            if timer skillTimer >= skillTimerCd
                 
-    if followers > 3
+                getlabel tameThisThing isItTamedYetDesc
+                
+                if "tame" in isItTamedYetDesc
+                    @setvar! isTamed 1    
+                    @setvar! isTaming 0
+                    break
+                endif
+            
+                while not targetexists and not dead
+                    useskill "taming"
+                    wft 500
+                endwhile
+                target tameThisThing
+                settimer skillTimer 0
+            endif
+            wait 200
+            if insysmsg "That is too far away."
+                overhead "Too far away bro" 34
+                @setvar! isTaming 0
+            elseif insysmsg "Target cannot be seen."
+                overhead "Cannot be seen bro" 29
+                @setvar! isTaming 0
+            elseif targetexists 
+                @setvar! isTaming 0
+                hotkey "cancel current target"
+            endif
+        endif
+    endwhile 
+    
+    if followers > 3 and isTamed = 1 and tameThisThing != 0
         if skill "herding" > 0
             while not gumpexists 2426193729
                 menu tameThisThing 10
@@ -160,7 +304,12 @@ if tameThisThing != 0
             wait 50
         endwhile
     endif
+    
+elseif timer overheadHelperTimer >= overheadHelperTimerCd
+    overhead "Nothing to tame found!" 34
+    settimer overheadHelperTimer 0
 endif
+
 
 wait 100
 replay

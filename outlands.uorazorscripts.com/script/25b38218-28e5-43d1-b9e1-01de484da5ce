@@ -7,11 +7,11 @@
 # One hotkey mage cycle, nox, poison by Jaseowns
 # UO Outlands - https://outlands.uorazorscripts.com/mage-bot
 #
-# Version: v9.6.0
+# Version: v10.0.0
 #
 #    
-// 8/14/2023
-//  - add more mobs to id list / add patrol to out of range mobs
+// 8/18/2023
+//  - add new target system - nearest/ next
 #
 ##################
 ## Always room for improvment, thanks for watching!
@@ -25,7 +25,15 @@
 # make sure you add a friends list called: IgnoreMobs
 @setvar! didYouSetupIgnoreMobs 0
 
+
+// 0 you choose (all kill)
+// 1 will target nearest
+// 2 will be find type
+// 3 will be target next (newest one 8/14/2023)
+@setvar! useTargetSystem 3
+
 # Do you want to use the new FindType code? Use 1 here
+# Do you want to use the Target Nearest / Next? Use 2 here
 # Else it will use the Target Closest Mon functionality 
 @setvar! useFindTypeToTargetMonster 1
 
@@ -234,7 +242,7 @@ endif
 ##################################################################
 
 if not varexist JaseOwns
-    overhead "v9.6.0" 34
+    overhead "v10.0.0" 34
     overhead "uorazorscripts.com/mage-bot" 34
     say "This script was brought to you by youtube.com/Jaseowns" 88
     wait 500
@@ -1124,7 +1132,7 @@ if targetexists harmful
     hotkey "Cancel current target"
 endif
 
-if setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster = 1
+if useTargetSystem = 0
     say "all kill"
     wait 200
     while targetexists 
@@ -1133,8 +1141,7 @@ if setThisAsOneIfYouWantToTargetYourOwnKillOrItWillTargetClosestMonster = 1
     endwhile
     
     @setvar myKillTarget lasttarget 
-elseif useFindTypeToTargetMonster = 0
-
+elseif useTargetSystem = 1
     hotkey 'Target Closest Non-Friendly Monster'
     wait 200
     if insysmsg "No one matching that was found"
@@ -1147,12 +1154,12 @@ elseif useFindTypeToTargetMonster = 0
             replay
         endif
         stop
-elseif not find lasttarget ground -1 -1 10
+    elseif not find lasttarget ground -1 -1 10
     
         @setvar checkForSummons lasttarget 
         getlabel checkForSummons checkForSummonsDesc
     
-        if "(summoned" in checkForSummonsDesc or "(bonded" in checkForSummonsDesc or "the battle trainer" in checkForSummonsDesc or "the battle trainer" in checkForSummonsDesc
+        if "(summoned" in checkForSummonsDesc or "(bonded" in checkForSummonsDesc or "the battle trainer" in checkForSummonsDesc
             overhead "¼ Player pet - IGNORE ¼" 77 lasttarget
             while not targetexists 
                 hotkey 'Add Target To: IgnoreMobs'
@@ -1173,11 +1180,26 @@ elseif not find lasttarget ground -1 -1 10
         endif
         stop
     else
+        
+        @setvar checkForSummons lasttarget 
+        getlabel checkForSummons checkForSummonsDesc
+    
+        if "(summoned" in checkForSummonsDesc or "(bonded" in checkForSummonsDesc or "the battle trainer" in checkForSummonsDesc
+            overhead "¼ Player pet - IGNORE ¼" 77 lasttarget
+            while not targetexists 
+                hotkey 'Add Target To: IgnoreMobs'
+                wait 200
+            endwhile
+            target myKillTarget 
+            replay
+        endif    
+        
         overhead "Ï ¼¼ HERE ¼¼ Ï" 88 lasttarget
     endif    
     
     @setvar myKillTarget lasttarget 
-else
+    
+elseif useTargetSystem = 2
 
     // do find type     
     if jaseDebugMode = 1
@@ -1349,9 +1371,109 @@ else
                 
         @setvar! myKillTarget myFindTypeMob
     endif
+elseif useTargetSystem = 3
+    
+    hotkey 'Next Non-Friendly Monster Target'
+    wait 200
+    if insysmsg "No one matching that was found"
+        if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+            overhead "found no one" 34
+            settimer preventOverheadSpamTimer 0
+        endif
+        if autoBotEnabled = 1
+            wait 500
+            replay
+        endif
+        stop
+    else
+        
+        @setvar checkForSummons lasttarget 
+        getlabel checkForSummons checkForSummonsDesc
+        
+        if "(summoned" in checkForSummonsDesc or "(bonded" in checkForSummonsDesc or "the battle trainer" in checkForSummonsDesc
+            overhead "¼ Player pet - IGNORE ¼" 77 lasttarget
+            replay
+        endif    
+    
+        if find lasttarget ground -1 -1 8
+            // we ready
+            overhead "Ï ¼¼ HERE ¼¼ Ï" 88 lasttarget 
+        elseif find lasttarget ground -1 -1 12
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "Move closer, more then 8 tiles away" 34
+                settimer preventOverheadSpamTimer 0
+            endif
+            overhead "Ï ¼ OUT OF RANGE ¼ Ï" 88 lasttarget
+            
+            if patrolPetEvenIfLastTargetIsBeyondEightTiles = 1
+                
+                if not timerexists myPatrolPetTimer
+                    settimer myPatrolPetTimer 5000
+                endif
+            
+                if not varexist myPatrolPet
+                    @setvar! myPatrolPet 0
+                endif
 
+                if find myPatrolPet ground -1 -1 10
+                    // do nothing
+                elseif find earthOne ground -1 -1 10
+                    @setvar! myPatrolPet earthOne
+                elseif find earthTwo ground -1 -1 10
+                    @setvar! myPatrolPet earthTwo
+                elseif find fireOne ground -1 -1 10
+                    @setvar! myPatrolPet fireOne
+                elseif find fireTwo ground -1 -1 10
+                    @setvar! myPatrolPet fireTwo
+                elseif find demonOne ground -1 -1 10
+                    @setvar! myPatrolPet demonOne
+                elseif find demonTwo ground -1 -1 10
+                    @setvar! myPatrolPet demonTwo
+                elseif find airOne ground -1 -1 10
+                    @setvar! myPatrolPet airOne
+                elseif find airTwo ground -1 -1 10
+                    @setvar! myPatrolPet airTwo
+                elseif find waterOne ground -1 -1 10
+                    @setvar! myPatrolPet waterOne
+                elseif find waterTwo ground -1 -1 10
+                    @setvar! myPatrolPet waterTwo
+                else
+                     @setvar! myPatrolPet 0
+                endif
+
+                if myPatrolPet = 0
+                    // do nothing
+                elseif timer myPatrolPetTimer >= 5000
+                    overhead "Ï SEND IN PATROL PET Ï" 77 myFindTypeMob    
+                    if skill "Herding" > 0
+                        menu myPatrolPet 3
+                    else
+                        menu myPatrolPet 2
+                    endif
+                    wft 500
+                    target lasttarget
+                    settimer myPatrolPetTimer 0
+                endif
+            
+            endif 
+            
+            if autoBotEnabled = 1
+                wait 500
+                replay
+            endif
+            stop
+        else
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "Next mob too far" 34
+                settimer preventOverheadSpamTimer 0
+            endif
+            wait 200
+            replay
+        endif
+    endif    
+    
+    @setvar myKillTarget lasttarget 
 endif
-
 
 
 if not varexist myPreviousKillTarget

@@ -1,0 +1,484 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/ede388af-7be1-4d30-90ba-9f1bc3a7e49c for latest
+# Automation by Jaseowns
+## Script: Dexxer tamer bot WIP 
+## Created by: Jaseowns#6694
+#############################################
+
+# Dexxer tamer bot WIP by Jaseowns
+# UO Outlands
+###
+# V 1.0.0
+# We still need to finalize targeting
+####
+##  
+##  Herd
+##  Chiv
+##  Vet
+##  Fencing codex
+##  Stay alive, keep pets alive (check if they are dead)
+##
+#### PETS
+# DO YOU WANT ME TO CHOOSE YOUR PET?
+# or do you just >info and set your value
+# FOR now: we will skip the pet selection
+    
+## Assumptions
+# we are running 5 1 slot pets
+
+@setvar! requireWarModeToHealPets 1
+@setvar! ohCrapDrinkAHealthPotHpCheck 50
+@setvar! bandageCheckTimerCd 0
+
+
+################################
+###### Chiv abilities
+################
+@setvar! useCleanseByFireAutomatically 1
+@setvar! useCloseWoundsAutomatically 1
+@setvar! useHolyLightAutomatically 1
+@setvar! useDivineFuryAutomatically 1
+@setvar! hpTriggerForHolyLight 35
+@setvar! lowHealthTriggerForNobleSacrifice 40
+
+################################
+###### Chiv cooldowns
+################
+@setvar! cdCleanseByFire 31000
+@setvar! cdCloseWounds 31000
+@setvar! cdHolyLight 31000
+@setvar! cdDivineFury 31000
+@setvar! cdNobleSacrifice 31000
+
+################################
+###### Chiv abilities overheads
+################
+@setvar! showChivUsageAsOverhead 1
+@setvar! showChivUsageAsSystemMessage 1
+@setvar! showChivUsageAsOverheadColor 88
+@setvar! showChivUsageAsSystemMessageColor 88
+
+###########
+# If shit is not working right, adjust this number to ping
+#####
+@setvar! minimumWaitForPing 200
+@setvar! minimumWaitForPingUnequipping 650
+@setvar! cdPreventChivAbilitySpam 750
+@setvar! cdSkinningCheck 3000
+@setvar! cdPreventOverheadSpam 2000
+
+settimer bandageCheckTimer bandageCheckTimerCd
+settimer preventOverheadSpamTimer cdPreventOverheadSpam
+settimer preventChivAbilitySpamTimer cdPreventChivAbilitySpam
+settimer sCheck 12000
+
+@setvar! myRangeCheckForTarget 2
+@setvar! myPreviousKillTarget 0
+
+while not dead 
+    // we out here
+    if hp < maxhp
+        // we need to heal
+        if findtype "veterinary supplies" backpack as item
+            dclick item
+            wait 650
+        endif
+        
+        if diffhits >= ohCrapDrinkAHealthPotHpCheck
+            if findtype "Yellow Potion" backpack as pot
+                dclick pot
+                wait 650
+            endif
+        endif
+    endif
+    
+     if warmode 
+        @setvar! myKillTarget 0
+        @hotkey 'Target Closest Non-Friendly Monster'
+        wait minimumWaitForPing
+        if insysmsg "No one matching that was found"
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "No targets found" 34
+                settimer preventOverheadSpamTimer 0
+            endif
+        else
+            @setvar! myKillTarget lasttarget 
+        endif    
+        
+        if not varexist autoAttack
+            @setvar! autoAttack 1
+        endif
+        
+        if myKillTarget != 0 and myPreviousKillTarget != myKillTarget
+            getlabel myKillTarget mobDesc
+            @setvar! myPreviousKillTarget myKillTarget
+        
+            if "(summoned" in mobDesc or "(bonded" in mobDesc or "(tame" in mobDesc
+                overhead "¼ Player pet - IGNORE ¼" 77 lasttarget
+                @setvar! autoAttack 0
+            else  
+                @setvar! autoAttack 1
+            endif    
+        endif
+        
+        if myKillTarget = 0
+            // do nothing
+        elseif not find myKillTarget ground -1 -1 myRangeCheckForTarget
+            if showTargetOverheadMessages = 1 and timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "Ï ¼ OUT OF RANGE ¼ Ï" 88 lasttarget
+                settimer preventOverheadSpamTimer 0
+            endif
+            // Herding using crook
+            if skill "Herding" > 0 and useHerdingEvenIfOutOfRange = 1 and findtype 3713 backpack as jrook
+                if timer sCheck >= 12000
+                    dclick jrook
+                    wft 500
+                    target myKillTarget
+                    settimer sCheck 8000
+                endif
+            endif
+            if find myKillTarget ground -1 -1 8 and autoAttack = 1
+                attack myKillTarget 
+            endif
+        elseif autoAttack = 1
+            @setvar! targetInRange 1
+            if showTargetOverheadMessages = 1 and timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "Ï ¼¼ HERE ¼¼ Ï" 88 myKillTarget    
+                settimer preventOverheadSpamTimer 0
+            endif
+            attack myKillTarget 
+            
+            // Herding using crook
+            if skill "Herding" > 0 and findtype 3713 backpack as jrook
+                if timer sCheck >= 12000
+                    dclick jrook
+                    wft 500
+                    target myKillTarget
+                    settimer sCheck 8000
+                endif
+            endif
+        endif
+    endif
+    
+    
+    if skill "Chivalry" >= 50
+
+        @setvar! chivSymbols 0
+        @setvar! cdCleanseByFire 31000
+        @setvar! cdCloseWounds 31000
+        @setvar! cdHolyLight 31000
+        @setvar! cdDivineFury 31000
+        @setvar! cdNobleSacrifice 31000
+
+        if not timerexists nobleSacrificeTimer
+            createtimer nobleSacrificeTimer
+            settimer nobleSacrificeTimer cdCleanseByFire
+        endif
+
+        if not timerexists cleanseByFireTimer
+            createtimer cleanseByFireTimer
+            settimer cleanseByFireTimer cdCleanseByFire
+        endif
+
+        if not timerexists closeWoundsTimer
+            createtimer closeWoundsTimer
+            settimer closeWoundsTimer cdCloseWounds
+        endif
+        
+        if not timerexists holyLightTimer
+            createtimer holyLightTimer
+            settimer holyLightTimer cdHolyLight
+        endif
+        
+        if not timerexists divineFuryTimer
+            createtimer divineFuryTimer
+            settimer divineFuryTimer cdDivineFury
+        endif
+        
+        while not gumpexists 1387930325
+            say "[ChivalryHotbar"
+            wait 200
+        endwhile
+        
+        if gumpexists 1387930325
+            if ingump "12/" 1387930325
+                @setvar! chivSymbols 12
+            elseif ingump "13/" 1387930325
+                @setvar! chivSymbols 13
+            elseif ingump "14/" 1387930325
+                @setvar! chivSymbols 14
+            elseif ingump "15/" 1387930325
+                @setvar! chivSymbols 15
+            elseif ingump "16/" 1387930325
+                @setvar! chivSymbols 16
+            elseif ingump "17/" 1387930325
+                @setvar! chivSymbols 17
+            elseif ingump "18/" 1387930325
+                @setvar! chivSymbols 18
+            elseif ingump "19/" 1387930325
+                @setvar! chivSymbols 19
+            elseif ingump "20/" 1387930325
+                @setvar! chivSymbols 20
+            elseif ingump "21/" 1387930325
+                @setvar! chivSymbols 21
+            elseif ingump "11/" 1387930325
+                @setvar! chivSymbols 11
+            elseif ingump "10/" 1387930325
+                @setvar! chivSymbols 10
+            elseif ingump "9/" 1387930325
+                @setvar! chivSymbols 9
+            elseif ingump "8/" 1387930325
+                @setvar! chivSymbols 8
+            elseif ingump "7/" 1387930325
+                @setvar! chivSymbols 7
+            elseif ingump "6/" 1387930325
+                @setvar! chivSymbols 6
+            elseif ingump "5/" 1387930325
+                @setvar! chivSymbols 5
+            elseif ingump "4/" 1387930325
+                @setvar! chivSymbols 4
+            elseif ingump "3/" 1387930325
+                @setvar! chivSymbols 3
+            elseif ingump "2/" 1387930325
+                @setvar! chivSymbols 2
+            elseif ingump "1/" 1387930325
+                @setvar! chivSymbols 1
+            elseif ingump "0/" 1387930325
+                @setvar! chivSymbols 0
+            endif
+        endif
+        
+        if hp <= lowHealthTriggerForNobleSacrifice and skill "Chivalry" >= 80
+            if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and timer nobleSacrificeTimer >= cdNobleSacrifice and 4 < chivSymbols
+                if skill "Healing" > 0
+                    hotkey 'Bandage Self'
+                    settimer aidsTimer 0
+                    wait minimumWaitForPing
+                endif
+                if showChivUsageAsOverhead = 1
+                    overhead "Noble Sacrifice" showChivUsageAsOverheadColor
+                endif
+                if showChivUsageAsSystemMessage = 1
+                    sysmsg "Noble Sacrifice" showChivUsageAsSystemMessageColor
+                endif
+                yell "[NobleSacrifice"
+                wft 500
+                hotkey "Target Self"
+                wait 200
+                if insysmsg "Holy symbols remaining:"
+                    settimer nobleSacrificeTimer 0
+                    settimer preventChivAbilitySpamTimer 0
+                    cooldown NobleSacrifice cdNobleSacrifice
+                endif
+                if gumpexists 1387930325
+                    if ingump "12/" 1387930325
+                        @setvar! chivSymbols 12
+                    elseif ingump "13/" 1387930325
+                        @setvar! chivSymbols 13
+                    elseif ingump "14/" 1387930325
+                        @setvar! chivSymbols 14
+                    elseif ingump "15/" 1387930325
+                        @setvar! chivSymbols 15
+                    elseif ingump "16/" 1387930325
+                        @setvar! chivSymbols 16
+                    elseif ingump "17/" 1387930325
+                        @setvar! chivSymbols 17
+                    elseif ingump "18/" 1387930325
+                        @setvar! chivSymbols 18
+                    elseif ingump "19/" 1387930325
+                        @setvar! chivSymbols 19
+                    elseif ingump "20/" 1387930325
+                        @setvar! chivSymbols 20
+                    elseif ingump "21/" 1387930325
+                        @setvar! chivSymbols 21
+                    elseif ingump "11/" 1387930325
+                        @setvar! chivSymbols 11
+                    elseif ingump "10/" 1387930325
+                        @setvar! chivSymbols 10
+                    elseif ingump "9/" 1387930325
+                        @setvar! chivSymbols 9
+                    elseif ingump "8/" 1387930325
+                        @setvar! chivSymbols 8
+                    elseif ingump "7/" 1387930325
+                        @setvar! chivSymbols 7
+                    elseif ingump "6/" 1387930325
+                        @setvar! chivSymbols 6
+                    elseif ingump "5/" 1387930325
+                        @setvar! chivSymbols 5
+                    elseif ingump "4/" 1387930325
+                        @setvar! chivSymbols 4
+                    elseif ingump "3/" 1387930325
+                        @setvar! chivSymbols 3
+                    elseif ingump "2/" 1387930325
+                        @setvar! chivSymbols 2
+                    elseif ingump "1/" 1387930325
+                        @setvar! chivSymbols 1
+                    elseif ingump "0/" 1387930325
+                        @setvar! chivSymbols 0
+                    endif
+                endif
+            endif
+        endif
+        
+        if poisoned and skill "Chivalry" >= 60
+            if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and useCleanseByFireAutomatically = 1 and timer cleanseByFireTimer >= cdCleanseByFire and 2 < chivSymbols
+                if showChivUsageAsOverhead = 1
+                    overhead "Cleanse by fire" showChivUsageAsOverheadColor
+                endif
+                if showChivUsageAsSystemMessage = 1
+                    sysmsg "Cleanse by fire" showChivUsageAsSystemMessageColor
+                endif
+                yell "[CleanseByFire"
+                wait 200
+                if insysmsg "Holy symbols remaining:"
+                    settimer cleanseByFireTimer 0
+                    settimer preventChivAbilitySpamTimer 0
+                    cooldown CleanseByFire cdCleanseByFire
+                endif
+            endif
+        elseif findbuff "bleed" or findbuff "disease" and skill "Chivalry" >= 70
+            if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and useCloseWoundsAutomatically = 1 and timer closeWoundsTimer >= cdCleanseByFire and 3 < chivSymbols
+                if showChivUsageAsOverhead = 1
+                    overhead "Close Wounds" showChivUsageAsOverheadColor
+                endif
+                if showChivUsageAsSystemMessage = 1
+                    sysmsg "Close Wounds" showChivUsageAsSystemMessageColor
+                endif
+                yell "[CloseWounds"
+                wait 200
+                if insysmsg "Holy symbols remaining:"
+                    settimer closeWoundsTimer 0
+                    settimer preventChivAbilitySpamTimer 0
+                    cooldown CloseWounds cdCloseWounds
+                endif
+            endif
+        endif
+        
+        if gumpexists 1387930325
+            if ingump "12/" 1387930325
+                @setvar! chivSymbols 12
+            elseif ingump "13/" 1387930325
+                @setvar! chivSymbols 13
+            elseif ingump "14/" 1387930325
+                @setvar! chivSymbols 14
+            elseif ingump "15/" 1387930325
+                @setvar! chivSymbols 15
+            elseif ingump "16/" 1387930325
+                @setvar! chivSymbols 16
+            elseif ingump "17/" 1387930325
+                @setvar! chivSymbols 17
+            elseif ingump "18/" 1387930325
+                @setvar! chivSymbols 18
+            elseif ingump "19/" 1387930325
+                @setvar! chivSymbols 19
+            elseif ingump "20/" 1387930325
+                @setvar! chivSymbols 20
+            elseif ingump "21/" 1387930325
+                @setvar! chivSymbols 21
+            elseif ingump "11/" 1387930325
+                @setvar! chivSymbols 11
+            elseif ingump "10/" 1387930325
+                @setvar! chivSymbols 10
+            elseif ingump "9/" 1387930325
+                @setvar! chivSymbols 9
+            elseif ingump "8/" 1387930325
+                @setvar! chivSymbols 8
+            elseif ingump "7/" 1387930325
+                @setvar! chivSymbols 7
+            elseif ingump "6/" 1387930325
+                @setvar! chivSymbols 6
+            elseif ingump "5/" 1387930325
+                @setvar! chivSymbols 5
+            elseif ingump "4/" 1387930325
+                @setvar! chivSymbols 4
+            elseif ingump "3/" 1387930325
+                @setvar! chivSymbols 3
+            elseif ingump "2/" 1387930325
+                @setvar! chivSymbols 2
+            elseif ingump "1/" 1387930325
+                @setvar! chivSymbols 1
+            elseif ingump "0/" 1387930325
+                @setvar! chivSymbols 0
+            endif
+        endif
+        
+        if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and useHolyLightAutomatically = 1 and hp <= hpTriggerForHolyLight and skill "Chivalry" >= 95
+            
+            @setvar! doubleCheckHolyLight 1
+        
+            if skill "Healing" > 0 and cdAids = 10000 and timer aidsTimer >= 9000
+                // skip holy light
+                overhead "Skipping Holy Light" 34
+                @setvar! doubleCheckHolyLight 0
+                // unless we gonna die
+                if hp <= 20 or poisoned
+                    overhead "Just kidding, do not wanna die" 34
+                    @setvar! doubleCheckHolyLight 1
+                endif
+            endif
+            
+            if doubleCheckHolyLight = 1
+                if timer holyLightTimer >= cdHolyLight and 5 < chivSymbols
+                    if showChivUsageAsOverhead = 1
+                        overhead "Holy Light" showChivUsageAsOverheadColor
+                    endif
+                    if showChivUsageAsSystemMessage = 1
+                        sysmsg "Holy Light" showChivUsageAsSystemMessageColor
+                    endif
+                    yell "[HolyLight"
+                    wait 200
+                    if insysmsg "Holy symbols remaining:"
+                        settimer holyLightTimer 0
+                        settimer preventChivAbilitySpamTimer 0
+                        cooldown HolyLight cdHolyLight
+                    endif
+                endif
+            endif
+        endif
+        
+        if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and targetInRange = 1 and useDivineFuryAutomatically = 1 and skill "Chivalry" >= 85
+            if timer divineFuryTimer >= cdDivineFury and 4 < chivSymbols
+                if showChivUsageAsOverhead = 1
+                    overhead "Divine Fury" showChivUsageAsOverheadColor
+                endif
+                if showChivUsageAsSystemMessage = 1
+                    sysmsg "Divine Fury" showChivUsageAsSystemMessageColor
+                endif
+                yell "[DivineFury"
+                wait 200
+                if insysmsg "Holy symbols remaining:"
+                    settimer divineFuryTimer 0
+                    settimer preventChivAbilitySpamTimer 0
+                    cooldown DivineFury cdDivineFury
+                endif
+            endif
+        endif
+    endif
+        
+    @setvar! canUseKit 1
+    if requireWarModeToHealPets = 1 and not warmode 
+        @setvar! canUseKit 0
+    endif
+    
+    if not bandaging 
+        if canUseKit = 1 and timer bandageCheckTimer > bandageCheckTimerCd
+            if findtype "veterinary supplies" backpack as item
+                dclick item
+                wait 650
+            endif
+            settimer bandageCheckTimer 0
+        endif
+    else
+        settimer bandageCheckTimer 0
+    endif
+endwhile    
+
+while dead 
+    overhead "Rip" 34
+    if gumpexists 2957810225
+        gumpresponse 1 2957810225
+        break
+    endif        
+    wait 500
+endwhile
+
+replay

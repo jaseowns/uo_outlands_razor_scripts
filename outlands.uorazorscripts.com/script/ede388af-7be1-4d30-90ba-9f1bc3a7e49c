@@ -7,7 +7,7 @@
 # Dexxer tamer bot WIP by Jaseowns
 # UO Outlands
 ########################################
-# V 1.5.0  - Last Updated: 09/10/2023 ##
+# V 1.6.0  - Last Updated: 09/22/2023 ##
 ########################################
 # Lots to do still... youtube.com/jaseowns/live
 ####
@@ -115,6 +115,13 @@ settimer jaseowns_SkillTimerCheck jaseowns_SkillTimerCD
 settimer jaseowns_SystemMsgCheck jaseowns_SystemMsgCheckCD
 
 #####
+##  Kill Target Check Timer
+####
+@setvar! jaseowns_KillTimerCD 1000
+settimer jaseowns_KillTimer jaseowns_KillTimerCD
+
+
+#####
 ##  Targeting Variables
 ####
 @setvar! jaseowns_CurrentTargetFocus 0
@@ -165,6 +172,10 @@ while not dead
         if canUseKit = 1 and timer bandageCheckTimer > bandageCheckTimerCd
         
             if singleHealPetWithBandaids = 1 and find jaseowns_PetOne ground -1 -1 2 and findtype "clean bandage%s%" backpack as item
+                if targetexists 'harmful'
+                    hotkey "Cancel Current Target"
+                    wait 200
+                endif
                 if not targetexists 
                     dclick item
                     wft 500
@@ -478,7 +489,21 @@ while not dead
     ###############
     ### Targeting (based on warmode on)
     #############
-    if warmode 
+    if timer jaseowns_KillTimer < jaseowns_KillTimerCD
+        overhead "Waiting for you to loot bro" 88
+    endif
+    
+    if warmode and timer jaseowns_KillTimer >= jaseowns_KillTimerCD
+        
+        if myKillTarget != 0 and dead myKillTarget and myKillTargetInRangeToLoot = 1
+            overhead "Waiting for you to loot"
+            settimer jaseowns_KillTimer 0
+        elseif not dead myKillTarget and find myKillTarget ground -1 -1 2
+            @setvar! myKillTargetInRangeToLoot 1
+        else
+            @setvar! myKillTargetInRangeToLoot 0
+        endif
+    
         @setvar! myKillTarget 0
         @hotkey 'Target Closest Non-Friendly Monster'
         wait minimumWaitForPing
@@ -547,15 +572,17 @@ while not dead
             if timer jaseowns_SkillTimerCheck >= jaseowns_SkillTimerCD and findtype 3713 self as jrook
                 settimer jaseowns_SystemMsgCheck 0
                 while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD
-                    if not targetexists
+                    if targetexists 'beneficial'
+                        hotkey "Cancel Current Target"
+                    elseif not targetexists 'harmful'
                         overhead "Ï ¼ Attempting Herd ¼ Ï" 88 jaseowns_KillTarget
                         dclick jrook
                         wft 500
-                    else 
+                    else
                         break
                     endif
                 endwhile
-                if insysmsg "What do you wish to focus your" and targetexists
+                if insysmsg "What do you wish to focus your" and targetexists 'harmful'
                     target jaseowns_KillTarget
                     settimer jaseowns_SystemMsgCheck 0
                     while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD

@@ -1,0 +1,124 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/1da69900-cec6-4689-aa3c-0de000ce0f23 for latest
+# Automation by Jaseowns
+## Script: Train Magery 0 to 100
+## Created by: alistormccoy#0
+#############################################
+
+// Train Magery 0 to 100
+
+// Recommended to be in Shelter Dungeon while under 80 magery for increased skill gain!
+// If you do start in Shelter Dungeon, the script will stop when you get to 80 and you will
+// need to leave Shelter Island and restart the script if you want to gain past 80 skill
+// Starting your charcter with 50 Magery, 49 Eval Int, and 1 Necromancy will give you
+//  a spellstone with enough charges to get you to 80+ and beyond without needing regs
+// If you are not in Shelter Dungeon, have a Storage Shelf within 2 tiles and a loadout that
+//   includes regs OR have Restock Agent 10 set up for regs and a nearby container of regs.
+
+// Regs Consumed:
+// Lightning (50-60): ~100 Mandrake root, Sulfurous Ash
+// Greater Heal (50-60): ~20 Spider Silk, Ginsing, Garlic, Mandrake Root
+// Invisibility (60-80): ~400 Bloodmoss, Nightshade
+// Summon Water Elemental (80 to 100): ~5000 Blood moss, Spiders Silk, Mandrake Root
+
+// If you are getting ^You have not recovered^ messages, try increasing this number by 100
+@setvar! "WaitTimer" 500
+
+// If somehow you have already unlocked Spirit Pact for Water Elemental, set this to 1
+@setvar! "WaterEleSpiritPact" 0
+
+// Set this to 1 if you want to train 50 to 80 outside of shelter dungeon for some reason. NOT RECOMMENDED
+@setvar! "ShelterOverride" 0
+
+
+
+
+// No Edit
+// 4150 hay
+// 3948 trash barrel
+// 3703 moongate
+// xD
+removelist "shelter_checklist"
+createlist "shelter_checklist"
+@setvar! "in_shelter" 0
+if skill "Magery" < 80
+    if "ShelterOverride" = 1
+    elseif findtypelist "shelter_checklist" 4150|3948|3703 "ground" any 1 18 and "ShelterOverride" = 0
+        if atlist "shelter_checklist" 0 and atlist "shelter_checklist" 5 and not atlist "shelter_checklist" 6
+            @setvar! "in_shelter" 1
+        else
+            overhead "Go to the entrance of shelter dungeon first for increased skill gain!" 1159
+            stop
+        endif
+    else
+        overhead "Go to the entrance of shelter dungeon first for increased skill gain!" 1159
+        stop
+    endif
+endif
+
+@setvar! "restock_method" 0
+if "in_shelter" = 1
+elseif findtype "storage shelf" ground 0 1 2 as myStorageShelf
+    @setvar! "restock_method" myStorageShelf
+else
+    overhead "No storage shelf nearby" 1159
+    overhead "Target your restock container" 1159
+    @setvar! "restock_container"
+endif
+
+@setvar "ManaThreshold" 20
+while not dead and skill "Magery" < 100
+    if "in_shelter" = 0
+        if counttype "Blood Moss" < 10 or counttype "Spider's Silk" < 10 or counttype "Mandrake Root%s%" < 10 or counttype "Nightshade" < 10
+            if "restock_method" = 0
+                restock 10
+                wft 200
+                target "restock_container"
+            else
+                menu "restock_method" 1
+            endif
+        endif
+    endif
+
+    if mana < "ManaThreshold"
+        while diffmana > 3
+            if not findbuff "actively meditating"
+                hotkey "Meditation"
+            endif
+            wait 500
+        endwhile
+    elseif skill "Magery" < 50
+        overhead "Train to 50 at an NPC first!" 1159
+        stop
+    elseif skill "Magery" < 60
+        if hp < 40
+            hotkey "Greater Heal"
+        else
+            hotkey "lightning"
+        endif
+        wft 3500
+        hotkey "Target Self"
+    elseif skill "Magery" < 80
+        hotkey "Invisibility"
+        wft 5000
+        hotkey "Target Self"
+    else
+        if "in_shelter" = 1
+            overhead "Time to leave shelter! Cannot gain over 80 in here" 1159
+            stop
+        endif
+        @setvar! "ManaThreshold" 50
+        if findtype "a water elemental" true
+            say "a water elemental release"
+            wait 100
+        endif
+        hotkey "Water Elemental"
+        if "WaterEleSpiritPact" = 1
+            wait 2500
+        else
+            wait 5000
+        endif
+    endif
+    wait "WaitTimer"
+endwhile
+
+overhead "Finished!" 1159

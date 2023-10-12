@@ -1,0 +1,768 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/5d2ea942-da96-42f0-8d41-ec3bf1c338f2 for latest
+# Automation by Jaseowns
+## Script: Mod: Auto tamer dexer with Disco Tamer
+## Created by: daklue#0
+#############################################
+
+################################
+###### How Many Pets
+################
+@setvar! totalPets 1
+
+################################
+###### Adjust Variables
+################
+@setvar! requireWarModeToHealPets 0
+@setvar! ohCrapDrinkAHealthPotHpCheck 50
+@setvar! bandageCheckTimerCd 5000
+@setvar! DiscoTimerCd 6500
+settimer DiscoTimer 0
+@setvar! GuardTimerCd 3000
+settimer GuardTimer 0
+################################
+###### Potion Controllers
+################
+@setvar! automaticallyDrinkStrPot 0
+@setvar! automaticallyDrinkAgiPot 1
+@setvar! automaticallyDrinkMagicPot 1
+@setvar! automaticallyDrinkHealPot 1
+@setvar! automaticallyDrinkCurePot 1
+@setvar! automaticallyDrinkRefreshPot 1
+
+@setvar! hpCheckToTriggerHealPotion 45
+@setvar! hpCheckToTriggerCurePotion 45
+@setvar! stamDiffCheckToTriggerRedPotion 10
+@setvar! HealTargetTimerCd 5000
+@setvar! drinkPotionsEvenIfInWarModeAndYouLoseHealth 1
+
+###########
+# If shit is not working right, adjust this number to ping
+#####
+@setvar! minimumWaitForPing 200
+@setvar! minimumWaitForPingUnequipping 650
+@setvar! cdPreventChivAbilitySpam 750
+@setvar! cdSkinningCheck 3000
+@setvar! cdPreventOverheadSpam 2000
+
+settimer bandageCheckTimer bandageCheckTimerCd
+settimer preventOverheadSpamTimer cdPreventOverheadSpam
+settimer preventChivAbilitySpamTimer cdPreventChivAbilitySpam
+settimer sCheck 12000
+
+@setvar! myRangeCheckForTarget 10
+@setvar! myPreviousKillTarget 0
+
+#####
+##  Skill Check Timer
+####
+@setvar! jaseowns_SkillTimerCD 11500
+settimer jaseowns_SkillTimerCheck jaseowns_SkillTimerCD
+
+#####
+##  System Message Check Timer
+####
+@setvar! jaseowns_SystemMsgCheckCD 2000
+settimer jaseowns_SystemMsgCheck jaseowns_SystemMsgCheckCD
+
+#####
+##  Targeting Variables
+####
+@setvar! jaseowns_CurrentTargetFocus 0
+@setvar! jaseowns_LastFocusAggressionTarget 0
+@setvar! jaseowns_KillTarget 0
+
+# Pets
+    if not varexist jaseowns_PetOne
+        @setvar! jaseowns_PetOne 0
+    endif
+    if not find jaseowns_PetOne ground -1 -1 20
+        overhead "Select your main tank" 88
+        @setvar! jaseowns_PetOne
+        wait 200
+    endif
+    
+    if totalPets = 2 or totalPets = 3 or totalPets = 4 or totalPets = 5
+        if not varexist myOtherPet1
+            @setvar! myOtherPet1 0
+        endif
+        if not find myOtherPet1 ground -1 -1 20
+            overhead "Select your non tank pet 1" 88
+            @setvar! myOtherPet1
+            wait 200
+        endif
+    else
+        @setvar! myOtherPet1 0
+    endif
+    
+    if totalPets = 3 or totalPets = 4 or totalPets = 5
+        if not varexist myOtherPet2
+            @setvar! myOtherPet2 0
+        endif
+        if not find myOtherPet2 ground -1 -1 20
+            overhead "Select your non tank pet 2" 88
+            @setvar! myOtherPet2
+            wait 200
+        endif
+    else
+        @setvar! myOtherPet2 0
+    endif
+    
+    if totalPets = 4 or totalPets = 5
+        if not varexist myOtherPet3
+            @setvar! myOtherPet3 0
+        endif
+        if not find myOtherPet3 ground -1 -1 20
+            overhead "Select your non tank pet 3" 88
+            @setvar! myOtherPet3
+            wait 200
+        endif
+    else
+        @setvar! myOtherPet3 0
+    endif
+
+    if totalPets = 5
+        if not varexist myOtherPet4
+            @setvar! myOtherPet4 0
+        endif
+       if not find myOtherPet4 ground -1 -1 20
+            overhead "Select your non tank pet 4" 88
+            @setvar! myOtherPet4
+            wait 200
+        endif
+    else
+        @setvar! myOtherPet4 0
+    endif
+endif
+
+if not timerexists bandageCheckTimer
+    createtimer bandageCheckTimer
+    settimer bandageCheckTimer bandageCheckTimerCd
+endif
+
+if not timerexists HealTargetTimer
+    createtimer HealTargetTimer
+    settimer HealTargetTimer HealTargetTimerCd
+endif
+
+
+clearsysmsg 
+
+while not dead 
+    
+    if insysmsg 'world is saving'
+        for 60
+            overhead 'Waiting for world save...'
+            wait 100
+            if insysmsg 'save complete'
+                overhead 'Save complete - continue on!' 88
+                break
+            endif
+        endfor
+    endif
+    
+        // Trapped
+    if paralyzed 
+        if findtype "pouch" backpack 38 
+            yell "[pouch"
+            wait minimumWaitForPing
+        else
+            overhead "Out of Pouches!" 34
+        endif
+    endif
+
+    if findbuff "weaken" and weight > maxweight 
+        if findtype "gold coin" backpack as item
+            lift item 2000
+            droprelloc 0 0
+            wait minimumWaitForPing
+            if insysmsg "cannot drop anything"
+                drop backpack -1 -1 -1
+            endif
+            wait minimumWaitForPingUnequipping
+        else
+            overhead "We are overweight and cannot drop anything" 34
+        endif
+    endif
+    
+    ###############
+    ### Pet Healing
+    #############
+    @setvar! canUseKit 1
+    if requireWarModeToHealPets = 1 and not warmode 
+        @setvar! canUseKit 0
+    endif
+    
+    if not bandaging     
+        if canUseKit = 1 and timer bandageCheckTimer > bandageCheckTimerCd
+            if findtype "veterinary supplies" backpack as item
+                dclick item
+                wait 650
+            endif
+            settimer bandageCheckTimer 0
+        else
+            if hp < maxhp
+        // we need to heal
+                if findtype "veterinary supplies" backpack as item
+                    dclick item
+                    wait 650
+                elseif not bandaging and findtype 'clean bandage%s%'
+                    hotkey 'bandage self'
+                endif
+                
+                if diffhits >= ohCrapDrinkAHealthPotHpCheck
+                    if findtype "Yellow Potion" backpack as pot
+                        dclick pot
+                        wait 650
+                    endif
+                endif
+            endif
+            
+            if not bandaging and findtype "clean bandage%s%" backpack as item
+                dclick item
+                wft 650
+                target jaseowns_PetOne               
+                overhead "Heal Target" 77 jaseowns_PetOne
+                wait minimumWaitForPingUnequipping
+            endif
+            if myOtherPet1 != 0 and not bandaging and findtype "clean bandage%s%" backpack as item
+                dclick item
+                wft 650
+                target myOtherPet1
+                overhead "Heal Target" 66 myOtherPet1
+                wait minimumWaitForPingUnequipping
+            endif
+            if myOtherPet2 != 0 and not bandaging and findtype "clean bandage%s%" backpack as item
+                dclick item
+                wft 650
+                target myOtherPet2
+                overhead "Heal Target" 55 myOtherPet2
+                wait minimumWaitForPingUnequipping
+            endif
+            if myOtherPet3 != 0 and not bandaging and findtype "clean bandage%s%" backpack as item
+                dclick item
+                wft 650
+                target myOtherPet3
+                overhead "Heal Target" 44 myOtherPet3
+                wait minimumWaitForPingUnequipping
+            endif
+            if myOtherPet4 != 0 and not bandaging and findtype "clean bandage%s%" backpack as item
+                dclick item
+                wft 650
+                target myOtherPet4
+                overhead "Heal Target" 33 myOtherPet4
+                wait minimumWaitForPingUnequipping
+            endif
+        endif
+    else
+        settimer bandageCheckTimer 0
+    endif
+
+        
+    ###############
+    ### Potions
+    #############
+    if not findtype "White Potion" backpack
+        @setvar! automaticallyDrinkStrPot 0
+    endif
+
+    if not findtype "Blue Potion" backpack
+        @setvar! automaticallyDrinkAgiPot 0
+    endif
+
+    if not findtype "Black Potion" backpack
+        @setvar! automaticallyDrinkMagicPot 0
+    endif
+
+    # Eat food if we got it
+    if not findbuff "food" and findtype "tray" backpack as jood
+        dclick jood
+        wait minimumWaitForPing
+    endif
+
+    @setvar! needStrBuff 0
+    @setvar! needDexBuff 0
+    @setvar! needMagicBuff 0
+    @setvar! needHealPot 0
+    @setvar! needCurePot 0
+    @setvar! needRefreshPot 0
+
+    @setvar! drinkThosePots 0
+
+    if targetInRange = 1 
+       @setvar! drinkThosePots 1   
+    elseif warmode and drinkPotionsEvenIfInWarModeAndYouLoseHealth = 1 and hp < maxhp
+        @setvar! drinkThosePots 1   
+    endif
+
+    if automaticallyDrinkStrPot = 1 and drinkThosePots = 1 and not findbuff "Strength"
+        @setvar! needStrBuff 1
+    endif
+
+    if automaticallyDrinkAgiPot = 1 and drinkThosePots = 1 and not findbuff "Agility"
+        @setvar! needDexBuff 1 
+    endif
+
+    if automaticallyDrinkMagicPot = 1 and drinkThosePots = 1 and not findbuff "Magic Resist Potion"
+        @setvar! needMagicBuff 1 
+    endif
+
+    if automaticallyDrinkHealPot = 1 and hp <= hpCheckToTriggerHealPotion
+        @setvar! needHealPot 1 
+    endif
+
+    if automaticallyDrinkCurePot = 1 and poisoned and hp <= hpCheckToTriggerCurePotion
+        @setvar! needCurePot 1 
+    endif
+
+    if automaticallyDrinkRefreshPot = 1 and diffstam >= stamDiffCheckToTriggerRedPotion
+        @setvar! needRefreshPot 1 
+    endif
+
+    if needStrBuff = 1 and not findtype "White Potion" backpack
+        @setvar! needStrBuff 0
+    endif
+
+    if needDexBuff = 1 and not findtype "Blue Potion" backpack
+        @setvar! needDexBuff 0
+    endif
+
+    if needMagicBuff = 1 and not findtype "Black Potion" backpack
+        @setvar! needMagicBuff 0
+    endif
+
+    if needHealPot = 1 and not findtype "Yellow Potion" backpack
+        @setvar! needHealPot 0
+    elseif needHealPot = 1 and findtype "Yellow Potion" backpack as item
+        getlabel item healPotDesc
+        if "next usable" in healPotDesc
+            @setvar! needHealPot 0
+        else
+            @setvar! needHealPot 1
+        endif
+    endif
+
+    if needCurePot = 1 and not findtype "Orange Potion" backpack
+        @setvar! needCurePot 0
+    endif
+
+    if needRefreshPot = 1 and not findtype "Red Potion" backpack
+        @setvar! needRefreshPot 0
+    endif
+
+    @setvar! jaseCanDrinkPotion 0
+
+    if needStrBuff = 1 or needDexBuff = 1 or needMagicBuff = 1 or needHealPot = 1 or needCurePot = 1 or needRefreshPot = 1
+
+        @setvar! jaseRightHand 0
+        @setvar! jaseLeftHand 0
+        @setvar! needTwoHandSwap 0
+        @setvar! needShieldSwap 0
+
+        if skill "Alchemy" >= 80
+            @setvar! jaseCanDrinkPotion 1
+        else
+            if not findlayer self lefthand and not findlayer self righthand
+                @setvar! jaseCanDrinkPotion 1
+            else
+                if findlayer self lefthand as myLefthand
+                    @setvar! jaseLeftHand myLefthand
+                endif
+                if findlayer self righthand as myRightHand
+                    @setvar! jaseRightHand myRightHand
+                endif 
+                if not lhandempty 
+                    if not rhandempty 
+                        @setvar! jaseCanDrinkPotion 0
+                    else
+                        // handle two handed weapons
+                        getlabel jaseLeftHand desc
+                        if skill "Swordsmanship" > 0
+                           if "axe" in desc or "bardiche" in desc or "halberd" in desc
+                                @setvar! jaseCanDrinkPotion 0
+                                @setvar! needTwoHandSwap 1
+                            else   
+                                @setvar! jaseCanDrinkPotion 1
+                            endif
+                        elseif skill "Mace Fighting" > 0
+                            if "staff" in desc or "crook" in desc or "war hammer" in desc
+                                @setvar! jaseCanDrinkPotion 0
+                                @setvar! needTwoHandSwap 1
+                            else   
+                                @setvar! jaseCanDrinkPotion 1
+                            endif
+                        elseif skill "Fencing" > 0
+                            if "spear" in desc or "pitchfork" in desc
+                                @setvar! jaseCanDrinkPotion 0
+                                @setvar! needTwoHandSwap 1
+                            else   
+                                @setvar! jaseCanDrinkPotion 1
+                            endif
+                        elseif skill "Archery" > 0
+                            if "bow" in desc or "heavy crossbow" in desc
+                                @setvar! jaseCanDrinkPotion 0
+                                @setvar! needTwoHandSwap 1
+                            else   
+                                @setvar! jaseCanDrinkPotion 1
+                            endif
+                        elseif skill "Wrestling" > 0
+                            @setvar! jaseCanDrinkPotion 1
+                        endif  
+                    endif
+                endif
+                if not rhandempty 
+                    if lhandempty 
+                        @setvar! jaseCanDrinkPotion 1
+                    else
+                        @setvar! needShieldSwap 1
+                    endif
+                endif
+            endif
+        endif
+
+        if jaseCanDrinkPotion = 1
+            // do nothing
+        else
+            if needTwoHandSwap = 1
+                if skill "Swordsmanship" > 0 and findtype "cutlass|broadsword|scimitar|viking sword|longsword|katana" backpack as item
+                    dclick item
+                    wait minimumWaitForPing
+                elseif skill "Mace Fighting" > 0 and findtype "maul|war axe|war mace|mace|hammer pick|club" backpack as item
+                    dclick item
+                    wait minimumWaitForPing
+                elseif skill "Fencing" > 0 and findtype "kryss|war fork" backpack as item
+                    dclick item
+                    wait minimumWaitForPing
+                elseif skill "Archery" > 0 and findtype "crossbow" backpack as item
+                    dclick item
+                    wait minimumWaitForPing
+                else
+                    hotkey 'Arm/Disarm Left Hand'    
+                    wait minimumWaitForPing
+                endif
+                @setvar! jaseCanDrinkPotion 1
+            elseif needShieldSwap = 1
+                overhead "we should be disarming left hand"
+                while not lhandempty
+                    hotkey 'Arm/Disarm Left Hand'
+                    wait minimumWaitForPingUnequipping
+                    while queued
+                        wait 100
+                    endwhile
+                endwhile
+                setvar! jaseCanDrinkPotion 1
+            endif
+        endif
+
+        if jaseCanDrinkPotion = 1
+            if needHealPot = 1
+                if findtype "Yellow Potion" backpack as jotion
+                    overhead "chug heal"
+                    dclick jotion
+                    wait minimumWaitForPing
+                    cooldown "Yellow Potion" 10000
+                else
+                    overhead "No Heal potion found!" 34
+                endif
+            endif
+            
+            if needCurePot = 1
+                if findtype "Orange Potion" backpack as jotion
+                    overhead "chug cure"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No Cure potion found!" 34
+                endif
+            endif
+            
+                        
+            if needDexBuff = 1
+                if findtype "Blue Potion" backpack as jotion
+                    overhead "chug"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No AGI potion found!" 34
+                endif
+            endif
+            
+            if automaticallyDrinkRefreshPot = 1 and diffstam >= stamDiffCheckToTriggerRedPotion
+                @setvar! needRefreshPot 1 
+            endif
+        
+            if needRefreshPot = 1
+                if findtype "Red Potion" backpack as jotion
+                    overhead "chug refresh"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No Refresh potion found!" 34
+                endif
+            endif
+        
+            if needStrBuff = 1
+                if findtype "White Potion" backpack as jotion
+                    overhead "chug"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No STR potion found!" 34
+                endif
+            endif
+            
+            if needMagicBuff = 1
+                if findtype "Black Potion" backpack as jotion
+                    overhead "chug"
+                    dclick jotion
+                    wait minimumWaitForPing
+                else
+                    overhead "No MR potion found!" 34
+                endif
+            endif
+
+            if needTwoHandSwap = 1
+                dclick jaseLeftHand
+                wait minimumWaitForPing
+            elseif needShieldSwap = 1
+                hotkey 'Arm/Disarm Left Hand'
+                wait minimumWaitForPingUnequipping
+            endif
+        endif
+    endif
+    
+    
+    ###############
+    ### Self Healing
+    #############
+    if hp < maxhp
+        // we need to heal
+        if findtype "veterinary supplies" backpack as item
+            dclick item
+            wait 650
+        elseif not bandaging and findtype 'clean bandage%s%'
+            hotkey 'bandage self'
+        endif
+        
+        if diffhits >= ohCrapDrinkAHealthPotHpCheck
+            if findtype "Yellow Potion" backpack as pot
+                dclick pot
+                wait 650
+            endif
+        endif
+    endif
+    
+    ###############
+    ### Targeting (based on warmode on)
+    #############
+    if warmode 
+        @setvar! myKillTarget 0
+        @hotkey 'Target Closest Non-Friendly Monster'
+        wait minimumWaitForPing
+        if insysmsg "No one matching that was found"
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "No targets found" 34
+                settimer preventOverheadSpamTimer 0
+            endif
+        else
+            @setvar! myKillTarget lasttarget 
+        endif    
+        
+        if not varexist autoAttack
+            @setvar! autoAttack 1
+        endif
+        
+        if myKillTarget != 0 and myPreviousKillTarget != myKillTarget
+            getlabel myKillTarget mobDesc
+            @setvar! myPreviousKillTarget myKillTarget
+            if "(summoned" in mobDesc or "(bonded" in mobDesc or "(tame" in mobDesc
+                overhead "¼ Player pet - IGNORE ¼" 77 lasttarget
+                @setvar! autoAttack 0
+                @setvar! myKillTarget 0
+            else  
+                @setvar! autoAttack 1
+            endif    
+        endif
+        
+        if myKillTarget = 0
+            // do nothing
+        elseif not find myKillTarget ground -1 -1 myRangeCheckForTarget
+            if showTargetOverheadMessages = 1 and timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "Ï ¼ OUT OF RANGE ¼ Ï" 88 lasttarget
+                settimer preventOverheadSpamTimer 0
+            endif
+            if find myKillTarget ground -1 -1 8 and autoAttack = 1
+                attack myKillTarget 
+            endif
+        elseif autoAttack = 1
+            @setvar! targetInRange 1
+            if showTargetOverheadMessages = 1 and timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "Ï ¼¼ HERE ¼¼ Ï" 88 myKillTarget    
+                settimer preventOverheadSpamTimer 0
+            endif
+            attack myKillTarget 
+        endif
+    endif
+    
+    if not timerexists GuardTimer
+        createtimer GuardTimer
+        settimer GuardTimer 0
+    endif
+    ###############
+    ### Herding
+    #############
+    
+        if myKillTarget != 0 and find myKillTarget ground -1 -1 12
+        @setvar jaseowns_KillTarget myKillTarget
+            if jaseowns_KillTarget != jaseowns_LastFocusAggressionTarget
+                if find jaseowns_PetOne and timer GuardTimer > GuardTimerCd
+                    if find jaseowns_PetOne
+                        overhead "Ï Guarding Ï" 88 jaseowns_PetOne
+                        if skill "Herding" > 0
+                            menu jaseowns_PetOne 4
+                            settimer GuardTimer 0
+                        else
+                            menu jaseowns_PetOne 3
+                            settimer GuardTimer 0
+                        endif
+                    endif
+                endif
+        
+                if timer jaseowns_SkillTimerCheck >= jaseowns_SkillTimerCD and findtype 3713 backpack as jrook
+                settimer jaseowns_SystemMsgCheck 0
+                while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD
+                    if not targetexists
+                        overhead "Ï ¼ Attempting Herd ¼ Ï" 88 jaseowns_KillTarget
+                        dclick jrook
+                        wft 500
+                    else 
+                        break
+                    endif
+                endwhile
+                if insysmsg "What do you wish to focus your" and targetexists
+                    target jaseowns_KillTarget
+                    settimer jaseowns_SystemMsgCheck 0
+                    while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD
+                        if insysmsg "You focus your follower"
+                            @setvar! jaseowns_LastFocusAggressionTarget jaseowns_KillTarget
+                            break
+                        elseif insysmsg "Target cannot be seen"
+                            
+                        endif
+                    endwhile
+                    if not targetexists 
+                        settimer jaseowns_SkillTimerCheck 10000
+                    endif
+                endif
+            endif
+        endif
+    else
+        @setvar! jaseowns_LastFocusAggressionTarget 0
+    endif
+    
+
+        
+    ###############
+    ### Discord
+    #############
+    
+    if myKillTarget != 0 and find myKillTarget ground -1 -1 12 and skill 'Discordance' > 0
+        useskill 'Discordance'
+        wait 600
+        if insysmsg "What instrument"
+            if findtype "bamboo flute" backpack as inny
+                target inny
+            elseif findtype "tambourine" backpack as inny
+                target inny
+            elseif findtype "drum" backpack as inny
+                target inny
+            elseif findtype "lute" backpack as inny
+                target inny
+            elseif findtype "lap harp" backpack as inny
+                target inny
+            else
+                overhead "I do not have an inny" 34
+                wait 2000
+                replay
+            endif
+            wait 600
+            overhead "Ï ¼¼ HERE ¼¼ Ï" 88 myKillTarget    
+            settimer preventOverheadSpamTimer 0
+            target myKillTarget
+        endif
+    settimer "DiscoTimer" 0
+    endif
+    
+   
+    ###############
+    ### Discord Buff
+    #############
+    if skill 'Discordance' > 0
+        if not findbuff "song of discordance"
+            overhead 'Discord Buff.'
+            useskill 'Discordance'
+            wait 600
+            if insysmsg "what do you wish to discord"
+                wait 600 
+                target backpack
+            elseif insysmsg "What instrument"
+                    if findtype "bamboo flute" backpack as inny
+                        target inny
+                    elseif findtype "tambourine" backpack as inny
+                        target inny
+                    elseif findtype "drum" backpack as inny
+                        target inny
+                    elseif findtype "lute" backpack as inny
+                        target inny
+                    elseif findtype "lap harp" backpack as inny
+                        target inny
+                    else
+                        overhead "I do not have an inny" 34
+                        wait 2000
+                        replay
+                    endif   
+            endif
+        endif
+    endif
+    ###############
+    ### Peacemaking Buff
+    #############    
+    if skill "Peacemaking" > 0
+        if not findbuff "song of peacemaking"
+            overhead 'Peace Buff.' 
+            useskill 'Peacemaking'
+            wft 600
+            if insysmsg "what do you wish to Pacify"
+            wait 600 
+            target backpack
+            elseif insysmsg "What instrument"
+                if findtype "bamboo flute" backpack as inny
+                    target inny
+                elseif findtype "tambourine" backpack as inny
+                    target inny
+                elseif findtype "drum" backpack as inny
+                    target inny
+                elseif findtype "lute" backpack as inny
+                    target inny
+                elseif findtype "lap harp" backpack as inny
+                    target inny
+                else
+                    overhead "I do not have an inny" 34
+                    wait 2000
+                    replay
+                endif   
+            endif
+        endif
+    endif
+    
+endwhile    
+
+while dead 
+    overhead "Rip" 34
+    if gumpexists 2957810225
+        gumpresponse 1 2957810225
+        break
+    endif        
+    wait 500
+endwhile
+
+replay

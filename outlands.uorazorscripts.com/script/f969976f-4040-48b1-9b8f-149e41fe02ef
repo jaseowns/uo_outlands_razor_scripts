@@ -1,0 +1,91 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/f969976f-4040-48b1-9b8f-149e41fe02ef for latest
+# Automation by Jaseowns
+## Script: Tinkering jewels training beads seller
+## Created by: special_sy#0
+#############################################
+
+@clearignore 
+# Script by [DoS] Chumber
+# This script is a semi automatic helper if you train tinkering
+# with jewels. 
+# It doesnt restock, i just put all my gems into a boombox...
+# 
+# It stops the queue if full and resumes after unload
+# It will work with any jeweler, just be in range (10 tiles)
+# It can buy tools if you setup a buy agent for them
+# Just change buyToolkits to 1
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !! REQUIREMENTS:                                              !!
+# !! Add the beads to your sell agent and enable it             !!
+# !! Setup your crafting queue with beads                       !!
+# !! This Script uses Organizer 10 to move gold, usually your   !!
+# !! boombox or your bank where possible (Outpost)              !!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+@setvar buyToolkits 1
+
+# !!! DONT EDIT !!
+@setvar jewelerNPC 0
+if not timerexists 'sellBeads'
+    createtimer 'sellBeads'
+endif
+
+# Find a jeweler
+while findtype 400|401 'ground' -1 -1 10 as npc
+    getlabel npc npcLabel
+    if 'jeweler' in npcLabel
+        @setvar jewelerNPC npc
+    endif
+    @ignore npc
+endwhile
+
+# Didnt find a jeweler?
+if jewelerNPC = 0
+    overhead "No jeweler in range!"
+    hotkey 'Crafting Queue'
+    overhead "I cant work like that!" 32
+    wait 250
+    gumpresponse 7
+    stop
+endif
+
+# Buy more toolkits from jewler if down to 1
+if counttype 'tool kit' <= 1 and buyToolkits = 1
+    overhead "Last toolkit, buying more!"
+    menu jewelerNPC 1
+    wait 500
+endif
+
+## Sell on 10 beads every 30s or if almost full
+if counttype 4233 > 10 and timer 'sellBeads' > 30000 or diffweight  < 10
+    overhead '$$$'
+    menu jewelerNPC 2
+    wait 500
+    organizer 10
+    settimer 'sellBeads' 0
+endif
+
+## Full
+if diffweight < 1
+    overhead "This stuff is heavy!"
+    hotkey 'Crafting Queue'
+    wait 250
+    gumpresponse 7
+    # Drop Gold somewhere
+    while diffweight < 10
+        overhead "Unload gold!"
+        wait 5000
+    endwhile
+    # Get back
+    while not find jewelerNPC 'ground' -1 -1 10 
+        overhead "Get back to work!"
+        wait 5000
+    endwhile
+    # Resume
+    hotkey 'Crafting Queue'
+    overhead "We are back in business!"
+    wait 250
+    gumpresponse 7
+endif
+wait 5000
+replay

@@ -15,23 +15,35 @@
 # It can buy tools if you setup a buy agent for them
 # Just change buyToolkits to 1
 #
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# !! REQUIREMENTS:                                              !!
-# !! Add the beads to your sell agent and enable it             !!
-# !! Setup your crafting queue with beads                       !!
-# !! This Script uses Organizer 10 to move gold, usually your   !!
-# !! boombox or your bank where possible (Outpost)              !!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !! REQUIREMENTS:                                                    !!
+# !! Add the beads to your sell agent and enable it                   !!
+# !! Add 5 toolkits to your buy agent and enable it                   !!
+# !! Setup your crafting queue with beads (craft until skill reached) !!
+# !! This Script uses Organizer 10 to move gold, usually your         !!
+# !! boombox or your bank where possible (Outpost)                    !!
+# !! Setup Restock Agent 10 to grab ingots and jewels                 !!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 @setvar buyToolkits 1
+@setvar restockAgentNo 10
+@setvar organizerAgentNo 10
+@setvar skillCap 121
 
 # !!! DONT EDIT !!
 @setvar jewelerNPC 0
 if not timerexists 'sellBeads'
     createtimer 'sellBeads'
+    clearsysmsg 
+endif
+
+if skill 'tinkering' >= skillCap
+    overhead "All done, congrats!" 88
+    stop
 endif
 
 # Find a jeweler
-while findtype 400|401 'ground' -1 -1 10 as npc
+while findtype 400|401 'ground' -1 -8 as npc
     getlabel npc npcLabel
     if 'jeweler' in npcLabel
         @setvar jewelerNPC npc
@@ -49,19 +61,31 @@ if jewelerNPC = 0
     stop
 endif
 
-# Buy more toolkits from jewler if down to 1
+# Buy more toolkits from jeweler if down to 1
 if counttype 'tool kit' <= 1 and buyToolkits = 1
     overhead "Last toolkit, buying more!"
     menu jewelerNPC 1
     wait 500
 endif
 
+# Restock
+if counttype 'iron ingot%s' 'backpack' <= 3 and restockAgent > 0
+    overhead "Restocking..."
+    restock restockAgentNo
+    wft 500
+    target 'self'
+    while queued
+        wait 500
+    endwhile
+endif
+
 ## Sell on 10 beads every 30s or if almost full
 if counttype 4233 > 10 and timer 'sellBeads' > 30000 or diffweight  < 10
-    overhead '$$$'
+    getlabel jewelerNPC npcLabel
+    overhead '$$$ {{npcLabel}}'
     menu jewelerNPC 2
     wait 500
-    organizer 10
+    organizer organizerAgentNo
     settimer 'sellBeads' 0
 endif
 
@@ -85,6 +109,18 @@ if diffweight < 1
     hotkey 'Crafting Queue'
     overhead "We are back in business!"
     wait 250
+    gumpresponse 7
+endif
+
+# Keep the crafting queue open
+if not gumpexists 453554062
+    hotkey 'Crafting Queue'
+    wait 500
+endif
+
+# Start queue
+if ingump 'Begin Crafting'
+    overhead "Here we go!"
     gumpresponse 7
 endif
 wait 5000

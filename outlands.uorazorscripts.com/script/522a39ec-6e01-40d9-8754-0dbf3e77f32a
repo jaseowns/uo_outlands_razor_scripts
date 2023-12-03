@@ -1,0 +1,513 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/522a39ec-6e01-40d9-8754-0dbf3e77f32a for latest
+# Automation by Jaseowns
+## Script: Distillation/Map-bot 3000
+## Created by: daklue#0
+#############################################
+
+///////////////////////////////////////////////////////////   
+# Distillation/Map-bot 3000
+# UO Outlands
+# By: SCGuy
+# Minor Edits by DaKlue 
+# Most Scripts copied and modified from uorazorscritpts.com
+///////////////////////////////////////////////////////////
+
+# select the drop bag where people will place extracts
+if not varexist chestToLookIn
+    overhead 'Select the bag to watch for all items in.'
+    @setvar! chestToLookIn
+    dclick chestToLookIn
+endif
+
+if not varexist chestToDropIn
+    overhead 'Select the bag to drop all items after bot has finished with it.'
+    @setvar! chestToDropIn
+    dclick chestToDropIn
+endif
+
+@setvar! alchGumpID 949095101
+@setvar! aspectPageID 108
+@setvar! nextPageResponse 11
+
+if not timerexists "botTimer"
+    createtimer "botTimer"
+    settimer "botTimer" 0
+endif
+if timer botTimer >= 60000
+    wait 1000
+    say "Distillation/Map-bot 3000  ONLINE!" 88
+    wait 500
+    settimer "botTimer" 0
+endif
+
+if not findtype "bottle" backpack
+    dclick chestToLookIn
+    wait 200
+    overhead "Restock Extract" 88
+    if findtype "bottle" chestToLookIn as bottle
+        lift bottle
+        drop backpack -1 -1 -1
+        wait 650
+    endif
+endif
+    
+if findtype 'bottle' self as extract
+    overhead "Found a extract. Give us a moment as we turn it into a distilation." 88
+    # pickup bottles on the floor
+    if counttype 'empty bottle%s%' self = 0
+        @setvar bottleID 0
+        if findtype 'empty bottle%s%' ground -1 -1 2 as bottles
+            @setvar bottleID bottles 
+        elseif findtype 'empty bottle%s%'  as bottles
+            @setvar bottleID bottles 
+        endif
+        
+        if bottleID > 0
+            lift bottleID 60000
+            drop backpack -1 -1 -1
+            say 'Thank you for the bottles!'
+            wait 1000
+        endif
+    endif
+
+    # pickup mortal and pestle on the floor
+    if counttype 'mortar and pestle' self = 0 
+        @setvar! toolID 0
+        if findtype 'mortar and pestle' ground -1 -1 2 as tool
+            @setvar! toolID tool
+        elseif findtype 'mortar and pestle' chestToLookIn as tool
+            @setvar! toolID tool
+        endif
+        
+        if toolID > 0
+            lift toolID 60000
+            drop backpack -1 -1 -1
+            say 'Thank you for the tools!'
+            wait 1000
+       endif
+    endif
+
+    # check for an extract in the drop bag
+    @setvar! foundExtract 0
+    @setvar! shouldSpeak 1
+    while findtype 'bottle' chestToLookIn as extract
+        @setvar! foundExtract 1
+        overhead 'Found an extract! Creating a new distill...'
+        getlabel extract extractName
+        
+        if shouldSpeak = 1
+            @setvar! shouldSpeak 0
+            say 'Ah, an extract. Let me distill that for you...'
+            wait 250
+        endif
+
+        # check for empty bottles
+        if not findtype 'empty bottle%s%' self
+            overhead 'Need more empty bottles!' 38
+            say "I am out of empty bottles! Please drop some on the floor for me."
+            wait 3000
+            loop
+        endif
+
+        # open the alch gump, and go to page 2
+        # of the aspect section where distills begin
+        if findtype 'mortar and pestle' self as tool
+            gumpclose alchGumpID
+            dclick tool
+            waitforgump alchGumpID
+            
+            # goto 'Aspect Items'
+            gumpresponse aspectPageID
+            waitforgump alchGumpID
+            wait 650
+            
+            # goto page 3
+            gumpresponse nextPageResponse
+            waitforgump alchGumpID
+            wait 650
+            gumpresponse nextPageResponse
+            waitforgump alchGumpID
+            wait 650
+        else
+            overhead 'Need more mortal and pestles!' 38
+            say "I am out of mortar and pestles! Please drop some on the floor for me."
+            wait 3000
+            loop
+        endif
+
+        # move the extract once we know we can make a distill
+        lift extract 1
+        drop backpack -1 -1 -1
+        wait 650
+
+        # go to the page for this extract,
+        # then create it
+        // page 3
+        if 'Air' in extractName
+            overhead 'Air' 1001
+            gumpresponse 200 alchGumpID
+
+        elseif 'Artisan' in extractName
+            overhead 'Artisan' 544
+            gumpresponse 201 alchGumpID
+
+        elseif 'Blood' in extractName
+            overhead 'Blood' 38        
+            gumpresponse 202 alchGumpID
+            
+        elseif 'Command' in extractName
+            overhead 'Command' 68
+            gumpresponse 203 alchGumpID
+
+        elseif 'Death' in extractName
+            overhead 'Death' 923
+            gumpresponse 204 alchGumpID
+
+        elseif 'Discipline' in extractName
+            overhead 'Discipline' 442
+            gumpresponse 205 alchGumpID
+
+        elseif 'Earth' in extractName
+            overhead 'Earth' 544
+            gumpresponse 206 alchGumpID
+
+        elseif 'Eldritch' in extractName
+            overhead 'Eldritch' 24
+            gumpresponse 207 alchGumpID
+
+        elseif 'Fire' in extractName
+            overhead 'Fire' 38
+            gumpresponse 208 alchGumpID
+
+        elseif 'Fortune' in extractName
+            overhead 'Fortune' 53
+            gumpresponse 209 alchGumpID
+        
+        // page 4
+        elseif 'Gadget' in extractName
+            overhead 'Gadget' 53
+            gumpresponse nextPageResponse alchGumpID
+            waitforgump alchGumpID
+            gumpresponse 200 alchGumpID
+            
+        elseif 'Harvest' in extractName
+            overhead 'Harvest' 53
+            gumpresponse nextPageResponse alchGumpID
+            waitforgump alchGumpID
+            gumpresponse 201 alchGumpID
+
+        elseif 'Holy' in extractName
+            overhead 'Holy' 53
+            gumpresponse nextPageResponse alchGumpID
+            waitforgump alchGumpID
+            gumpresponse 202 alchGumpID
+
+        elseif 'Lyric' in extractName
+            overhead 'Lyric' 38
+            gumpresponse nextPageResponse alchGumpID
+            waitforgump alchGumpID
+            gumpresponse 203 alchGumpID
+
+        elseif 'Poison' in extractName
+            overhead 'Poison' 68
+            gumpresponse nextPageResponse alchGumpID
+            waitforgump alchGumpID
+            gumpresponse 204 alchGumpID
+
+        elseif 'Shadow' in extractName
+            overhead 'Shadow' 923
+            gumpresponse nextPageResponse
+            waitforgump alchGumpID
+            gumpresponse 205 alchGumpID
+
+        elseif 'Void' in extractName
+            overhead 'Void' 14
+            gumpresponse nextPageResponse alchGumpID
+            waitforgump alchGumpID
+            gumpresponse 206 alchGumpID
+
+        elseif 'War' in extractName
+            overhead 'War' 44
+            gumpresponse nextPageResponse alchGumpID
+            waitforgump alchGumpID
+            gumpresponse 207 alchGumpID
+            
+        elseif 'Water' in extractName
+            overhead 'Water' 8
+            gumpresponse nextPageResponse alchGumpID
+            waitforgump alchGumpID
+            gumpresponse 208 alchGumpID
+
+        else 
+            overhead 'Unknown extract type! {{extractName}}' 38
+            say 'DISTILLO-BOT FATAL ERROR! CANNOT COMPUTE! CANNOT COMPUTE!'
+        endif
+
+        waitforgump alchGumpID 1000
+        gumpclose alchGumpID
+        wait 3000
+    endwhile
+else 
+    overhead "Out of Extracts!" 34
+    wait 650
+endif
+
+# move the new distillations back into the drop bag
+while findtype 'flask' self as distillation
+    lift distillation 99
+    drop chestToDropIn -1 -1 -1
+    wait 1500
+endwhile
+
+if foundExtract == 1
+    say 'There you go! Thank you for using Distillo-bot 3000 and have a nice day.'
+endif
+
+
+
+
+@setvar! globalTimeout 650
+
+
+#################################
+##### Item Id
+###########################
+
+if skill "Item Identification" >= 120
+    
+    if not find chestToLookIn ground -1 -1 2
+        unsetvar chestToLookIn
+        replay
+    endif
+    
+    if not timerexists "itemIdTimer"
+        createtimer "itemIdTimer"
+        settimer "itemIdTimer" 20000
+    endif
+    
+    if not timerexists "detectHidingPlayersTimer"
+        createtimer "detectHidingPlayersTimer"
+        settimer "detectHidingPlayersTimer" 11000
+    endif
+    
+    getlabel chestToLookIn descItemId
+    
+    if "0 items, 0 stones" in descItemId
+        // do nothing
+    elseif timer "detectHidingPlayersTimer" >= 11000 and timer "itemIdTimer" >= 20000
+        useskill 'itemidentification'
+        wft 500
+        target chestToLookIn
+        settimer "detectHidingPlayersTimer" 9000
+        settimer "itemIdTimer" 0
+    endif
+endif
+
+
+
+
+if skill "Lockpicking" >= 50
+        
+    if not timerexists "unlockChestTimer"
+        createtimer "unlockChestTimer"
+        settimer "unlockChestTimer" 2000
+    endif
+
+    if not varexist haveParagonToOpen
+        @setvar! haveParagonToOpen 0
+    endif
+
+    if findtype "lockpicks" backpack and findtype "drill" backpack
+        @clearignore
+        if not varexist chestToLookIn
+            overhead "Select a chest to look in" 88
+            @setvar! chestToLookIn
+        endif
+
+        if not find chestToLookIn ground -1 -1 2
+            unsetvar chestToLookIn
+            replay
+        endif
+
+        if haveParagonToOpen = 0
+            while findtype 2473|3644|3645|3646|3647|3710|3701|3702|29832|29833|2472|2475|3648|3649|3708|29078|41449|41450|3705|3712|2474|3709|3650|3651|29077 chestToLookIn as container
+                getlabel container desc
+                if "sealed" in desc
+                    overhead "paragon found"
+                    lift container
+                    drop backpack -1 -1 -1
+                    wait globalTimeout
+                endif
+                
+                if find container backpack
+                    @setvar! haveParagonToOpen container
+                else
+                    @ignore! container
+                endif
+            endwhile
+        elseif timer unlockChestTimer >= 3500
+            if gumpexists 736038070
+                if ingump "Cleared of Traps" 736038070
+                    gumpresponse 4 736038070
+                else
+                    overhead "Remove Trap"
+                    gumpresponse 7 736038070        
+                endif
+                settimer unlockChestTimer 0
+            else
+                getlabel haveParagonToOpen sealedDesc
+                if "sealed" in sealedDesc
+                    dclick haveParagonToOpen
+                else
+                    overhead "we done"
+                    lift haveParagonToOpen
+                    drop chestToLookIn -1 -1 -1
+                    wait globalTimeout
+                    if not find haveParagonToOpen backpack
+                        @setvar! haveParagonToOpen 0
+                    endif
+                endif
+            endif
+        endif
+    else
+        overhead "No more lockpicks or drills bro" 34
+    endif
+
+endif
+
+# All types of map decoder by Jaseowns
+if skill 'cartography' >= 50
+    if not findtype "spyglass" backpack
+        if findtype "spyglass" chestToLookIn as item
+            overhead "Grabbing spyglass" 34
+            lift item
+            drop backpack -1 -1 -1
+            wait 650
+        else
+            overhead "Need spyglass" 34
+            wait 5000        
+        endif
+        replay
+    endif
+
+    if not findtype "map" backpack
+        dclick chestToLookIn
+        wait 200
+        overhead "Restock Map" 88
+        if findtype "map" chestToLookIn as map
+            lift map
+            drop backpack -1 -1 -1
+            wait 650
+        endif
+    endif
+
+    # Close map gump
+    // ore
+    gumpclose 3367641484
+    // skinning
+    gumpclose 3473029237
+    // lumber
+    gumpclose 1332805401
+    // treasure
+    gumpclose 1520869851
+    // fishing
+    gumpclose 2589357942
+
+
+    if findtype "map" backpack as my_map
+        getlabel my_map desc
+        overhead desc   
+        dclicktype "spyglass" backpack
+        wft 1500
+        target my_map
+        
+        @setvar! gumpIdToCheck 0
+        
+        if "ore" in desc
+            @setvar! gumpIdToCheck 3367641484
+        elseif "skinning" in desc
+            @setvar! gumpIdToCheck 3473029237
+        elseif "lumber" in desc
+            @setvar! gumpIdToCheck 1332805401
+        elseif "treasure" in desc
+            @setvar! gumpIdToCheck 1520869851
+        elseif "fishing" in desc
+            @setvar! gumpIdToCheck 2589357942
+        else
+           overhead "Unknown gump!" 34
+        endif
+        
+        waitforgump gumpIdToCheck 1000
+        
+        if "[100.0%" in desc or "(100.0%" in desc
+            dclick chestToDropIn
+            wait 200
+            overhead "Moving map..." 88
+            lift my_map
+            drop chestToDropIn -1 -1 -1
+            wait 650
+        else
+            overhead "Updating..."
+            clearsysmsg 
+            while gumpexists gumpIdToCheck
+                gumpresponse 4 gumpIdToCheck
+                wait 500
+                if insysmsg "maximum accuracy"
+                    gumpclose gumpIdToCheck
+                    lift my_map
+                    drop chestToDropIn -1 -1 -1
+                    wait 650
+                endif
+            endwhile
+        endif    
+        wait 200
+        replay
+    else
+        overhead "Out of maps!" 34
+        wait 5000
+        replay
+    endif
+endif
+if not listexists "friendsofthehouse"
+    createlist "friendsofthehouse"
+endif
+
+if not timerexists "detectHidingPlayersTimer"
+    createtimer "detectHidingPlayersTimer"
+    settimer "detectHidingPlayersTimer" 11000
+endif
+
+if not timerexists "sayBanTimer"
+    createtimer "sayBanTimer"
+    settimer "sayBanTimer" 2000
+endif
+
+if timer "detectHidingPlayersTimer" >= 11000
+    useskill 'detectinghidden'
+    wft 500
+    target 'self'
+    settimer "detectHidingPlayersTimer" 0
+endif
+
+hotkey 'Next non-friendly player target'
+wait 200
+if insysmsg "no one matching"
+    // do nothing
+else 
+    @setvar! removeTarget lasttarget
+    if inlist "friendsofthehouse" removeTarget 
+        // do nothing
+    elseif timer sayBanTimer >= 2000
+        say "I ban thee" 
+        wft 1000
+        target removeTarget 
+        wait 200
+        if insysmsg "You cannot eject a friend of the house!"
+            pushlist "friendsofthehouse" removeTarget 
+        endif  
+        settimer "sayBanTimer" 0
+    endif
+endif
+
+wait 50
+loop

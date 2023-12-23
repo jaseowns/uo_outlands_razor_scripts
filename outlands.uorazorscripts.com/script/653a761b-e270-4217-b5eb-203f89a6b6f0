@@ -1,0 +1,76 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/653a761b-e270-4217-b5eb-203f89a6b6f0 for latest
+# Automation by Jaseowns
+## Script: Drop gold on pet and deposit near safe
+## Created by: special_sy#0
+#############################################
+
+# Script by [DoS] Chumber
+# Dump your gold on your storage pets to go a little bit longer
+# Deposit the gold from pets if you are near a safe
+# Edit the CONFIG section to set your pets
+# You always need one entry in each list
+# pushlist goldAmounts <amount of gold the pet can carry>
+# pushlist goldPets <the pet serial from >info>
+# If you got more than one pet you just add another entry in both lists
+# Update goldToStart to the sum of all goldAmounts
+
+if not listexists goldAmounts
+    createlist goldAmounts
+endif
+if not listexists 'goldPets'
+    createlist goldPets
+endif
+clearlist goldAmounts
+clearlist goldPets
+
+# --- CONFIG START ---
+@setvar goldToStart 2000
+pushlist goldAmounts 500
+pushlist goldPets 0x57DB0A
+
+pushlist goldAmounts 500
+pushlist goldPets 0xD2BC9
+# --- CONFIG END -----
+if findtype 'bank deposit safe' 'ground' -1 -1 2 as safe
+    overhead "Found a save, depositing from pets!"
+    foreach goldPet in goldPets
+        getlabel goldPet petLabel
+        dclick goldPet
+        wait 200
+        if findtype 'gold coin' goldPet as gold
+            getlabel gold goldLabel
+            overhead "Depositing {{goldLabel}} from {{petLabel}}"
+            lift gold 1000
+            wait 250
+            drop safe
+            wait 250
+        else
+            overhead "No gold in {{petLabel}}"
+        endif
+     endfor
+     overhead "All done!"
+     stop
+endif
+
+if counttype 'gold coin' 'backpack' < goldToStart
+    overhead "Du bist noch zu arm!"
+    stop
+endif
+overhead '$$$'
+
+foreach goldAmount in goldAmounts
+    if poplist goldPets 'front' as goldPet
+        if find goldPet 'ground' -1 -1 2 as currentPet and findtype 'gold coin' backpack as gold
+            getlabel currentPet label
+            overhead 'Dropping {{goldAmount}} on {{label}}'
+            lift gold goldAmount
+            wait 250
+            drop goldPet -1 -1
+            wait 250
+        else
+            overhead "Pet isnt close enough or not present, please check!"
+        endif
+    endif
+endfor
+
+overhead 'Done!'

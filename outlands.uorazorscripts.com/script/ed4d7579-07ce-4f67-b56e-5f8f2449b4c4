@@ -11,9 +11,9 @@
 # https://youtube.com/jaseowns/live
 #######
 #####
-##  Verison 3.2.0
-##  Last Edit: 7/10/2023 
-##    - add optional herding when out of range
+##  Verison 3.3.0
+##  Last Edit: 1/13/2024
+##    - Removing herding
 ###
 
 #### Notes for next time:
@@ -30,9 +30,6 @@
 ################
 @setvar! automaticallySkinCorpses 1
 @setvar! automaticallyPoisonWeaponThatIsEquipped 1
-// This may be useful if you want your pets to focus aggression before you get to it
-// off by default
-@setvar! useHerdingEvenIfOutOfRange 0 
 
 
 ################################
@@ -62,6 +59,39 @@
 @setvar! lowHealthTriggerForNobleSacrifice 40
 
 @setvar! myRangeCheckForTarget 1
+
+# Herding
+if skill "Herding" > 0 and findtype 3713 self as firstJrook
+    @setvar! isHerdingActive 0
+    while isHerdingActive = 0
+        if counttype 3713 self > 1
+            @clearignore 
+            while findtype 3713 self as jrook
+                getlabel jrook multiDesc
+                if 'activated' in multiDesc
+                    @setvar! isHerdingActive 1
+                    break
+                endif
+                @ignore jrook
+            endwhile
+            @clearignore 
+            if isHerdingActive = 0
+                dclick firstJrook
+            endif
+        endif
+        
+        if isHerdingActive = 0
+            getlabel firstJrook desc
+            if 'activated' in desc
+                @setvar! isHerdingActive 1
+            else
+                dclick firstJrook
+                getlabel firstJrook desc
+                @setvar! isHerdingActive 1
+            endif 
+        endif
+    endwhile
+endif
 
 if skill "Archery" > 50
     @setvar! myRangeCheckForTarget 8   
@@ -219,18 +249,10 @@ while not dead
         endif
         
         if timer petGuardTimer >= cdPetGuard
-            if skill "Herding" > 0
-                menu myDexxerTankPet 4
-                if not dead myOtherPet1
-                    wait 200
-                    menu myOtherPet1 4
-                endif
-            else
-                menu myDexxerTankPet 3
-                if not dead myOtherPet1
-                    wait 200
-                    menu myOtherPet1 3
-                endif
+            menu myDexxerTankPet 3
+            if not dead myOtherPet1
+                wait 200
+                menu myOtherPet1 3
             endif
             settimer petGuardTimer 0
         endif
@@ -473,15 +495,6 @@ while not dead
                 overhead "Ï ¼ OUT OF RANGE ¼ Ï" 88 lasttarget
                 settimer preventOverheadSpamTimer 0
             endif
-            // Herding using crook
-            if skill "Herding" > 0 and useHerdingEvenIfOutOfRange = 1 and findtype 3713 backpack as jrook
-                if timer sCheck >= 12000
-                    dclick jrook
-                    wft 500
-                    target lasttarget
-                    settimer sCheck 8000
-                endif
-            endif
             if find lasttarget ground -1 -1 8 and autoAttack = 1
                 attack lasttarget 
             endif
@@ -492,16 +505,6 @@ while not dead
                 settimer preventOverheadSpamTimer 0
             endif
             attack lasttarget 
-            
-            // Herding using crook
-            if skill "Herding" > 0 and findtype 3713 backpack as jrook
-                if timer sCheck >= 12000
-                    dclick jrook
-                    wft 500
-                    target lasttarget
-                    settimer sCheck 8000
-                endif
-            endif
         endif
     endif
 

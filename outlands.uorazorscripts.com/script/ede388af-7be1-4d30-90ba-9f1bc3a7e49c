@@ -7,7 +7,7 @@
 # Dexxer tamer bot WIP by Jaseowns
 # UO Outlands
 ########################################
-# V 3.0.0  - Last Updated: 01/13/2024 ##
+# V 3.1.0  - Last Updated: 01/14/2024 ##
 ########################################
 # Lots to do still... youtube.com/jaseowns/live
 ####
@@ -121,6 +121,12 @@ settimer jaseowns_SystemMsgCheck jaseowns_SystemMsgCheckCD
 ####
 @setvar! jaseowns_KillTimerCD 1000
 settimer jaseowns_KillTimer jaseowns_KillTimerCD
+
+#####
+##  Herd Again Check Timer
+####
+@setvar! jaseowns_HerdAgainTimerCD 8000
+settimer jaseowns_HerdAgainTimer jaseowns_HerdAgainTimerCD
 
 #####
 ##  Targeting Variables
@@ -636,6 +642,50 @@ while not dead
             endif
             attack myKillTarget 
         endif
+    endif
+    
+    ###############
+    ### Herding
+    #############
+    if myKillTarget != 0 and find myKillTarget ground -1 -1 12
+        @setvar jaseowns_KillTarget myKillTarget
+        if jaseowns_KillTarget != jaseowns_LastFocusAggressionTarget
+
+            if find jaseowns_PetOne
+                overhead "ý Guarding ý" 88 jaseowns_PetOne
+                menu jaseowns_PetOne 3
+            endif
+
+            if timer jaseowns_SkillTimerCheck >= jaseowns_SkillTimerCD and findtype 3713 self as jrook
+                settimer jaseowns_SystemMsgCheck 0
+                while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD
+                    if targetexists 'beneficial'
+                        hotkey "Cancel Current Target"
+                    elseif not targetexists 'harmful'
+                        overhead "ý ý Attempting Herd ý ý" 88 jaseowns_KillTarget
+                        say "ALL KILL" 88
+                        wft 500
+                    else
+                        break
+                    endif
+                endwhile
+                if targetexists 'harmful'
+                    target jaseowns_KillTarget
+                    settimer jaseowns_SystemMsgCheck 0
+                    @setvar! jaseowns_LastFocusAggressionTarget jaseowns_KillTarget
+                    settimer jaseowns_HerdAgainTimer 0
+                    @setvar! jaseowns_DiscordThisTarget jaseowns_KillTarget
+                endif
+            endif
+        endif
+    else
+        @setvar! jaseowns_DiscordThisTarget 0
+        cooldown "Discord Jarget" 0
+        @setvar! jaseowns_LastFocusAggressionTarget 0
+    endif
+
+    if timer jaseowns_HerdAgainTimer >= jaseowns_HerdAgainTimerCD
+        @setvar! jaseowns_LastFocusAggressionTarget 0
     endif
     
     ###############

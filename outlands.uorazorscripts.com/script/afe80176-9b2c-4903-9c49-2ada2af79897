@@ -5,55 +5,108 @@
 #############################################
 
 # Training Magery to 100 using shelf by Jaseowns
+# Train Magery, magery after shelter
 # UO Outlands
 # https://youtu.be/zIGvPxBPTFk
+# Improved: 1/15/2024
 # Requirements:
 #   Have your loadout be set to
 #   100 of BM, NS, SS, MR
 # Invisibility: ~2100 Blood moss, Nightshade
 # Summon a water elemental: >~ 5000 Blood moss, Spiders Silk, Mandrake Root#
+@setvar! jaseowns_SkillTimerCD 10500
+if not timerexists jaseowns_SkillTimer
+    settimer jaseowns_SkillTimer jaseowns_SkillTimerCD
+endif
+
+@setvar! jaseowns_MushroomTimerCD 61000
+if not timerexists jaseowns_MushroomTimer
+    settimer jaseowns_MushroomTimer jaseowns_MushroomTimerCD
+endif
+
 if skill 'Magery' < 100
+    
+    # Eat food if we got it
+    if not findbuff "food" and findtype "tray" backpack as jood
+        dclick jood
+        wait 200
+    endif
+
     if skill 'Magery' < 80
-        if counttype 'Blood moss' backpack < 1 or counttype 'Nightshade' backpack < 1
-            if findtype "storage shelf" ground any any 2 as the_shelf
+        if counttype 3963 self < 1 or counttype 3976 self < 1
+            if findtype "storage shelf" ground -1 -1 2 as jaseowns_StorageShelf
                 overhead "Resupply" 88
-                menu the_shelf 1
-                wait 500
+                menu jaseowns_StorageShelf 1
+                wait 200
             endif
         endif
-        if mana > 30
+        
+        while mana < 20 and not findbuff "actively meditating"
+            
+            if timer jaseowns_MushroomTimer >= cdMushroom and findtype "mushroom" backpack as jaseowns_Mushroom
+                dclick jaseowns_Mushroom
+                wait 200
+                if insysmsg "You consume a magic mushroom and restore some mana."
+                    settimer jaseowns_MushroomTimer 0    
+                elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
+                    settimer jaseowns_MushroomTimer 30000
+                endif
+            endif
+        
+            if timer jaseowns_SkillTimer >= jaseowns_SkillTimerCD
+                hotkey 'Meditation'
+                settimer jaseowns_SkillTimer 0
+            endif
+        endwhile
+        
+        if timer jaseowns_SkillTimer >= jaseowns_SkillTimerCD and mana >= 20
             overhead "Invis" 88
-            hotkey 'Invisibility'
-            wft
-            hotkey 'Target Self'
-            wait 500
+            while not targetexists 
+                hotkey 'Invisibility'
+                wft 500
+            endwhile
+            if targetexists 
+                hotkey 'Target Self'
+            endif
         endif 
-        if mana < 30 and not findbuff "actively meditating"
-            hotkey 'Meditation'
-            wait 3500
-        endif
+
+
     elseif skill 'Magery' < 100
-        if counttype 'Blood moss' backpack < 1 or counttype "Spider's Silk" backpack < 1 or counttype "Mandrake Root%s%" backpack < 10
-            if findtype "storage shelf" ground any any 2 as the_shelf
+        if counttype 3963 self < 1 or counttype 3981 self < 1 or counttype 3974 self < 1
+            if findtype "storage shelf" ground -1 -1 2 as jaseowns_StorageShelf
                 overhead "Resupply" 88
-                menu the_shelf 1
-                wait 500
+                menu jaseowns_StorageShelf 1
+                wait 200
             endif
         endif
-        if mana > 40
+        
+        while mana < 50
+            
+            if timer jaseowns_MushroomTimer >= cdMushroom and findtype "mushroom" backpack as jaseowns_Mushroom
+                dclick jaseowns_Mushroom
+                wait 200
+                if insysmsg "You consume a magic mushroom and restore some mana."
+                    settimer jaseowns_MushroomTimer 0    
+                elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
+                    settimer jaseowns_MushroomTimer 30000
+                endif
+            endif
+
+            if not findbuff "actively meditating" and timer jaseowns_SkillTimer >= jaseowns_SkillTimerCD
+                hotkey 'Meditation'
+                settimer jaseowns_SkillTimer 0
+            endif
+        endwhile
+        
+        if timer jaseowns_SkillTimer >= jaseowns_SkillTimerCD and mana >= 50
             if findtype "a water elemental" ground -1 -1 2
                 say 'a water elemental release'
                 wait 200
             endif
             hotkey "Water Elemental"
-            wait 5000
-        endif
-        if mana < 40 and not findbuff "actively meditating"
-            hotkey 'Meditation'
-            wait 3500
-        endif
+            wait 200
+        endif 
     endif
-    wait 1000
     loop
 else
     overhead 'We did it!' 88

@@ -1,0 +1,107 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/a8d691d3-2639-4bda-9c88-2a9b3772a66c for latest
+# Automation by Jaseowns
+## Script: Magic spell book categorizer & organizer
+## Created by: cramphy1#0
+#############################################
+
+# Organize magic spell books by importance
+# UO Outlands - https://outlands.uorazorscripts.com/mage-bot
+#
+# Version: v1.0.0
+#
+# by Cramphy
+# 10 Feb 2024
+#
+// Have four different bags/containers for each category
+// Get the IDs using >info command in the game then set the IDs
+// I keep same three bags in the secure container at home and never remove them
+// You must open the secure container that contains this bags before running this script
+// Otherwise it cannot find them 
+@setvar! onlyManaMagicBooks '0x45B22972'
+@setvar! onlyDamageMagicBooks '0x45C0C4C1'
+@setvar! manaAndDamageMagicBooks '0x45C32422'
+@setvar! slayerMagicBooks '0x45CEED03'
+
+// Magic Item Recycler Id -> 11762
+// I store unidentified items in the magic item recycler
+// Then I use container identification wand on it to identify all at once
+// Then run this script to organize 
+@clearignore 
+if findtype 11762 ground -1 -1 2 as magicItemRecycler
+    while findtype 3834 magicItemRecycler as item
+        // reset variables
+        @setvar! manaBonus 0
+        @setvar! damageBonus 0
+        @setvar! slayerBonus 0
+        @setvar! durabilityBonus 0
+        
+        getlabel item description
+        
+        if "potent" in description
+            @setvar! manaBonus 1
+        endif
+
+        if "ruin" in description or "might" in description or "force" in description or "power" in description or "vanquishing" in description
+            @setvar! damageBonus 1
+        endif
+        
+        if "slaying" in description
+            @setvar! slayerBonus 1
+        endif
+        
+        // Y location of the item is set by the durability
+        // I am using a backpack to store the items
+        // Backpack's first starting row number is 65
+        // You may want to adjust accordingly for different kind of container
+        setvar dropY 65
+        if "durable" in description
+            setvar dropY 80
+        elseif "substantial" in description
+            setvar dropY 95
+        elseif "massive" in description
+            setvar dropY 110
+        elseif "fortified" in description
+            setvar dropY 125
+        elseif "indestructible" in description
+            setvar dropY 140
+        endif
+
+        // Same applies to X position. 
+        setvar dropX 40
+        if "surpassingly" in description or "might" in description
+            setvar dropX 55
+        elseif "eminently" in description or "force" in description
+            setvar dropX 70
+        elseif "exceedingly" in description or "power" in description
+            setvar dropX 85
+        elseif "supremely" in description or "vanquishing" in description
+            setvar dropX 100
+        endif
+        
+        // Has only mana bonus
+        if manaBonus = 1 and damageBonus = 0 and slayerBonus = 0
+            @setvar! targetContainer onlyManaMagicBooks
+        endif
+
+        // Has only damage bonus
+        if damageBonus = 1 and manaBonus = 0 and slayerBonus = 0
+            @setvar! targetContainer onlyDamageMagicBooks
+        endif
+        
+        // Has mana and damage bonus but not slayer bonus
+        if manaBonus = 1 and damageBonus = 1 and slayerBonus = 0
+            @setvar! targetContainer manaAndDamageMagicBooks
+        endif        
+        
+        // Slayer bonus
+        if slayerBonus = 1
+            @setvar! targetContainer slayerMagicBooks
+        endif
+        
+        lift item
+        wait 250
+        drop targetContainer dropX dropY -1
+        ignore item
+        wait 250
+    endwhile
+endif

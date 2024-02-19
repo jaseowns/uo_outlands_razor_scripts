@@ -1,0 +1,229 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/071ebde5-0246-4f25-9363-19f0b59f6502 for latest
+# Automation by Jaseowns
+## Script: Legenis's Super Cool Auto Jacker
+## Created by: legenis#0
+#############################################
+
+
+@setvar! minimumWaitForPing 200
+@setvar! globalTimeout 650
+
+
+if not varexist jase_miner_runebook or not find jase_miner_runebook backpack
+    if counttype "runebook" backpack = 1 and counttype "runetome" backpack = 0 and findtype "runebook" backpack as myBook
+        overhead "Automatically selected your one runebook" 88
+        @setvar jase_miner_runebook myBook
+    elseif counttype "runebook" backpack = 0 and counttype "runetome" backpack = 1 and findtype "runetome" backpack as myBook
+        overhead "Automatically selected your one runetome" 88
+        @setvar jase_miner_runebook myBook
+    elseif counttype 7956 backpack = 1 and findtype 7956 backpack as myBook
+        overhead "Automatically selected your one rune" 88
+        @setvar jase_miner_runebook myBook
+    elseif counttype "runebook" backpack > 0 or counttype 7956 backpack > 0 or counttype "runetome" backpack > 0
+        overhead "Select your escape plan (runebook or runetome)" 88
+        @setvar jase_miner_runebook 
+    endif
+endif
+
+
+if not listexists "lumberjack_actions"
+    createlist "lumberjack_actions"
+endif
+
+if not listexists "4-failures"
+    createlist "4-failures"
+endif
+
+if inlist "lumberjack_actions" "red_alert"
+    overhead "Red Alert!" 34
+    poplist "lumberjack_actions" "red_alert"
+    # You could also replace this magery bit with your ultimate recaller
+    # Ultimate Recall using Tome or Book as Escape (ALT-M)
+    # https://outlands.uorazorscripts.com/script/5b3fde97-fa90-4707-9f8e-7f56dca6792b
+    # hotkey "Play Script: UltimaRecaller"
+    if skill "Magery" >= 40
+        overhead 'Recalling...'
+        while not targetexists
+            if findtype 8012 backpack as item
+                dclick item
+            else
+                cast "Recall"
+            endif
+            wait minimumWaitForPing
+            if insysmsg "You do not have that spell!"
+                overhead "We cannot recall!" 34
+                break
+            endif
+        endwhile
+        target jase_miner_runebook
+    elseif skill "Hiding" >= 40
+        useskill "Hiding"
+    endif
+    
+    overhead "Stopping script..." 34
+    //Legenis Fix for Jases Script
+ 
+    if not varexist jase_miner_runebook
+        say 'Pooping BRB - be gental'
+    endif
+    
+    
+getlabel jase_miner_runebook desc
+if "rune tome" in desc
+    dclick jase_miner_runebook
+    waitforgump 167090027
+    gumpresponse 100
+elseif "runebook" in desc
+    dclick jase_miner_runebook
+    waitforgump 1551740969
+    gumpresponse 2
+endif
+    
+    
+stop    
+    # replay
+endif
+
+
+if skill "Tracking" > 0
+    if not findbuff "tracking"
+        clearsysmsg
+        while not gumpexists 4267467659
+            useskill 'tracking'
+            wait minimumWaitForPing
+        endwhile
+        if gumpexists 4267467659
+            while not insysmsg "You will now hunt all hostile players."
+                gumpresponse 8 4267467659
+                waitforgump 4267467659 5000
+            endwhile
+            gumpresponse 6 4267467659
+            wait minimumWaitForPing
+        endif
+        gumpclose 4267467659
+    endif
+endif
+
+
+
+# https://outlands.uorazorscripts.com/script/fd1c9331-fc25-4a89-8d75-3eba6a929247
+if skill "Healing" > 0
+    if findtype "clean bandage%s%" backpack as aids
+        if not bandaging and hp < maxhp
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+        elseif not bandaging and poisoned
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+        elseif not bandaging and findbuff "bleed"
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+        elseif not bandaging and findbuff "disease"
+            dclick aids
+            wft 500
+            hotkey 'Target Self'
+        endif
+    else
+        overhead "No bandages" 34
+    endif
+endif
+
+
+if lhandempty ?? 0 
+    if findtype "hatchet" backpack
+        dclicktype 'hatchet' backpack
+        wait minimumWaitForPing
+    endif
+endif
+            
+if lhandempty ?? 0 
+    overhead "No more hatchet!" 34
+    wait minimumWaitForPing
+    replay
+endif
+
+clearsysmsg 
+
+
+# It doesn't get much easier then this by Jaseowns
+# UO Outlands -  https://youtu.be/jTU_pORdan4
+if not targetexists 
+    hotkey "Use item in hand"
+    wft 500
+endif
+if targetexists 
+    hotkey "Target Self"
+endif
+wait 500
+
+
+for 75
+    wait 150
+    if insysmsg 'world is saving'
+        pause 50
+        hotkey 'Clear Target Queue'
+        hotkey 'Cancel Current Target'
+        for 30
+            overhead 'Waiting for world save...'
+            wait 1000
+            if insysmsg 'save complete'
+                overhead 'Save complete - continue on!' 88
+                clearsysmsg 
+                wait 250
+                replay
+            elseif insysmsg "now tracking"
+                pushlist "lumberjack_actions" "red_alert"
+                clearsysmsg 
+                wait 250
+                replay
+            endif
+        endfor
+    elseif insysmsg "now tracking"
+        pushlist "lumberjack_actions" "red_alert"
+        replay
+    elseif insysmsg "harvestable"
+        wait 250
+        pushlist "4-failures" "failure"
+        replay
+    elseif lhandempty ?? 0 
+        overhead "Broke axe" 34
+        replay
+    elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any wood'
+        wait 500
+        replay
+    elseif insysmsg "travel"
+        overhead 'Waiting for travel...'
+        wait 1000
+        replay
+    else
+        if insysmsg "any harvestable" or insysmsg "lumberjack_actions"
+            // No Ore
+            overhead 'Move to next spot' 88
+            replay
+        elseif insysmsg "skillgain" or insysmsg "harvesting is not allowed"
+            // Gained skill
+            replay
+        elseif insysmsg "world is saving" or insysmsg 'World save complete'
+            // World Save
+            replay
+        elseif insysmsg "You hack"
+            // Failed
+            replay
+        elseif insysmsg "You chop"
+            clearlist "4-failures"
+            replay
+        elseif insysmsg "You must wait"
+            // Wait message
+            overhead 'You must wait..' 34
+            wait 500
+            replay
+        endif
+    endif
+endfor
+
+
+
+loop

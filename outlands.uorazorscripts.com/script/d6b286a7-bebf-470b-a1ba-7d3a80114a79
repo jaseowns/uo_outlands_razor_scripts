@@ -6,7 +6,7 @@
 
 //***Bapeths Modern Dungeon Picker***
 
-//Updated Feb 17th 2024
+//Updated Feb 20th 2024
 
 //"***Recommended Build***"
 
@@ -45,7 +45,7 @@
 //You must create these in the in-game options menu under Cooldowns
 //Leave at 0 or set them to 10.4 seconds for use outside the script
 
-//See "line 54" if you would like to custom name your earth elemental
+//See "line 58 & 68" if you would like to custom name your earth elemental(s)
 //Default is "TreasureGolem"
 
 //Notes on error : 
@@ -55,9 +55,26 @@
 //Simply play the script again if this happens
 
 if skill "Spirit Speak" >= 80 and findtype "an earth elemental" ground -1 -1 1 as Summon
-    if noto Summon = "friend"
-        //Name your summon if you like (no spaces must be unique)
-        rename Summon "TreasureGolem"
+    if not find "bsummon1" ground -1 -1
+        while findtype "an earth elemental" ground -1 -1 1 as bsummon1
+            if noto bsummon1 = "friend"
+                @setvar "bsummon1" bsummon1
+                overhead "Summon 1 set" 41
+                //Name your summon if you like (no spaces must be unique)
+                rename bsummon1 "TreasureGolem"
+            endif
+            break
+        endwhile
+    elseif not find "bsummon2" ground -1 -1
+        while findtype "an earth elemental" ground -1 -1 1 as bsummon2
+            if noto bsummon2 = "friend"
+                @setvar "bsummon2" bsummon2
+                overhead "Summon 2 set" 41
+                //Name your summon if you like (no spaces must be unique)
+                rename bsummon2 "TreasureGolem"
+            endif
+            break
+        endwhile
     endif
 endif
 
@@ -151,350 +168,482 @@ endif
 
 if findtype 'metal chest' ground -1 -1 2 as bchest and not targetexists 
     clearsysmsg 
+    if not warmode 
+        warmode 'on'
+        warmode 'off'
+    endif
     dclick bchest
     @setvar "bchest" lastobject
     waitforgump 736038070 500
     if gumpexists 736038070 and not ingump "Cleared Of Traps"
-        gumpresponse 7
-        waitforgump 736038070 500
-        pause 350
-        if insysmsg "You attempt to remove traps"
-            if not cooldown "Hiding" and not hidden and not warmode
-                if followers >= 1
-                    say "all patrol" 45
+        while gumpexists 736038070
+            gumpresponse 7
+            waitforgump 736038070 500
+            break
+        endwhile
+        if not cooldown "Hiding" and not hidden and not warmode
+            if followers >= 1
+                if find "bsummon1"
+                    menu bsummon1 2
                     wft 500
-                    target self
-                endif
-                if skill "Hiding" >= 80
-                    warmode 'on'
-                    warmode 'off'
-                    skill "Hiding"
-                    if hidden
-                        cooldown "Hiding" 10350
+                    target bsummon1
+                    getlabel backpack ping
+                    if find "bsummon2"
+                        menu bsummon2 2
+                        wft 500
+                        target bsummon2  
+                    endif
+                elseif find "bsummon2"
+                    menu bsummon2 2
+                    wft 500
+                    target bsummon2
+                    getlabel backpack ping
+                    if find "bsummon1"
+                        menu bsummon1 2
+                        wft 500
+                        target bsummon1  
                     endif
                 endif
             endif
-            overhead "I will make short work of this trap..." 67
-            waitforgump 736038070 500
-            while gumpexists 736038070
-                if not hidden and not cooldown "Hiding" and not warmode
-                    warmode 'on'
-                    warmode 'off'
-                    skill "Hiding"
-                    if hidden
-                        cooldown "Hiding" 10350
-                    endif
+            if skill "Hiding" >= 80
+                warmode 'on'
+                warmode 'off'
+                skill "Hiding"
+                if hidden
+                    cooldown "Hiding" 10350
                 endif
-                if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
-                    skill "Stealth"
-                    cooldown "Stealth" 10350
-                    if not timerexists ots
-                        createtimer ots
-                    endif
+            endif
+        endif
+        overhead "I will make short work of this trap..." 67
+        while not dead
+            if not hidden and not cooldown "Hiding" and not warmode
+                warmode 'on'
+                warmode 'off'
+                skill "Hiding"
+                if hidden
+                    cooldown "Hiding" 10350
                 endif
-                if insysmsg  "You have successfully cleared it of traps"
+            endif
+            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
+                skill "Stealth"
+                if not timerexists ots
+                    createtimer ots
+                endif
+            endif
+            if insysmsg "move quietly"
+                cooldown "Stealth" 10350
+            endif
+            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and insysmsg "hide first"
+                pause 1000
+                getlabel backpack ping
+                skill "Hiding"
+                removetimer ots
+            endif
+            if insysmsg  "You have successfully cleared it of traps"
+                break
+            endif
+            if not findtype 'metal chest' ground -1 -1 2
+                break
+            endif
+            if insysmsg "Another player"
+                while gumpexists 736038070
+                    gumpresponse 7
+                    waitforgump 736038070 500
                     break
-                endif
-                if not findtype 'metal chest' ground -1 -1 2
-                    break
-                endif
-                if insysmsg "Another player"
-                    replay
-                endif
-                if ingump "Cleared Of Traps"
-                    break
-                endif
-                if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
-                    while not queued
-                        if findlayer self head as hat
-                            getlabel hat desc
-                            if "magical" in desc
-                                dclick "bmain"
-                            else 
-                                dclick "bwiz"
-                                pause 500
-                                getlabel backpack ping
-                                dclick "bmain"
-                            endif
+                endwhile
+            endif
+            if ingump "Cleared Of Traps"
+                break
+            endif
+            if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
+                while not queued
+                    if findlayer self head as hat
+                        getlabel hat desc
+                        if "magical" in desc
+                            dclick "bmain"
+                        else 
+                            dclick "bwiz"
+                            pause 500
+                            getlabel backpack ping
+                            dclick "bmain"
                         endif
-                        break
-                    endwhile
-                endif
-                if not findlayer self head
+                    endif
+                    break
+                endwhile
+            endif
+            if not findlayer self head
+                dclick "bmain"
+            endif
+
+            if findlayer self head as hat
+                getlabel hat desc
+                if "magical" in desc
                     dclick "bmain"
                 endif
-
-                if findlayer self head as hat
-                    getlabel hat desc
-                    if "magical" in desc
-                        dclick "bmain"
-                    endif
-                endif
-            endwhile
-            overhead "That should do it..." 67
-        endif
+            endif
+        endwhile
+        waitforgump 736038070 500
+        overhead "That should do it..." 67
     endif
     if gumpexists 736038070 and ingump "Cleared Of Traps"
-        gumpresponse 4
-        waitforgump 736038070 500
-        pause 350
-        if insysmsg "You attempt to pick the lock"
-            if not cooldown "Hiding" and not hidden and not warmode 
-                if followers >= 1
-                    say "all patrol" 45
+        while gumpexists 736038070
+            gumpresponse 4
+            waitforgump 736038070 500
+            break
+        endwhile
+        if not cooldown "Hiding" and not hidden and not warmode 
+            if followers >= 1
+                if find "bsummon1"
+                    menu bsummon1 2
                     wft 500
-                    target self
-                endif
-                if skill "Hiding" >= 80
-                    warmode 'on'
-                    warmode 'off'
-                    skill "Hiding"
-                    if hidden
-                        cooldown "Hiding" 10350
+                    target bsummon1
+                    getlabel backpack ping
+                    if find "bsummon2"
+                        menu bsummon2 2
+                        wft 500
+                        target bsummon2  
+                    endif
+                elseif find "bsummon2"
+                    menu bsummon2 2
+                    wft 500
+                    target bsummon2
+                    getlabel backpack ping
+                    if find "bsummon1"
+                        menu bsummon1 2
+                        wft 500
+                        target bsummon1  
                     endif
                 endif
             endif
-            overhead "This lock wont keep me out..." 87
-            waitforgump 736038070 500
-            while gumpexists 736038070
-                if not hidden and not cooldown "Hiding" and not warmode
-                    warmode 'on'
-                    warmode 'off'
-                    skill "Hiding"
-                    if hidden
-                        cooldown "Hiding" 10350
-                    endif
+            if skill "Hiding" >= 80
+                warmode 'on'
+                warmode 'off'
+                skill "Hiding"
+                if hidden
+                    cooldown "Hiding" 10350
                 endif
-                if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
-                    skill "Stealth"
-                    cooldown "Stealth" 10350
-                    if not timerexists ots
-                        createtimer ots
-                    endif
+            endif
+        endif
+        overhead "This lock wont keep me out..." 87
+        while not dead
+            if not hidden and not cooldown "Hiding" and not warmode
+                warmode 'on'
+                warmode 'off'
+                skill "Hiding"
+                if hidden
+                    cooldown "Hiding" 10350
                 endif
-                if insysmsg  "You successfully pick the lock"
+            endif
+            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
+                skill "Stealth"
+                if not timerexists ots
+                    createtimer ots
+                endif
+            endif
+            if insysmsg "move quietly"
+                cooldown "Stealth" 10350
+            endif
+            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and insysmsg "hide first"
+                pause 1000
+                getlabel backpack ping
+                skill "Hiding"
+                removetimer ots
+            endif
+            if insysmsg  "You successfully pick the lock"
+                break
+            endif
+            if not findtype 'metal chest' ground -1 -1 2
+                break
+            endif
+            if insysmsg "Another player"
+                while gumpexists 736038070
+                    gumpresponse 4
+                    waitforgump 736038070 500
+                    break
+                endwhile
+            endif
+            if insysmsg "pick another lock"
+                replay
+            endif
+            if find "bchest" ground -1 -1 2
+                getlabel bchest desc
+                if "lock" in desc
+                    //do nothing
+                else 
                     break
                 endif
-                if not findtype 'metal chest' ground -1 -1 2
-                    break
-                endif
-                if insysmsg "Another player"
-                    replay
-                endif
-                if find "bchest" ground -1 -1 2
-                    getlabel bchest desc
-                    if "lock" in desc
-                        //do nothing
-                    else 
-                        break
-                    endif
-                endif
-                if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
-                    while not queued
-                        if findlayer self head as hat
-                            getlabel hat desc
-                            if "magical" in desc
-                                dclick "bmain"
-                            else 
-                                dclick "bwiz"
-                                pause 500
-                                getlabel backpack ping
-                                dclick "bmain"
-                            endif
+            endif
+            if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
+                while not queued
+                    if findlayer self head as hat
+                        getlabel hat desc
+                        if "magical" in desc
+                            dclick "bmain"
+                        else 
+                            dclick "bwiz"
+                            pause 500
+                            getlabel backpack ping
+                            dclick "bmain"
                         endif
-                        break
-                    endwhile
-                endif
-                if not findlayer self head
+                    endif
+                    break
+                endwhile
+            endif
+            if not findlayer self head
+                dclick "bmain"
+            endif
+
+            if findlayer self head as hat
+                getlabel hat desc
+                if "magical" in desc
                     dclick "bmain"
                 endif
-
-                if findlayer self head as hat
-                    getlabel hat desc
-                    if "magical" in desc
-                        dclick "bmain"
-                    endif
-                endif
-            endwhile
-        endif
+            endif
+        endwhile
     endif
 endif
 
 if findtype 'wooden chest' ground -1 -1 2 as bchest and not targetexists 
     clearsysmsg 
+    if not warmode 
+        warmode 'on'
+        warmode 'off'
+    endif
     dclick bchest
     @setvar "bchest" lastobject
     waitforgump 736038070 500
     if gumpexists 736038070 and not ingump "Cleared Of Traps"
-        gumpresponse 7
-        waitforgump 736038070 500
-        pause 350
-        if insysmsg "You attempt to remove traps"
-            if not cooldown "Hiding" and not hidden and not warmode 
-                if followers >= 1
-                    say "all patrol" 45
+        while gumpexists 736038070
+            gumpresponse 7
+            waitforgump 736038070 500
+            break
+        endwhile
+        if not cooldown "Hiding" and not hidden and not warmode
+            if followers >= 1
+                if find "bsummon1"
+                    menu bsummon1 2
                     wft 500
-                    target self
-                endif
-                if skill "Hiding" >= 80
-                    warmode 'on'
-                    warmode 'off'
-                    skill "Hiding"
-                    if hidden
-                        cooldown "Hiding" 10350
+                    target bsummon1
+                    getlabel backpack ping
+                    if find "bsummon2"
+                        menu bsummon2 2
+                        wft 500
+                        target bsummon2  
+                    endif
+                elseif find "bsummon2"
+                    menu bsummon2 2
+                    wft 500
+                    target bsummon2
+                    getlabel backpack ping
+                    if find "bsummon1"
+                        menu bsummon1 2
+                        wft 500
+                        target bsummon1  
                     endif
                 endif
             endif
-            overhead "I will make short work of this trap..." 67
-            waitforgump 736038070 500
-            while gumpexists 736038070
-                if not hidden and not cooldown "Hiding" and not warmode 
-                    warmode 'on'
-                    warmode 'off'
-                    skill "Hiding"
-                    if hidden
-                        cooldown "Hiding" 10350
-                    endif
+            if skill "Hiding" >= 80
+                warmode 'on'
+                warmode 'off'
+                skill "Hiding"
+                if hidden
+                    cooldown "Hiding" 10350
                 endif
-                if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
-                    skill "Stealth"
-                    cooldown "Stealth" 10350
-                    if not timerexists ots
-                        createtimer ots
-                    endif
+            endif
+        endif
+        overhead "I will make short work of this trap..." 67
+        while not dead
+            if not hidden and not cooldown "Hiding" and not warmode
+                warmode 'on'
+                warmode 'off'
+                skill "Hiding"
+                if hidden
+                    cooldown "Hiding" 10350
                 endif
-                if insysmsg  "You have successfully cleared it of traps"
+            endif
+            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
+                skill "Stealth"
+                if not timerexists ots
+                    createtimer ots
+                endif
+            endif
+            if insysmsg "move quietly"
+                cooldown "Stealth" 10350
+            endif
+            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and insysmsg "hide first"
+                pause 1000
+                getlabel backpack ping
+                skill "Hiding"
+                removetimer ots
+            endif
+            if insysmsg  "You have successfully cleared it of traps"
+                break
+            endif
+            if not findtype 'wooden chest' ground -1 -1 2
+                break
+            endif
+            if insysmsg "Another player"
+                while gumpexists 736038070
+                    gumpresponse 7
+                    waitforgump 736038070 500
                     break
-                endif
-                if not findtype 'wooden chest' ground -1 -1 2
-                    break
-                endif
-                if insysmsg "Another player"
-                    replay
-                endif
-                if ingump "Cleared Of Traps"
-                    break
-                endif
-                if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
-                    while not queued
-                        if findlayer self head as hat
-                            getlabel hat desc
-                            if "magical" in desc
-                                dclick "bmain"
-                            else 
-                                dclick "bwiz"
-                                pause 500
-                                getlabel backpack ping
-                                dclick "bmain"
-                            endif
+                endwhile
+            endif
+            if ingump "Cleared Of Traps"
+                break
+            endif
+            if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
+                while not queued
+                    if findlayer self head as hat
+                        getlabel hat desc
+                        if "magical" in desc
+                            dclick "bmain"
+                        else 
+                            dclick "bwiz"
+                            pause 500
+                            getlabel backpack ping
+                            dclick "bmain"
                         endif
-                        break
-                    endwhile
-                endif
-                if not findlayer self head
+                    endif
+                    break
+                endwhile
+            endif
+            if not findlayer self head
+                dclick "bmain"
+            endif
+
+            if findlayer self head as hat
+                getlabel hat desc
+                if "magical" in desc
                     dclick "bmain"
                 endif
-
-                if findlayer self head as hat
-                    getlabel hat desc
-                    if "magical" in desc
-                        dclick "bmain"
-                    endif
-                endif
-            endwhile
-            overhead "That should do it..." 67
-        endif
+            endif
+        endwhile
+        waitforgump 736038070 500
+        overhead "That should do it..." 67
     endif
     if gumpexists 736038070 and ingump "Cleared Of Traps"
-        gumpresponse 4
-        waitforgump 736038070 500
-        pause 350
-        if insysmsg "You attempt to pick the lock"
-            if not cooldown "Hiding" and not hidden and not warmode 
-                if followers >= 1
-                    say "all patrol" 45
+        while gumpexists 736038070
+            gumpresponse 4
+            waitforgump 736038070 500
+            break
+        endwhile
+        if not cooldown "Hiding" and not hidden and not warmode 
+            if followers >= 1
+                if find "bsummon1"
+                    menu bsummon1 2
                     wft 500
-                    target self
-                endif
-                if skill "Hiding" >= 80
-                    warmode 'on'
-                    warmode 'off'
-                    skill "Hiding"
-                    if hidden
-                        cooldown "Hiding" 10350
+                    target bsummon1
+                    getlabel backpack ping
+                    if find "bsummon2"
+                        menu bsummon2 2
+                        wft 500
+                        target bsummon2  
+                    endif
+                elseif find "bsummon2"
+                    menu bsummon2 2
+                    wft 500
+                    target bsummon2
+                    getlabel backpack ping
+                    if find "bsummon1"
+                        menu bsummon1 2
+                        wft 500
+                        target bsummon1  
                     endif
                 endif
             endif
-            overhead "This lock wont keep me out..." 87
-            waitforgump 736038070 500
-            while gumpexists 736038070
-                if not hidden and not cooldown "Hiding" and not warmode 
-                    warmode 'on'
-                    warmode 'off'
-                    skill "Hiding"
-                    if hidden
-                        cooldown "Hiding" 10350
-                    endif
+            if skill "Hiding" >= 80
+                warmode 'on'
+                warmode 'off'
+                skill "Hiding"
+                if hidden
+                    cooldown "Hiding" 10350
                 endif
-                if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
-                    skill "Stealth"
-                    cooldown "Stealth" 10350
-                    if not timerexists ots
-                        createtimer ots
-                    endif
+            endif
+        endif
+        overhead "This lock wont keep me out..." 87
+        while not dead
+            if not hidden and not cooldown "Hiding" and not warmode
+                warmode 'on'
+                warmode 'off'
+                skill "Hiding"
+                if hidden
+                    cooldown "Hiding" 10350
                 endif
-                if insysmsg  "You successfully pick the lock"
+            endif
+            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
+                skill "Stealth"
+                if not timerexists ots
+                    createtimer ots
+                endif
+            endif
+            if insysmsg "move quietly"
+                cooldown "Stealth" 10350
+            endif
+            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and insysmsg "hide first"
+                pause 1000
+                getlabel backpack ping
+                skill "Hiding"
+                removetimer ots
+            endif
+            if insysmsg  "You successfully pick the lock"
+                break
+            endif
+            if not findtype 'wooden chest' ground -1 -1 2
+                break
+            endif
+            if insysmsg "Another player"
+                while gumpexists 736038070
+                    gumpresponse 4
+                    waitforgump 736038070 500
+                    break
+                endwhile
+            endif
+            if insysmsg "pick another lock"
+                replay
+            endif
+            if find "bchest" ground -1 -1 2
+                getlabel bchest desc
+                if "lock" in desc
+                    //do nothing
+                else 
                     break
                 endif
-                if not findtype 'wooden chest' ground -1 -1 2
-                    break
-                endif
-                if insysmsg "Another player"
-                    replay
-                endif
-                if find "bchest" ground -1 -1 2
-                    getlabel bchest desc
-                    if "lock" in desc
-                        //do nothing
-                    else 
-                        break
-                    endif
-                endif 
-                if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
-                    while not queued
-                        if findlayer self head as hat
-                            getlabel hat desc
-                            if "magical" in desc
-                                dclick "bmain"
-                            else 
-                                dclick "bwiz"
-                                pause 500
-                                getlabel backpack ping
-                                dclick "bmain"
-                            endif
+            endif
+            if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
+                while not queued
+                    if findlayer self head as hat
+                        getlabel hat desc
+                        if "magical" in desc
+                            dclick "bmain"
+                        else 
+                            dclick "bwiz"
+                            pause 500
+                            getlabel backpack ping
+                            dclick "bmain"
                         endif
-                        break
-                    endwhile
-                endif   
-                if not findlayer self head
+                    endif
+                    break
+                endwhile
+            endif
+            if not findlayer self head
+                dclick "bmain"
+            endif
+
+            if findlayer self head as hat
+                getlabel hat desc
+                if "magical" in desc
                     dclick "bmain"
                 endif
-
-                if findlayer self head as hat
-                    getlabel hat desc
-                    if "magical" in desc
-                        dclick "bmain"
-                    endif
-                endif 
-            endwhile
-        endif
+            endif
+        endwhile
     endif
 endif
 
 @clearignore 
 if find "bchest" ground -1 -1 2 as bchest
     clearsysmsg 
-    while findtype 5899|3842|28761|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|5903|48407|51302|4248|27611|15296|43166|5359|5981|3836|3985|17087|5356|29030|24434|22336|29036|3843|29025|51098|8826|576|3827|22326|45315|3821|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|31021|31029|31043|31035|31033|31045|31037|31002|20006|31006|30999|31012|31009|30996|31128|31188|20014|31014|31004|31142|31001|31000|31010|30998|30988|30997|31141|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|3861 bchest as bitem
+    while findtype 5899|3842|28761|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|5903|48407|51302|4248|27611|15296|43166|5359|5981|3836|3985|17087|5356|29030|24434|22336|29036|3843|29025|51098|8826|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|31021|31023|31029|31043|31035|31033|31045|31037|31002|20006|31006|30999|31012|31009|30996|31128|31188|20014|31014|31004|31142|31001|31000|31010|30998|30988|30997|31141|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|3861|3821 bchest as bitem
         if not timerexists bchestopen
             createtimer bchestopen
             overhead "The treasure is mine!" 2091

@@ -6,7 +6,7 @@
 
 //***Bapeths Modern Dungeon Picker***
 
-//Updated Feb 20th 2024
+//Updated Feb 22th 2024
 
 //"***Recommended Build***"
 
@@ -24,29 +24,41 @@
 
 //"***READ THIS***"
 
-//Not all rares are on the auto loot list
-//Keep an eye out for unlooted rares
-//I update the list as I find them
-
-//It is reccomended to have in your pack a
-//"blessed and aspected" "armored magical wizard hat"
-//This is for the stealth part of the script
-//It will quick swap your hat and reduce your stamina
-//This will prevent you from pushing through mobiles
-
-//Toggle "WARMODE" ON and you will not hide when picking chests
-//This is for picking in "BOSS ROOMS" where a custodian is present
-
+//"***REQUIRED***"
 //This script uses razor "auto-queue object delay" setting
 //Make sure this setting is turned ON in the razor options tab
 //And set "default object delay to 500"
 
+//"***REQUIRED***"
 //This script uses two cooldowns called "Hiding" and "Stealth"
 //You must create these in the in-game options menu under Cooldowns
 //Leave at 0 or set them to 10.4 seconds for use outside the script
 
-//See "line 57 & 66" if you would like to custom name your earth elemental(s)
+//"***OPTIONAL***"
+//It is reccomended to have in your pack a
+//"blessed and aspected armored magical wizard hat"
+//This is for the stealth part of the script
+//It will quick swap your hat and reduce your stamina
+//This will prevent you from pushing through mobiles
+
+//"***OPTIONAL***"
+//Toggle "WARMODE" ON and you will not hide when picking chests
+//This is for picking in "BOSS ROOMS" where a custodian is present
+
+//"***OPTIONAL***"  "***NEW NEW NEW***"
+//ACP (Auto Chest Protection) feature will instantly cast 
+//Wall of stone, Earth Elemental, or Tele + Rope when you are detected at a chest
+//Toggle "Wall" "Earth" "Tele" or "None" by doubleclicking an "Atlas"
+//Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
+
+//"***OPTIONAL***"
+//See "line 69 & 78" if you would like to custom name your earth elemental(s)
 //Default is "TreasureGolem"
+
+//Notes on Rares:
+//Not all rares are on the auto loot list
+//Keep an eye out for unlooted rares
+//I update the list as I find them
 
 //Notes on error : 
 //Screen transitions and teleporting far distances
@@ -164,7 +176,7 @@ if gumpexists 736038070
     gumpclose 736038070
 endif
 
-if findtype 'metal chest' ground -1 -1 2 as bchest and not targetexists 
+if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targetexists 
     clearsysmsg 
     if not warmode 
         warmode 'on'
@@ -240,7 +252,7 @@ if findtype 'metal chest' ground -1 -1 2 as bchest and not targetexists
             if insysmsg  "You have successfully cleared it of traps"
                 break
             endif
-            if not findtype 'metal chest' ground -1 -1 2
+            if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
                 break
             endif
             if insysmsg "Another player"
@@ -272,11 +284,88 @@ if findtype 'metal chest' ground -1 -1 2 as bchest and not targetexists
             if not findlayer self head
                 dclick "bmain"
             endif
-
             if findlayer self head as hat
                 getlabel hat desc
                 if "magical" in desc
                     dclick "bmain"
+                endif
+            endif
+            if ingump "Custom"
+                if not timerexists "Wacp"
+                    gumpclose 341416395
+                    overhead "Wall of Stone ACP ------Enabled------" 2307
+                    createtimer "Wall"
+                    createtimer "Wacp"
+                    removetimer "Nacp"
+                    removetimer "Eacp"
+                    removetimer "Tacp"
+                    removetimer "Elemental"
+                    removetimer "Tele"
+                    removetimer "None"
+                 elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80
+                    gumpclose 341416395
+                    overhead "Earth Elemental ACP ------Enabled------" 1501
+                    createtimer "Elemental"
+                    createtimer "Eacp"
+                    removetimer "Nacp"
+                    removetimer "Tacp"
+                    removetimer "Wall"
+                    removetimer "Tele"
+                    removetimer "None"
+                elseif not timerexists  "Tacp"
+                    gumpclose 341416395
+                    overhead "Teleport + Rope ACP ------Enabled------" 1272
+                    createtimer "Tele"
+                    createtimer "Tacp"
+                    removetimer "Nacp"
+                    removetimer "Wall"
+                    removetimer "Elemental"
+                    removetimer "None"        
+                elseif not timerexists "Nacp"
+                    gumpclose 341416395
+                    overhead "Auto Chest Protection ------Disabled------" 38
+                    createtimer "Nacp"
+                    removetimer "Eacp"
+                    removetimer "Tacp"
+                    removetimer "Wacp"
+                    removetimer "Wall"
+                    removetimer "Elemental"
+                    removetimer "Tele"
+                endif
+            endif
+
+            if insysmsg "You have been revealed!" 
+                if timerexists "Tele" and mana >= 9
+                    cast 'Teleport'
+                    if findtype "rope" backpack as rope
+                        dclick rope
+                    else 
+                        overhead "I am out of rope..." 34
+                    endif
+                    removetimer "Tacp"
+                    removetimer "Tele"
+                    createtimer "Eacp"
+                    createtimer "Nacp"
+                    createtimer "Wacp"
+                    dclicktype "atlas" backpack
+                endif
+                if timerexists "Wall" and mana >= 9
+                    cast 'Wall of Stone'
+                    removetimer "Wacp"
+                    removetimer "Wall"
+                    createtimer "Eacp"
+                    createtimer "Nacp"
+                    createtimer "Tacp"
+                    dclicktype "atlas" backpack
+                endif
+                if timerexists "Elemental" and skill "Spirit Speak" >= 80 and mana >= 50
+                    cast 'Earth Elemental'
+                    removetimer "Eacp"
+                    removetimer "Elemental"
+                    createtimer "Wacp"
+                    createtimer "Nacp"
+                    createtimer "Tacp"
+                    dclicktype "atlas" backpack
                 endif
             endif
         endwhile
@@ -350,7 +439,7 @@ if findtype 'metal chest' ground -1 -1 2 as bchest and not targetexists
             if insysmsg  "You successfully pick the lock"
                 break
             endif
-            if not findtype 'metal chest' ground -1 -1 2
+            if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
                 break
             endif
             if insysmsg "Another player"
@@ -390,248 +479,88 @@ if findtype 'metal chest' ground -1 -1 2 as bchest and not targetexists
             if not findlayer self head
                 dclick "bmain"
             endif
-
             if findlayer self head as hat
                 getlabel hat desc
                 if "magical" in desc
                     dclick "bmain"
                 endif
             endif
-        endwhile
-    endif
-endif
-
-if findtype 'wooden chest' ground -1 -1 2 as bchest and not targetexists 
-    clearsysmsg 
-    if not warmode 
-        warmode 'on'
-        warmode 'off'
-    endif
-    dclick bchest
-    @setvar "bchest" lastobject
-    waitforgump 736038070 500
-    if gumpexists 736038070 and not ingump "Cleared Of Traps"
-        while gumpexists 736038070
-            gumpresponse 7
-            waitforgump 736038070 500
-            break
-        endwhile
-        if not cooldown "Hiding" and not hidden and not warmode
-            if followers >= 1
-                if find "bsummon1"
-                    menu bsummon1 2
-                    wft 500
-                    target bsummon1
-                    getlabel backpack ping
-                    if find "bsummon2"
-                        menu bsummon2 2
-                        wft 500
-                        target bsummon2  
-                    endif
-                elseif find "bsummon2"
-                    menu bsummon2 2
-                    wft 500
-                    target bsummon2
-                    getlabel backpack ping
-                    if find "bsummon1"
-                        menu bsummon1 2
-                        wft 500
-                        target bsummon1  
-                    endif
+            if ingump "Custom"
+                if not timerexists "Wacp"
+                    gumpclose 341416395
+                    overhead "Wall of Stone ACP ------Enabled------" 2307
+                    createtimer "Wall"
+                    createtimer "Wacp"
+                    removetimer "Nacp"
+                    removetimer "Eacp"
+                    removetimer "Tacp"
+                    removetimer "Elemental"
+                    removetimer "Tele"
+                    removetimer "None"
+                 elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80
+                    gumpclose 341416395
+                    overhead "Earth Elemental ACP ------Enabled------" 1501
+                    createtimer "Elemental"
+                    createtimer "Eacp"
+                    removetimer "Nacp"
+                    removetimer "Tacp"
+                    removetimer "Wall"
+                    removetimer "Tele"
+                    removetimer "None"
+                elseif not timerexists  "Tacp"
+                    gumpclose 341416395
+                    overhead "Teleport + Rope ACP ------Enabled------" 1272
+                    createtimer "Tele"
+                    createtimer "Tacp"
+                    removetimer "Nacp"
+                    removetimer "Wall"
+                    removetimer "Elemental"
+                    removetimer "None"        
+                elseif not timerexists "Nacp"
+                    gumpclose 341416395
+                    overhead "Auto Chest Protection ------Disabled------" 38
+                    createtimer "Nacp"
+                    removetimer "Eacp"
+                    removetimer "Tacp"
+                    removetimer "Wacp"
+                    removetimer "Wall"
+                    removetimer "Elemental"
+                    removetimer "Tele"
                 endif
-            endif
-            if skill "Hiding" >= 80
-                warmode 'on'
-                warmode 'off'
-                skill "Hiding"
-                if hidden
-                    cooldown "Hiding" 10350
-                endif
-            endif
-        endif
-        overhead "I will make short work of this trap..." 67
-        while not dead
-            if not hidden and not cooldown "Hiding" and not warmode
-                warmode 'on'
-                warmode 'off'
-                skill "Hiding"
-                if hidden
-                    cooldown "Hiding" 10350
-                endif
-            endif
-            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
-                skill "Stealth"
-                if not timerexists ots
-                    createtimer ots
-                endif
-            endif
-            if insysmsg "move quietly"
-                cooldown "Stealth" 10350
-            endif
-            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and insysmsg "hide first"
-                pause 1000
-                getlabel backpack ping
-                skill "Hiding"
-                removetimer ots
-            endif
-            if insysmsg  "You have successfully cleared it of traps"
-                break
-            endif
-            if not findtype 'wooden chest' ground -1 -1 2
-                break
-            endif
-            if insysmsg "Another player"
-                while gumpexists 736038070
-                    gumpresponse 7
-                    waitforgump 736038070 500
-                    break
-                endwhile
-            endif
-            if ingump "Cleared Of Traps"
-                break
-            endif
-            if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
-                while not queued
-                    if findlayer self head as hat
-                        getlabel hat desc
-                        if "magical" in desc
-                            dclick "bmain"
-                        else 
-                            dclick "bwiz"
-                            pause 500
-                            getlabel backpack ping
-                            dclick "bmain"
-                        endif
-                    endif
-                    break
-                endwhile
-            endif
-            if not findlayer self head
-                dclick "bmain"
             endif
 
-            if findlayer self head as hat
-                getlabel hat desc
-                if "magical" in desc
-                    dclick "bmain"
-                endif
-            endif
-        endwhile
-        waitforgump 736038070 500
-        overhead "That should do it..." 67
-    endif
-    if gumpexists 736038070 and ingump "Cleared Of Traps"
-        while gumpexists 736038070
-            gumpresponse 4
-            waitforgump 736038070 500
-            break
-        endwhile
-        if not cooldown "Hiding" and not hidden and not warmode 
-            if followers >= 1
-                if find "bsummon1"
-                    menu bsummon1 2
-                    wft 500
-                    target bsummon1
-                    getlabel backpack ping
-                    if find "bsummon2"
-                        menu bsummon2 2
-                        wft 500
-                        target bsummon2  
+            if insysmsg "You have been revealed!" 
+                if timerexists "Tele" and mana >= 9
+                    cast 'Teleport'
+                    if findtype "rope" backpack as rope
+                        dclick rope
+                    else 
+                        overhead "I am out of rope..." 34
                     endif
-                elseif find "bsummon2"
-                    menu bsummon2 2
-                    wft 500
-                    target bsummon2
-                    getlabel backpack ping
-                    if find "bsummon1"
-                        menu bsummon1 2
-                        wft 500
-                        target bsummon1  
-                    endif
+                    removetimer "Tacp"
+                    removetimer "Tele"
+                    createtimer "Eacp"
+                    createtimer "Nacp"
+                    createtimer "Wacp"
+                    dclicktype "atlas" backpack
                 endif
-            endif
-            if skill "Hiding" >= 80
-                warmode 'on'
-                warmode 'off'
-                skill "Hiding"
-                if hidden
-                    cooldown "Hiding" 10350
+                if timerexists "Wall" and mana >= 9
+                    cast 'Wall of Stone'
+                    removetimer "Wacp"
+                    removetimer "Wall"
+                    createtimer "Eacp"
+                    createtimer "Nacp"
+                    createtimer "Tacp"
+                    dclicktype "atlas" backpack
                 endif
-            endif
-        endif
-        overhead "This lock wont keep me out..." 87
-        while not dead
-            if not hidden and not cooldown "Hiding" and not warmode
-                warmode 'on'
-                warmode 'off'
-                skill "Hiding"
-                if hidden
-                    cooldown "Hiding" 10350
-                endif
-            endif
-            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots
-                skill "Stealth"
-                if not timerexists ots
-                    createtimer ots
-                endif
-            endif
-            if insysmsg "move quietly"
-                cooldown "Stealth" 10350
-            endif
-            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and insysmsg "hide first"
-                pause 1000
-                getlabel backpack ping
-                skill "Hiding"
-                removetimer ots
-            endif
-            if insysmsg  "You successfully pick the lock"
-                break
-            endif
-            if not findtype 'wooden chest' ground -1 -1 2
-                break
-            endif
-            if insysmsg "Another player"
-                while gumpexists 736038070
-                    gumpresponse 4
-                    waitforgump 736038070 500
-                    break
-                endwhile
-            endif
-            if insysmsg "pick another lock"
-                replay
-            endif
-            if find "bchest" ground -1 -1 2
-                getlabel bchest desc
-                if "lock" in desc
-                    //do nothing
-                else 
-                    break
-                endif
-            endif
-            if skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
-                while not queued
-                    if findlayer self head as hat
-                        getlabel hat desc
-                        if "magical" in desc
-                            dclick "bmain"
-                        else 
-                            dclick "bwiz"
-                            pause 500
-                            getlabel backpack ping
-                            dclick "bmain"
-                        endif
-                    endif
-                    break
-                endwhile
-            endif
-            if not findlayer self head
-                dclick "bmain"
-            endif
-
-            if findlayer self head as hat
-                getlabel hat desc
-                if "magical" in desc
-                    dclick "bmain"
+                if timerexists "Elemental" and skill "Spirit Speak" >= 80 and mana >= 50
+                    cast 'Earth Elemental'
+                    removetimer "Eacp"
+                    removetimer "Elemental"
+                    createtimer "Wacp"
+                    createtimer "Nacp"
+                    createtimer "Tacp"
+                    dclicktype "atlas" backpack
                 endif
             endif
         endwhile
@@ -660,5 +589,49 @@ if find "bchest" ground -1 -1 2 as bchest
             break
         endif
     endwhile
+endif
+
+if ingump "Custom"
+    if not timerexists "Wacp"
+        gumpclose 341416395
+        overhead "Wall of Stone ACP ------Enabled------" 2307
+        createtimer "Wall"
+        createtimer "Wacp"
+        removetimer "Nacp"
+        removetimer "Eacp"
+        removetimer "Tacp"
+        removetimer "Elemental"
+        removetimer "Tele"
+        removetimer "None"
+     elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80
+        gumpclose 341416395
+        overhead "Earth Elemental ACP ------Enabled------" 1501
+        createtimer "Elemental"
+        createtimer "Eacp"
+        removetimer "Nacp"
+        removetimer "Tacp"
+        removetimer "Wall"
+        removetimer "Tele"
+        removetimer "None"
+    elseif not timerexists  "Tacp"
+        gumpclose 341416395
+        overhead "Teleport + Rope ACP ------Enabled------" 1272
+        createtimer "Tele"
+        createtimer "Tacp"
+        removetimer "Nacp"
+        removetimer "Wall"
+        removetimer "Elemental"
+        removetimer "None"        
+    elseif not timerexists "Nacp"
+        gumpclose 341416395
+        overhead "Auto Chest Protection ------Disabled------" 38
+        createtimer "Nacp"
+        removetimer "Eacp"
+        removetimer "Tacp"
+        removetimer "Wacp"
+        removetimer "Wall"
+        removetimer "Elemental"
+        removetimer "Tele"
+    endif
 endif
 loop

@@ -6,16 +6,13 @@
 
 ///////////////////////////////////////////////////////////
 # Animal Taming Script by DaKlue
-# Version: V2.0.3
+# Version: V3.0.1
 # Added all tamable animals to skill check. If you find an animal is not taming correctly pls DM me on discord daklue in the Jaseowns channel. Some animals names start with A and some start with An so some might not be corrcet in the script.
 # Modified: Shelter Dungeon Animal Taming by Jaseowns
 # UO Outlands
 # How to use: YOU NEED A TANK PET! Recomended a Scarab bonded
-#   as soon as possible. Need Herding and crook.
-#   Use warmode too auto herd monster. Once pet has
-#   hit monster and done damage tab to peace mode and
-#   and say all follow me. Get to safe location. 
-#   It should do the rest.
+#   as soon as possible.  
+# No longer requires warmode. Will Kill non tameable monster. Will Kill Release animals. 
 # Any questions PM DaKlue on Discord
 ///////////////////////////////////////////////////////////
 // Set Time For Taming
@@ -42,6 +39,10 @@ elseif followers > 0
         @setvar! tankpet
         wft 500
     endif
+    if not find tankpet ground -1 -1 20
+        overhead 'Cant find tankpet reseting variable'
+        unsetvar tankpet
+    endif
 endif
     
 
@@ -62,6 +63,20 @@ if not timerexists vetTimer
     settimer vetTimer vetTimerCd
 endif
 
+@setvar! overheadHelperTimerCd 2000
+if not timerexists overheadHelperTimer
+    settimer overheadHelperTimer overheadHelperTimerCd
+endif
+
+@setvar! skillTimerCd 13000
+if not timerexists skillTimer
+    settimer skillTimer skillTimerCd
+endif
+
+@setvar! AllKillCd 5000
+if not timerexists AllKillTimer
+    settimer AllKillTimer AllKillCd
+endif
 // Bandage tankpet every 8 seconds
 if timer vetTimer > vetTimerCd
     if not bandaging and findtype "clean bandage%s%|veterinary supplies" backpack as item
@@ -274,7 +289,7 @@ elseif skill "Animal Taming" < 110
         endif
     endwhile
 elseif skill "Animal Taming" < 115
-    while findtype "a Bonfire Wisp|a Giant Black Widow|a Smoke Drake|a Ruby Wyrmling|a Azure Wyrmling|a Sun Wyrmling|a Sphinx|a Cryptwing|a Colossal Searing Scorpion|a Water Dragon|a Corpse Purger|a Nightstalker|a Void Slime|a Aegis Minion|a Aegis Leech|a Blood Scorpion|a Blood Drake|a Blood Courser|a Dusk Dragon|a Air Dragon|a White Wyrmling|a Cave Gorger|a sphix|a aegis minion" ground -1 -1 3 as janimal
+    while findtype "a colossal frog|a giant frog|a Bonfire Wisp|a Giant Black Widow|a Smoke Drake|a Ruby Wyrmling|a Azure Wyrmling|a Sun Wyrmling|a Sphinx|a Cryptwing|a Colossal Searing Scorpion|a Water Dragon|a Corpse Purger|a Nightstalker|a Void Slime|a Aegis Minion|a Aegis Leech|a Blood Scorpion|a Blood Drake|a Blood Courser|a Dusk Dragon|a Air Dragon|a White Wyrmling|a Cave Gorger|a sphix|a aegis minion" ground -1 -1 3 as janimal
         getlabel janimal desc
         if "released" in desc
             // ignore them
@@ -318,476 +333,138 @@ elseif skill "Animal Taming" >= 120
 endif
 
 if tameThisThing != 0
+    
+    if timer overheadHelperTimer >= overheadHelperTimerCd
+        overhead "!! attempting to tame !!" 88 tameThisThing 
+        settimer overheadHelperTimer 0
+    endif
+
     clearsysmsg 
-   
-    while followers = myFollowers
-        useskill "taming"
+
+    settimer tamingTimer 0
+    settimer sayTimer 0
+    
+    if followers > 0
+        say "all kill"
         wft 500
         target tameThisThing
-            if timer 'sayTimer' >= speechTimerCD
-                say 'all stop'
-                wait 500
-                say 'all follow me'
-                wait 500
-                settimer sayTimer 0
-            endif
-        if timer 'tamingTimer' >= tamingTimerCd
-            settimer tamingTimer 0
-            replay
-        elseif insysmsg "cannot be seen"
-            replay
-        elseif dead tameThisThing or not find tameThisThing ground -1 -1 4
+        settimer sayTimer 0
+        wait 200
+        while timer sayTimer < 2550
+        endwhile
+        say "all follow me"
+        wait 1000
+        warmode off
+    endif
+    
+    @setvar! isTamed 0
+    @setvar! isTaming 1
+    
+    while isTaming = 1
+        
+        if dead 
             replay
         endif
-    endwhile                
-
-    if followers > 3
-        if skill "herding" > 0
-            while not gumpexists 2426193729
-                menu tameThisThing 10
-                wait 50
-            endwhile
-        else
+    
+        if doYouWantATankPetToTryAndStayAlive = 1 and skill "veterinary" > 0
+            if find jankPet ground -1 -1 2 and timer healPetCheckTimer >= healPetCheckTimerCd
+                if not bandaging and findtype "clean bandage%s%" backpack as item
+                    dclick item
+                    wft 200
+                    target jankPet
+                    settimer healPetCheckTimer 0
+                    if targetexists 
+                        hotkey "Cancel current target"
+                    endif
+                endif        
+            endif
+        endif
+    
+        while not targetexists and not dead
+            dclicktype "dagger" backpack
+            wft 500
+        endwhile
+        if targetexists 
+            target tameThisThing
+        endif
+        wait 200
+        if insysmsg "That is too far away."
+            overhead "Too far away bro.. move closer!" 34
+            overhead "THIS IS MY TARGET" 88 tameThisThing
+            wait 500
+            if timer tamingTimer > 15000
+                @setvar! isTaming 0
+            endif
+        elseif insysmsg "use a bladed item on that"
+            clearsysmsg 
+            if timer skillTimer >= skillTimerCd
+                
+                getlabel tameThisThing isItTamedYetDesc
+                
+                if "tame" in isItTamedYetDesc
+                    @setvar! isTamed 1    
+                    @setvar! isTaming 0
+                    break
+                endif
+            
+                while not targetexists and not dead
+                    useskill "taming"
+                    wft 500
+                endwhile
+                target tameThisThing
+                settimer skillTimer 0
+            endif
+            wait 200
+            if insysmsg "That is too far away."
+                overhead "Too far away bro" 34
+                @setvar! isTaming 0
+            elseif insysmsg "Target cannot be seen."
+                overhead "Cannot be seen bro" 29
+                @setvar! isTaming 0
+            elseif targetexists 
+                @setvar! isTaming 0
+                hotkey "cancel current target"
+            endif
+        endif
+    endwhile 
+    
+    if followers > 2 and isTamed = 1 and tameThisThing != 0
             while not gumpexists 2426193729
                 menu tameThisThing 9
                 wait 50
             endwhile
-        endif
         while gumpexists 2426193729
             gumpresponse 1 2426193729
             wait 50
         endwhile
     endif
+    
+elseif timer overheadHelperTimer >= overheadHelperTimerCd
+    overhead "Nothing to tame found!" 34
+    settimer overheadHelperTimer 0
 endif
 
-if diffhits >= hpCheckToTrigger 
-    if findtype "Yellow Potion" backpack as pot 
-        getlabel pot desc
-        if "next usable" in desc
-            // do nothing
-        else
-            dclick pot
-            wait 500
-        endif
-    endif
-endif
-if poisoned
-    if diffhits >= hpCheckToTrigger and findtype "Orange Potion" backpack as pot 
-        getlabel pot desc
-        if "next usable" in desc
-            // do nothing
-        else
-            dclick pot
-            wait 500
-        endif
-    endif
-endif
-
-###########
-# If shit is not working right, adjust this number to ping
-#####
-@setvar! minimumWaitForPing 200
-@setvar! minimumWaitForPingUnequipping 650
-@setvar! cdPreventOverheadSpam 10000
-@setvar! hpCheckToTriggerHealPotion 40
-@setvar! hpCheckToTriggerCurePotion 40
-@setvar! myRangeCheckForTarget 2
-@setvar! myPreviousKillTarget 0
-
-#####
-##  Skill Check Timer
-####
-@setvar! jaseowns_SkillTimerCD 11500
-settimer jaseowns_SkillTimerCheck jaseowns_SkillTimerCD
-
-#####
-##  System Message Check Timer
-####
-@setvar! jaseowns_SystemMsgCheckCD 1000
-settimer jaseowns_SystemMsgCheck jaseowns_SystemMsgCheckCD
-
-#####
-##  Targeting Variables
-####
-@setvar! jaseowns_CurrentTargetFocus 0
-@setvar! jaseowns_LastFocusAggressionTarget 0
-@setvar! jaseowns_KillTarget 0
-
-################################
-###### Chiv abilities
-################
-@setvar! useCleanseByFireAutomatically 1
-@setvar! useCloseWoundsAutomatically 1
-@setvar! useHolyLightAutomatically 1
-@setvar! useDivineFuryAutomatically 1
-@setvar! hpTriggerForHolyLight 35
-@setvar! lowHealthTriggerForNobleSacrifice 40
-
-if not timerexists preventOverheadSpamTimer
-    settimer preventOverheadSpamTimer cdPreventOverheadSpam
-endif
-
-###############
-### Targeting (based on warmode on)
-#############
-if warmode 
-    @setvar! myKillTarget 0
+if tameThisThing = 0 
     @hotkey 'Target Closest Non-Friendly Monster'
-    wait minimumWaitForPing
-    if insysmsg "No one matching that was found"
-        if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
-            overhead "No targets found" 34
-            settimer preventOverheadSpamTimer 0
-        endif
-    else
-        @setvar! myKillTarget lasttarget 
-    endif
-
-    ###############
-    ### Herding
-    #############
-    if timer herdTimer > herdTimerCD
-        if myKillTarget != 0 and find myKillTarget ground -1 -1 12
-            @setvar jaseowns_KillTarget myKillTarget
-            if jaseowns_KillTarget != jaseowns_LastFocusAggressionTarget
-            
-            if find tankpet
-                    overhead "Ï Guarding Ï" 88 tankpet
-                    if skill "Herding" > 0
-                        menu tankpet 4
-                    else
-                        menu tankpet 3
-                    endif
-                endif
-            
-                if timer jaseowns_SkillTimerCheck >= jaseowns_SkillTimerCD and findtype 3713 self as jrook
-                    settimer jaseowns_SystemMsgCheck 0
-                    while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD
-                        if not targetexists
-                            overhead "Ï ¼ Attempting Herd ¼ Ï" 88 jaseowns_KillTarget
-                            dclick jrook
-                            wft 500
-                        else 
-                            break
-                        endif
-                    endwhile
-                    if insysmsg "What do you wish to focus your" and targetexists
-                        target jaseowns_KillTarget
-                        settimer jaseowns_SystemMsgCheck 0
-                        while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD
-                            if insysmsg "You focus your follower"
-                                @setvar! jaseowns_LastFocusAggressionTarget jaseowns_KillTarget
-                                break
-                            elseif insysmsg "Target cannot be seen"
-                                
-                            endif
-                        endwhile
-                        if not targetexists 
-                            settimer jaseowns_SkillTimerCheck 10000
-                        endif
-                    endif
-                endif
-            endif
-        else
-            @setvar! jaseowns_LastFocusAggressionTarget 0
-        endif
-    endif
-endif
-
-###############
-### Chivalry
-#############
-if skill "Chivalry" >= 50
-
-    @setvar! chivSymbols 0
-    @setvar! cdCleanseByFire 31000
-    @setvar! cdCloseWounds 31000
-    @setvar! cdHolyLight 31000
-    @setvar! cdDivineFury 31000
-    @setvar! cdNobleSacrifice 31000
-
-    if not timerexists nobleSacrificeTimer
-        createtimer nobleSacrificeTimer
-        settimer nobleSacrificeTimer cdCleanseByFire
-    endif
-
-    if not timerexists cleanseByFireTimer
-        createtimer cleanseByFireTimer
-        settimer cleanseByFireTimer cdCleanseByFire
-    endif
-
-    if not timerexists closeWoundsTimer
-        createtimer closeWoundsTimer
-        settimer closeWoundsTimer cdCloseWounds
-    endif
-    
-    if not timerexists holyLightTimer
-        createtimer holyLightTimer
-        settimer holyLightTimer cdHolyLight
-    endif
-    
-    if not timerexists divineFuryTimer
-        createtimer divineFuryTimer
-        settimer divineFuryTimer cdDivineFury
-    endif
-    
-    while not gumpexists 1387930325
-        say "[ChivalryHotbar"
-        wait 200
+    @setvar myKillTarget lasttarget 
+    wait 200
+    say 'All Kill"
+    wft 500
+    while targetexists 
+        target myKillTarget 
     endwhile
-    
-    if gumpexists 1387930325
-        if ingump "12/" 1387930325
-            @setvar! chivSymbols 12
-        elseif ingump "13/" 1387930325
-            @setvar! chivSymbols 13
-        elseif ingump "14/" 1387930325
-            @setvar! chivSymbols 14
-        elseif ingump "15/" 1387930325
-            @setvar! chivSymbols 15
-        elseif ingump "16/" 1387930325
-            @setvar! chivSymbols 16
-        elseif ingump "17/" 1387930325
-            @setvar! chivSymbols 17
-        elseif ingump "18/" 1387930325
-            @setvar! chivSymbols 18
-        elseif ingump "19/" 1387930325
-            @setvar! chivSymbols 19
-        elseif ingump "20/" 1387930325
-            @setvar! chivSymbols 20
-        elseif ingump "21/" 1387930325
-            @setvar! chivSymbols 21
-        elseif ingump "11/" 1387930325
-            @setvar! chivSymbols 11
-        elseif ingump "10/" 1387930325
-            @setvar! chivSymbols 10
-        elseif ingump "9/" 1387930325
-            @setvar! chivSymbols 9
-        elseif ingump "8/" 1387930325
-            @setvar! chivSymbols 8
-        elseif ingump "7/" 1387930325
-            @setvar! chivSymbols 7
-        elseif ingump "6/" 1387930325
-            @setvar! chivSymbols 6
-        elseif ingump "5/" 1387930325
-            @setvar! chivSymbols 5
-        elseif ingump "4/" 1387930325
-            @setvar! chivSymbols 4
-        elseif ingump "3/" 1387930325
-            @setvar! chivSymbols 3
-        elseif ingump "2/" 1387930325
-            @setvar! chivSymbols 2
-        elseif ingump "1/" 1387930325
-            @setvar! chivSymbols 1
-        elseif ingump "0/" 1387930325
-            @setvar! chivSymbols 0
+    settimer AllKillTimer 0
+    while timer AllKillTimer < AllKillCd
+        // Do nothing
+    endwhile
+    if find tankpet ground -1 -1 12
+        overhead "Ï Guarding Ï" 88 tankpet
+        if skill "Herding" > 0
+            menu tankpet 3
         endif
     endif
-    
-    if hp <= lowHealthTriggerForNobleSacrifice and skill "Chivalry" >= 80
-        if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and timer nobleSacrificeTimer >= cdNobleSacrifice and 4 < chivSymbols
-            if skill "Healing" > 0
-                hotkey 'Bandage Self'
-                settimer aidsTimer 0
-                wait minimumWaitForPing
-            endif
-            if showChivUsageAsOverhead = 1
-                overhead "Noble Sacrifice" showChivUsageAsOverheadColor
-            endif
-            if showChivUsageAsSystemMessage = 1
-                sysmsg "Noble Sacrifice" showChivUsageAsSystemMessageColor
-            endif
-            yell "[NobleSacrifice"
-            wft 500
-            hotkey "Target Self"
-            wait 200
-            if insysmsg "Holy symbols remaining:"
-                settimer nobleSacrificeTimer 0
-                settimer preventChivAbilitySpamTimer 0
-                cooldown NobleSacrifice cdNobleSacrifice
-            endif
-            if gumpexists 1387930325
-                if ingump "12/" 1387930325
-                    @setvar! chivSymbols 12
-                elseif ingump "13/" 1387930325
-                    @setvar! chivSymbols 13
-                elseif ingump "14/" 1387930325
-                    @setvar! chivSymbols 14
-                elseif ingump "15/" 1387930325
-                    @setvar! chivSymbols 15
-                elseif ingump "16/" 1387930325
-                    @setvar! chivSymbols 16
-                elseif ingump "17/" 1387930325
-                    @setvar! chivSymbols 17
-                elseif ingump "18/" 1387930325
-                    @setvar! chivSymbols 18
-                elseif ingump "19/" 1387930325
-                    @setvar! chivSymbols 19
-                elseif ingump "20/" 1387930325
-                    @setvar! chivSymbols 20
-                elseif ingump "21/" 1387930325
-                    @setvar! chivSymbols 21
-                elseif ingump "11/" 1387930325
-                    @setvar! chivSymbols 11
-                elseif ingump "10/" 1387930325
-                    @setvar! chivSymbols 10
-                elseif ingump "9/" 1387930325
-                    @setvar! chivSymbols 9
-                elseif ingump "8/" 1387930325
-                    @setvar! chivSymbols 8
-                elseif ingump "7/" 1387930325
-                    @setvar! chivSymbols 7
-                elseif ingump "6/" 1387930325
-                    @setvar! chivSymbols 6
-                elseif ingump "5/" 1387930325
-                    @setvar! chivSymbols 5
-                elseif ingump "4/" 1387930325
-                    @setvar! chivSymbols 4
-                elseif ingump "3/" 1387930325
-                    @setvar! chivSymbols 3
-                elseif ingump "2/" 1387930325
-                    @setvar! chivSymbols 2
-                elseif ingump "1/" 1387930325
-                    @setvar! chivSymbols 1
-                elseif ingump "0/" 1387930325
-                    @setvar! chivSymbols 0
-                endif
-            endif
-        endif
-    endif
-    
-    if poisoned and skill "Chivalry" >= 60
-        if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and useCleanseByFireAutomatically = 1 and timer cleanseByFireTimer >= cdCleanseByFire and 2 < chivSymbols
-            if showChivUsageAsOverhead = 1
-                overhead "Cleanse by fire" showChivUsageAsOverheadColor
-            endif
-            if showChivUsageAsSystemMessage = 1
-                sysmsg "Cleanse by fire" showChivUsageAsSystemMessageColor
-            endif
-            yell "[CleanseByFire"
-            wait 200
-            if insysmsg "Holy symbols remaining:"
-                settimer cleanseByFireTimer 0
-                settimer preventChivAbilitySpamTimer 0
-                cooldown CleanseByFire cdCleanseByFire
-            endif
-        endif
-    elseif findbuff "bleed" or findbuff "disease" and skill "Chivalry" >= 70
-        if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and useCloseWoundsAutomatically = 1 and timer closeWoundsTimer >= cdCleanseByFire and 3 < chivSymbols
-            if showChivUsageAsOverhead = 1
-                overhead "Close Wounds" showChivUsageAsOverheadColor
-            endif
-            if showChivUsageAsSystemMessage = 1
-                sysmsg "Close Wounds" showChivUsageAsSystemMessageColor
-            endif
-            yell "[CloseWounds"
-            wait 200
-            if insysmsg "Holy symbols remaining:"
-                settimer closeWoundsTimer 0
-                settimer preventChivAbilitySpamTimer 0
-                cooldown CloseWounds cdCloseWounds
-            endif
-        endif
-    endif
-    
-    if gumpexists 1387930325
-        if ingump "12/" 1387930325
-            @setvar! chivSymbols 12
-        elseif ingump "13/" 1387930325
-            @setvar! chivSymbols 13
-        elseif ingump "14/" 1387930325
-            @setvar! chivSymbols 14
-        elseif ingump "15/" 1387930325
-            @setvar! chivSymbols 15
-        elseif ingump "16/" 1387930325
-            @setvar! chivSymbols 16
-        elseif ingump "17/" 1387930325
-            @setvar! chivSymbols 17
-        elseif ingump "18/" 1387930325
-            @setvar! chivSymbols 18
-        elseif ingump "19/" 1387930325
-            @setvar! chivSymbols 19
-        elseif ingump "20/" 1387930325
-            @setvar! chivSymbols 20
-        elseif ingump "21/" 1387930325
-            @setvar! chivSymbols 21
-        elseif ingump "11/" 1387930325
-            @setvar! chivSymbols 11
-        elseif ingump "10/" 1387930325
-            @setvar! chivSymbols 10
-        elseif ingump "9/" 1387930325
-            @setvar! chivSymbols 9
-        elseif ingump "8/" 1387930325
-            @setvar! chivSymbols 8
-        elseif ingump "7/" 1387930325
-            @setvar! chivSymbols 7
-        elseif ingump "6/" 1387930325
-            @setvar! chivSymbols 6
-        elseif ingump "5/" 1387930325
-            @setvar! chivSymbols 5
-        elseif ingump "4/" 1387930325
-            @setvar! chivSymbols 4
-        elseif ingump "3/" 1387930325
-            @setvar! chivSymbols 3
-        elseif ingump "2/" 1387930325
-            @setvar! chivSymbols 2
-        elseif ingump "1/" 1387930325
-            @setvar! chivSymbols 1
-        elseif ingump "0/" 1387930325
-            @setvar! chivSymbols 0
-        endif
-    endif
-    
-    if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and useHolyLightAutomatically = 1 and hp <= hpTriggerForHolyLight and skill "Chivalry" >= 95
-        
-        @setvar! doubleCheckHolyLight 1
-    
-        if skill "Healing" > 0 and cdAids = 10000 and timer aidsTimer >= 9000
-            // skip holy light
-            overhead "Skipping Holy Light" 34
-            @setvar! doubleCheckHolyLight 0
-            // unless we gonna die
-            if hp <= 20 or poisoned
-                overhead "Just kidding, do not wanna die" 34
-                @setvar! doubleCheckHolyLight 1
-            endif
-        endif
-        
-        if doubleCheckHolyLight = 1
-            if timer holyLightTimer >= cdHolyLight and 5 < chivSymbols
-                if showChivUsageAsOverhead = 1
-                    overhead "Holy Light" showChivUsageAsOverheadColor
-                endif
-                if showChivUsageAsSystemMessage = 1
-                    sysmsg "Holy Light" showChivUsageAsSystemMessageColor
-                endif
-                yell "[HolyLight"
-                wait 200
-                if insysmsg "Holy symbols remaining:"
-                    settimer holyLightTimer 0
-                    settimer preventChivAbilitySpamTimer 0
-                    cooldown HolyLight cdHolyLight
-                endif
-            endif
-        endif
-    endif
-    
-    if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and targetInRange = 1 and useDivineFuryAutomatically = 1 and skill "Chivalry" >= 85
-        if timer divineFuryTimer >= cdDivineFury and 4 < chivSymbols
-            if showChivUsageAsOverhead = 1
-                overhead "Divine Fury" showChivUsageAsOverheadColor
-            endif
-            if showChivUsageAsSystemMessage = 1
-                sysmsg "Divine Fury" showChivUsageAsSystemMessageColor
-            endif
-            yell "[DivineFury"
-            wait 200
-            if insysmsg "Holy symbols remaining:"
-                settimer divineFuryTimer 0
-                settimer preventChivAbilitySpamTimer 0
-                cooldown DivineFury cdDivineFury
-            endif
-        endif
+    if targetexists 
+        hotkey 'Cancel Current Target'
     endif
 endif
 

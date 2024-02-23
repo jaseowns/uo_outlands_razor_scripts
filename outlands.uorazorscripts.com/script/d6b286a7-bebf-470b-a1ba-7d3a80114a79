@@ -6,7 +6,7 @@
 
 //***Bapeths Modern Dungeon Picker***
 
-//Updated Feb 22th 2024
+//Updated Feb 23th 2024
 
 //"***Recommended Build***"
 
@@ -48,7 +48,7 @@
 //"***OPTIONAL***"
 //ACP (Auto Chest Protection) feature will instantly cast 
 //Wall of stone, Earth Elemental, or Tele + Rope when you are detected at a chest
-//Toggle "Wall" "Earth" "Tele" or "None" by doubleclicking an "Atlas"
+//Toggle "Wall" "Earth" "Tele" "Reveal" or "None" by doubleclicking an "Atlas"
 //Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
 //Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
 
@@ -190,7 +190,14 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
         while gumpexists 736038070
             gumpresponse 7
             waitforgump 736038070 500
-            break
+            if insysmsg "You attempt to remove traps"
+                clearsysmsg
+                break
+            endif
+            if insysmsg "That appears to be devoid"
+                clearsysmsg
+                break
+            endif
         endwhile
         if not cooldown "Hiding" and not hidden and not warmode
             if followers >= 1
@@ -267,10 +274,16 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
             endif
             if insysmsg "Another player"
                 while gumpexists 736038070
-                    gumpresponse 7
-                    waitforgump 736038070 500
-                    break
+                    replay
                 endwhile
+            endif
+            if find "bchest" ground -1 -1 2
+                getlabel bchest desc
+                if "lock" in desc
+                    //do nothing
+                else 
+                    break
+                endif
             endif
             if ingump "Cleared Of Traps"
                 break
@@ -303,15 +316,17 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
             if ingump "Shrines"
                 if not timerexists "Wacp"
                     gumpclose 341416395
-                    overhead "Wall of Stone ACP ------Enabled------" 2307
+                    overhead "Wall of Stone ACP ------Enabled------" 2031
                     createtimer "Wall"
                     createtimer "Wacp"
                     removetimer "Nacp"
                     removetimer "Eacp"
                     removetimer "Tacp"
+                    removetimer "Racp"
                     removetimer "Elemental"
                     removetimer "Tele"
                     removetimer "None"
+                    removetimer "Reveal" 
                  elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80
                     gumpclose 341416395
                     overhead "Earth Elemental ACP ------Enabled------" 1501
@@ -319,18 +334,32 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     createtimer "Eacp"
                     removetimer "Nacp"
                     removetimer "Tacp"
+                    removetimer "Racp"
                     removetimer "Wall"
                     removetimer "Tele"
                     removetimer "None"
+                    removetimer "Reveal" 
                 elseif not timerexists  "Tacp"
                     gumpclose 341416395
                     overhead "Teleport + Rope ACP ------Enabled------" 1272
                     createtimer "Tele"
                     createtimer "Tacp"
                     removetimer "Nacp"
+                    removetimer "Racp"
                     removetimer "Wall"
                     removetimer "Elemental"
-                    removetimer "None"        
+                    removetimer "None" 
+                    removetimer "Reveal"  
+                elseif not timerexists "Racp"
+                    gumpclose 341416395
+                    overhead "Reveal Spellcast ACP ------Enabled------" 2040
+                    createtimer "Racp"
+                    createtimer "Reveal"
+                    removetimer "Nacp"
+                    removetimer "Wall"
+                    removetimer "Elemental"
+                    removetimer "Tele"  
+                    removetimer "None"    
                 elseif not timerexists "Nacp"
                     gumpclose 341416395
                     overhead "Auto Chest Protection ------Disabled------" 38
@@ -341,6 +370,7 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     removetimer "Wall"
                     removetimer "Elemental"
                     removetimer "Tele"
+                    removetimer "Reveal" 
                 endif
             endif
             if insysmsg "You have been revealed!" 
@@ -357,6 +387,7 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     createtimer "Eacp"
                     createtimer "Nacp"
                     createtimer "Wacp"
+                    createtimer "Racp"
                     dclicktype "atlas" backpack
                 endif
                 if timerexists "Wall" and mana >= 9
@@ -367,6 +398,7 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     createtimer "Eacp"
                     createtimer "Nacp"
                     createtimer "Tacp"
+                    createtimer "Racp"
                     dclicktype "atlas" backpack
                 endif
                 if timerexists "Elemental" and skill "Spirit Speak" >= 80 and mana >= 50
@@ -377,6 +409,18 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     createtimer "Wacp"
                     createtimer "Nacp"
                     createtimer "Tacp"
+                    createtimer "Racp"
+                    dclicktype "atlas" backpack
+                endif
+                if timerexists "Reveal" and mana >= 20
+                    say "[Surprise"
+                    cast 'Reveal'
+                    removetimer "Racp"
+                    removetimer "Reveal"
+                    createtimer "Wacp"
+                    createtimer "Nacp"
+                    createtimer "Tacp"
+                    createtimer "Eacp"
                     dclicktype "atlas" backpack
                 endif
             endif
@@ -388,7 +432,14 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
         while gumpexists 736038070
             gumpresponse 4
             waitforgump 736038070 500
-            break
+            if insysmsg "You attempt to pick the lock"
+                clearsysmsg
+                break
+            endif
+            if insysmsg "It appears to be unlocked"
+                clearsysmsg
+                break
+            endif
         endwhile
         if not cooldown "Hiding" and not hidden and not warmode 
             if followers >= 1
@@ -448,7 +499,7 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                 skill "Hiding"
                 removetimer ots
             endif
-            if insysmsg  "You successfully pick the lock"
+            if insysmsg "You successfully pick the lock"
                 break
             endif
             if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
@@ -456,13 +507,8 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
             endif
             if insysmsg "Another player"
                 while gumpexists 736038070
-                    gumpresponse 4
-                    waitforgump 736038070 500
-                    break
+                    replay
                 endwhile
-            endif
-            if insysmsg "pick another lock"
-                replay
             endif
             if find "bchest" ground -1 -1 2
                 getlabel bchest desc
@@ -500,15 +546,17 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
             if ingump "Shrines"
                 if not timerexists "Wacp"
                     gumpclose 341416395
-                    overhead "Wall of Stone ACP ------Enabled------" 2307
+                    overhead "Wall of Stone ACP ------Enabled------" 2031
                     createtimer "Wall"
                     createtimer "Wacp"
                     removetimer "Nacp"
                     removetimer "Eacp"
                     removetimer "Tacp"
+                    removetimer "Racp"
                     removetimer "Elemental"
                     removetimer "Tele"
                     removetimer "None"
+                    removetimer "Reveal" 
                  elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80
                     gumpclose 341416395
                     overhead "Earth Elemental ACP ------Enabled------" 1501
@@ -516,18 +564,32 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     createtimer "Eacp"
                     removetimer "Nacp"
                     removetimer "Tacp"
+                    removetimer "Racp"
                     removetimer "Wall"
                     removetimer "Tele"
                     removetimer "None"
+                    removetimer "Reveal" 
                 elseif not timerexists  "Tacp"
                     gumpclose 341416395
                     overhead "Teleport + Rope ACP ------Enabled------" 1272
                     createtimer "Tele"
                     createtimer "Tacp"
                     removetimer "Nacp"
+                    removetimer "Racp"
                     removetimer "Wall"
                     removetimer "Elemental"
-                    removetimer "None"        
+                    removetimer "None" 
+                    removetimer "Reveal"  
+                elseif not timerexists "Racp"
+                    gumpclose 341416395
+                    overhead "Reveal Spellcast ACP ------Enabled------" 2040
+                    createtimer "Racp"
+                    createtimer "Reveal"
+                    removetimer "Nacp"
+                    removetimer "Wall"
+                    removetimer "Elemental"
+                    removetimer "Tele"  
+                    removetimer "None"    
                 elseif not timerexists "Nacp"
                     gumpclose 341416395
                     overhead "Auto Chest Protection ------Disabled------" 38
@@ -538,6 +600,7 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     removetimer "Wall"
                     removetimer "Elemental"
                     removetimer "Tele"
+                    removetimer "Reveal" 
                 endif
             endif
             if insysmsg "You have been revealed!" 
@@ -554,6 +617,7 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     createtimer "Eacp"
                     createtimer "Nacp"
                     createtimer "Wacp"
+                    createtimer "Racp"
                     dclicktype "atlas" backpack
                 endif
                 if timerexists "Wall" and mana >= 9
@@ -564,6 +628,7 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     createtimer "Eacp"
                     createtimer "Nacp"
                     createtimer "Tacp"
+                    createtimer "Racp"
                     dclicktype "atlas" backpack
                 endif
                 if timerexists "Elemental" and skill "Spirit Speak" >= 80 and mana >= 50
@@ -574,6 +639,18 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     createtimer "Wacp"
                     createtimer "Nacp"
                     createtimer "Tacp"
+                    createtimer "Racp"
+                    dclicktype "atlas" backpack
+                endif
+                if timerexists "Reveal" and mana >= 20
+                    say "[Surprise"
+                    cast 'Reveal'
+                    removetimer "Racp"
+                    removetimer "Reveal"
+                    createtimer "Wacp"
+                    createtimer "Nacp"
+                    createtimer "Tacp"
+                    createtimer "Eacp"
                     dclicktype "atlas" backpack
                 endif
             endif
@@ -608,15 +685,17 @@ endif
 if ingump "Shrines"
     if not timerexists "Wacp"
         gumpclose 341416395
-        overhead "Wall of Stone ACP ------Enabled------" 2307
+        overhead "Wall of Stone ACP ------Enabled------" 2031
         createtimer "Wall"
         createtimer "Wacp"
         removetimer "Nacp"
         removetimer "Eacp"
         removetimer "Tacp"
+        removetimer "Racp"
         removetimer "Elemental"
         removetimer "Tele"
         removetimer "None"
+        removetimer "Reveal" 
      elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80
         gumpclose 341416395
         overhead "Earth Elemental ACP ------Enabled------" 1501
@@ -624,18 +703,32 @@ if ingump "Shrines"
         createtimer "Eacp"
         removetimer "Nacp"
         removetimer "Tacp"
+        removetimer "Racp"
         removetimer "Wall"
         removetimer "Tele"
         removetimer "None"
+        removetimer "Reveal" 
     elseif not timerexists  "Tacp"
         gumpclose 341416395
         overhead "Teleport + Rope ACP ------Enabled------" 1272
         createtimer "Tele"
         createtimer "Tacp"
         removetimer "Nacp"
+        removetimer "Racp"
         removetimer "Wall"
         removetimer "Elemental"
-        removetimer "None"        
+        removetimer "None" 
+        removetimer "Reveal"  
+    elseif not timerexists "Racp"
+        gumpclose 341416395
+        overhead "Reveal Spellcast ACP ------Enabled------" 2040
+        createtimer "Racp"
+        createtimer "Reveal"
+        removetimer "Nacp"
+        removetimer "Wall"
+        removetimer "Elemental"
+        removetimer "Tele"  
+        removetimer "None"    
     elseif not timerexists "Nacp"
         gumpclose 341416395
         overhead "Auto Chest Protection ------Disabled------" 38
@@ -646,6 +739,7 @@ if ingump "Shrines"
         removetimer "Wall"
         removetimer "Elemental"
         removetimer "Tele"
+        removetimer "Reveal" 
     endif
 endif
 loop

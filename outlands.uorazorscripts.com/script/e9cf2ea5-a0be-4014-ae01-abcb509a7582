@@ -1,12 +1,12 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/e9cf2ea5-a0be-4014-ae01-abcb509a7582 for latest
 # Automation by Jaseowns
-## Script: Animal Taming Script by DaKlue V3.0.1
+## Script: Animal Taming Script by DaKlue V3.0.4 (WIP)
 ## Created by: daklue#0
 #############################################
 
 ///////////////////////////////////////////////////////////
 # Animal Taming Script by DaKlue
-# Version: V3.0.2
+# Version: V3.0.4
 # Added all tamable animals to skill check. If you find an animal is not taming correctly pls DM me on discord daklue in the Jaseowns channel. Some animals names start with A and some start with An so some might not be corrcet in the script.
 # Modified: Shelter Dungeon Animal Taming by Jaseowns
 # UO Outlands
@@ -14,6 +14,10 @@
 #   as soon as possible.  
 # No longer requires warmode. Will Kill non tameable monster. Will Kill Release animals. 
 # Any questions PM DaKlue on Discord
+# Grammer Mistakes Found by Maybacco - Thanks
+################################
+###### Variables and Timers
+################
 ///////////////////////////////////////////////////////////
 @setvar! doYouWantATankPetToTryAndStayAlive 1
 // Set Time For Taming
@@ -27,6 +31,13 @@
 // Herding Timer
 @setvar! herdTimerCD 4000
 ///////////////////////////////////////////////////////////
+################################
+###### Heal Controllers
+################
+@setvar! AutoHeal 1
+@setvar! hpCheckToTriggerGreaterHealSpell 30
+@setvar! hpCheckToTriggerMiniEmergencyHealSpell 60
+@setvar! hpCheckToTriggerHealPotion 45
 
 // Tankpet setup
 if followers = 0
@@ -48,34 +59,41 @@ endif
     
 
 if not timerexists tamingTimer
+    createtimer tamingTimer
     settimer tamingTimer tamingTimerCd
 endif
 
 if not timerexists sayTimer
+    createtimer sayTimer
     settimer sayTimer speechTimerCD
 endif
 
 if not timerexists herdTimer
+    createlist herdTimer
     settimer herdTimer herdTimerCD
 endif
 
 // Vet Bandage timer 
 if not timerexists vetTimer
+    createtimer vetTimer
     settimer vetTimer vetTimerCd
 endif
 
 @setvar! overheadHelperTimerCd 2000
 if not timerexists overheadHelperTimer
-    settimer overheadHelperTimer overheadHelperTimerCd
+    createtimer overheadHelperTimer
+    settimer overheadHelperTimer overheadHelperTimerCd  
 endif
 
 @setvar! skillTimerCd 13000
 if not timerexists skillTimer
+    createtimer skillTimer
     settimer skillTimer skillTimerCd
 endif
 
 @setvar! AllKillCd 5000
 if not timerexists AllKillTimer
+    createtimer AllKillTimer
     settimer AllKillTimer AllKillCd
 endif
 // Bandage tankpet every 8 seconds
@@ -206,7 +224,7 @@ elseif skill "Animal Taming" < 80
         endif
     endwhile
 elseif skill "Animal Taming" < 85
-    while findtype "a Searing Imp|a Bullvore|a Ant Lion|a Adder|a Deep Crawler|a Wolfhound|a Devilbat|a deep crawler" ground -1 -1 3 as janimal
+    while findtype "a colossal frog|a Searing Imp|a Bullvore|a Ant Lion|a Adder|a Deep Crawler|a Wolfhound|a Devilbat|a deep crawler" ground -1 -1 3 as janimal
         getlabel janimal desc
         if "released" in desc
             // ignore them
@@ -339,40 +357,117 @@ if tameThisThing != 0
         overhead "!! attempting to tame !!" 88 tameThisThing 
         settimer overheadHelperTimer 0
     endif
-
+    
+    if skill 'magery' > 50
+        if diffhits >= hpCheckToTriggerGreaterHealSpell and AutoHeal = 1
+            if targetexists 
+                hotkey 'Cancel Current Target'
+            endif
+            while not targetexists 'beneficial'
+                if diffhits >= hpCheckToTriggerMiniEmergencyHealSpell
+                    cast 'Heal'
+                else
+                    cast 'Greater Heal'                
+                endif
+                wait 50
+                if hp = maxhp
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists 'beneficial'
+                hotkey 'Target Self'
+            endif
+        endif
+    elseif skill 'veterinary' > 50 and not bandaging and diffhits >= hpCheckToTriggerMiniEmergencyHealSpell and AutoHeal = 1 
+        if findtype "veterinary supplies" backpack as item
+            dclick item
+            wait 650
+        elseif not findtype "veterinary supplies" and findtype "clean bandage%s%" backpack and not bandaging
+            say '[bandageself'
+        endif 
+    endif
+        
     clearsysmsg 
 
     settimer tamingTimer 0
-    settimer sayTimer 0
-    
-    if followers > 0
-        say "all kill"
-        wft 500
-        target tameThisThing
-        settimer sayTimer 0
-        wait 200
-        while timer sayTimer < 2550
-        endwhile
-        say "all follow me"
-        wait 1000
-        warmode off
+    @setvar! sayTimerCd 2000
+    if not timerexists sayTimer
+        createtimer sayTimer
+        settimer sayTimer sayTimerCd
     endif
     
-    @setvar! isTamed 0
-    @setvar! isTaming 1
+    @setvar! isTaming 0
+    
+    if followers > 0 and timer sayTimer < sayTimerCd
+        warmode  on
+        say "all kill"
+        wft 500
+        if targetexists 
+            target tameThisThing
+        endif
+        settimer sayTimer 0
+        
+        @setvar! isTaming 1
+        
+        if not find tankpet ground -1 -1 2 and timer sayTimer < sayTimerCd
+            overhead "Waiting for tankpet to be closer Bro!" 88
+        endif
+            settimer sayTimer 0
+            say "all stop"
+            wait 2000
+            say "all follow me"
+            wait 2000
+        endif
+        if find tankpet ground -1 -1 2
+            warmode off
+            @setvar! isTaming 1
+        endif
+    endif
+
     
     while isTaming = 1
         
         if dead 
             replay
         endif
-    
+        
+        if skill 'magery' > 50
+            if diffhits >= hpCheckToTriggerGreaterHealSpell and AutoHeal = 1
+                if targetexists 
+                    hotkey 'Cancel Current Target'
+                endif
+                while not targetexists 'beneficial'
+                    if diffhits >= hpCheckToTriggerMiniEmergencyHealSpell
+                        cast 'Heal'
+                    else
+                        cast 'Greater Heal'                
+                    endif
+                    wait 50
+                    if hp = maxhp
+                        hotkey '> Interrupt'
+                        break
+                    endif
+                endwhile
+                if targetexists 'beneficial'
+                    hotkey 'Target Self'
+                endif
+            endif
+        elseif skill 'veterinary' > 50 and not bandaging and diffhits >= hpCheckToTriggerMiniEmergencyHealSpell and AutoHeal = 1 
+            if findtype "veterinary supplies" backpack as item
+                dclick item
+                wait 650
+            elseif not findtype "veterinary supplies" and findtype "clean bandage%s%" backpack and not bandaging
+                say '[bandageself'
+            endif 
+        endif
+        
         if doYouWantATankPetToTryAndStayAlive = 1 and skill "veterinary" > 0
-            if find tankPet ground -1 -1 2 and timer vetTimer > vetTimerCd
+            if find tankpet ground -1 -1 2 and timer vetTimer > vetTimerCd
                 if not bandaging and findtype "clean bandage%s%" backpack as item
                     dclick item
                     wft 200
-                    target tankPet
+                    target tankpet
                     settimer healPetCheckTimer 0
                     if targetexists 
                         hotkey "Cancel current target"
@@ -407,7 +502,10 @@ if tameThisThing != 0
                     @setvar! isTaming 0
                     break
                 endif
-            
+                
+                
+                
+                
                 while not targetexists and not dead
                     useskill "taming"
                     wft 500
@@ -440,12 +538,39 @@ if tameThisThing != 0
         endwhile
     endif
     
-elseif timer overheadHelperTimer >= overheadHelperTimerCd
-    overhead "Nothing to tame found!" 34
-    settimer overheadHelperTimer 0
-endif
+
 
 if tameThisThing = 0 
+    if skill 'magery' > 50
+        if diffhits >= hpCheckToTriggerGreaterHealSpell and AutoHeal = 1
+            if targetexists 
+                hotkey 'Cancel Current Target'
+            endif
+            while not targetexists 'beneficial'
+                if diffhits >= hpCheckToTriggerMiniEmergencyHealSpell
+                    cast 'Heal'
+                else
+                    cast 'Greater Heal'                
+                endif
+                wait 50
+                if hp = maxhp
+                    hotkey '> Interrupt'
+                    break
+                endif
+            endwhile
+            if targetexists 'beneficial'
+                hotkey 'Target Self'
+            endif
+        endif
+    elseif skill 'veterinary' > 50 and not bandaging and diffhits >= hpCheckToTriggerMiniEmergencyHealSpell and AutoHeal = 1 
+        if findtype "veterinary supplies" backpack as item
+            dclick item
+            wait 650
+        elseif not findtype "veterinary supplies" and findtype "clean bandage%s%" backpack and not bandaging
+            say '[bandageself'
+        endif 
+    endif
+    
     @hotkey 'Target Closest Non-Friendly Monster'
     @setvar myKillTarget lasttarget 
     wait 200
@@ -469,18 +594,18 @@ if tameThisThing = 0
     endif
       
     if doYouWantATankPetToTryAndStayAlive = 1 and skill "veterinary" > 0
-        if find tankPet ground -1 -1 2 and timer vetTimer > vetTimerCd
+        if find tankpet ground -1 -1 2 and timer vetTimer > vetTimerCd
             if not bandaging and findtype "clean bandage%s%" backpack as item
                 dclick item
                 wft 200
-                target tankPet
+                target tankpet
                 settimer healPetCheckTimer 0
                 if targetexists 
                     hotkey "Cancel current target"
                 endif
             endif        
         endif
-    endif
+    endif  
 endif
 
 wait 100

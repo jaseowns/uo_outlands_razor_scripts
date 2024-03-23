@@ -1,12 +1,12 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/e9cf2ea5-a0be-4014-ae01-abcb509a7582 for latest
 # Automation by Jaseowns
-## Script: Animal Taming Script by DaKlue V3.0.4 (WIP)
+## Script: Animal Taming Script by DaKlue V3.0.5 (WIP)
 ## Created by: daklue#0
 #############################################
 
 ///////////////////////////////////////////////////////////
 # Animal Taming Script by DaKlue
-# Version: V3.0.4
+# Version: V3.0.5
 # Added all tamable animals to skill check. If you find an animal is not taming correctly pls DM me on discord daklue in the Jaseowns channel. Some animals names start with A and some start with An so some might not be corrcet in the script.
 # Modified: Shelter Dungeon Animal Taming by Jaseowns
 # UO Outlands
@@ -15,6 +15,7 @@
 # No longer requires warmode. Will Kill non tameable monster. Will Kill Release animals. 
 # Any questions PM DaKlue on Discord
 # Grammer Mistakes Found by Maybacco - Thanks
+# fixed an overlooked if statement. 3.23.24
 ################################
 ###### Variables and Timers
 ################
@@ -96,22 +97,6 @@ if not timerexists AllKillTimer
     createtimer AllKillTimer
     settimer AllKillTimer AllKillCd
 endif
-// Bandage tankpet every 8 seconds
-if timer vetTimer > vetTimerCd
-    if not bandaging and findtype "clean bandage%s%|veterinary supplies" backpack as item
-        dclick item
-        wft 500
-        target tankpet
-        wait 200
-        hotkey 'Cancel current target'
-    endif
-
-    if insysmsg 'not damaged'
-        settimer 'vetTimer' 4000
-    else
-        settimer 'vetTimer' 0
-    endif
-endif
 
 if followers = 0
     @setvar! myFollowers 0  
@@ -127,8 +112,8 @@ elseif followers = 4
 elseif followers = 5
     @setvar! myFollowers 5
     overhead "Too many followers - release some!" 88
-    wait 2000
-    replay
+    //wait 2000
+    //replay
 endif
 
 @clearignore 
@@ -387,7 +372,22 @@ if tameThisThing != 0
             say '[bandageself'
         endif 
     endif
-        
+    // Bandage tankpet every 8 seconds
+    if timer vetTimer > vetTimerCd
+        if not bandaging and findtype "clean bandage%s%|veterinary supplies" backpack as item
+            dclick item
+            wft 500
+            target tankpet
+            wait 200
+            hotkey 'Cancel current target'
+        endif
+
+        if insysmsg 'not damaged'
+            settimer 'vetTimer' 4000
+        else
+            settimer 'vetTimer' 0
+        endif
+    endif   
     clearsysmsg 
 
     settimer tamingTimer 0
@@ -397,7 +397,7 @@ if tameThisThing != 0
         createtimer sayTimer
         settimer sayTimer sayTimerCd
     endif
-    
+    @setvar! isTamed 0
     @setvar! isTaming 0
     if isTaming = 0
         
@@ -417,18 +417,18 @@ if tameThisThing != 0
     if isTaming = 1
         
     
-        if not find tankpet ground -1 -1 2 and timer sayTimer < sayTimerCd
+        if not find tankpet ground -1 -1 2 and timer sayTimer > sayTimerCd
             overhead "Waiting for tankpet to be closer Bro!" 88
-        endif
+            settimer sayTimer 0
+        else
         
-        settimer sayTimer 0
-        say "all stop"
-        wait 2000
-        say "all follow me"
-        wait 2000
-
-        if find tankpet ground -1 -1 2
-            warmode off  
+            say "all stop"
+            wait 2000
+            say "all follow me"
+            wait 2000
+            if find tankpet ground -1 -1 2
+                warmode off  
+            endif
         endif
 
         if dead 
@@ -527,7 +527,7 @@ if tameThisThing != 0
         endwhile
     endif
 
-elseif tameThisThing = 0 
+else 
     if skill 'magery' > 50 and findtype "Garlic" 
     
         if diffhits >= hpCheckToTriggerGreaterHealSpell and AutoHeal = 1

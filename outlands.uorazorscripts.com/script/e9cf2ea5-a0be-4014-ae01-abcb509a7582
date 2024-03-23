@@ -358,7 +358,7 @@ if tameThisThing != 0
         settimer overheadHelperTimer 0
     endif
     
-    if skill 'magery' > 50
+    if skill 'magery' > 50 and findtype "Garlic" 
         if diffhits >= hpCheckToTriggerGreaterHealSpell and AutoHeal = 1
             if targetexists 
                 hotkey 'Cancel Current Target'
@@ -392,47 +392,50 @@ if tameThisThing != 0
 
     settimer tamingTimer 0
     @setvar! sayTimerCd 2000
+    
     if not timerexists sayTimer
         createtimer sayTimer
         settimer sayTimer sayTimerCd
     endif
     
     @setvar! isTaming 0
-    
-    if followers > 0 and timer sayTimer < sayTimerCd
-        warmode  on
-        say "all kill"
-        wft 500
-        if targetexists 
-            target tameThisThing
+    if isTaming = 0
+        overhead 'we here 1'
+        if followers > 0 and timer sayTimer < sayTimerCd
+            wait 200
+            warmode 'on'
+            say "all kill"
+            wft 500
+            if targetexists 
+                target tameThisThing
+            endif
+            settimer sayTimer 0
         endif
-        settimer sayTimer 0
-        
         @setvar! isTaming 1
-        
+    endif
+ 
+    if isTaming = 1
+        overhead 'we here 2'
+    
         if not find tankpet ground -1 -1 2 and timer sayTimer < sayTimerCd
             overhead "Waiting for tankpet to be closer Bro!" 88
         endif
-            settimer sayTimer 0
-            say "all stop"
-            wait 2000
-            say "all follow me"
-            wait 2000
-        endif
-        if find tankpet ground -1 -1 2
-            warmode off
-            @setvar! isTaming 1
-        endif
-    endif
-
-    
-    while isTaming = 1
         
+        settimer sayTimer 0
+        say "all stop"
+        wait 2000
+        say "all follow me"
+        wait 2000
+
+        if find tankpet ground -1 -1 2
+            warmode off  
+        endif
+
         if dead 
             replay
         endif
-        
-        if skill 'magery' > 50
+            
+        if skill 'magery' > 50 and findtype "Garlic"
             if diffhits >= hpCheckToTriggerGreaterHealSpell and AutoHeal = 1
                 if targetexists 
                     hotkey 'Cancel Current Target'
@@ -461,7 +464,7 @@ if tameThisThing != 0
                 say '[bandageself'
             endif 
         endif
-        
+            
         if doYouWantATankPetToTryAndStayAlive = 1 and skill "veterinary" > 0
             if find tankpet ground -1 -1 2 and timer vetTimer > vetTimerCd
                 if not bandaging and findtype "clean bandage%s%" backpack as item
@@ -475,59 +478,35 @@ if tameThisThing != 0
                 endif        
             endif
         endif
+        @setvar! isTaming 2
+    endif
     
+    if isTaming = 2 
+        overhead 'we here 3'
+        if timer skillTimer >= skillTimerCd
         while not targetexists and not dead
-            dclicktype "dagger" backpack
+            useskill "taming"
             wft 500
         endwhile
         if targetexists 
             target tameThisThing
+            settimer skillTimer 0
         endif
+        endif
+        clearsysmsg 
+        
+            getlabel tameThisThing isItTamedYetDesc
+            if "tame" in isItTamedYetDesc
+                @setvar! isTamed 1    
+                @setvar! isTaming 0
+                break
+            endif
+        
         wait 200
-        if insysmsg "That is too far away."
-            overhead "Too far away bro.. move closer!" 34
-            overhead "THIS IS MY TARGET" 88 tameThisThing
-            wait 500
-            if timer tamingTimer > 15000
-                @setvar! isTaming 0
-            endif
-        elseif insysmsg "use a bladed item on that"
-            clearsysmsg 
-            if timer skillTimer >= skillTimerCd
-                
-                getlabel tameThisThing isItTamedYetDesc
-                
-                if "tame" in isItTamedYetDesc
-                    @setvar! isTamed 1    
-                    @setvar! isTaming 0
-                    break
-                endif
-                
-                
-                
-                
-                while not targetexists and not dead
-                    useskill "taming"
-                    wft 500
-                endwhile
-                target tameThisThing
-                settimer skillTimer 0
-            endif
-            wait 200
-            if insysmsg "That is too far away."
-                overhead "Too far away bro" 34
-                @setvar! isTaming 0
-            elseif insysmsg "Target cannot be seen."
-                overhead "Cannot be seen bro" 29
-                @setvar! isTaming 0
-            elseif targetexists 
-                @setvar! isTaming 0
-                hotkey "cancel current target"
-            endif
-        endif
-    endwhile 
+    endif 
+
     
-    if followers > 2 and isTamed = 1 and tameThisThing != 0
+    if followers > 2 and isTamed = 1 
             while not gumpexists 2426193729
                 menu tameThisThing 9
                 wait 50
@@ -540,8 +519,9 @@ if tameThisThing != 0
     
 
 
-if tameThisThing = 0 
-    if skill 'magery' > 50
+elseif tameThisThing = 0 
+    if skill 'magery' > 50 and findtype "Garlic" 
+    overhead 'We Here 4'
         if diffhits >= hpCheckToTriggerGreaterHealSpell and AutoHeal = 1
             if targetexists 
                 hotkey 'Cancel Current Target'
@@ -561,34 +541,38 @@ if tameThisThing = 0
             if targetexists 'beneficial'
                 hotkey 'Target Self'
             endif
+        elseif skill 'veterinary' > 50 and not bandaging and diffhits >= hpCheckToTriggerMiniEmergencyHealSpell and AutoHeal = 1 
+            if findtype "veterinary supplies" backpack as item
+                dclick item
+                wait 650
+            elseif not findtype "veterinary supplies" and findtype "clean bandage%s%" backpack and not bandaging
+                say '[bandageself'
+            endif 
         endif
-    elseif skill 'veterinary' > 50 and not bandaging and diffhits >= hpCheckToTriggerMiniEmergencyHealSpell and AutoHeal = 1 
-        if findtype "veterinary supplies" backpack as item
-            dclick item
-            wait 650
-        elseif not findtype "veterinary supplies" and findtype "clean bandage%s%" backpack and not bandaging
-            say '[bandageself'
-        endif 
     endif
-    
+
     @hotkey 'Target Closest Non-Friendly Monster'
     @setvar myKillTarget lasttarget 
     wait 200
     say 'All Kill"
     wft 500
+
     while targetexists 
         target myKillTarget 
     endwhile
+
     settimer AllKillTimer 0
     while timer AllKillTimer < AllKillCd
         // Do nothing
     endwhile
+
     if find tankpet ground -1 -1 12
         overhead "Ï Guarding Ï" 88 tankpet
         if skill "Herding" > 0
             menu tankpet 3
         endif
     endif
+
     if targetexists 
         hotkey 'Cancel Current Target'
     endif
@@ -600,13 +584,17 @@ if tameThisThing = 0
                 wft 200
                 target tankpet
                 settimer healPetCheckTimer 0
+                
                 if targetexists 
                     hotkey "Cancel current target"
                 endif
             endif        
         endif
-    endif  
+    endif
+    
 endif
+    
+
 
 wait 100
 replay

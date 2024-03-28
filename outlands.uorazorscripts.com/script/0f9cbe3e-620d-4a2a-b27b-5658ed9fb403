@@ -7,8 +7,12 @@
 // Original: Jaseowns
 // Modified: Demlar
 // UO Outlands -  https://youtu.be/jTU_pORdan4
-#Version 1.1
+#Version 1.2
 #Cleaned up setvars 
+# Added Alerts and recall
+
+@setvar! minimumWaitForPing 200
+
 while not dead
     if lhandempty
         if findtype 'hatchet' backpack
@@ -31,14 +35,61 @@ while not dead
             endif
         endfor
     endif
-    #Uncomment if you want to train camping while lumberjacking
-    #    if skill "Camping" < 80 and findtype "kindling" backpack
-    #      if not findtype "campfire" ground -1 1 2
-    #          dclicktype "kindling" backpack
-    #          wait 1000
-    #       endif
-    #    endif
 
+
+    if not varexist jackr_runebook or not find jackr_runebook backpack
+        if counttype "runebook" backpack = 1 and counttype "runetome" backpack = 0 and findtype "runebook" backpack as myBook
+            overhead "Automatically selected your one runebook" 88
+            @setvar jackr_runebook myBook
+        elseif counttype "runebook" backpack = 0 and counttype "runetome" backpack = 1 and findtype "runetome" backpack as myBook
+            overhead "Automatically selected your one runetome" 88
+            @setvar jackr_runebook myBook
+        elseif counttype 7956 backpack = 1 and findtype 7956 backpack as myBook
+            overhead "Automatically selected your one rune" 88
+            @setvar jackr_runebook myBook
+        elseif counttype "runebook" backpack > 0 or counttype 7956 backpack > 0 or counttype "runetome" backpack > 0
+            overhead "Select your escape plan (runebook or runetome)" 88
+            @setvar jackr_runebook 
+        endif
+    endif  
+    
+    if not listexists "alerts"
+        createlist "alerts"
+    endif
+
+
+    if inlist "alerts" "red_alert"
+        overhead "Red Alert!" 34
+        poplist "alerts" "red_alert"
+        # You could also replace this magery bit with your ultimate recaller
+        # Ultimate Recall using Tome or Book as Escape (ALT-M)
+        # https://outlands.uorazorscripts.com/script/5b3fde97-fa90-4707-9f8e-7f56dca6792b
+        # hotkey "Play Script: UltimaRecaller"
+        if skill "Magery" >= 40
+            overhead 'Recalling...'
+            while not targetexists
+                if findtype 8012 backpack as item
+                    dclick item
+                else
+                    cast "Recall"
+                endif
+                wait minimumWaitForPing
+                if insysmsg "You do not have that spell!"
+                    overhead "We cannot recall!" 34
+                    break
+                endif
+            endwhile
+            target jackr_runebook
+        elseif skill "Hiding" >= 40
+            useskill "Hiding"
+        endif
+        overhead "Stopping script..." 34
+        stop
+        # replay
+    endif 
+
+   
+    
     if skill "Tracking" > 0
       if not findbuff "tracking"
           while not gumpexists 4267467659
@@ -68,6 +119,10 @@ while not dead
     
     for 20
         wait 750
+        if insysmsg "now tracking"
+            pushlist "alerts" "red_alert"
+            replay
+        endif
         if insysmsg 'You do not see any'
             break
         endif

@@ -1,0 +1,113 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/067b2c1c-6db3-408c-b215-e82ae3ca1e39 for latest
+# Automation by Jaseowns
+## Script: Pilfer Helper
+## Created by: helvinr#0
+#############################################
+
+##################################################################
+# Pilfer Helper by Locke Lemora                                  #
+# UO Outlands                                                    #
+##################################################################
+# The purpose of this script is to remind you of which mobs you  #
+#   have already robbed.                                         #
+# Ideal for those forgetful thieves that cant remember who/what #
+#   they have already pilfered while training their codex.       #
+# The script will *NOT* steal for you. It is intended to record  #
+#   which mobs you steal from. I recommend priming stealing      #
+#   while stealthing around and approaching your next mark.      #
+#              ################################                  #
+#  Special thanks go out to:                                     #
+#   'Jaseowns - https://www.youtube.com/@Jaseowns'               #
+#   'Bapeth - https://www.youtube.com/@Bapeth'                   #
+##################################################################
+
+@setvar UseMagicalHat 1
+@setvar ShowWelcomeMessage 0
+@setvar DelayBeforeListClear 3000
+
+if ShowWelcomeMessage = 1
+    overhead 'Pilfer Helper Active'
+    overhead 'Enter War Mode to reset your list of pilfered targets.'
+endif
+    
+if UseMagicalHat = 1 and hidden
+    if findlayer self head as hat
+        @setvar 'MainHat' hat
+    endif
+
+    if findtype 5912 backpack as hat
+        getlabel hat desc
+        if "magical" in desc
+            @setvar 'WizHat' hat
+        else 
+            overhead 'I need a magical hat.'
+            stop
+        endif
+    else 
+        overhead 'I need a magical hat.'
+        stop
+    endif
+endif
+
+if not timerexists 'PilferTimer'
+    createtimer 'PilferTimer'
+endif
+
+while not dead  
+    while warmode
+        if not timerexists 'ListClearTimer'
+            createtimer 'ListClearTimer'
+            overhead 'Starting pilfer list clear. Leave warmode to abort'
+        endif
+        
+        if timer 'ListClearTimer' > DelayBeforeListClear
+            removelist myLatestTargetList
+            removetimer 'ListClearTimer'
+            overhead 'Cleared pilfer list'
+            warmode off
+            break
+        endif
+        
+        pause 500
+    endwhile
+    
+    if timerexists 'ListClearTimer'
+        removetimer 'ListClearTimer'
+        overhead 'List clear aborted.'
+    endif
+    
+    if UseMagicalHat = 1 and hidden
+        if stam = maxstam
+            dclick 'WizHat'
+            pause 650
+            dclick 'MainHat'
+            pause 200
+        endif
+    endif
+
+    if not listexists 'myLatestTargetList'
+        createlist myLatestTargetList
+    endif
+
+    if insysmsg 'You steal'
+        @setvar! myTarget lasttarget 
+        pushlist myLatestTargetList myTarget
+    endif
+    
+    if insysmsg 'You have already stolen from'
+        @setvar! myTarget lasttarget 
+        pushlist myLatestTargetList myTarget
+    endif
+
+    if timer 'PilferTimer' > 3500
+        foreach personInList in myLatestTargetList
+            if find personInList ground -1 -1 18
+                overhead "Pilfered" 88 personInList
+            endif
+        endfor
+        settimer 'PilferTimer' 0
+    endif
+    
+    pause 100
+    
+endwhile

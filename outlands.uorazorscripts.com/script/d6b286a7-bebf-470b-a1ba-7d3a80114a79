@@ -5,7 +5,7 @@
 #############################################
 
 # "***Bapeths Modern Dungeon Picker***"
-# Updated April 5th 2024 (Chroma Core Update)
+# Updated April 8th 2024 (Pilfer Addition)
 #
 # "***READ THIS***READ THIS***READ THIS***READ THIS***"
 #
@@ -19,7 +19,7 @@
 # And set "object delay to 500" AUTO LOOTING WILL BE SLOW IF YOU DONT DO THIS!
 #
 # "REQUIRED"
-# This script uses two cooldowns called "Hiding" and "Stealth"
+# This script uses three cooldowns called "Hiding" "Stealth" and "Stealing" (Stealing only for those with 80+ skill)
 # You must create these in the in-game options menu under Cooldowns and they must be spelled correctly
 # Leave at 0 default or 10.3 seconds if you use trigger text
 # "DO NOT" set trigger text below 10.3 seconds if you use it
@@ -36,8 +36,8 @@
 # Go to Script tab > Options subtab and delete "bwiz" and "bmain"
 #
 # "OPTIONAL"
-# Toggle "WAR MODE" ON and you will not hide when picking chests
-# This is for picking in "BOSS ROOMS" where a custodian is present
+# Toggle "WAR MODE" ON now handles a new "AUTO-PILFER" feature as well as blocking
+# Auto hide/stealth features for things like "Boss Room Custodians" and saving cooldown time
 #
 # "OPTIONAL"
 # "ACP (Auto Chest Protection)" feature will instantly cast (Minimum "50 Magery" required to use)
@@ -48,22 +48,24 @@
 # Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
 #
 # "OPTIONAL"
-# See "line 84 & 94" if you would like to custom name your earth elemental(s)
+# See "line 86 & 96" if you would like to custom name your earth elemental(s)
 # Default is "LootGolem"
 #
-# "Recommended Build"
-# Detect Hidden - 120
-# Lockpicking ----120
-# Stealth ------- 120
-# Hiding -------- 100
-# Magery -------- 100
-# Camping -------- 80
-# Spirit Speak --- 80  (Or 80 Stealing)
+# "Recommended Builds"
+# "----Summoner"-----------"Pilferer"-------------"Ninja"------
+# Detect Hidden - 120  Detect Hidden - 120  Detect Hidden - 120
+# Lockpicking ----120  Lockpicking ----120  Lockpicking ----120
+# Stealth ------- 120  Stealth ------- 120  Stealth ------- 120
+# Hiding -------- 100  Hiding -------- 100  Hiding -------- 100
+# Magery -------- 100  Magery --------- 80  Magery --------- 80
+# Camping -------- 80  Camping -------- 80  Camping ------- 100
+# Spirit Speak --- 80  Stealing ------ 100  Stealing ------- 80
 #
 # Harvest or Fortune Aspect (high end tools needed for Fortune and or low level aspect)
 # Special/Rare loot Chance Links & Chest Success Chances/Progress Links
-# If you are a summoner "Spirit Pact" and "Earthpull" upgrades are recommended
-# If you are a thief "Overlooked" and "Without a trace" upgrades are recommended
+# If you are a Summoner "Spirit Pact" and "Earthpull" upgrades are recommended (Summoner Tome)
+# If you are a Ninja 3pts "Overlooked" and 3pts "Without a Trace" is recommended (Thieves Codex)
+# If you are a Pilferer 3pts "Camouflage" 3pts "Shadow Hands" and 3pts "Without a Trace" is recommended (Thieves Codex)
 # Lockpicking/Detect can be lowered slightly to raise Camping if high end tools are used
 #
 # "OPTIONAL"
@@ -164,6 +166,10 @@ endif
 
 if not timerexists tab
     createtimer tab
+endif
+
+if not timerexists getpilf
+    createtimer getpilf
 endif
 
 if not timerexists ACPcheck
@@ -269,7 +275,6 @@ if findlayer self head as hat
 endif
 
 if not gumpexists 736038070
-    @clearignore
     for 18
         if index > 0 and findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 index as chest
             getlabel chest desc
@@ -282,13 +287,76 @@ if not gumpexists 736038070
             endif
         endif
     endfor
+    @clearignore
+endif
+
+if skill "Stealing" >= 80 and warmode
+    if timer getpilf >= 1200
+        settimer getpilf 0
+        for 12
+            hotkey 'Next Grey Monster Target'
+            @setvar pilfertarget lasttarget
+            if find pilfertarget ground -1 -1 3
+                overhead "Pilfer target acquired..." 2085
+                getlabel pilfertarget desc
+                overhead desc 1779
+                break
+            endif
+        endfor
+    endif
+    while find pilfertarget ground -1 -1 2
+        if not cooldown "Hiding" and not cooldown "Stealth" and not cooldown "Stealing"
+            clearsysmsg 
+            if not targetexists 
+                skill "Stealing"
+                wft 500
+                target pilfertarget
+            endif
+            hotkey 'Cancel Current Target'
+            getlabel backpack ping
+            break
+        endif
+    endwhile 
+    if insysmsg "retaliate"
+        overhead "Argh, I failed to Pilfer" 38
+        cooldown "Stealing" 10000
+        warmode off
+        if not hidden and findtype "yellow potion" backpack as healpot
+            dclick healpot
+        endif
+    endif
+    if insysmsg "You Steal"
+        overhead "I Pilfer Thee!" 68
+        cooldown "Stealing" 10000
+        warmode off
+    endif
+    if insysmsg "That is too far away"
+        overhead "Argh, not close enough..." 38
+        cooldown "Stealing" 10000
+        warmode off
+    endif
+    if insysmsg "You fail"
+        overhead "Argh, I failed to Pilfer..." 38
+        warmode off
+        cooldown "Stealing" 10000
+        if findtype 52149 backpack as sbombs
+            dclick sbombs
+            getlabel backpack ping
+        endif
+        if not hidden and skill "Magery" >= 80 and mana >= 20
+            hotkey 'Cancel Current Target'
+            cast "Invisibility"
+            wft 3000
+            target self
+            hotkey 'Cancel Current Target'
+        endif
+    endif
 endif
 
 if gumpexists 736038070
     gumpclose 736038070
 endif
 
-@clearignore 
 if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targetexists 
     clearsysmsg 
     if not warmode 
@@ -366,7 +434,7 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     cooldown "Hiding" 10000
                 endif
             endif
-            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots and skill "Stealth" >= 80
+            if not warmode and hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots and skill "Stealth" >= 80
                 skill "Stealth"
                 getlabel backpack ping
                 if not timerexists ots
@@ -652,7 +720,7 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                     cooldown "Hiding" 10000
                 endif
             endif
-            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots and skill "Stealth" >= 80
+            if not warmode and hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots and skill "Stealth" >= 80
                 skill "Stealth"
                 getlabel backpack ping
                 if not timerexists ots
@@ -867,7 +935,6 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
     endif
 endif
 
-@clearignore 
 if find "bchest" ground -1 -1 2 as bchest
     clearsysmsg 
     while findtype 5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|17686|3985|17087|5356|29030|24434|22336|29036|3843|29025|51098|8826|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|31021|31023|31029|31043|31035|31033|31045|31037|31002|20006|31006|30999|31012|31009|30996|31128|31188|20014|31014|31004|31142|31001|31000|31010|30998|30988|30997|31141|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|3861|3821 bchest as bitem

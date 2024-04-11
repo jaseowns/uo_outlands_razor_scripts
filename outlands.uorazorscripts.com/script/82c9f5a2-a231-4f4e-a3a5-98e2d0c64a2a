@@ -1,0 +1,264 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/82c9f5a2-a231-4f4e-a3a5-98e2d0c64a2a for latest
+# Automation by Jaseowns
+## Script: Chivalry Boss/Omni Tanking Script
+## Created by: demlar#0
+#############################################
+
+# UO Outlands
+
+# this script currently assumes you have the auto unquip and reequip in razor
+
+
+@setvar! chivCD   30000
+@setvar! useCurePotionBelowHp 80
+#@servar! useHealPotionBelowHp 50
+@setvar! useCleansebyFire 1
+#mainly for bosses
+
+if not timerexists ChivHeal1
+    createtimer ChivHeal1
+    settimer ChivHeal1 chivCD
+endif
+
+if not timerexists ChivHeal2
+    createtimer ChivHeal2
+    settimer ChivHeal2 chivCD
+endif
+
+
+if not timerexists chivCloseWounds
+    createtimer chivCloseWounds
+    settimer chivCloseWounds chivCD
+endif
+
+if not timerexists chivCleansebyFire
+    createtimer chivCleansebyFire
+    settimer chivCleansebyFire chivCD
+endif
+
+if not timerexists HPots
+    createtimer HPots
+    settimer HPots 10000
+endif
+
+if not timerexists Uneq
+    createtimer Uneq
+    settimer Uneq 2000
+endif
+
+
+#Finding Your Weapons and Shield
+overhead 'setting hands'
+if findlayer self righthand as item
+    @setvar! rightEquip item
+endif
+
+if findlayer self lefthand as item
+    @setvar! leftEquip item
+endif
+
+#Starting up verbose info your missing!
+
+overhead 'Checking inventory'
+if count 'bandages' = 0
+    overhead 'No Bandages!'
+    overhead 'Get some Bandages!' 88
+elseif not findtype 'Yellow Potion' backpack
+    overhead 'No Greater heal pots'
+    overhead 'Get some Greater heal pots!' 88
+    
+elseif not findtype 'Orange Potion' backpack
+    overhead 'No Greater cure pots'
+    overhead 'Get some Greater Cure pots!' 88
+endif
+
+#lets stop the script
+if count 'bandages' = 0 or not findtype "Yellow Potion" backpack or not findtype "Orange Potion" backpack
+    overhead "Stopping script" 88 
+    stop
+endif
+
+if skill "Parrying" >= 80 and findtype "shield codex" backpack as item
+    
+    getlabel item codexDesc
+    
+    while not gumpexists 1066647553
+        overhead "Loading Codex Hotbar"
+        say "[CodexHotBar"
+        wait 350
+    endwhile
+
+    
+    
+ #   #sets Bulwark
+#    yell [ShieldsStance5
+#    #sets Defense
+#    yell [FencingStance2
+    #sets Bulwark and Defense will need to work a better selection here
+    
+
+    
+#    
+#    waitforgump 1066647553
+#    gumpresponse 14
+#    waitforgump 1066647553
+#    wait 500
+#        #sets weapon Defense
+#        yell '[Stance2AutoRenew'
+    
+#    gumpresponse 2
+#    waitforgump 1066647553
+#    gumpresponse 2
+#    waitforgump 1066647553
+#    gumpresponse 2
+#    waitforgump 1066647553
+#    gumpresponse 2
+#    waitforgump 1066647553
+#    gumpresponse 11
+#    waitforgump 1066647553
+    
+    
+endif
+
+#No Hands left behind
+###########################################
+if rhandempty
+       lift rightEquip
+       drop 'self' RightHand
+endif
+
+if lhandempty
+        lift leftEquip
+        drop 'self' LeftHand
+    endif
+endif
+###############################################
+    
+while not dead
+
+    
+    #create a taunt timer here
+
+    if not bandaging and hp < maxhp and count 'bandages' > 0
+        hotkey 'Bandage Self'
+        wait 300
+    endif
+
+
+    #check for food buffs
+    if not findbuff "food satisfaction" and findtype 2429 backpack as food
+        dclick food
+        wait 500
+    endif
+        #poison removal sequence
+    if poisoned and timer chivCleansebyFire > chivCD and useCleansebyFire = 1
+      overhead "Cleansing Poison With Fire"
+      wait 250
+      say '[CleanseByFire'
+        if insysmsg "Holy symbols remaining:"
+            settimer chivCleansebyFire 0
+        endif
+    endif
+    
+     
+
+    if poisoned and hp > useCurePotionBelowHp   
+        while poisoned
+            if findtype 'Orange Potion' backpack 
+                overhead 'Cure Pot Used!'
+                hotkey "Drink Cure"
+                wait 1000
+            endif
+        endwhile
+    endif
+    
+            #need a pot check here dont do it if we dont have any pots!!! 
+    if poisoned and hp <= 40      
+        overhead "Emergency Poison Removal Activated"   
+        if not findbuff "I cannot gate travel" and timer ChivHeal1 > chivCD
+            say '[HolyLight'
+            if insysmsg "Holy symbols remaining:"
+                settimer ChivHeal1 0
+            endif
+        endif
+    endif  
+        
+    if findbuff "bleed" and timer chivCloseWounds > chivCD and useCloseWounds > 0      
+        overhead "Bleed Detected. Closing wounds."
+        say '[Closewounds'
+        wait 500
+        if insysmsg "Holy symbols remaining:"
+            settimer chivCloseWounds 0
+            wait 350
+            
+        else 
+            settimer chivCloseWounds 27000
+        endif 
+    endif
+        
+ //Reduce Disease Damage
+    if findbuff "disease" and timer chivCloseWounds > 30000 and useCloseWounds > 0
+        
+        say '[Closewounds'
+        overhead "You got diseased. Closing Wounds."
+        if insysmsg "Holy symbols remaining:"
+            settimer chivCloseWounds 0
+            wait 350
+        else 
+            settimer chivCloseWounds 27000
+        endif  
+    endif
+
+    //Emergency Heal Sequence
+    if diffhits > 30       
+        if timer ChivHeal1 > chivCD 
+            say '[Holylight'
+            wait 250
+            if insysmsg "Holy symbols remaining:"
+                settimer ChivHeal1 0
+            endif
+
+        endif 
+    endif 
+    
+    wait 350
+    if diffhits > 50
+        if timer ChivHeal2 > chivCD            
+            say '[NobleSacrifice'
+            wait 350
+            target self
+            wait 350
+
+            if targetexists
+              hotkey 'cancel current target'
+              hotkey 'clear target queue'
+            endif
+
+            if insysmsg "Holy symbols remaining:"
+                settimer ChivHeal2 0
+            endif            
+        endif
+    endif
+    
+    #need a pot check here dont do it if we dont have any pots!!! 
+    if diffhits > 50 and timer HPots > 10000 and findtype 'Yellow Potion' backpack          
+        wait 250
+        hotkey 'Drink Heal'
+        overhead "Healing Pot Used"
+        settimer HPots 0
+        wait 550          
+    endif 
+    
+    // capture world saving outside the loop
+    if insysmsg 'world is saving'
+        for 30
+            overhead 'Waiting for world save...'
+            wait 1000
+            if insysmsg 'save complete'
+                overhead 'Save complete - continue on!' 88
+                replay
+            endif
+        endfor
+    endif
+    
+endwhile

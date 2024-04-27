@@ -1,0 +1,457 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/54138cac-0511-429b-8b5c-90d142cac18a for latest
+# Automation by Jaseowns
+## Script: Bapeth's Ship Master Backround
+## Created by: BAZZACUNT#9523
+#############################################
+
+# Bapeths "Master Backround" Ship Script
+# SCRIPT MUST BE NAMED "Master Backround" OR IT WONT LINK TO OTHER SCRIPTS
+#
+# "****REQUIRED****"
+# Bapeths Ship Cooldowns xml file (copy paste into your characters Cooldown file)
+# "COPY" Link to get Bapeths Cooldowns "https://outlands.uorazorscripts.com/script/f1e41e2d-411e-461e-9fd0-c4fc2dc234b1"
+# "PASTE" FILE PATH : C:\Program Files (x86)\Ultima Online Outlands\ClassicUO\Data\Profiles\"YOUR-ACCOUNT-NAME"\UO Outlands\"YOUR-CHARACTER" Open file in notepad
+# The cooldowns with "Tigger Text" Must be adjusted to "your ships stats" and "your Wizard Grimoire upgrades" in the UO in game Options
+# Set spyglass cooldown to your preferred radar interval (default 7 is fastest possible) in the UO in game Options
+#
+# This script is the default backround script that should be running most of the time
+# In defensive mode (peace mode) it will auto heal, auto cure, top up bard buffs, auto spyglass, auto drop loot to hold, and auto pick up bombs on your own deck
+# In offensive mode (war mode) it will use necro abilities, auto spell cast, auto skin corpses, auto heal, auto cure, auto cleanse, and auto loot enemy holds
+#
+# This script has a phase shift from Offensive to Defensive
+# Generally you should be in peace mode when on your own ship and in war mode when on an enemy ship
+# Use warmode on your own ship for fighting mobs on your own ship (bosses and fishing)
+# Toggle "war mode on" for offensive stance and "war mode off" for defensive stance
+#
+# This script can "phase shift" into single-target focus or multi-target focus
+# Default is always multi-target focus
+# Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
+# Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
+#
+#
+# Script starts here
+if gumpexists 341416395 and not timerexists changetarget
+    gumpclose 341416395
+    createtimer changetarget
+    overhead "Single Target Enabled" 2085
+elseif gumpexists 341416395 and timerexists changetarget
+    gumpclose 341416395
+    removetimer changetarget
+    overhead "Mutlti Target Enabled" 1288
+endif
+
+if not warmode
+    //spyglass to be redone when Wildlands drops
+    if not cooldown "Meditation" and not cooldown "Spyglass" and hp >= 66
+        gumpclose 2890020940
+        dclicktype 'spyglass'
+        wft 500
+        hotkey 'Target Self'
+        waitforgump 2890020940 500
+        if gumpexists 2890020940
+            gumpresponse 4
+            waitforgump 2890020940 500
+        endif
+        if gumpexists 2890020940
+            overhead 'Yarr!' 67
+        endif        
+    endif
+
+    if findtype 3834 backpack 0 as bbook
+        @ignore bbook
+    endif
+    if not timerexists petguard
+        createtimer petguard
+        settimer petguard 5000
+    endif
+    if followers >= 1 and timer petguard >= 6000
+        say "all guard me" 45
+        settimer petguard 0
+    endif
+    if skill "Magery" >= 80
+        if timerexists reflect
+            if timer reflect > 30000
+                overhead "Magic Reflect is ready..." 201
+                settimer reflect 12000
+            endif
+        endif
+        if findbuff "Magic Reflection" and timerexists reflect
+            removetimer reflect
+        endif
+        if not findbuff "Magic Reflection" and not timerexists reflect
+            createtimer reflect
+        endif
+    endif
+    if skill "Magery" >= 20
+        if timerexists reactive
+            if timer reactive > 30000
+                overhead "Reactive Armor is ready..." 139
+                settimer reactive 13500
+            endif
+        endif
+        if findbuff "Reactive Armor" and timerexists reactive
+            removetimer reactive
+        endif
+        if not findbuff "Reactive Armor" and not timerexists reactive
+            createtimer reactive
+        endif
+    endif
+    if skill "Tracking" >= 10 and not findbuff "Tracking Hunting"
+        skill 'tracking'
+        waitforgump 4267467659 500
+        gumpresponse 6
+        pause 250
+        gumpclose 4267467659
+        cooldown "Disco" 10000
+    endif
+
+    if hp <= 32
+        cast 'Heal'
+        wft 1000
+        hotkey 'Target Self'
+        hotkey 'Cancel Current Target' 
+    elseif hp <= 33
+        hotkey 'Drink Heal'
+        pause 250
+    elseif hp <= 77
+        cast 'Greater Heal'
+        hotkey 'Target self'
+        pause 1600
+        hotkey 'Cancel Current Target'
+    elseif hp <= 85
+        cast 'Heal'
+        wft 1000
+        hotkey 'Target Self'
+        hotkey 'Cancel Current Target' 
+    endif
+    while poisoned and not targetexists 
+        if findtype "Orange Potion" backpack as curepot
+            dclick curepot
+        elseif mana >= 6
+            cast "Cure"
+            wft 2500
+            target self
+            hotkey 'Cancel Current Target'
+        endif
+    endwhile
+    if mana <= 20 and not cooldown "Meditation" and not cooldown "Magic Mushroom"
+        dclicktype 'mushroom'
+    endif
+    if followers = 0 and timer petguard >= 3500
+        overhead 'I should get some followers...' 39
+        settimer petguard 0
+    endif
+    if not cooldown "Meditation" and not cooldown "Disco" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not findbuff "Song of provocation"
+        hotkey "Cancel Current Target"    
+        useskill "Provocation"
+        wft 500
+        targetrelloc -1 -1
+    endif
+    if not cooldown "Meditation" and not cooldown "Disco" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not findbuff "Song of discordance"
+        hotkey "Cancel Current Target"
+        useskill "discordance"
+        wft 500
+        targetrelloc -1 -1
+    endif
+    if not cooldown "Meditation" and not findbuff "Cunning" and mana >= 6
+        cast "Cunning"
+        wft 1500
+        target self
+        hotkey 'Cancel Current Target'
+    endif
+    if not gumpexists 622436516
+        say [necromancyhotbar
+        pause 250
+    endif
+    if findtype "5188" ground -1 -1 2 as bomb
+        dclick bomb
+    endif
+    if findtype "5188" ground -1 -1 22 as bomb
+        overhead "***BOMB***" 34 bomb
+    endif
+
+    if find "shiphold" ground -1 -1 1
+        clearsysmsg 
+    while findtype "cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|hieroglyph|figurine|statue|44987|47105|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|17686|3985|17087|5356|29030|24434|22336|29036|3843|29025|51098|8826|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|31021|31023|31029|31043|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|31128|31188|20014|31014|31004|31142|31001|31000|31010|30998|30988|30997|31141|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|3861|3821|4225|2545" backpack as bitem
+            lift bitem 60000
+            drop shiphold
+            while queued
+                wait 500
+            endwhile
+        endwhile
+    endif
+elseif warmode 
+    if hp < 33
+        hotkey 'Cancel Current Target'
+        cast 'Heal'
+        wft 2500
+        hotkey 'Target Self'
+        hotkey 'Cancel Current Target'
+    endif
+    if hp < 55
+        hotkey 'Drink Heal'
+    endif
+    if hp < 77
+        hotkey 'Cancel Current Target'
+        cast 'Greater Heal'
+        wft 3500
+        hotkey 'Target self'
+        hotkey 'Cancel Current Target'
+    endif
+    while poisoned and not targetexists 
+        if findtype "Orange Potion" backpack as curepot
+            dclick curepot
+        elseif mana >= 6
+            cast "Cure"
+            wft 2500
+            target self
+            hotkey 'Cancel Current Target'
+        endif
+    endwhile
+    if not hidden and not timerexists brew and findbuff "Bleed" and findtype 50675 backpack as cbrew
+        pause 1200
+        dclick cbrew
+        createtimer brew
+        elseif not hidden and not timerexists brew and findbuff "Diseased" and findtype 50675 backpack as cbrew
+        dclick cbrew
+        createtimer brew
+    endif
+    if timerexists brew
+        if timer brew >= 120000
+            removetimer brew
+        endif
+    endif
+    if mana <= 80 and not cooldown "Meditation" and not cooldown "Magic Mushroom"
+        dclicktype 'mushroom'
+    endif
+    if not gumpexists 622436516
+        say [necromancyhotbar
+    endif
+    if mana < 4
+        skill "Meditation"
+    endif
+    if findtype "5188" ground -1 -1 22 as bomb
+        overhead "***BOMB***" 34 bomb
+    endif
+    
+    if timerexists openhull
+        removetimer openhull
+    endif
+    if findtype "hatch" ground -1 -1 1 as mobship
+        dclick mobship
+        getlabel backpack ping
+        while findtype "cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|hieroglyph|figurine|statue|44987|47105|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|17686|3985|17087|5356|29030|24434|22336|29036|3843|29025|51098|8826|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|31021|31023|31029|31043|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|31128|31188|20014|31014|31004|31142|31001|31000|31010|30998|30988|30997|31141|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|3861|3821|3963|3976|3973|3980|3974|3962|3981|3972" mobship as bitem
+            if not timerexists openhull
+                createtimer openhull
+                overhead "Yarr the booty be mine!" 2091
+            endif
+            hotkey 'Grab Item' 
+            target bitem
+            while queued
+                wait 500
+            endwhile
+        endwhile
+    endif
+
+    if not timerexists oceanscan
+        createtimer oceanscan
+        settimer oceanscan 600
+    endif
+    if not find "oceantarget" ground -1 -1 12 and timer oceanscan >= 600
+        clearsysmsg 
+        hotkey "Next Grey Monster Target"
+        if not insysmsg "No one matching"
+            @setvar "oceantarget" lasttarget 
+        endif
+        hotkey "Next Murderer Monster Target"
+        if not insysmsg "No one matching"
+            @setvar "oceantarget" lasttarget 
+        endif
+        settimer oceanscan 0
+    endif
+    if find "oceantarget" ground -1 -1 12 and not cooldown "Meditation" and not cooldown "Disco" and skill "Discordance" >= 50
+        clearsysmsg 
+        hotkey 'Cancel Current Target'
+        skill 'Discordance'
+        wft 500
+        if not timerexists changetarget
+            hotkey 'Target self'
+        elseif timerexists changetarget
+            hotkey 'Target Closest Grey Monster'
+            hotkey 'Target Closest Murderer Monster'
+        endif
+        hotkey 'Cancel Current Target'
+        getlabel backpack ping
+        if insysmsg "creatures"
+            overhead "Hear my sea song!" 91
+            cooldown "Disco" 5000
+        endif
+    endif
+    if find "oceantarget" ground -1 -1 12 and not cooldown "Meditation" and not cooldown 'Pain Spike' and ingump '12/' 622436516
+        clearsysmsg
+        if targetexists 
+            hotkey 'Cancel Current Target'
+        endif
+        say '[Painspike'
+        wft 500
+        hotkey 'Target Closest Grey Monster'
+        hotkey 'Target Closest Murderer Monster'
+        getlabel backpack ping
+        if insysmsg "Unholy"
+            cooldown "Pain Spike" 30000
+        endif
+    elseif find "oceantarget" ground -1 -1 12 and not cooldown "Meditation" and not cooldown 'Pain Spike' and ingump '11/' 622436516
+        clearsysmsg
+        if targetexists 
+            hotkey 'Cancel Current Target'
+        endif
+        say '[Painspike'
+        wft 500
+        hotkey 'Target Closest Grey Monster'
+        hotkey 'Target Closest Murderer Monster'
+        getlabel backpack ping
+        if insysmsg "Unholy"
+            cooldown "Pain Spike" 30000
+        endif
+    elseif find "oceantarget" ground -1 -1 12 and not cooldown "Meditation" and not cooldown 'Pain Spike' and ingump '10/' 622436516
+        clearsysmsg
+        if targetexists 
+            hotkey 'Cancel Current Target'
+        endif
+        say '[Painspike'
+        wft 500
+        hotkey 'Target Closest Grey Monster'
+        hotkey 'Target Closest Murderer Monster'
+        getlabel backpack ping
+        if insysmsg "Unholy"
+            cooldown "Pain Spike" 30000
+        endif
+    elseif find "oceantarget" ground -1 -1 12 and not cooldown "Meditation" and not cooldown 'Pain Spike' and ingump '9/' 622436516
+        clearsysmsg
+        if targetexists 
+            hotkey 'Cancel Current Target'
+        endif
+        say '[Painspike'
+        wft 500
+        hotkey 'Target Closest Grey Monster'
+        hotkey 'Target Closest Murderer Monster'
+        getlabel backpack ping
+        if insysmsg "Unholy"
+            cooldown "Pain Spike" 30000
+        endif
+    elseif find "oceantarget" ground -1 -1 12 and not cooldown "Meditation" and not cooldown 'Pain Spike' and ingump '8/' 622436516
+        clearsysmsg
+        if targetexists 
+            hotkey 'Cancel Current Target'
+        endif
+        say '[Painspike'
+        wft 500
+        hotkey 'Target Closest Grey Monster'
+        hotkey 'Target Closest Murderer Monster'
+        getlabel backpack ping
+        if insysmsg "Unholy"
+            cooldown "Pain Spike" 30000
+        endif
+    elseif find "oceantarget" ground -1 -1 12 and not cooldown "Meditation" and not cooldown 'Pain Spike' and ingump '7/' 622436516
+        clearsysmsg
+        if targetexists 
+            hotkey 'Cancel Current Target'
+        endif
+        say '[Painspike'
+        wft 500
+        hotkey 'Target Closest Grey Monster'
+        hotkey 'Target Closest Murderer Monster'
+        getlabel backpack ping
+        if insysmsg "Unholy"
+            cooldown "Pain Spike" 30000
+        endif
+    elseif find "oceantarget" ground -1 -1 12 and not cooldown "Meditation" and not cooldown 'Pain Spike' and ingump '6/' 622436516
+        clearsysmsg
+        if targetexists 
+            hotkey 'Cancel Current Target'
+        endif
+        say '[Painspike'
+        wft 500
+        hotkey 'Target Closest Grey Monster'
+        hotkey 'Target Closest Murderer Monster'
+        getlabel backpack ping
+        if insysmsg "Unholy"
+            cooldown "Pain Spike" 30000
+        endif
+    elseif find "oceantarget" ground -1 -1 12 and not cooldown "Meditation" and not cooldown 'Pain Spike' and ingump '5/' 622436516
+        clearsysmsg
+        if targetexists 
+            hotkey 'Cancel Current Target'
+        endif
+        say '[Painspike'
+        wft 500
+        hotkey 'Target Closest Grey Monster'
+        hotkey 'Target Closest Murderer Monster'
+        getlabel backpack ping
+        if insysmsg "Unholy"
+            cooldown "Pain Spike" 30000
+        endif
+    endif
+    if find "oceantarget" ground -1 -1 12
+        clearsysmsg 
+        if not cooldown "Strangle"
+            pause 550
+            say '[Strangle'
+            cooldown "Strangle" 30000
+            pause 550
+        endif
+        if not cooldown "Evil Omen"
+            say '[EvilOmen'
+            cooldown "Evil Omen" 30000
+            pause 550
+        endif
+        if not cooldown "Corpse Skin"
+            say '[CorpseSkin'
+            cooldown "Corpse Skin" 30000
+            pause 550
+        endif
+        if not cooldown "Magic Arrow" and mana >= 4
+            hotkey 'Cancel Current Target'
+            cast "Magic Arrow"
+            wft 1000
+            if not timerexists changetarget
+                hotkey 'Target Random Grey Monster'
+            elseif timerexists changetarget
+                hotkey 'Target Closest Grey Monster'
+                hotkey 'Target Closest Murderer Monster'
+            endif
+        elseif not cooldown "Harm" and mana >= 6
+            hotkey 'Cancel Current Target'
+            cast "Harm"
+            wft 1500
+            if not timerexists changetarget
+                hotkey 'Target Random Grey Monster'
+            elseif timerexists changetarget
+                hotkey 'Target Closest Grey Monster'
+                hotkey 'Target Closest Murderer Monster'
+            endif
+        elseif not cooldown "Lightning" and mana >= 11
+            hotkey 'Cancel Current Target'
+            cast "Lightning"
+            wft 2500
+            if not timerexists changetarget
+                hotkey 'Target Random Grey Monster'
+            elseif timerexists changetarget
+                hotkey 'Target Closest Grey Monster'
+                hotkey 'Target Closest Murderer Monster'
+            endif
+        elseif cooldown "Lightning" and cooldown "Harm" and cooldown "Magic Arrow" and mana >= 40
+            hotkey 'Cancel Current Target'
+            cast "Flamestrike"
+            wft 3000
+            if not timerexists changetarget
+                hotkey 'Target Random Grey Monster'
+            elseif timerexists changetarget
+                hotkey 'Target Closest Grey Monster'
+                hotkey 'Target Closest Murderer Monster'
+            endif
+        endif
+        pause 150
+    endif
+endif
+loop

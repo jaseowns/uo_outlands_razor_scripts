@@ -1,0 +1,1239 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/aa6bf3dc-4615-47c5-a519-11be74103d13 for latest
+# Automation by Jaseowns
+## Script: Anti-PK Mining MEGA script w/ Auto Recall (using charged rune book) and Auto Smelting
+## Created by: danstock._98439#0
+#############################################
+
+/////// Anti-PK Mining MEGA script w/ Auto Recall (using charged rune book) and Auto Smelting
+/////   UO Outlands Razor script - Last updated May 8, 2024
+///     Created by DanStock.
+
+
+//      Auto MINING script with colour coded overhead messages for all scenarios.  Clean UI with some RPG elements.
+//      Auto SMELTING when next to any PLAYER-BUILT FORGE - and 10 second intervals to check for NATURAL FORGES (modify under variable section).
+//      Auto healing with BANDAGES as well as auto HEAL, REFRESH and CURE POTIONS as needed.
+//      Auto trapped POUCH if PARALYZED.
+//      Auto buff checks and activation for TRACKING and FOOD SATISFACTION.
+//      Auto RECALL if RED player tracked/engaged (using charged runebook).     
+//      Auto TARGET & ATTACK greys if WAR MODE engaged - restarts auto-mining script once coast is clear! 
+//      Auto INGOT RECALL if more than 2000 total ingots in inventory (modify amount under variable section ).
+//      Auto ORGANIZING and anti-theft with AGENT-11, AGENT-06, AGENT-04 and AGENT-03 (modify to your own preference).
+//      Auto INVENTORY checks with overhead messages if anything is low or out of stock (modify under variable section).
+
+
+# Ideal skill template:
+    # Mining (50-120) 
+    # Macing/Tactics/Anatomy/Camping (100)
+    # Healing/Tracking (80)
+    # Magic resist (40)
+
+    
+# Required (or suggested *) inventory items:
+    # Pickaxes
+    # Escape runebook charged w/ recall scrolls
+    # Trapped pouches 
+    # Weapon (war mace or quarter staff are my preference)
+    # Bandages
+    # Healing, Cure and Refresh potions (strength, agility and magic resist pots help too *)
+    # Adventurers rope *
+    # Harvest Aspect leather armour *
+    # A blessed codex of Macing *
+
+    # Organizer Agent-11 hotbag (for ingots - can be trapped pouch)
+    # Organizer Agent-04 hotbag (for main inventory - I use a hidden stack of trapped pouches to deter theives and set this as the bottom one)
+    # Organizer Agent-03 hotbag * (optional - for gold, grid loot, etc.)
+    # Organizer Agent-06 hotbag * (optional for unloading loot & ingots at home/inn room)
+    
+
+// To further clean things up, I have set filters for repeated system/overhead messages.
+
+### System messages to filter in Razor: ###
+
+    // "What do you want to use this item on?"
+    // "You do not see any harvestable resources nearby."
+    // "You do not see any nearby forges"
+    // "You smelt the ore"
+    // "You dig some"
+    // "You loosen some"
+    // "Mining skillgain"
+    // "No one matching that"
+    // "Organize Agent"
+    // "queued"
+    // "Macro"
+    // "Achievement"
+    // "Your food satisfaction"
+    // "You have worn out your tool"
+
+
+# Please also add the following COOLDOWNS (case sensitive) in UO client under Options -> Cooldowns:
+    // Healing Potion
+    // Cure Potion 
+    // Refresh Potion
+
+ 
+# TIPS:    
+// Auto healing with bandages/potions script is running at all times.  Modify potion set points under variable section.
+/// Will swap to WEAPON, target nearest grey and attack if WAR MODE is manually engaged - good for dealing with basic wilderness MOBs.
+//// Auto tracking skill check and activation. Will automatically select proper settings for RED ALERT trigger.
+///// RED ALERT trigger also applies auto bandages, modifies potion set points and will POP trapped pouches if paralized while trying to escape - makes you very hard to kill 1 vs. 1!
+////// Set Organizer-11 for ingots (can be a trapped pouch for added protection - but, if so, disable pouch opening under variable section).  
+/////// Organizer-04 for main items (pots, bandages, weapons, tools, etc.) and optional Organizer-03 for gold, loot, etc.
+//////// Set Orgnanizer-06 as a secure storage container in your house or inn room for unloading ingots, loot, etc.
+///////// Set Escape runebook first time using script. Change 'gumpresponse' input for specific rune targets below (default input 2 will target the first rune in the book).
+////////// Make sure AUTO UNEQUIP AND REQUIP WEAPON to drink potions is selected in Razor client (if using 2 handed weapon).
+/////////// Setup hotkeys for running this script (I use "Mouse Wheel Up") and another for stopping all scripts (I use "Mouse Wheel Down") and that should be all you need!
+////////////The only thing that stops the script are periodic Captcha checks. Otherwise, you just move around on auto pilot (and simply enable WAR MODE if you need to fight something). 
+///////////// I also setup a hotkey for ROPE (I use "Middle Mouse Button") which I find useful for evading PKs or MOBs.
+
+
+#################################
+//         Variables           //
+#################################
+
+##  NEW PLAYERS:  If starting a new character/account, disable auto recall until you have a blessed/charged runebook (worth ~60-70k gp) in your inventory.  
+##  Use the script to harvest 5,000+ iron ore, turn it into a commodity and sell it on Discord or through a player vendor to fund initial build items.
+##  Use the newbie dungeon on Shelter Island to build skills to 80 (tactics, anatomy, macing, healing, tracking and camping), then macro on a battle trainer to 100.  Quick and cheap to level up!
+##  Enable auto attack, bandage healing, auto potions, etc. once your build/budget allows.
+##  This script will allow for growth via the user variables below until eventually the full script is used.  
+##  Script is very effective against Red PKs with either successful auto recall or auto bandages/pots keeping you alive long enough to evade or fight back!  
+
+
+### Set values below as 1 to enable or 0 to disable. ###
+
+@setvar! EnableRedAlertRecall 1
+
+@setvar! EnableAutoAttackGreyMOB 1
+
+@setvar! EnableParalyzePouch 1
+
+
+# Set time between natural forge checks (default is 10 seconds):
+@setvar! EnableAutoSmeltNaturalForge 1
+@setvar! AutoForgeTimer 10000
+
+# Set total ingot amount to trigger auto recall (default is 2000):
+@setvar! EnableIngotAutoRecall 1
+@setvar! IngotRecallAmount 2000
+
+# Prevent script opening ingot bag (Agent Organizer-11) if it is a trapped pouch:
+@setvar! EnableIngotBag 1
+@setvar! OpenIngotBag 1
+
+@setvar! EnableWeightWarningMessage 1
+
+
+# Set HP values for heal, cure and refresh potion activation:
+@setvar! EnableHealPotion 1
+@setvar! HealPotHP 55
+
+@setvar! EnableCurePotion 1
+@setvar! CurePotHP 99
+
+@setvar! EnableRefreshPotion 1
+@setvar! RefreshPotSP 90
+
+
+## Disable ALL overhead inventory warnings:
+@setvar! AllInventoryMessage 1
+
+## Or disable overhead inventory warnings individually:
+@setvar! RopeInventoryMessage 1
+@setvar! YellowInventoryMessage 1
+@setvar! OrangeInventoryMessage 1
+@setvar! RedInventoryMessage 1
+@setvar! WhiteInventoryMessage 1
+@setvar! BlueInventoryMessage 1
+@setvar! BlackInventoryMessage 1
+
+
+##// HAPPY HARVESTING!! //##
+    
+
+
+######################################
+######### Script starts here #########
+######################################
+
+
+//A fresh start...
+
+clearsysmsg
+hotkey 'Cancel Current Target'
+hotkey 'Organizer Agent-04'
+
+
+// Use new player training credits, new player skill choice or gold coins to train mining skill to a base of 50.0 at NPC before using this script!
+
+if skill 'Mining' < 50
+    overhead "Train mining skill to 50.0 at NPC and then restart script!" o
+    wait 2000
+    overhead '[ STOPPING SCRIPT... ]' 337
+    stop
+endif
+
+
+// Set bag for ore storage location (same container should also be set as Agent Organizer-11 in Razor app).
+# Can be a trapped pouch for further protection from thieves, but script will open the bag when storing ingots unless you set variable "OpenIngotBag" to 0 above.
+
+if not varexist ingotbag and EnableIngotBag = 1
+    overhead "Please select your ingot storage bag..." 0
+    setvar ingotbag
+    wait 2500
+    replay
+endif
+
+
+// Set Escape runebook for Auto Recall using pre-charged recall scrolls.
+
+if not varexist mining_runebook and EnableRedAlertRecall = 1
+    overhead "Please select your escape runebook..." 0
+    setvar mining_runebook
+    wait 2500
+    replay
+endif
+
+
+// RED ALERT trigger check.
+
+if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
+    pushlist "mining_action" "red_alert" 
+    replay
+endif
+
+
+// Weapon, rope and potion inventory checks.  Overhead message if anything is out of stock.
+// Adjust variables at beginning of script to enable or disable specific messages.
+
+if skill "Mace Fighting" > 50 and not findtype "quarter staff|war mace|maul|war axe|mace|hammer pick|club" backpack
+    if not findtype "quarter staff|war mace|maul|war axe|mace|hammer pick|club" hand
+        overhead "[ NO WEAPON! ]" 339
+    endif
+endif 
+
+if AllInventoryMessage = 1
+    if counttype "rope" backpack = 0 and RopeInventoryMessage = 1
+        overhead "[ RESTOCK ROPE! ]" 2799
+    endif 
+
+    if counttype "Yellow Potion" backpack = 0 and YellowInventoryMessage = 1
+        overhead "[ RESTOCK HEAL POTIONS! ]" 253
+    endif 
+
+    if counttype "Orange Potion" backpack = 0 and OrangeInventoryMessage = 1
+        overhead "[ RESTOCK CURE POTIONS! ]" 44
+    endif 
+
+    if counttype "Red Potion" backpack = 0 and RedInventoryMessage = 1
+        overhead "[ RESTOCK REFRESH POTIONS! ]" 37
+    endif 
+
+    if counttype "White Potion" backpack = 0 and WhiteInventoryMessage = 1 
+        overhead "[ RESTOCK STRENGTH POTIONS! ]" 956
+    endif 
+
+    if counttype "Blue Potion" backpack = 0 and BlueInventoryMessage = 1
+        overhead "[ RESTOCK AGILITY POTIONS! ]" 93
+    endif 
+
+    if counttype "Black Potion" backpack = 0 and BlackInventoryMessage = 1
+        overhead "[ RESTOCK MAGIC REFLECT POTIONS! ]" 0
+    endif 
+endif
+
+
+// Always auto apply bandages and drink potions if damaged or poisoned, etc.
+
+if skill 'Healing' > 50 
+    if not bandaging and hits < maxhits
+        overhead '*applying bandages*' 88
+        hotkey "Bandage Self"
+    endif
+    
+    if counttype 'clean bandage%s%' < 10
+        overhead "[ RESTOCK BANDAGES! ]" 88
+    endif 
+   
+endif 
+
+if EnableCurePotion = 1
+    if poisoned and not cooldown "Cure Potion" and hits < CurePotHP
+        if findtype "Orange Potion" backpack as pot
+            overhead '*drinking cure potion*' 44
+            dclick pot
+            cooldown "Cure Potion" 10500
+            wait 200
+        else
+            overhead "Out of cure pots!" 337
+        endif
+    endif
+endif 
+
+if EnableHealPotion = 1
+    if hits < HealPotHP and not cooldown "Healing Potion"
+        if findtype "Yellow Potion" backpack as pot
+            overhead '*drinking heal potion*' 253
+            dclick pot
+            cooldown "Healing Potion" 10500
+            wait 200
+        else 
+            overhead 'Out of heal pots!' 337
+        endif
+    endif
+endif 
+
+if EnableRefreshPotion = 1
+    if stam < RefreshPotSP and not cooldown "Refresh Potion"
+        if findtype "Red Potion" backpack as pot
+            overhead '*drinking refresh potion*' 34
+            dclick pot
+            cooldown "Refresh Potion" 10500
+            wait 200
+        else 
+            overhead 'Out of refresh pots!' 337
+        endif
+    endif
+endif
+
+
+// Auto forge ore to ingots at any forge.  Just stand nearby!
+// Checks for natural forge every 10 seconds when carrying ore (time be modified in variable section).
+// Player-built forges will auto-detect whenever close and carrying ore.
+
+if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
+    
+@setvar! forgeFound 0
+    
+    if not timerexists AutoSmeltNaturalForgeTimer
+        settimer AutoSmeltNaturalForgeTimer AutoForgeTimer
+    endif
+
+    if timer AutoSmeltNaturalForgeTimer >= AutoForgeTimer
+        dclick ore
+        wait 500
+        if insysmsg "You do not see any nearby forges"
+            settimer AutoSmeltNaturalForgeTimer 0
+        else
+            @setvar! forgeFound 1
+        endif
+    endif
+
+    for 10
+    if findtype "forge" ground -1 -1 2 or findtype 0x0FB1 ground -1 -1 2 or forgeFound = 1 and findtype "iron ore" backpack as ore
+        overhead "*smelting ore...*" 149
+        dclick ore
+        wait 1000
+        hotkey 'Organizer Agent-11'  
+        wait 100
+        replay
+    endif
+    endfor 
+endif
+
+
+//  Notification via overhead message when pack is getting too heavy.
+//  Script stops mining if weight exceeds 588.  Adjust these numbers to suit your own stats.
+
+if EnableWeightWarningMessage = 1
+if weight > 550 and weight < 570
+    overhead "[ WEIGHT WARNING! ]" 69
+endif
+
+if weight > 570 and weight < 588
+    overhead "[ TIME TO FORGE! ]" 149
+endif 
+
+if weight > 588
+    overhead "[ WEIGHT LIMIT REACHED!!! ]" 37
+    wait 2000
+    overhead "Find a forge in order to continue..." 0
+    wait 2500
+    replay
+endif
+endif 
+
+
+// Auto recall initiated if more than 2000 ingots in inventory (by default).
+// Modify amount or disable this option under variable section above.
+
+if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
+    overhead "I'd hate to lose all this work..." 37
+    wait 2500
+    overhead "I'm going to go unload before it's too late!" 37
+    wait 1000
+    
+     while not targetexists 
+            dclick  mining_runebook
+            waitforgump 1551740969 
+            gumpresponse 2
+            # Change gumpresponse to '2' to select first rune in book.
+            wft 500 
+            
+                // Will try up to 5 mores times if spell is disrupted. 
+                for 10
+                    if insysmsg 'Your concentration is disturbed'
+                        overhead 'Shit! Trying again...' 337
+                        while not targetexists 
+                        dclick mining_runebook
+                        waitforgump 1551740969 
+                        gumpresponse 2
+                        # Change gumpresponse to '2' to select first rune in book.
+                        wft 500
+                    endif
+                endfor
+                wait 2500
+
+                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                                dclick weapon
+                                wait 250 
+                            endif
+
+//  This closes my house door behind me after it auto opens.  
+//  Modify to suit your own needs or remove.
+
+########################################
+            wait 750
+            dclick 0x50F70A17 
+            wait 1000
+########################################
+
+            overhead "Home Sweet Home!" 37
+            wait 2000
+            useskill "Hiding"
+            wait 100
+
+            if OpenIngotBag = 1 
+                dclick ingotbag
+                wait 250
+            endif
+
+for 10
+if findtype "iron ore" backpack as ore
+        overhead "*smelting ore...*" 149
+        dclick ore
+        wait 1000
+        hotkey 'Organizer Agent-11'  
+        wait 500
+endif
+endfor     
+
+    if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                overhead "*storing ingots...*" 37
+                hotkey "Organizer Agent-06"
+                wait 3000
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 3000
+            endif
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 1000
+            endif
+    endif 
+    stop
+endif 
+
+
+// Auto tracking skill buff check and activation.  
+
+if skill 'Tracking' > 50 and not findbuff 'tracking' and EnableRedAlertRecall = 1
+    overhead 'I should keep an eye out for trouble...' 37
+        wait 1500
+        while not gumpexists 4267467659
+        useskill 'tracking'
+            wait 250
+        endwhile
+            if gumpexists 4267467659
+                while not insysmsg "You will now hunt all hostile players."
+                gumpresponse 8 4267467659
+                waitforgump 4267467659 5000
+                endwhile
+                gumpresponse 6 4267467659
+                wait 500
+                clearsysmsg 
+            endif
+        gumpclose 4267467659
+        overhead "[ AUTO RECALL ACTIVATED ]" 37
+        wait 100
+endif 
+
+
+// Food satisfaction check.  Will eat cheese if any found in backpack while no food buff is active.
+### I just use this as a one-hour timer to track my harvesting progress. ###
+
+if insysmsg "Your food satisfaction"
+    overhead "*stomach growls*" 0
+    wait 1500
+    clearsysmsg 
+endif 
+
+if not findbuff 'food satisfaction' and counttype "wedge%s% of cheese" backpack > 0 
+        wait 1500
+        overhead "Hold on, I shouldn't do this on an empty stomach..." 37
+        wait 500
+        if findtype "wedge%s% of cheese" backpack >= 1
+            overhead "*eating food*" 0
+            dclicktype "wedge%s% of cheese" backpack
+            wait 1500
+            overhead "Ok, I'm ready to get to work!" 37
+            wait 1500
+        endif
+endif 
+
+
+// Auto pop trapped pouch if paralyzed.
+
+if paralyzed and EnableParalyzePouch = 1
+    overhead "[ !!POP!! ]" 149
+    say "[pouch" 
+    wait 100
+endif
+
+
+// Auto equip pickaxe if broken or missing.  
+// Will prompt and stop script if no pickaxes in inventory.
+
+if counttype 'pickaxe' lefthand = 0  and counttype 'pickaxe' righthand = 0 and counttype 'pickaxe' backpack = 0 
+        overhead 'I can't work with no pickaxes!' 37
+        wait 2500
+        overhead '[ STOPPING SCRIPT... ]' 337
+        stop
+endif
+ 
+if counttype 'pickaxe' lefthand = 0  and counttype 'pickaxe' righthand = 0 and counttype 'pickaxe' backpack >= 1
+        dclicktype 'pickaxe' backpack
+        wait 250
+else
+    
+
+###########################
+##### WAR MODE TOGGLE #####
+###########################
+
+// Will equip weapon on warmode toggle and target nearest grey MOB.
+// If the closest target is a red player, auto recall will trigger.
+// If the closest target is a grey MOB, it will be attacked until no nearby targets remain.  Script will then go back to mining.
+// Auto recall triggers also if no weapons available on warmode toggle with close red or grey targets. 
+
+if warmode and EnableAutoAttackGreyMOB = 1
+
+    overhead "It's time to fight!!" 37
+    
+        if findtype "quarter staff|war mace|maul|war axe|mace|hammer pick|club" backpack as weapon
+            wait 100    
+            dclick weapon      
+            wait 500
+            hotkey 'Target Random Murderer Player'       
+            wait 500  
+            
+            if insysmsg "No one matching that was found"    
+                    for 100
+                        wait 500 
+                        hotkey 'Target Closest Grey Monster'    
+                        wait 500
+                        
+                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                                dclick weapon
+                                wait 250 
+                            endif
+                            
+                                if insysmsg "No one matching that was found" 
+                      
+                                    // Will toggle peace mode and restart script if no targets:
+                                    wait 1000   
+                                    overhead "Is there no one else??" 37  
+                                    wait 2500
+                                    overhead "Alright then, back to work..." 37
+                                    hotkey 'Toggle Peace Only'
+                                    wait 100
+                                    hotkey 'Cancel Current Target'
+                                    wait 100
+                                    hotkey 'Clear Target Queue'
+                                    wait 1000  
+                                    clearsysmsg 
+                                    replay
+                                endif 
+                    
+               // Will target and attack nearest grey target if warmode engaged:
+                        wait 500
+                        hotkey 'Attack Last Target'
+                        wait 500
+                # Restart auto bandage/pots
+                            if not bandaging and hits < maxhits
+                                overhead '*applying bandages*' 88
+                                hotkey "Bandage Self"
+                                wait 250
+                            endif
+    
+                            if poisoned and not cooldown "Cure Potion"
+                                if findtype "Orange Potion" backpack as pot
+                                    overhead '*drinking cure potion*' 44
+                                    dclick pot
+                                    cooldown "Cure Potion" 10000
+                                    wait 200
+                                else 
+                                    overhead "Out of cure pots!" 337
+                                endif
+                            endif
+
+                            if hits < 50 and not cooldown "Healing Potion"
+                                if findtype "Yellow Potion" backpack as pot
+                                    overhead '*drinking heal potion*' 253
+                                    dclick pot
+                                    cooldown "Healing Potion" 10000
+                                    wait 200
+                                else 
+                                    overhead 'Out of heal pots!' 337
+                                endif
+                            endif
+                        wait 2500 
+                    endfor
+                    replay 
+        endif 
+            
+        // Will recall out if red player targeted in war mode:  
+            hotkey 'Cancel Current Target'
+            wait 100
+            
+            while not targetexists 
+            dclick  mining_runebook
+            waitforgump 1551740969 
+            gumpresponse 2
+            # Change gumpresponse to '2' to select first rune in book.
+            wft 500 
+            
+                // Will try up to 5 mores times if spell is disrupted. 
+                for 10
+                    if insysmsg 'Your concentration is disturbed'
+                        overhead 'Shit! Trying again...' 337
+                        while not targetexists 
+                        dclick mining_runebook
+                        waitforgump 1551740969 
+                        gumpresponse 2
+                        # Change gumpresponse to '2' to select first rune in book.
+                        wft 500
+                    endif
+                endfor
+                wait 2500
+
+                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                                dclick weapon
+                                wait 250 
+                            endif
+
+//  This closes my house door behind me after it auto opens.  
+//  Modify to suit your own needs or remove.
+
+########################################
+            wait 750
+            dclick 0x50F70A17 
+            wait 1000
+########################################
+
+            overhead "Home Sweet Home!" 37
+            wait 2000
+            useskill "Hiding"
+            wait 100
+
+            if OpenIngotBag = 1 
+                dclick ingotbag
+                wait 250
+            endif
+
+for 10
+if findtype "iron ore" backpack as ore
+        overhead "*smelting ore...*" 149
+        dclick ore
+        wait 1000
+        hotkey 'Organizer Agent-11'  
+        wait 500
+endif
+endfor     
+
+    if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                overhead "*storing ingots...*" 37
+                hotkey "Organizer Agent-06"
+                wait 3000
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 3000
+            endif
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 1000
+            endif
+    endif 
+    stop
+endif
+          
+    if counttype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack = 0 
+       
+        if counttype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' lefthand = 1  
+                wait 100     
+                hotkey 'Target Random Murderer Player'       
+                wait 500  
+                   if insysmsg "No one matching that was found"    
+                       for 100
+                        wait 500  
+                        hotkey 'Target Closest Grey Monster'    
+                        wait 1000
+                            if insysmsg "No one matching that was found" 
+                      
+                                 // Will toggle peace mode and restart script if no targets:
+                                wait 1000   
+                                overhead "Is there no one else??" 37   
+                                wait 3000    
+                                overhead "Alright, back to work..." 37
+                                hotkey 'Toggle Peace Only'
+                                wait 100
+                                hotkey 'Cancel Current Target'
+                                wait 100
+                                hotkey 'Clear Target Queue'
+                                wait 1000  
+                                replay
+                            endif
+                    
+                // Will target and attack nearest grey target if warmode engaged:
+                wait 500
+                hotkey 'Attack Last Target'
+                wait 500
+                    # Restart auto bandage
+                    if not bandaging and hits < maxhits
+                        overhead '*applying bandages*' 88
+                    hotkey "Bandage Self"
+                    wait 500
+                endif
+
+if poisoned and not cooldown "Cure Potion"
+    if findtype "Orange Potion" backpack as pot
+    overhead '*drinking cure potion*' 44
+        dclick pot
+    cooldown "Cure Potion" 10000
+        wait 200
+    else
+        overhead "Out of cure pots!" 337
+    endif
+endif
+
+if hits < 70 and not cooldown "Healing Potion"
+    if findtype "Yellow Potion" backpack as pot
+    overhead '*drinking heal potion*' 253
+        dclick pot
+    cooldown "Healing Potion" 10000
+        wait 200
+    else 
+        overhead 'Out of heal pots!' 337
+    endif
+endif
+
+if stam < 100 and not cooldown "Refresh Potion"
+        if findtype "Red Potion" backpack as pot
+            overhead '*drinking refresh potion*' 34
+            dclick pot
+            cooldown "Refresh Potion" 10500
+            wait 200
+        else 
+            overhead 'Out of refresh pots!' 337
+        endif
+    endif
+endif
+
+                    wait 2500 
+                endfor
+                
+                replay 
+                
+            endif 
+           
+            // Will recall out if red player targeted in war mode:                   
+            hotkey 'Cancel Current Target'
+            wait 100
+            while not targetexists 
+            dclick  mining_runebook
+            waitforgump 1551740969 
+            gumpresponse 2
+            # Change gumpresponse to '2' to select first rune in book.
+            wft 500 
+            
+
+                // Will try up to 5 mores times if spell is disrupted. 
+                for 5
+                    if insysmsg 'Your concentration is disturbed'
+                        overhead 'Shit! Trying that again...' 337
+                        while not targetexists 
+                        dclick mining_runebook
+                        waitforgump 1551740969 
+                        gumpresponse 2
+                        # Change gumpresponse to '2' to select first rune in book.
+                        clearsysmsg 
+                        wft 500
+                    endif
+                endfor
+              
+                wait 2500
+
+                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                                dclick weapon
+                                wait 250 
+                            endif
+                            
+//  This closes my house door behind me after it auto opens.  
+//  Modify to suit your own needs or remove.
+
+########################################
+            wait 750
+            dclick 0x50F70A17 
+            wait 1000
+########################################
+
+            overhead "Home Sweet Home!" 37
+            wait 2000
+            useskill "Hiding"
+            wait 100
+
+            if OpenIngotBag = 1 
+                dclick ingotbag
+                wait 250
+            endif
+
+for 10
+if findtype "iron ore" backpack as ore
+        overhead "*smelting ore...*" 149
+        dclick ore
+        wait 1000
+        hotkey 'Organizer Agent-11'  
+        wait 250
+endif
+endfor     
+
+
+    if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                overhead "*storing ingots...*" 37
+                hotkey "Organizer Agent-06"
+                wait 3000
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 3000
+            endif
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 1000
+            endif
+    endif 
+    stop
+                        
+endif  
+        
+        
+        wait 1000  
+        overhead "I can't fight with just a hatchet!"  37 
+        wait 2000 
+        overhead "I'd better RUN!!" 337
+        hotkey 'Toggle Peace Only'  
+               
+            // Will recall out if war mode engaged with no weapons:                
+            hotkey 'Cancel Current Target'
+            wait 100
+            while not targetexists 
+            dclick mining_runebook
+            waitforgump 1551740969 
+            gumpresponse 2
+            # Change gumpresponse to '2' to select first rune in book.
+            wft 500 
+            
+                // Will try up to 5 mores times if spell is disrupted. 
+                for 5
+                    if insysmsg 'Your concentration is disturbed'
+                        overhead 'Shit! Trying that again...' 337
+                        while not targetexists 
+                        dclick mining_runebook
+                        waitforgump 1551740969 
+                        gumpresponse 2
+                        # Change gumpresponse to '2' to select first rune in book.
+                        wft 500
+                        clearsysmsg 
+                    endif
+                endfor
+                
+                wait 2500
+
+                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                                dclick weapon
+                                wait 250 
+                            endif
+
+//  This closes my house door behind me after it auto opens.  
+//  Modify to suit your own needs or remove.
+
+########################################
+            wait 750
+            dclick 0x50F70A17 
+            wait 1000
+########################################
+
+            overhead "Home Sweet Home!" 37
+            wait 2000
+            useskill "Hiding"
+            wait 100
+
+            if OpenIngotBag = 1 
+                dclick ingotbag
+                wait 250
+            endif
+
+for 10
+if findtype "iron ore" backpack as ore
+        overhead "*smelting ore...*" 149
+        dclick ore
+        wait 1000
+        hotkey 'Organizer Agent-11'  
+        wait 250
+endif
+endfor     
+
+
+    if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                overhead "*storing ingots...*" 37
+                hotkey "Organizer Agent-06"
+                wait 3000
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 3000
+            endif
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 1000
+            endif
+    endif 
+    stop
+endif  
+
+endif      
+
+
+##############################
+##### AUTO RECALL SCRIPT #####
+##############################
+
+
+// Auto recall, heal and pouch pop script included.
+// Will trigger when closest hostile player is tracked outside of house/ship.  
+
+if not listexists "mining_action"
+    createlist "mining_action"  
+endif
+
+if inlist "mining_action" "red_alert" and EnableRedAlertRecall = 1
+    overhead "Looks like trouble coming!" 37 
+     
+        // Auto pouch POP if paralized 
+            if paralyzed 
+                overhead "!!POP!!" 149
+                say "[pouch"
+            endif
+        
+        // Auto bandage when damaged and not healing.
+        // Will try for heal potion if no bandages.
+            if not bandaging and hits < maxhits
+                    hotkey "Bandage self"
+                    overhead '*applying bandages*' 88
+                    wait 500
+            endif 
+                
+            if hits < 70 and not cooldown "Healing Potion"
+                if findtype "Yellow Potion" backpack as pot
+                    overhead '*drinking heal potion*' 253
+                    dclick pot
+                    wait 200
+                    cooldown "Healing Potion" 10000
+                else 
+                    overhead '*Out of heal pots!*' 337
+                endif
+            endif 
+
+            if stam < 100 and not cooldown "Refresh Potion"
+                if findtype "Red Potion" backpack as pot
+                    overhead '*drinking refresh potion*' 34
+                    dclick pot
+                    cooldown "Refresh Potion" 10500
+                    wait 200
+                else 
+                    overhead 'Out of refresh pots!' 337
+               endif
+           endif
+
+            while not targetexists 
+            dclick mining_runebook
+            waitforgump 1551740969 
+            gumpresponse 2
+            wft 500 
+            
+                // Will try up to 5 mores times if spell is disrupted. 
+                for 5
+                    if insysmsg 'Your concentration is disturbed'
+                        overhead 'Shit! Trying that again...' 337
+                        while not targetexists 
+                        dclick mining_runebook
+                        waitforgump 1551740969 
+                        gumpresponse 2
+                        wft 500 
+                        clearsysmsg 
+                    endif
+                endfor
+ 
+        poplist "mining_action" "red_alert" 
+        
+        wait 2500
+
+
+                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                                dclick weapon
+                                wait 250 
+                            endif
+
+//  This closes my house door behind me after it auto opens.  
+//  Modify to suit your own needs or remove.
+
+########################################
+            wait 750
+            dclick 0x50F70A17 
+            wait 1000
+########################################
+
+            overhead "Home Sweet Home!" 37
+            wait 2000
+            useskill "Hiding"
+            wait 100
+
+            if OpenIngotBag = 1 
+                dclick ingotbag
+                wait 250
+            endif
+
+for 10
+if findtype "iron ore" backpack as ore
+        overhead "*smelting ore...*" 149
+        dclick ore
+        wait 1000
+        hotkey 'Organizer Agent-11'  
+        wait 250
+endif
+endfor     
+
+    if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                overhead "*storing ingots...*" 37
+                hotkey "Organizer Agent-06"
+                wait 3000
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 3000
+            endif
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 1000
+            endif
+    endif 
+    stop        
+endif 
+
+
+
+##############################################
+########## START AUTO MINING SCRIPT ########## 
+##############################################
+
+
+
+hotkey 'Use item in hand' 
+waitfortarget 500
+hotkey 'Target Self' 
+
+wait 500
+
+if insysmsg "Achievement: Miner"  
+    overhead '*mining ore...*' 37
+endif
+
+wait 100
+
+if insysmsg "Now tracking" or insysmsg "Distance to destination"
+    pushlist "mining_action" "red_alert" 
+    replay 
+        
+               elseif insysmsg 'world is saving' 
+                    overhead '[ WORLD SAVING... ]' 253 
+                        wait 3000 
+                        for 10 
+                        if insysmsg 'world save complete' 
+                            overhead '[ SAVE COMPLETE! ]' 253 
+                            clearsysmsg 
+                        replay 
+                        endif 
+                        break 
+                        endfor 
+                    replay 
+        
+                elseif insysmsg 'Harvesting is not allowed' 
+                    overhead 'You need to leave town...' 84
+                    clearsysmsg 
+                    wait 5000 
+                    replay 
+            
+                    elseif insysmsg 'You have worn out your tool' 
+                    overhead "My pickaxe broke!" 337
+                    clearsysmsg 
+                    wait 500 
+                    replay 
+        
+                elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any' 
+                    overhead "[ KEEP MOVING... ]" 69
+                    
+                        if findtype 'iron ore|iron ingots' backpack 
+                            hotkey 'Organizer Agent-11'
+                            wait 250
+                            hotkey 'Organizer Agent-04'
+                            wait 100
+                            hotkey 'Organizer Agent-03'
+                            wait 100
+                            replay
+                        endif
+
+                    wait 400
+                    clearsysmsg
+                    replay 
+        
+                elseif insysmsg "travel" 
+                    overhead "I'm tired from travelling." 337
+                    wait 2000 
+                    overhead "Just give me a minute to recover..." 337
+                    wait 10000
+                    clearsysmsg 
+                    replay 
+            
+                elseif insysmsg "You loosen some rocks"
+                    overhead '*fail*' 337
+                    wait 300
+                    clearsysmsg 
+                    replay
+
+else
+   
+    if insysmsg "Mining skillgain" and skill 'Mining' >= 100
+        sysmsg "There is something special buried here..." 84
+    endif
+
+
+    if insysmsg "Now tracking" or insysmsg "Distance to destination"
+        pushlist "mining_action" "red_alert"
+        clearsysmsg 
+        replay
+        
+            elseif insysmsg 'world is saving'
+                overhead '[ WORLD SAVING... ]' 253
+                    wait 3000
+                    for 10
+                        if insysmsg 'world save complete'
+                        overhead '[ SAVE COMPLETE! ]' 253
+                            clearsysmsg 
+                            replay
+                        endif
+                        break
+                    endfor
+                    replay
+            
+                elseif insysmsg 'Harvesting is not allowed' 
+                    overhead 'You need to leave town...' 84
+                    wait 5000 
+                    clearsysmsg 
+                    replay 
+            
+                    elseif insysmsg 'You have worn out your tool' 
+                    overhead "My pickaxe broke!" 337
+                    clearsysmsg 
+                    replay 
+        
+                elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any' 
+                    overhead "[ KEEP MOVING... ]" 69
+                        
+                        if findtype 'iron ore|iron ingots' backpack 
+                            hotkey 'Organizer Agent-11'
+                            wait 250
+                            hotkey 'Organizer Agent-04'
+                            wait 100
+                            hotkey 'Organizer Agent-03'
+                            wait 100
+                            replay
+                        endif
+
+                    wait 400
+                    replay 
+        
+                elseif insysmsg "travel" 
+                    overhead "I'm tired from travelling." 337
+                    wait 1500 
+                    overhead "Just give me a minute to recover..." 337
+                    wait 10000
+                    clearsysmsg 
+                    replay 
+            
+            elseif insysmsg "You loosen some rocks"
+                overhead '*fail*' 337
+                replay              
+              
+            elseif insysmsg "You dig some iron ore and put it in your backpack." 
+                overhead '*you harvest iron ore*' 339
+                replay    
+        
+            elseif insysmsg "You dig some dull copper ore and put it in your backpack." 
+                overhead '*you harvest dull copper ore*' 2419
+                replay     
+  
+            elseif insysmsg "You dig some shadow iron ore and put it in your backpack." 
+                overhead '*you harvest shadow iron ore*' 2406
+                replay     
+
+            elseif insysmsg "You dig some copper ore and put it in your backpack." 
+                overhead '*you harvest copper ore*' 2413
+                replay  
+
+            elseif insysmsg "You dig some bronze ore and put it in your backpack." 
+                overhead '*you harvest bronze ore*' 2418
+                replay  
+
+                elseif insysmsg "You dig some golden ore and put it in your backpack." 
+                overhead '*you harvest gold ore!*' 2213
+                replay  
+
+            elseif insysmsg "You dig some agapite ore and put it in your backpack." 
+                overhead '*you harvest agapite ore!*' 2425
+                replay  
+
+            elseif insysmsg "You dig some verite ore and put it in your backpack." 
+                overhead '*you harvest verite ore!!*' 2207
+                replay  
+
+            elseif insysmsg "You dig some valorite ore and put it in your backpack." 
+                overhead '*you harvest valorite ore!!*' 2219
+                replay  
+
+            elseif insysmsg "You dig some avarite ore and put it in your backpack." 
+                overhead '*you harvest avarite ore!!!*' 1763
+                replay      
+    
+            elseif insysmsg "You must wait"
+                overhead 'You must wait..' 337
+                wait 500
+                clearsysmsg 
+                replay  
+    endif 
+
+##############################################
+##########  END AUTO MINING SCRIPT  ##########
+##############################################
+
+replay
+
+//   Always a work in progress. 
+///  Contact me with any questions, suggestions or tips!
+//// dan@danstockman.com
+
+# ENJOY! #

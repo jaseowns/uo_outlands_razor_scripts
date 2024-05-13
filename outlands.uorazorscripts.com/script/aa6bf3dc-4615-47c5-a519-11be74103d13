@@ -5,8 +5,8 @@
 #############################################
 
 /////// Anti-PK Mining MEGA script w/ Auto Recall (using charged rune book) and Auto Smelting
-/////   UO Outlands Razor script - Last updated May 8, 2024
-///     Created by DanStock.
+/////    Last updated - May 13, 2024
+///       Created by DanStock.
 
 
 //      Auto MINING script with colour coded overhead messages for all scenarios.  Clean UI with some RPG elements.
@@ -35,6 +35,8 @@
     # Weapon (war mace or quarter staff are my preference)
     # Bandages
     # Healing, Cure and Refresh potions (strength, agility and magic resist pots help too *)
+    # Skinning knife *
+    # Cheese *
     # Adventurers rope *
     # Harvest Aspect leather armour *
     # A blessed codex of Macing *
@@ -98,13 +100,42 @@
 ##  Script is very effective against Red PKs with either successful auto recall or auto bandages/pots keeping you alive long enough to evade or fight back!  
 
 
+########################################################
 ### Set values below as 1 to enable or 0 to disable. ###
+########################################################
+
+
+// TO RESET PERMANENT VARIABLES (ESCAPE RUNEBOOKS, INGOT BAG AND BOARD BAG) SET THIS VARIABLE TO 1:
+    
+@setvar! VARIABLERESET 0
+
+if VARIABLERESET = 1
+    unsetvar mining_runebook
+    unsetvar ingotbag
+    wait 500
+    overhead "Variables reset to default!" 0
+    wait 2000
+    overhead "Run script again for initial setup..." 0
+    wait 2000
+    overhead "Make sure to set VARIABLERESET back to 0" 84
+    wait 2500
+    overhead "[ STOPPING SCRIPT! ]" 37
+    stop        
+endif 
+
 
 @setvar! EnableRedAlertRecall 1
 
 @setvar! EnableAutoAttackGreyMOB 1
 
 @setvar! EnableParalyzePouch 1
+
+@setvar! AutoCarving 1
+
+# Set auto recall to Home or Inn:
+@setvar! InnRecall 1
+// or (not both)
+@setvar! HomeRecall 0
 
 
 # Set time between natural forge checks (default is 10 seconds):
@@ -127,7 +158,7 @@
 @setvar! HealPotHP 55
 
 @setvar! EnableCurePotion 1
-@setvar! CurePotHP 99
+@setvar! CurePotHP 75
 
 @setvar! EnableRefreshPotion 1
 @setvar! RefreshPotSP 90
@@ -149,7 +180,6 @@
 ##// HAPPY HARVESTING!! //##
     
 
-
 ######################################
 ######### Script starts here #########
 ######################################
@@ -159,17 +189,17 @@
 
 clearsysmsg
 hotkey 'Cancel Current Target'
-hotkey 'Organizer Agent-04'
 
 
-// Use new player training credits, new player skill choice or gold coins to train mining skill to a base of 50.0 at NPC before using this script!
+// Skill check to start
 
-if skill 'Mining' < 50
-    overhead "Train mining skill to 50.0 at NPC and then restart script!" o
-    wait 2000
-    overhead '[ STOPPING SCRIPT... ]' 337
+if skill "Mining" < 50 
+    wait 1000
+    overhead "Train skill to 50.0 at NPC and then restart script!" 0
+    wait 3000
+    overhead '[ STOPPING SCRIPT... ]' 37
     stop
-endif
+endif 
 
 
 // Set bag for ore storage location (same container should also be set as Agent Organizer-11 in Razor app).
@@ -199,6 +229,28 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAl
     pushlist "mining_action" "red_alert" 
     replay
 endif
+
+
+// Auto carve any corpses if skinning knife found in inventory (modify under variable section).
+// No room for forensic evaluation on this template, but still worth skinning for the leather...
+
+if AutoCarving = 1 
+    if findtype 'Elven SpellBlade' backpack
+        if findtype "corpse" ground -1 -1 2 as body
+            dclicktype "Elven Spellblade"
+            waitfortarget 500
+            target 'self'
+            wait 100
+            overhead "*skinning corpse...*" 0
+            wait 500
+            @ignore body
+        endif 
+    endif
+    
+    if not findtype 'Elven SpellBlade' backpack
+        overhead "[ NO SKINNING KNIFE! ]" 339
+    endif 
+endif 
 
 
 // Weapon, rope and potion inventory checks.  Overhead message if anything is out of stock.
@@ -295,41 +347,6 @@ if EnableRefreshPotion = 1
 endif
 
 
-// Auto forge ore to ingots at any forge.  Just stand nearby!
-// Checks for natural forge every 10 seconds when carrying ore (time be modified in variable section).
-// Player-built forges will auto-detect whenever close and carrying ore.
-
-if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
-    
-@setvar! forgeFound 0
-    
-    if not timerexists AutoSmeltNaturalForgeTimer
-        settimer AutoSmeltNaturalForgeTimer AutoForgeTimer
-    endif
-
-    if timer AutoSmeltNaturalForgeTimer >= AutoForgeTimer
-        dclick ore
-        wait 500
-        if insysmsg "You do not see any nearby forges"
-            settimer AutoSmeltNaturalForgeTimer 0
-        else
-            @setvar! forgeFound 1
-        endif
-    endif
-
-    for 10
-    if findtype "forge" ground -1 -1 2 or findtype 0x0FB1 ground -1 -1 2 or forgeFound = 1 and findtype "iron ore" backpack as ore
-        overhead "*smelting ore...*" 149
-        dclick ore
-        wait 1000
-        hotkey 'Organizer Agent-11'  
-        wait 100
-        replay
-    endif
-    endfor 
-endif
-
-
 //  Notification via overhead message when pack is getting too heavy.
 //  Script stops mining if weight exceeds 588.  Adjust these numbers to suit your own stats.
 
@@ -356,9 +373,9 @@ endif
 // Modify amount or disable this option under variable section above.
 
 if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
-    overhead "I'd hate to lose all this work..." 37
+    overhead "I'd hate to lose all this work..." 2086
     wait 2500
-    overhead "I'm going to go unload before it's too late!" 37
+    overhead "I'm going to go unload before it's too late!" 2086
     wait 1000
     
      while not targetexists 
@@ -371,7 +388,7 @@ if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
                 // Will try up to 5 mores times if spell is disrupted. 
                 for 10
                     if insysmsg 'Your concentration is disturbed'
-                        overhead 'Shit! Trying again...' 337
+                        overhead 'Shit! Trying again...' 2086
                         while not targetexists 
                         dclick mining_runebook
                         waitforgump 1551740969 
@@ -387,6 +404,7 @@ if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
                                 wait 250 
                             endif
 
+if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
 //  Modify to suit your own needs or remove.
 
@@ -395,8 +413,19 @@ if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
             dclick 0x50F70A17 
             wait 1000
 ########################################
+endif 
 
-            overhead "Home Sweet Home!" 37
+if InnRecall = 1
+// Set InnRecall variable above if recalling into an inn. 
+// This will bring you right into your room.
+                wait 2000
+                say "Innkeeper, I need a room!"
+                waitforgump 2393832411
+                gumpresponse 4
+                wait 3000
+endif
+
+            overhead "Home Sweet Home!" 2086
             wait 2000
             useskill "Hiding"
             wait 100
@@ -407,13 +436,15 @@ if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
             endif
 
 for 10
-if findtype "iron ore" backpack as ore
+    if findtype "iron ore" backpack as ore
+        if findtype "forge" ground -1 -1 2 or findtype 0x0FB1 ground -1 -1 2
         overhead "*smelting ore...*" 149
         dclick ore
         wait 1000
         hotkey 'Organizer Agent-11'  
-        wait 500
-endif
+        wait 250
+        endif 
+    endif
 endfor     
 
     if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
@@ -429,6 +460,7 @@ endfor
                 wait 1000
             endif
     endif 
+    hotkey "Organizer Agent-04"
     stop
 endif 
 
@@ -436,7 +468,7 @@ endif
 // Auto tracking skill buff check and activation.  
 
 if skill 'Tracking' > 50 and not findbuff 'tracking' and EnableRedAlertRecall = 1
-    overhead 'I should keep an eye out for trouble...' 37
+    overhead 'I should keep an eye out for trouble...' 2086
         wait 1500
         while not gumpexists 4267467659
         useskill 'tracking'
@@ -462,19 +494,20 @@ endif
 
 if insysmsg "Your food satisfaction"
     overhead "*stomach growls*" 0
-    wait 1500
+    wait 2500
     clearsysmsg 
+    replay
 endif 
 
 if not findbuff 'food satisfaction' and counttype "wedge%s% of cheese" backpack > 0 
         wait 1500
-        overhead "Hold on, I shouldn't do this on an empty stomach..." 37
+        overhead "Hold on, I shouldn't do this on an empty stomach..." 2086
         wait 500
         if findtype "wedge%s% of cheese" backpack >= 1
             overhead "*eating food*" 0
             dclicktype "wedge%s% of cheese" backpack
             wait 1500
-            overhead "Ok, I'm ready to get to work!" 37
+            overhead "Ok, I'm ready to get to work!" 2086
             wait 1500
         endif
 endif 
@@ -493,9 +526,9 @@ endif
 // Will prompt and stop script if no pickaxes in inventory.
 
 if counttype 'pickaxe' lefthand = 0  and counttype 'pickaxe' righthand = 0 and counttype 'pickaxe' backpack = 0 
-        overhead "I can't work with no pickaxes!" 37
+        overhead "I can't work with no pickaxes!" 2086
         wait 2500
-        overhead '[ STOPPING SCRIPT... ]' 337
+        overhead '[ STOPPING SCRIPT... ]' 37
         stop
 endif
  
@@ -516,7 +549,7 @@ else
 
 if warmode and EnableAutoAttackGreyMOB = 1
 
-    overhead "It's time to fight!!" 37
+    overhead "It's time to fight!!" 2086
     
         if findtype "quarter staff|war mace|maul|war axe|mace|hammer pick|club" backpack as weapon
             wait 100    
@@ -531,6 +564,18 @@ if warmode and EnableAutoAttackGreyMOB = 1
                         hotkey 'Target Closest Grey Monster'    
                         wait 500
                         
+                        if findtype 'Elven SpellBlade' backpack and AutoCarving = 1
+                            if findtype "corpse" ground -1 -1 2 as body
+                                dclicktype "Elven Spellblade"
+                                waitfortarget 500
+                                target 'self'
+                                wait 100
+                                overhead "*skinning corpse...*" 0
+                                wait 500
+                                @ignore body
+                            endif 
+                        endif
+     
                             if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
                                 dclick weapon
                                 wait 250 
@@ -540,9 +585,22 @@ if warmode and EnableAutoAttackGreyMOB = 1
                       
                                     // Will toggle peace mode and restart script if no targets:
                                     wait 1000   
-                                    overhead "Is there no one else??" 37  
+                                    overhead "Is there no one else??" 2086
                                     wait 2500
-                                    overhead "Alright then, back to work..." 37
+                                    overhead "Alright then, back to work..." 2086
+                                                            
+                        if findtype 'Elven SpellBlade' backpack and AutoCarving = 1
+                            if findtype "corpse" ground -1 -1 2 as body
+                                dclicktype "Elven Spellblade"
+                                waitfortarget 500
+                                target 'self'
+                                wait 100
+                                overhead "*skinning corpse...*" 0
+                                wait 500
+                                @ignore body
+                            endif 
+                        endif
+                        
                                     hotkey 'Toggle Peace Only'
                                     wait 100
                                     hotkey 'Cancel Current Target'
@@ -557,6 +615,20 @@ if warmode and EnableAutoAttackGreyMOB = 1
                         wait 500
                         hotkey 'Attack Last Target'
                         wait 500
+                        
+                                                
+                        if findtype 'Elven SpellBlade' backpack and AutoCarving = 1
+                            if findtype "corpse" ground -1 -1 2 as body
+                                dclicktype "Elven Spellblade"
+                                waitfortarget 500
+                                target 'self'
+                                wait 100
+                                overhead "*skinning corpse...*" 0
+                                wait 500
+                                @ignore body
+                            endif 
+                        endif
+                        
                 # Restart auto bandage/pots
                             if not bandaging and hits < maxhits
                                 overhead '*applying bandages*' 88
@@ -604,7 +676,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
                 // Will try up to 5 mores times if spell is disrupted. 
                 for 10
                     if insysmsg 'Your concentration is disturbed'
-                        overhead 'Shit! Trying again...' 337
+                        overhead 'Shit! Trying again...' 2086
                         while not targetexists 
                         dclick mining_runebook
                         waitforgump 1551740969 
@@ -620,6 +692,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
                                 wait 250 
                             endif
 
+if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
 //  Modify to suit your own needs or remove.
 
@@ -628,8 +701,19 @@ if warmode and EnableAutoAttackGreyMOB = 1
             dclick 0x50F70A17 
             wait 1000
 ########################################
+endif 
 
-            overhead "Home Sweet Home!" 37
+if InnRecall = 1
+// Set InnRecall variable above if recalling into an inn. 
+// This will bring you right into your room.
+                wait 2000
+                say "Innkeeper, I need a room!"
+                waitforgump 2393832411
+                gumpresponse 4
+                wait 3000
+endif
+
+            overhead "Home Sweet Home!" 2086
             wait 2000
             useskill "Hiding"
             wait 100
@@ -638,15 +722,17 @@ if warmode and EnableAutoAttackGreyMOB = 1
                 dclick ingotbag
                 wait 250
             endif
-
+            
 for 10
-if findtype "iron ore" backpack as ore
+    if findtype "iron ore" backpack as ore
+        if findtype "forge" ground -1 -1 2 or findtype 0x0FB1 ground -1 -1 2
         overhead "*smelting ore...*" 149
         dclick ore
         wait 1000
         hotkey 'Organizer Agent-11'  
-        wait 500
-endif
+        wait 250
+        endif 
+    endif
 endfor     
 
     if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
@@ -662,6 +748,7 @@ endfor
                 wait 1000
             endif
     endif 
+    hotkey "Organizer Agent-04"
     stop
 endif
           
@@ -680,9 +767,9 @@ endif
                       
                                  // Will toggle peace mode and restart script if no targets:
                                 wait 1000   
-                                overhead "Is there no one else??" 37   
+                                overhead "Is there no one else??" 2086
                                 wait 3000    
-                                overhead "Alright, back to work..." 37
+                                overhead "Alright, back to work..." 2086
                                 hotkey 'Toggle Peace Only'
                                 wait 100
                                 hotkey 'Cancel Current Target'
@@ -702,6 +789,18 @@ endif
                     hotkey "Bandage Self"
                     wait 500
                 endif
+                
+                        if findtype 'Elven SpellBlade' backpack and AutoCarving = 1
+                            if findtype "corpse" ground -1 -1 2 as body
+                                dclicktype "Elven Spellblade"
+                                waitfortarget 500
+                                target 'self'
+                                wait 100
+                                overhead "*skinning corpse...*" 0
+                                wait 500
+                                @ignore body
+                            endif 
+                        endif
 
 if poisoned and not cooldown "Cure Potion"
     if findtype "Orange Potion" backpack as pot
@@ -776,6 +875,7 @@ endif
                                 wait 250 
                             endif
                             
+if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
 //  Modify to suit your own needs or remove.
 
@@ -784,8 +884,19 @@ endif
             dclick 0x50F70A17 
             wait 1000
 ########################################
+endif 
 
-            overhead "Home Sweet Home!" 37
+if InnRecall = 1
+// Set InnRecall variable above if recalling into an inn. 
+// This will bring you right into your room.
+                wait 2000
+                say "Innkeeper, I need a room!"
+                waitforgump 2393832411
+                gumpresponse 4
+                wait 3000
+endif
+
+            overhead "Home Sweet Home!" 2086
             wait 2000
             useskill "Hiding"
             wait 100
@@ -796,15 +907,16 @@ endif
             endif
 
 for 10
-if findtype "iron ore" backpack as ore
+    if findtype "iron ore" backpack as ore
+        if findtype "forge" ground -1 -1 2 or findtype 0x0FB1 ground -1 -1 2
         overhead "*smelting ore...*" 149
         dclick ore
         wait 1000
         hotkey 'Organizer Agent-11'  
         wait 250
-endif
+        endif 
+    endif
 endfor     
-
 
     if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
                 overhead "*storing ingots...*" 37
@@ -819,15 +931,14 @@ endfor
                 wait 1000
             endif
     endif 
+    hotkey "Organizer Agent-04"
     stop
-                        
 endif  
         
-        
         wait 1000  
-        overhead "I can't fight with just a pickaxe!"  37 
+        overhead "I can't fight with just a hatchet!"  2086
         wait 2000 
-        overhead "I'd better RUN!!" 337
+        overhead "I'd better RUN!!" 37
         hotkey 'Toggle Peace Only'  
                
             // Will recall out if war mode engaged with no weapons:                
@@ -843,7 +954,7 @@ endif
                 // Will try up to 5 mores times if spell is disrupted. 
                 for 5
                     if insysmsg 'Your concentration is disturbed'
-                        overhead 'Shit! Trying that again...' 337
+                        overhead 'Shit! Trying that again...' 2086
                         while not targetexists 
                         dclick mining_runebook
                         waitforgump 1551740969 
@@ -861,6 +972,7 @@ endif
                                 wait 250 
                             endif
 
+if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
 //  Modify to suit your own needs or remove.
 
@@ -869,8 +981,19 @@ endif
             dclick 0x50F70A17 
             wait 1000
 ########################################
+endif 
 
-            overhead "Home Sweet Home!" 37
+if InnRecall = 1
+// Set InnRecall variable above if recalling into an inn. 
+// This will bring you right into your room.
+                wait 2000
+                say "Innkeeper, I need a room!"
+                waitforgump 2393832411
+                gumpresponse 4
+                wait 3000
+endif
+
+            overhead "Home Sweet Home!" 2086
             wait 2000
             useskill "Hiding"
             wait 100
@@ -881,14 +1004,16 @@ endif
             endif
 
 for 10
-if findtype "iron ore" backpack as ore
+    if findtype "iron ore" backpack as ore
+        if findtype "forge" ground -1 -1 2 or findtype 0x0FB1 ground -1 -1 2
         overhead "*smelting ore...*" 149
         dclick ore
         wait 1000
         hotkey 'Organizer Agent-11'  
         wait 250
-endif
-endfor     
+        endif 
+    endif
+endfor        
 
 
     if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
@@ -904,6 +1029,7 @@ endfor
                 wait 1000
             endif
     endif 
+    hotkey "Organizer Agent-04"
     stop
 endif  
 
@@ -923,7 +1049,7 @@ if not listexists "mining_action"
 endif
 
 if inlist "mining_action" "red_alert" and EnableRedAlertRecall = 1
-    overhead "Looks like trouble coming!" 37 
+    overhead "Looks like trouble coming!" 37
      
         // Auto pouch POP if paralized 
             if paralyzed 
@@ -990,6 +1116,7 @@ if inlist "mining_action" "red_alert" and EnableRedAlertRecall = 1
                                 wait 250 
                             endif
 
+if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
 //  Modify to suit your own needs or remove.
 
@@ -998,8 +1125,19 @@ if inlist "mining_action" "red_alert" and EnableRedAlertRecall = 1
             dclick 0x50F70A17 
             wait 1000
 ########################################
+endif 
 
-            overhead "Home Sweet Home!" 37
+if InnRecall = 1
+// Set InnRecall variable above if recalling into an inn. 
+// This will bring you right into your room.
+                wait 2000
+                say "Innkeeper, I need a room!"
+                waitforgump 2393832411
+                gumpresponse 4
+                wait 3000
+endif
+
+            overhead "Home Sweet Home!" 2086
             wait 2000
             useskill "Hiding"
             wait 100
@@ -1010,13 +1148,15 @@ if inlist "mining_action" "red_alert" and EnableRedAlertRecall = 1
             endif
 
 for 10
-if findtype "iron ore" backpack as ore
+    if findtype "iron ore" backpack as ore
+        if findtype "forge" ground -1 -1 2 or findtype 0x0FB1 ground -1 -1 2
         overhead "*smelting ore...*" 149
         dclick ore
         wait 1000
         hotkey 'Organizer Agent-11'  
         wait 250
-endif
+        endif 
+    endif
 endfor     
 
     if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
@@ -1032,7 +1172,8 @@ endfor
                 wait 1000
             endif
     endif 
-    stop        
+    hotkey "Organizer Agent-04"
+    stop     
 endif 
 
 
@@ -1042,6 +1183,40 @@ endif
 ##############################################
 
 
+// Auto forge ore to ingots at any forge.  Just stand nearby!
+// Checks for natural forge every 10 seconds when carrying ore (time be modified in variable section).
+// Player-built forges will auto-detect whenever close and carrying ore.
+
+if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
+    
+@setvar! forgeFound 0
+    
+    if not timerexists AutoSmeltNaturalForgeTimer
+        settimer AutoSmeltNaturalForgeTimer AutoForgeTimer
+    endif
+
+    if timer AutoSmeltNaturalForgeTimer >= AutoForgeTimer
+        dclick ore
+        wait 500
+        if insysmsg "You do not see any nearby forges"
+            settimer AutoSmeltNaturalForgeTimer 0
+        else
+            @setvar! forgeFound 1
+        endif
+    endif
+
+    for 10
+    if findtype "forge" ground -1 -1 2 or findtype 0x0FB1 ground -1 -1 2 or forgeFound = 1 and findtype "iron ore" backpack as ore
+        overhead "*smelting ore...*" 149
+        dclick ore
+        wait 1000
+        hotkey 'Organizer Agent-11'  
+        wait 100
+        replay
+    endif
+    endfor 
+endif
+
 
 hotkey 'Use item in hand' 
 waitfortarget 500
@@ -1050,10 +1225,11 @@ hotkey 'Target Self'
 wait 500
 
 if insysmsg "Achievement: Miner"  
-    overhead '*mining ore...*' 37
+    overhead '*mining ore...*' 1418
 endif
 
 wait 100
+
 
 if insysmsg "Now tracking" or insysmsg "Distance to destination"
     pushlist "mining_action" "red_alert" 
@@ -1079,32 +1255,30 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                     replay 
             
                     elseif insysmsg 'You have worn out your tool' 
-                    overhead "My pickaxe broke!" 337
+                    overhead "My pickaxe broke!" 2086
                     clearsysmsg 
                     wait 500 
                     replay 
         
                 elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any' 
                     overhead "[ KEEP MOVING... ]" 69
-                    
+                        
                         if findtype 'iron ore|iron ingots' backpack 
                             hotkey 'Organizer Agent-11'
                             wait 250
-                            hotkey 'Organizer Agent-04'
-                            wait 100
                             hotkey 'Organizer Agent-03'
                             wait 100
-                            replay
                         endif
+                        
+                    hotkey 'Organizer Agent-04'
 
                     wait 400
-                    clearsysmsg
                     replay 
         
                 elseif insysmsg "travel" 
-                    overhead "I'm tired from travelling." 337
+                    overhead "I'm tired from travelling." 2086
                     wait 2000 
-                    overhead "Just give me a minute to recover..." 337
+                    overhead "Just give me a minute to recover..." 2086
                     wait 10000
                     clearsysmsg 
                     replay 
@@ -1147,7 +1321,7 @@ else
                     replay 
             
                     elseif insysmsg 'You have worn out your tool' 
-                    overhead "My pickaxe broke!" 337
+                    overhead "My pickaxe broke!" 2086
                     clearsysmsg 
                     replay 
         
@@ -1157,20 +1331,19 @@ else
                         if findtype 'iron ore|iron ingots' backpack 
                             hotkey 'Organizer Agent-11'
                             wait 250
-                            hotkey 'Organizer Agent-04'
-                            wait 100
                             hotkey 'Organizer Agent-03'
                             wait 100
-                            replay
                         endif
+                        
+                    hotkey 'Organizer Agent-04'
 
                     wait 400
                     replay 
         
                 elseif insysmsg "travel" 
-                    overhead "I'm tired from travelling." 337
+                    overhead "I'm tired from travelling." 2086
                     wait 1500 
-                    overhead "Just give me a minute to recover..." 337
+                    overhead "Just give me a minute to recover..." 2086
                     wait 10000
                     clearsysmsg 
                     replay 
@@ -1236,4 +1409,4 @@ replay
 ///  Contact me with any questions, suggestions or tips!
 //// dan@danstockman.com
 
-# ENJOY! #
+# ENJOY and HAPPY HARVESTING!! #

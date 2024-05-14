@@ -1,0 +1,329 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/7e444b9b-24ae-49d9-b181-d7544cf01380 for latest
+# Automation by Jaseowns
+## Script: The auto-gardener
+## Created by: jfrostp#0
+#############################################
+
+# Auto-gardener by Frost
+# Make sure to have lots of gardening tools in your backpack.
+# You will be prompted for any new seeds to plant.
+# This script will use the first planter spade it finds in your pack, so be sure to only have the one you want to use in your pack.
+
+# Adjust the variables below to turn on/off what you want the script to manage. It defaults to doing everything.
+
+# Set these if you want it to cure **detrimental** effects
+setvar! cureCreatures 1
+setvar! cureFungus 1
+setvar! curePestilents 1
+
+# Set these for how you want it to 
+setvar! useFertilizer 1
+setvar! useGrowthSerum 1
+setvar! useWaterBooster 1
+setvar! useHeatingGrate 1
+
+# Set this if you are near water and want it to refill your watering cans for you
+setvar! autoRefillWateringCans 0
+
+#-------------------------------------------
+#-------------------------------------------
+clearignore
+clearsysmsg
+gumpclose
+setvar! debug 0
+
+if autoRefillWateringCans = 1
+    overhead 'Refilling watering cans..'
+    while findtype 25570 backpack as wateringCan
+        getlabel wateringCan waterLevel
+        if " 0/" in waterLevel
+            dclick wateringCan
+            wait 750
+            
+            if insysmsg "nearby water"
+                break
+            endif
+        endif
+        ignore wateringCan
+    endwhile
+    clearignore
+endif
+
+while findtype 6330|6338|6341|28987 true as planter
+    if debug = 1
+        overhead 'Begin planter'
+    endif
+    clearsysmsg
+    getlabel planter planterLabel
+    dclick planter
+    waitforgump 3224608375
+    wait 150
+    
+    if "%" in planterLabel
+        gumpresponse 2
+        waitfortarget
+        waitforgump 3224608375
+    else
+        overhead 'Select a seed to plant'
+        unsetvar seed
+        setvar! seed
+        
+        gumpresponse 2
+        waitfortarget
+        waitforgump 3224608375
+        target seed
+        
+        if insysmsg "not a plant seed"
+            overhead 'No seed selected, aborting script'
+            stop
+        endif
+        waitforgump 3224608375
+        
+        # Estimate levels for new plant
+        gumpresponse 3
+        waitforgump 3224608375
+        gumpresponse 4
+        waitforgump 3224608375
+        gumpresponse 5
+        waitforgump 3224608375
+        wait 150
+    endif
+    
+    if debug = 1
+        overhead 'heat'
+    endif
+    # Add boosters if missing
+    if useHeatingGrate = 1
+        if findtype 28741 backpack as heatingGrate
+            gumpresponse 2
+            waitfortarget 
+            waitforgump 3224608375
+            target heatingGrate
+            wait 300
+        else
+            overhead 'Out of heating grates!'
+        endif
+    endif
+    
+    if debug = 1
+        overhead 'filter'
+    endif
+    if useWaterBooster = 1
+        if findtype 20501 backpack as waterBooster
+            gumpresponse 2
+            waitfortarget 
+            waitforgump 3224608375
+            target waterBooster
+            wait 300
+        else
+            overhead 'Out of water boosters!'
+        endif
+    endif
+    
+    if debug = 1
+        overhead 'fert'
+    endif
+    if useFertilizer = 1
+        if findtype 4154 backpack as fertilizer
+            gumpresponse 2
+            waitfortarget 
+            waitforgump 3224608375
+            target fertilizer
+            wait 300
+        else
+            overhead 'Out of fertilizer!'
+        endif
+    endif
+    
+    if debug = 1
+        overhead 'growth'
+    endif
+    if useGrowthSerum = 1
+        if findtype 20498 backpack as growthSerum
+            gumpresponse 2
+            waitfortarget 
+            waitforgump 3224608375
+            target growthSerum
+            wait 300
+        else
+            overhead 'Out of growth serum!'
+        endif
+    endif
+    
+    if debug = 1
+        overhead 'watering'
+    endif
+    # Water
+    setvar! waterDone 0
+    while findtype 25570 backpack as wateringCan
+        # Use watering cans until done
+        getlabel wateringCan waterLevel
+        if " 0/" in waterLevel
+            ignore wateringCan
+        else
+            gumpresponse 2
+            waitfortarget
+            waitforgump 3224608375
+            target wateringCan
+            waitforgump 3929333591
+            gumpresponse 2
+            waitforgump 3929333591
+            gumpclose 3929333591
+            
+            if insysmsg "not yet estimated"
+                # Estimate levels
+                gumpclose 3224608375
+                wait 500
+                dclick planter
+                wait 100
+                waitforgump 3224608375
+                gumpresponse 3
+                waitforgump 3224608375
+                
+                if insysmsg "spade is required"
+                    overhead 'No plater spade found!'
+                    stop
+                endif
+                
+                gumpresponse 4
+                waitforgump 3224608375
+                gumpresponse 5
+                waitforgump 3224608375
+                wait 150
+            endif
+        endif
+        
+        if insysmsg "already met this"
+            setvar! waterDone 1
+            break
+        elseif insysmsg "add the ideal amount of water"
+            setvar! waterDone 1
+            break
+        endif
+        wait 200
+    endwhile
+    gumpclose 3224608375
+    wait 500
+    
+    if waterDone = 0
+        overhead 'Out of water!'
+        stop
+    endif
+    
+    if debug = 1
+        overhead 'soil'
+    endif
+    
+    # Soil
+    setvar! soil 0
+    if findtype 2323 backpack as dirt
+        setvar! soil dirt
+    endif
+    if soil = 0
+        overhead 'Out of soil'
+        stop
+    endif
+    dclick planter
+    wait 100
+    waitforgump 3224608375
+    gumpresponse 2
+    waitfortarget
+    waitforgump 3224608375
+    target soil
+    waitforgump 3224608375
+    waitforgump 4024474571
+    gumpresponse 2
+    waitforgump 3224608375
+    waitforgump 4024474571
+    gumpclose 3224608375
+    wait 500
+    
+    # Labor and toil
+    dclick planter
+    wait 100
+    waitforgump 3224608375
+    gumpresponse 2
+    waitfortarget
+    
+    if findtype 29868 backpack as spade
+        target spade
+    else
+        overhead 'No spade found in backpack!'
+        stop
+    endif
+
+    waitforgump 1429840072
+    gumpresponse 6
+    waitforgump 3224608375
+    waitforgump 1429840072
+    gumpclose 1429840072
+    gumpclose 3224608375
+    wait 500
+    
+    # Pests/etc
+    if debug = 1
+        overhead 'cure detrimental pests'
+    endif
+    dclick planter
+    wait 100
+    waitforgump 3224608375
+    
+    # Try to fix up to 3 negative effects
+    for 3
+        gumpresponse 10
+        waitforgump 3224608375
+        wait 100
+        if insysmsg 'Reduces'
+            gumpresponse 10
+            waitforgump 3224608375
+            wait 100
+            if insysmsg 'Fungal' and cureFungus = 1
+                if findtype 6193 backpack as cure
+                    overhead 'Cured fungus'
+                    gumpresponse 2
+                    waitfortarget
+                    waitforgump 3224608375
+                    target cure
+                    wait 500
+                else
+                    overhead 'Out of fungicide!'
+                endif
+            endif
+            if insysmsg 'Creature' and cureCreatures = 1
+                if findtype 29345 backpack as cure
+                    overhead 'Cured creature'
+                    gumpresponse 2
+                    waitfortarget
+                    waitforgump 3224608375
+                    target cure
+                    wait 500
+                else
+                    overhead 'Out of fungicide!'
+                endif
+            endif
+            if insysmsg 'Pestilent' and curePestilents = 1
+                if findtype 6187 backpack as cure
+                    overhead 'Cured pestilent'
+                    gumpresponse 2
+                    waitfortarget
+                    waitforgump 3224608375
+                    target cure
+                    wait 500
+                else
+                    overhead 'Out of defoliant!'
+                endif
+            endif
+        else
+            break
+        endif
+    endfor
+    
+    if debug = 1
+        overhead 'Planter done'
+    endif
+    
+    ignore planter
+endwhile
+
+overhead 'Done! Move to the next 3x3 area of planters, or stop this script'
+clearignore

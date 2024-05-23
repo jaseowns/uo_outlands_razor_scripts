@@ -5,7 +5,7 @@
 #############################################
 
 /////// DANSTOCK'S ULTIMATE HARVESTING AUTO PILOT SCRIPT
-/////   UO Outlands Razor script - Last updated May 18, 2024 (email any bug reports/tips to dan@danstockman.com) 
+/////   UO Outlands Razor script - Last updated May 22, 2024 (email any bug reports/tips to dan@danstockman.com) 
 ///     Created by DanStock.
 
 
@@ -54,7 +54,7 @@ endif
 
 
 ############################################################################################################
-############   LUMBERJACKING SCRIPT STARTS ON LINE 1595 (LUMBER VARIABLES START ON LINE 1695)   ############
+############   LUMBERJACKING SCRIPT STARTS ON LINE 1471 (LUMBER VARIABLES START ON LINE 1571)   ############
 ############################################################################################################
 
 
@@ -92,7 +92,7 @@ if skill "Mining" > 49.9 and EnableMining = 1
     # Bandages
     # Healing, Cure and Refresh potions (strength, agility and magic resist pots help too *)
     # Skinning knife *
-    # Cheese *
+    # Cheese or fish steak *
     # Adventurers rope *
     # Harvest Aspect leather armour *
     # A blessed codex of Macing *
@@ -103,7 +103,7 @@ if skill "Mining" > 49.9 and EnableMining = 1
     # Organizer Agent-06 hotbag * (optional for unloading loot & ingots at home/inn room)
     
 
-// To further clean things up, I have set filters for repeated system/overhead messages.
+    // To further clean things up, I suggest using some filters for repeated system/overhead messages.
 
 ### System messages to filter in Razor: ###
 
@@ -190,7 +190,7 @@ if skill "Mining" > 49.9 and EnableMining = 1
 # Alt in will enter an Inn room that you don't own (for second accounts or someone else's room)
 
 
-# Set time between natural forge checks (default is 10 seconds):
+# Set time between natural forge checks (default is every 5 seconds):
 @setvar! EnableAutoSmeltNaturalForge 1
 @setvar! AutoForgeTimer 5000
 
@@ -202,17 +202,21 @@ if skill "Mining" > 49.9 and EnableMining = 1
 @setvar! EnableIngotBag 1
 @setvar! OpenIngotBag 1
 
+# Will notify via system message when tool is getting close to breaking (last 5 uses):
+@setvar! ToolCountdown 1
+# Will recycle tool before it breaks (if tinker tools in inventory):
+@setvar! RecycleTool 1
 
 # Set weight (in stones) for overhead weight warnings and limit - or disable weight warnings all together:
 @setvar! EnableWeightWarningMessage 1
 @setvar! GreenWarningWeight 550 
 @setvar! YellowWarningWeight 570
-@setvar! RedWeightLimit 589
+@setvar! RedWeightLimit 590
 
 
 # Set HP values for heal, cure and refresh potion activation:
 @setvar! EnableHealPotion 1
-@setvar! HealPotHP 55
+@setvar! HealPotHP 45
 
 @setvar! EnableCurePotion 1
 @setvar! CurePotHP 75
@@ -308,27 +312,38 @@ if inlist "mining_action" "red_alert" and EnableRedAlertRecall = 1
         
         // Auto bandage when damaged and not healing.
         // Will try for heal potion if no bandages.
-            if not bandaging and hits < maxhits
+            if skill 'Healing' > 50 and not bandaging and hits < maxhits
                     hotkey "Bandage self"
-                    overhead '*applying bandages*' 88
+                    overhead '*applying bandages...*' 88
                     wait 500
             endif 
                 
             if hits < 70 and not cooldown "Healing Potion"
-                if findtype "Yellow Potion" backpack as pot
-                    overhead '*drinking heal potion*' 253
-                    dclick pot
+                if findtype "Yellow Potion" backpack as healpot
+                    overhead '*drinking heal potion...*' 253
+                    dclick healpot
                     wait 200
-                    cooldown "Healing Potion" 10000
+                    cooldown "Healing Potion" 10500
                 else 
                     overhead '*Out of heal pots!*' 337
                 endif
             endif 
-
+            
+            if poisoned and not cooldown "Cure Potion"
+                if findtype "Orange Potion" backpack as curepot
+                    overhead '*drinking cure potion...*' 44
+                    dclick curepot
+                    cooldown "Cure Potion" 10500
+                    wait 200
+                else
+                    overhead "Out of cure pots!" 337
+                endif
+            endif
+        
             if stam < 100 and not cooldown "Refresh Potion"
-                if findtype "Red Potion" backpack as pot
-                    overhead '*drinking refresh potion*' 34
-                    dclick pot
+                if findtype "Red Potion" backpack as refreshpot
+                    overhead '*drinking refresh potion...*' 34
+                    dclick refreshpot
                     cooldown "Refresh Potion" 10500
                     wait 200
                 else 
@@ -340,17 +355,18 @@ if inlist "mining_action" "red_alert" and EnableRedAlertRecall = 1
             dclick mining_runebook
             waitforgump 1551740969 
             gumpresponse 2
-            wft 500 
+            wait 500 
             
                 // Will try up to 5 mores times if spell is disrupted. 
                 for 5
+                    wait 500
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying that again...' 337
                         while not targetexists 
                         dclick mining_runebook
                         waitforgump 1551740969 
                         gumpresponse 2
-                        wft 500 
+                        wait 500 
                         clearsysmsg 
                     endif
                 endfor
@@ -360,10 +376,10 @@ if inlist "mining_action" "red_alert" and EnableRedAlertRecall = 1
         wait 2500
 
 
-                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
-                                dclick weapon
-                                wait 250 
-                            endif
+        if not findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' hand and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+            dclick weapon
+            wait 250 
+        endif
 
 if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
@@ -452,14 +468,13 @@ if skill 'Healing' > 50
     if counttype 'clean bandage%s%' < 10
         overhead "[ RESTOCK BANDAGES! ]" 88
     endif 
-   
 endif 
-
+            
 if EnableCurePotion = 1
     if poisoned and not cooldown "Cure Potion" and hits < CurePotHP
-        if findtype "Orange Potion" backpack as pot
-            overhead '*drinking cure potion*' 44
-            dclick pot
+        if findtype "Orange Potion" backpack as curepot
+            overhead '*drinking cure potion...*' 44
+            dclick curepot
             cooldown "Cure Potion" 10500
             wait 200
         else
@@ -470,9 +485,9 @@ endif
 
 if EnableHealPotion = 1
     if hits < HealPotHP and not cooldown "Healing Potion"
-        if findtype "Yellow Potion" backpack as pot
-            overhead '*drinking heal potion*' 253
-            dclick pot
+        if findtype "Yellow Potion" backpack as healpot
+            overhead '*drinking heal potion...*' 253
+            dclick healpot
             cooldown "Healing Potion" 10500
             wait 200
         else 
@@ -483,9 +498,9 @@ endif
 
 if EnableRefreshPotion = 1
     if stam < RefreshPotSP and not cooldown "Refresh Potion"
-        if findtype "Red Potion" backpack as pot
-            overhead '*drinking refresh potion*' 34
-            dclick pot
+        if findtype "Red Potion" backpack as refreshpot
+            overhead '*drinking refresh potion...*' 34
+            dclick refreshpot
             cooldown "Refresh Potion" 10500
             wait 200
         else 
@@ -500,7 +515,7 @@ endif
 
 if EnableMagicReflection = 1
 if skill 'Magery' > 50 and not findbuff 'Magic Reflection' and not cooldown "Magic Shield"
-    overhead 'I should protect myself...' 2086
+        overhead 'I should protect myself...' 2086
         cast 'Magic Reflection' 
         waitfortarget 1500
         hotkey 'Target Self'
@@ -519,18 +534,18 @@ endif
 // Auto carve any corpses if skinning knife found in inventory (modify under variable section).
 // No room for forensic evaluation on this template, but still worth skinning for the leather...
 
-if EnableAutoCarving = 1 
-    if findtype 'Elven SpellBlade' backpack
-        if findtype "corpse" ground -1 -1 2 as body
-            dclicktype "Elven Spellblade"
-            waitfortarget 1500
-            target 'self'
-            wait 100
-            overhead "*skinning corpse...*" 0
-            wait 500
-            @ignore body
-        endif 
-    endif
+if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
+    if findtype "corpse" ground -1 -1 2 as body
+        wait 500
+        dclicktype "Elven Spellblade"
+        waitfortarget 2000
+        target 'self'
+        wait 250
+        overhead "*skinning corpse...*" 337
+        wait 500
+        @ignore body
+    endif 
+endif
     
     if not findtype 'Elven SpellBlade' backpack
         overhead "[ NO SKINNING KNIFE! ]" 339
@@ -597,27 +612,26 @@ if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
             dclick  mining_runebook
             waitforgump 1551740969 
             gumpresponse 2
-            # Change gumpresponse to '2' to select first rune in book.
-            wft 500 
+            wait 500 
             
                 // Will try up to 5 mores times if spell is disrupted. 
-                for 10
+                for 5
+                    wait 500
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying again...' 2086
                         while not targetexists 
                         dclick mining_runebook
                         waitforgump 1551740969 
                         gumpresponse 2
-                        # Change gumpresponse to '2' to select first rune in book.
-                        wft 500
+                        wait 500
                     endif
                 endfor
                 wait 2500
 
-                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
-                                dclick weapon
-                                wait 250 
-                            endif
+                if not findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' hand and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                    dclick weapon
+                    wait 250 
+                endif
 
 if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
@@ -714,7 +728,7 @@ if skill 'Tracking' > 50 and not findbuff 'tracking' and EnableRedAlertRecall = 
                 clearsysmsg 
             endif
         gumpclose 4267467659
-        overhead "[ AUTO RECALL ACTIVATED ]" 37
+        overhead "[ AUTO RECALL ACTIVATED! ]" 37
         wait 100
 endif 
 
@@ -724,19 +738,19 @@ endif
 
 if EnableCheeseTimer = 1
 if insysmsg "Your food satisfaction"
-    overhead "*stomach growls*" 0
+    overhead "*stomach growls...*" 0
     wait 2500
     clearsysmsg 
     replay
 endif 
 
-if not findbuff 'food satisfaction' and counttype "wedge%s% of cheese" backpack > 0 
+if not findbuff 'food satisfaction' and findtype "wedge%s% of cheese|fish steak%s%" self
         wait 1500
         overhead "Hold on, I shouldn't do this on an empty stomach..." 2086
         wait 500
-        if findtype "wedge%s% of cheese" backpack >= 1
+        if findtype "wedge%s% of cheese|fish steak%s%" backpack as Food
             overhead "*eating food*" 0
-            dclicktype "wedge%s% of cheese" backpack
+            dclick Food
             wait 1500
             overhead "Ok, I'm ready to get to work!" 2086
             wait 1500
@@ -761,6 +775,55 @@ if not findtype 'pickaxe' hand and findtype 'pickaxe' backpack
 endif
 
 
+// Will notify via system message when tool is about to break (5 uses and less).
+
+if ToolCountdown = 1
+if findtype 'pickaxe' hand as MyAxe
+    getlabel MyAxe AxeLabel
+    if '(5 uses' in AxeLabel or '(4 uses' in AxeLabel or '(3 uses' in AxeLabel or '(2 uses' in AxeLabel or '(1 use' in AxeLabel
+        sysmsg "Your tool is about to break..." 153
+        wait 100
+    endif 
+endif 
+endif 
+
+
+// Will recycle tool before it break (if tool kit in inventory).
+
+if findtype 'tool kit' self as ToolKit and RecycleTool = 1
+if findtype 'pickaxe|hatchet' hand as MyAxe
+    getlabel MyAxe AxeLabel
+    if '(1 use' in AxeLabel
+        overhead "[ RECYCLING TOOL! ]" 153
+        clearhands both
+        wait 1000
+        if not gumpexists 949095101 
+            dclick ToolKit
+            waitforgump 949095101 2000
+        endif 
+        
+        for 5
+            gumpresponse 3 949095101
+            wait 1000
+                if insysmsg "Target an individual item"
+                    wait 500
+                    target MyAxe
+                    wait 1000
+                    gumpclose 949095101
+                    wait 1000
+                    overhead "Every little bit counts!" 2086
+                    hotkey 'Organizer Agent-11'  
+                    wait 500
+                    replay
+        else 
+            gumpresponse 2
+            wait 500
+        endfor 
+    endif 
+endif 
+endif 
+
+
 ###########################
 ##### WAR MODE TOGGLE #####
 ###########################
@@ -772,348 +835,160 @@ endif
 
 if warmode and EnableAutoAttackGreyMOB = 1
 
-    overhead "It's time to fight!!" 2086
+    overhead "It's time to fight!" 2086
     
-        if findtype "quarter staff|war mace|maul|war axe|mace|hammer pick|club" backpack as weapon
-            wait 100    
+        if not findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' hand and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon
             dclick weapon      
-            wait 500
+            wait 100
+            
             hotkey 'Target Random Murderer Player'       
             wait 500  
             
-            if insysmsg "No one matching that was found"    
-                    for 100
-                        wait 500 
+                if insysmsg "No one matching that was found"    
+                    for 1000
                         hotkey 'Target Closest Grey Monster'    
                         wait 500
                         
-                        if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                            if findtype "corpse" ground -1 -1 2 as body
-                                dclicktype "Elven Spellblade"
-                                waitfortarget 1500
-                                target 'self'
-                                wait 100
-                                overhead "*skinning corpse...*" 0
-                                wait 500
-                                @ignore body
-                            endif 
-                        endif
+                                    if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
+                                        if findtype "corpse" ground -1 -1 2 as body
+                                            wait 500
+                                            dclicktype "Elven Spellblade"
+                                            waitfortarget 2000
+                                            target 'self'
+                                            wait 250
+                                            overhead "*skinning corpse...*" 337
+                                            wait 500
+                                            @ignore body
+                                        endif 
+                                    endif
      
-                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
-                                dclick weapon
-                                wait 250 
-                            endif
+                        if not findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' hand and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                            dclick weapon
+                            wait 100 
+                        endif
                             
-                                if insysmsg "No one matching that was found" 
-                      
-                                    // Will toggle peace mode and restart script if no targets:
-                                    wait 1000   
-                                    overhead "Is there no one else??" 2086
-                                    wait 2500
-                                    overhead "Alright then, back to work..." 2086
+                            if insysmsg "No one matching that was found" 
+
+                                hotkey 'Cancel Current Target'                      
+                                wait 500   
+                                overhead "Is there no one else??" 2086
+                                wait 2000
+                                overhead "Alright then, back to work..." 2086
                                                             
                                     if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                            if findtype "corpse" ground -1 -1 2 as body
-                                dclicktype "Elven Spellblade"
-                                waitfortarget 1500
-                                target 'self'
-                                wait 100
-                                overhead "*skinning corpse...*" 0
-                                wait 500
-                                @ignore body
-                            endif 
-                        endif
+                                        if findtype "corpse" ground -1 -1 2 as body
+                                            wait 500
+                                            dclicktype "Elven Spellblade"
+                                            waitfortarget 2000
+                                            target 'self'
+                                            wait 250
+                                            overhead "*skinning corpse...*" 337
+                                            wait 500
+                                            @ignore body
+                                        endif 
+                                    endif
                         
-                                    hotkey 'Toggle Peace Only'
-                                    wait 100
-                                    hotkey 'Cancel Current Target'
-                                    wait 100
-                                    hotkey 'Clear Target Queue'
-                                    wait 1000  
-                                    clearsysmsg 
-                                    replay
-                                endif 
-                    
-               // Will target and attack nearest grey target if warmode engaged:
-                        wait 500
-                        hotkey 'Attack Last Target'
-                        wait 500
-                        
-                                                
-                        if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                            if findtype "corpse" ground -1 -1 2 as body
-                                dclicktype "Elven Spellblade"
-                                waitfortarget 1500
-                                target 'self'
-                                wait 100
-                                overhead "*skinning corpse...*" 0
-                                wait 500
-                                @ignore body
-                            endif 
-                        endif
-                        
-                # Restart auto bandage/pots
-                            if not bandaging and hits < maxhits
-                                overhead '*applying bandages*' 88
-                                hotkey "Bandage Self"
-                                wait 250
-                            endif
-    
-                            if poisoned and not cooldown "Cure Potion"
-                                if findtype "Orange Potion" backpack as pot
-                                    overhead '*drinking cure potion*' 44
-                                    dclick pot
-                                    cooldown "Cure Potion" 10000
-                                    wait 200
-                                else 
-                                    overhead "Out of cure pots!" 337
-                                endif
-                            endif
-
-                            if hits < 50 and not cooldown "Healing Potion"
-                                if findtype "Yellow Potion" backpack as pot
-                                    overhead '*drinking heal potion*' 253
-                                    dclick pot
-                                    cooldown "Healing Potion" 10000
-                                    wait 200
-                                else 
-                                    overhead 'Out of heal pots!' 337
-                                endif
-                            endif
-                        wait 2500 
-                    endfor
-                    replay 
-        endif 
-            
-        // Will recall out if red player targeted in war mode:  
-            hotkey 'Cancel Current Target'
-            wait 100
-            
-            while not targetexists 
-            dclick  mining_runebook
-            waitforgump 1551740969 
-            gumpresponse 2
-            # Change gumpresponse to '2' to select first rune in book.
-            wft 500 
-            
-                // Will try up to 5 mores times if spell is disrupted. 
-                for 10
-                    if insysmsg 'Your concentration is disturbed'
-                        overhead 'Shit! Trying again...' 2086
-                        while not targetexists 
-                        dclick mining_runebook
-                        waitforgump 1551740969 
-                        gumpresponse 2
-                        # Change gumpresponse to '2' to select first rune in book.
-                        wft 500
-                    endif
-                endfor
-                wait 2500
-
-                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
-                                dclick weapon
-                                wait 250 
-                            endif
-
-if HomeRecall = 1
-//  This closes my house door behind me after it auto opens.  
-//  Modify to suit your own needs or remove.
-
-########################################
-            wait 750
-            dclick 0x50F70A17 
-            overhead "*door slams!*" 0 0x50F70A17
-            wait 1000
-########################################
-endif 
-
-if InnRecall = 1
-// Set InnRecall variable above if recalling into an inn. 
-// This will bring you right into your room.
-                wait 2000
-                say "Innkeeper, I need a room!"
-                waitforgump 2393832411
-                gumpresponse 4
-                wait 3000
-endif
-
-if AltInnRecall = 1
-// Set AltInnRecall variable above if recalling into an inn room not owned by the character. 
-// This will bring you right into your room.
-                wait 2000
-                say "Innkeeper, I need a room!"
-                waitforgump 2393832411
-                gumpresponse 5
-                wait 2000
-                gumpresponse 100
-                wait 2000
-endif
-
-            overhead "Home Sweet Home!" 2086
-            wait 2000
-            useskill "Hiding"
-            wait 100
-
-            if OpenIngotBag = 1 
-                dclick ingotbag
-                wait 250
-            endif
-            
-for 10
-    if findtype "iron ore" backpack as ore
-        if findtype "forge" ground -1 -1 2 as forge or findtype 0x0FB1 ground -1 -1 2 as forge
-        overhead "*smelting ore...*" 2114 forge
-        dclick ore
-        overhead "*forging ingots...*" 2117
-        wait 1000
-        hotkey 'Organizer Agent-11'  
-        wait 250
-        endif 
-    endif
-endfor     
-
-    if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
-                overhead "*storing ingots...*" 37
-                hotkey "Organizer Agent-06"
-                wait 3000
-            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
-                hotkey "Organizer Agent-06"
-                wait 3000
-            endif
-            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
-                hotkey "Organizer Agent-06"
-                wait 1000
-            endif
-    endif 
-    hotkey "Organizer Agent-04"
-    overhead "[ STOPPING SCRIPT! ]" 37
-    stop
-endif
-          
-    if counttype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack = 0 
-       
-        if counttype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' lefthand = 1  
-                wait 100     
-                hotkey 'Target Random Murderer Player'       
-                wait 500  
-                   if insysmsg "No one matching that was found"    
-                       for 100
-                        wait 500  
-                        hotkey 'Target Closest Grey Monster'    
-                        wait 1000
-                            if insysmsg "No one matching that was found" 
-                      
-                                 // Will toggle peace mode and restart script if no targets:
-                                wait 1000   
-                                overhead "Is there no one else??" 2086
-                                wait 3000    
-                                overhead "Alright, back to work..." 2086
                                 hotkey 'Toggle Peace Only'
                                 wait 100
-                                hotkey 'Cancel Current Target'
-                                wait 100
                                 hotkey 'Clear Target Queue'
-                                wait 1000  
+                                clearsysmsg 
+                                wait 1500 
                                 replay
-                            endif
-                    
-                // Will target and attack nearest grey target if warmode engaged:
-                wait 500
-                hotkey 'Attack Last Target'
-                wait 500
-                    # Restart auto bandage
-                    if not bandaging and hits < maxhits
-                        overhead '*applying bandages*' 88
-                    hotkey "Bandage Self"
-                    wait 500
-                endif
-                
-                if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                            if findtype "corpse" ground -1 -1 2 as body
-                                dclicktype "Elven Spellblade"
-                                waitfortarget 1500
-                                target 'self'
-                                wait 100
-                                overhead "*skinning corpse...*" 0
-                                wait 500
-                                @ignore body
+                                    
                             endif 
-                        endif
+                    
+                        hotkey 'Attack Last Target'
+                        overhead "¼ TARGET ¼ " 253 lasttarget 
+                        wait 250
+                            
+                            if skill 'Healing' > 50 
+                                if not bandaging and hits < maxhits
+                                    overhead '*applying bandages...*' 88
+                                    hotkey "Bandage Self"
+                                endif
+    
+                                if counttype 'clean bandage%s%' < 10
+                                    overhead "[ RESTOCK BANDAGES! ]" 88
+                                endif 
+                            endif 
 
-if poisoned and not cooldown "Cure Potion"
-    if findtype "Orange Potion" backpack as pot
-    overhead '*drinking cure potion*' 44
-        dclick pot
-    cooldown "Cure Potion" 10000
-        wait 200
-    else
-        overhead "Out of cure pots!" 337
-    endif
-endif
+                            if EnableCurePotion = 1
+                                if poisoned and not cooldown "Cure Potion" and hits < CurePotHP
+                                    if findtype "Orange Potion" backpack as curepot
+                                        overhead '*drinking cure potion...*' 44
+                                        dclick curepot
+                                        cooldown "Cure Potion" 10500
+                                        wait 200
+                                    else
+                                        overhead "Out of cure pots!" 337
+                                    endif
+                                endif
+                            endif 
 
-if hits < 70 and not cooldown "Healing Potion"
-    if findtype "Yellow Potion" backpack as pot
-    overhead '*drinking heal potion*' 253
-        dclick pot
-    cooldown "Healing Potion" 10000
-        wait 200
-    else 
-        overhead 'Out of heal pots!' 337
-    endif
-endif
+                            if EnableHealPotion = 1
+                                if hits < HealPotHP and not cooldown "Healing Potion"
+                                    if findtype "Yellow Potion" backpack as healpot
+                                        overhead '*drinking heal potion...*' 253
+                                        dclick healpot
+                                        cooldown "Healing Potion" 10500
+                                        wait 200
+                                    else 
+                                        overhead 'Out of heal pots!' 337
+                                    endif
+                                endif
+                            endif 
 
-if stam < 100 and not cooldown "Refresh Potion"
-        if findtype "Red Potion" backpack as pot
-            overhead '*drinking refresh potion*' 34
-            dclick pot
-            cooldown "Refresh Potion" 10500
-            wait 200
-        else 
-            overhead 'Out of refresh pots!' 337
-        endif
-    endif
-endif
-
-                    wait 2500 
-                endfor
-                
-                replay 
-                
-            endif 
-           
-            // Will recall out if red player targeted in war mode:                   
+                            if EnableRefreshPotion = 1
+                                if stam < RefreshPotSP and not cooldown "Refresh Potion"
+                                    if findtype "Red Potion" backpack as refreshpot
+                                        overhead '*drinking refresh potion*' 34
+                                        dclick refreshpot
+                                        cooldown "Refresh Potion" 10500
+                                        wait 200
+                                    else 
+                                        overhead 'Out of refresh pots!' 337
+                                    endif
+                                endif
+                            endif
+                            
+                            if paralyzed and EnableParalyzePouch = 1
+                                overhead "[ !!POP!! ]" 149
+                                say "[pouch" 
+                                wait 100
+                            endif
+                            
+                        wait 500 
+                        
+                    endfor
+                    
+            overhead "[ RED ALERT!! ]" 37
             hotkey 'Cancel Current Target'
             wait 100
             while not targetexists 
             dclick  mining_runebook
             waitforgump 1551740969 
             gumpresponse 2
-            # Change gumpresponse to '2' to select first rune in book.
-            wft 500 
+            wait 500 
             
-
-                // Will try up to 5 mores times if spell is disrupted. 
                 for 5
                     if insysmsg 'Your concentration is disturbed'
-                        overhead 'Shit! Trying that again...' 337
+                        overhead 'Shit! Trying again...' 337
                         while not targetexists 
                         dclick mining_runebook
                         waitforgump 1551740969 
                         gumpresponse 2
-                        # Change gumpresponse to '2' to select first rune in book.
-                        clearsysmsg 
-                        wft 500
+                        wait 500
                     endif
                 endfor
-              
+                
                 wait 2500
 
-                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
-                                dclick weapon
-                                wait 250 
-                            endif
-                            
-if HomeRecall = 1
+                if not findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' hand and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                    dclick weapon
+                    wait 250 
+                endif
+
+    if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
 //  Modify to suit your own needs or remove.
 
@@ -1123,9 +998,9 @@ if HomeRecall = 1
             overhead "*door slams!*" 0 0x50F70A17
             wait 1000
 ########################################
-endif 
+    endif 
 
-if InnRecall = 1
+    if InnRecall = 1
 // Set InnRecall variable above if recalling into an inn. 
 // This will bring you right into your room.
                 wait 2000
@@ -1133,9 +1008,9 @@ if InnRecall = 1
                 waitforgump 2393832411
                 gumpresponse 4
                 wait 3000
-endif
+    endif
 
-if AltInnRecall = 1
+    if AltInnRecall = 1
 // Set AltInnRecall variable above if recalling into an inn room not owned by the character. 
 // This will bring you right into your room.
                 wait 2000
@@ -1145,7 +1020,7 @@ if AltInnRecall = 1
                 wait 2000
                 gumpresponse 100
                 wait 2000
-endif
+    endif
 
             overhead "Home Sweet Home!" 2086
             wait 2000
@@ -1156,7 +1031,7 @@ endif
                 dclick ingotbag
                 wait 250
             endif
-
+            
 for 10
     if findtype "iron ore" backpack as ore
         if findtype "forge" ground -1 -1 2 as forge or findtype 0x0FB1 ground -1 -1 2 as forge
@@ -1182,29 +1057,29 @@ endfor
                 hotkey "Organizer Agent-06"
                 wait 1000
             endif
-    endif 
-    hotkey "Organizer Agent-04"
-    overhead "[ STOPPING SCRIPT! ]" 37
-    stop
-endif  
-        
-        wait 1000  
+        endif 
+        hotkey "Organizer Agent-04"
+        overhead "[ STOPPING SCRIPT! ]" 37
+        stop
+    endif
+    
+endif 
+          
+    if not findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' self
+       
         overhead "I can't fight without a weapon!"  2086
-        wait 2000 
+        wait 1500 
         overhead "I'd better RUN!!" 37
         hotkey 'Toggle Peace Only'  
-               
-            // Will recall out if war mode engaged with no weapons:                
+                            
             hotkey 'Cancel Current Target'
             wait 100
             while not targetexists 
             dclick mining_runebook
             waitforgump 1551740969 
             gumpresponse 2
-            # Change gumpresponse to '2' to select first rune in book.
-            wft 500 
+            wait 500 
             
-                // Will try up to 5 mores times if spell is disrupted. 
                 for 5
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying that again...' 2086
@@ -1212,20 +1087,19 @@ endif
                         dclick mining_runebook
                         waitforgump 1551740969 
                         gumpresponse 2
-                        # Change gumpresponse to '2' to select first rune in book.
-                        wft 500
+                        wait 500
                         clearsysmsg 
                     endif
                 endfor
                 
                 wait 2500
 
-                            if lhandempty and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
-                                dclick weapon
-                                wait 250 
-                            endif
+                        if not findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' hand and findtype 'quarter staff|war mace|maul|war axe|mace|hammer pick|club' backpack as weapon 
+                            dclick weapon
+                            wait 250 
+                        endif
 
-if HomeRecall = 1
+    if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
 //  Modify to suit your own needs or remove.
 
@@ -1235,9 +1109,9 @@ if HomeRecall = 1
             overhead "*door slams!*" 0 0x50F70A17
             wait 1000
 ########################################
-endif 
+    endif 
 
-if InnRecall = 1
+    if InnRecall = 1
 // Set InnRecall variable above if recalling into an inn. 
 // This will bring you right into your room.
                 wait 2000
@@ -1245,9 +1119,9 @@ if InnRecall = 1
                 waitforgump 2393832411
                 gumpresponse 4
                 wait 3000
-endif
+    endif
 
-if AltInnRecall = 1
+    if AltInnRecall = 1
 // Set AltInnRecall variable above if recalling into an inn room not owned by the character. 
 // This will bring you right into your room.
                 wait 2000
@@ -1257,7 +1131,7 @@ if AltInnRecall = 1
                 wait 2000
                 gumpresponse 100
                 wait 2000
-endif
+    endif
 
             overhead "Home Sweet Home!" 2086
             wait 2000
@@ -1282,7 +1156,6 @@ for 10
     endif
 endfor        
 
-
     if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
                 overhead "*storing ingots...*" 37
                 hotkey "Organizer Agent-06"
@@ -1299,9 +1172,8 @@ endfor
     hotkey "Organizer Agent-04"
     overhead "[ STOPPING SCRIPT! ]" 37
     stop
-endif  
-
-      
+    endif  
+endif 
 
 
 
@@ -1324,7 +1196,7 @@ if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
 
     if timer AutoSmeltNaturalForgeTimer >= AutoForgeTimer
         dclick ore
-        wait 500
+        wait 750
         if insysmsg "You do not see any nearby forges"
             settimer AutoSmeltNaturalForgeTimer 0
         else
@@ -1332,17 +1204,16 @@ if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
         endif
     endif
 
-    for 10
-        if findtype "forge" ground -1 -1 2 as forge or findtype 0x0FB1 ground -1 -1 2 as forge or ForgeFound = 1 and findtype "iron ore" backpack as ore
+for 10
+    if findtype "forge" ground -1 -1 2 as forge or findtype 0x0FB1 ground -1 -1 2 as forge or ForgeFound = 1 and findtype "iron ore" backpack as ore
         overhead "*smelting ore...*" 2114 forge
         dclick ore
         overhead "*forging ingots...*" 2117
         wait 1000
         hotkey 'Organizer Agent-11'  
-        wait 100
-        replay
+        wait 500
     endif
-    endfor 
+endfor 
 endif
 
 
@@ -1351,7 +1222,7 @@ endif
 
 if EnableWeightWarningMessage = 1
     if weight > GreenWarningWeight and weight < YellowWarningWeight
-    overhead "[ WEIGHT WARNING! ]" 69
+    overhead "[ WEIGHT WARNING! ]" 1267
 endif
 
 if weight > YellowWarningWeight and weight < RedWeightLimit
@@ -1445,9 +1316,9 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
         
                 elseif insysmsg "travel" 
                     overhead "I'm tired from travelling." 2086
-                    wait 2000 
+                    wait 2500 
                     overhead "Just give me a minute to recover..." 2086
-                    wait 10000
+                    wait 12000
                     clearsysmsg 
                     replay 
             
@@ -1528,9 +1399,9 @@ else
         
                 elseif insysmsg "travel" 
                     overhead "I'm tired from travelling." 2086
-                    wait 1500 
+                    wait 2500 
                     overhead "Just give me a minute to recover..." 2086
-                    wait 10000
+                    wait 12000
                     clearsysmsg 
                     replay 
             
@@ -1590,7 +1461,6 @@ else
 #####################################################
 
         replay
-
     endif
 endif 
 
@@ -1743,6 +1613,11 @@ if skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1
 @setvar! EnableBoardBag 1
 @setvar! OpenBoardBag 1
 
+# Will notify via system message when tool is getting close to breaking (last 5 uses):
+@setvar! ToolCountdown 1
+# Will recycle tool before it breaks (if tinker tools in inventory):
+@setvar! RecycleTool 1
+
 
 # Set HP values for heal, cure and refresh potion activation:
 @setvar! EnableHealPotion 1
@@ -1852,7 +1727,7 @@ if inlist "lumber_action" "red_alert" and EnableRedAlertRecall = 1
                     overhead '*drinking heal potion*' 253
                     dclick pot
                     wait 200
-                    cooldown "Healing Potion" 10000
+                    cooldown "Healing Potion" 10500
                 else 
                     overhead '*Out of heal pots!*' 337
                 endif
@@ -1873,7 +1748,7 @@ if inlist "lumber_action" "red_alert" and EnableRedAlertRecall = 1
             dclick lumber_runebook
             waitforgump 1551740969 
             gumpresponse 2
-            wft 500 
+            wait 500 
             
                 // Will try up to 5 mores times if spell is disrupted. 
                 for 5
@@ -1883,7 +1758,7 @@ if inlist "lumber_action" "red_alert" and EnableRedAlertRecall = 1
                         dclick lumber_runebook
                         waitforgump 1551740969 
                         gumpresponse 2
-                        wft 500 
+                        wait 500 
                         clearsysmsg 
                     endif
                 endfor
@@ -1945,7 +1820,7 @@ endif
                 for 10
                     if findtype 'log%s' backpack 
                             wait 500
-                    overhead '*making boards...*' 0
+                            overhead '*making boards...*' 0
                             dclicktype 'log%s' 
                             wait 250
                             hotkey 'Organizer Agent-01'
@@ -2055,7 +1930,7 @@ if EnableAutoCarving = 1
             waitfortarget 1500
             target 'self'
             wait 100
-            overhead "*skinning corpse...*" 0
+            overhead "*skinning corpse...*" 337
             wait 500
             @ignore body
         endif 
@@ -2127,10 +2002,10 @@ if counttype "board%s" > BoardRecallAmount and EnableBoardAutoRecall = 1
             waitforgump 1551740969 
             gumpresponse 2
             # Change gumpresponse to '2' to select first rune in book.
-            wft 500 
+            wait 500 
             
                 // Will try up to 5 mores times if spell is disrupted. 
-                for 10
+                for 5
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying again...' 2086
                         while not targetexists 
@@ -2138,7 +2013,7 @@ if counttype "board%s" > BoardRecallAmount and EnableBoardAutoRecall = 1
                         waitforgump 1551740969 
                         gumpresponse 2
                         # Change gumpresponse to '2' to select first rune in book.
-                        wft 500
+                        wait 500
                     endif
                 endfor
                 wait 2500
@@ -2195,7 +2070,7 @@ endif
                 for 10
                     if findtype 'log%s' backpack 
                             wait 500
-                    overhead '*making boards...*' 0
+                            overhead '*making boards...*' 0
                             dclicktype 'log%s' 
                             wait 250
                             hotkey 'Organizer Agent-01'
@@ -2258,14 +2133,14 @@ if insysmsg "Your food satisfaction"
     replay
 endif 
 
-if not findbuff 'food satisfaction' and counttype "wedge%s% of cheese" backpack > 0 
-        wait 500
+if not findbuff 'food satisfaction' and findtype "wedge%s% of cheese|fish steak%s%" self
+        wait 1500
         overhead "Hold on, I shouldn't do this on an empty stomach..." 2086
-        wait 750
-        if findtype "wedge%s% of cheese" backpack >= 1
+        wait 500
+        if findtype "wedge%s% of cheese|fish steak%s%" backpack as Food
             overhead "*eating food*" 0
-            dclicktype "wedge%s% of cheese" backpack
-            wait 1000
+            dclick Food
+            wait 1500
             overhead "Ok, I'm ready to get to work!" 2086
             wait 1500
         endif
@@ -2287,14 +2162,63 @@ if not findtype 'hatchet' hand and findtype 'hatchet' backpack
         dclicktype 'hatchet' backpack
         wait 1500
 endif
-    
+
+
+// Will notify via system message when tool is about to break (5 uses and less).
+
+if ToolCountdown = 1
+if findtype 'pickaxe' hand as MyAxe
+    getlabel MyAxe AxeLabel
+    if '(5 uses' in AxeLabel or '(4 uses' in AxeLabel or '(3 uses' in AxeLabel or '(2 uses' in AxeLabel or '(1 use' in AxeLabel
+        sysmsg "Your tool is about to break..." 153
+        wait 100
+    endif 
+endif 
+endif 
+
+
+// Will recycle tool before it break (if tool kit in inventory).
+
+if findtype 'tool kit' self as ToolKit and RecycleTool = 1
+if findtype 'pickaxe|hatchet' hand as MyAxe
+    getlabel MyAxe AxeLabel
+    if '(1 use' in AxeLabel
+        overhead "[ RECYCLING TOOL! ]" 153
+        clearhands both
+        wait 1000
+        if not gumpexists 949095101 
+            dclick ToolKit
+            waitforgump 949095101 2000
+        endif 
+        
+        for 5
+            gumpresponse 3 949095101
+            wait 1000
+                if insysmsg "Target an individual item"
+                    wait 500
+                    target MyAxe
+                    wait 1000
+                    gumpclose 949095101
+                    wait 1000
+                    overhead "Every little bit counts!" 2086
+                    wait 500
+                    hotkey 'Organizer Agent-01'
+                    replay
+        else 
+            gumpresponse 2
+            wait 500
+        endfor 
+    endif 
+endif 
+endif 
+
 
 //  Notification via overhead message when pack is getting too heavy.
 //  Script stops script if weight exceeds 389. Adjust these numbers to suit your own stats under variable section above!
 
 if EnableWeightWarningMessage = 1
 if weight > GreenWarningWeight and weight < YellowWarningWeight
-    overhead "[ WEIGHT WARNING! ]" 69
+    overhead "[ WEIGHT WARNING! ]" 1267
 endif
 
 if weight > YellowWarningWeight and weight < RedWeightLimit
@@ -2308,150 +2232,174 @@ if weight > RedWeightLimit
     wait 2500
     replay
 endif
-endif 
+endif
 
 
 ###########################
 ##### WAR MODE TOGGLE #####
 ###########################
 
-// Will equip weapon on warmode toggle and target nearest grey.
+// Will equip weapon on warmode toggle and target nearest grey MOB.
 // If the closest target is a red player, auto recall will trigger.
-// If the closest target is a grey MOB, it will be attacked until no nearby targets remain.  Script will then go back to chopping.
+// If the closest target is a grey MOB, it will be attacked until no nearby targets remain.  Script will then go back to mining.
 // Auto recall triggers also if no weapons available on warmode toggle with close red or grey targets. 
 
 if warmode and EnableAutoAttackGreyMOB = 1
 
-    overhead "It's time to fight!!" 2086
+    overhead "It's time to fight!" 2086
     
-        if findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" backpack as weapon
-            wait 100    
+    if not findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' hand and findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' backpack as weapon
             dclick weapon      
-            wait 500
+            wait 100
+            
             hotkey 'Target Random Murderer Player'       
             wait 500  
             
-            if insysmsg "No one matching that was found"    
-                    for 100
-                        wait 500 
+                if insysmsg "No one matching that was found"    
+                    for 1000
                         hotkey 'Target Closest Grey Monster'    
                         wait 500
                         
-                        if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                            if findtype "corpse" ground -1 -1 2 as body
-                                dclicktype "Elven Spellblade"
-                                waitfortarget 1500
-                                target 'self'
-                                wait 100
-                                overhead "*skinning corpse...*" 0
-                                wait 500
-                                @ignore body
-                            endif 
+                                    if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
+                                        if findtype "corpse" ground -1 -1 2 as body
+                                            wait 500
+                                            dclicktype "Elven Spellblade"
+                                            waitfortarget 2000
+                                            target 'self'
+                                            wait 250
+                                            overhead "*skinning corpse...*" 337
+                                            wait 500
+                                            @ignore body
+                                        endif 
+                                    endif
+     
+                        if not findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' hand and findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' backpack as weapon 
+                            dclick weapon
+                            wait 100 
                         endif
+                            
+                            if insysmsg "No one matching that was found" 
+
+                                hotkey 'Cancel Current Target'                      
+                                wait 500   
+                                overhead "Is there no one else??" 2086
+                                wait 2000
+                                overhead "Alright then, back to work..." 2086
+                                                            
+                                    if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
+                                        if findtype "corpse" ground -1 -1 2 as body
+                                            wait 500
+                                            dclicktype "Elven Spellblade"
+                                            waitfortarget 2000
+                                            target 'self'
+                                            wait 250
+                                            overhead "*skinning corpse...*" 337
+                                            wait 500
+                                            @ignore body
+                                        endif 
+                                    endif
                         
-                            if lhandempty and findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' backpack as weapon 
-                                dclick weapon
-                                wait 250 
+                                hotkey 'Toggle Peace Only'
+                                wait 100
+                                hotkey 'Clear Target Queue'
+                                clearsysmsg 
+                                wait 1500 
+                                replay
+                                    
+                            endif 
+                    
+                        hotkey 'Attack Last Target'
+                        overhead "¼ TARGET ¼ " 253 lasttarget 
+                        wait 250
+                            
+                            if skill 'Healing' > 50 
+                                if not bandaging and hits < maxhits
+                                    overhead '*applying bandages...*' 88
+                                    hotkey "Bandage Self"
+                                endif
+    
+                                if counttype 'clean bandage%s%' < 10
+                                    overhead "[ RESTOCK BANDAGES! ]" 88
+                                endif 
+                            endif 
+
+                            if EnableCurePotion = 1
+                                if poisoned and not cooldown "Cure Potion" and hits < CurePotHP
+                                    if findtype "Orange Potion" backpack as curepot
+                                        overhead '*drinking cure potion...*' 44
+                                        dclick curepot
+                                        cooldown "Cure Potion" 10500
+                                        wait 200
+                                    else
+                                        overhead "Out of cure pots!" 337
+                                    endif
+                                endif
+                            endif 
+
+                            if EnableHealPotion = 1
+                                if hits < HealPotHP and not cooldown "Healing Potion"
+                                    if findtype "Yellow Potion" backpack as healpot
+                                        overhead '*drinking heal potion...*' 253
+                                        dclick healpot
+                                        cooldown "Healing Potion" 10500
+                                        wait 200
+                                    else 
+                                        overhead 'Out of heal pots!' 337
+                                    endif
+                                endif
+                            endif 
+
+                            if EnableRefreshPotion = 1
+                                if stam < RefreshPotSP and not cooldown "Refresh Potion"
+                                    if findtype "Red Potion" backpack as refreshpot
+                                        overhead '*drinking refresh potion*' 34
+                                        dclick refreshpot
+                                        cooldown "Refresh Potion" 10500
+                                        wait 200
+                                    else 
+                                        overhead 'Out of refresh pots!' 337
+                                    endif
+                                endif
                             endif
                             
-                                if insysmsg "No one matching that was found" 
-                      
-                                    // Will toggle peace mode and restart script if no targets:
-                                    wait 1000   
-                                    overhead "Is there no one else??" 2086
-                                    wait 2500
-                                    overhead "Alright then, back to work..." 2086
-                                    hotkey 'Toggle Peace Only'
-                                    wait 100
-                                    hotkey 'Cancel Current Target'
-                                    wait 100
-                                    hotkey 'Clear Target Queue'
-                                    wait 1000  
-                                    clearsysmsg 
-                                    replay
-                                endif 
-                    
-               // Will target and attack nearest grey target if warmode engaged:
-                        wait 500
-                        hotkey 'Attack Last Target'
-                        wait 500
-                        
-                        if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                            if findtype "corpse" ground -1 -1 2 as body
-                                dclicktype "Elven Spellblade"
-                                waitfortarget 1500
-                                target 'self'
+                            if paralyzed and EnableParalyzePouch = 1
+                                overhead "[ !!POP!! ]" 149
+                                say "[pouch" 
                                 wait 100
-                                overhead "*skinning corpse...*" 0
-                                wait 500
-                                @ignore body
-                            endif 
-                        endif
+                            endif
+                            
+                        wait 500 
                         
-                # Restart auto bandage/pots
-                            if not bandaging and hits < maxhits
-                                overhead '*applying bandages*' 88
-                                hotkey "Bandage Self"
-                                wait 250
-                            endif
-    
-                            if poisoned and not cooldown "Cure Potion"
-                                if findtype "Orange Potion" backpack as pot
-                                    overhead '*drinking cure potion*' 44
-                                    dclick pot
-                                    cooldown "Cure Potion" 10000
-                                    wait 200
-                                else 
-                                    overhead "Out of cure pots!" 337
-                                endif
-                            endif
-
-                            if hits < 50 and not cooldown "Healing Potion"
-                                if findtype "Yellow Potion" backpack as pot
-                                    overhead '*drinking heal potion*' 253
-                                    dclick pot
-                                    cooldown "Healing Potion" 10000
-                                    wait 200
-                                else 
-                                    overhead 'Out of heal pots!' 337
-                                endif
-                            endif
-                        wait 2500 
                     endfor
-                    replay 
-        endif 
-            
-        // Will recall out if red player targeted in war mode:  
+                    
+            overhead "[ RED ALERT!! ]" 37
             hotkey 'Cancel Current Target'
             wait 100
-            
             while not targetexists 
-            dclick  lumber_runebook
+            dclick  mining_runebook
             waitforgump 1551740969 
             gumpresponse 2
-            # Change gumpresponse to '2' to select first rune in book.
-            wft 500 
+            wait 500 
             
-                // Will try up to 5 mores times if spell is disrupted. 
-                for 10
+                for 5
                     if insysmsg 'Your concentration is disturbed'
-                        overhead 'Shit! Trying again...' 2086
+                        overhead 'Shit! Trying again...' 337
                         while not targetexists 
-                        dclick lumber_runebook
+                        dclick mining_runebook
                         waitforgump 1551740969 
                         gumpresponse 2
-                        # Change gumpresponse to '2' to select first rune in book.
-                        wft 500
+                        wait 500
                     endif
                 endfor
+                
                 wait 2500
 
-                            if lhandempty and findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' backpack as weapon 
-                                dclick weapon
-                                wait 250 
-                            endif
-                            
-if HomeRecall = 1
+                if not findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' hand and findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' backpack as weapon 
+                    dclick weapon
+                    wait 250 
+                endif
+
+    if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
 //  Modify to suit your own needs or remove.
 
@@ -2461,9 +2409,9 @@ if HomeRecall = 1
             overhead "*door slams!*" 0 0x50F70A17
             wait 1000
 ########################################
-endif 
+    endif 
 
-if InnRecall = 1
+    if InnRecall = 1
 // Set InnRecall variable above if recalling into an inn. 
 // This will bring you right into your room.
                 wait 2000
@@ -2471,9 +2419,9 @@ if InnRecall = 1
                 waitforgump 2393832411
                 gumpresponse 4
                 wait 3000
-endif
+    endif
 
-if AltInnRecall = 1
+    if AltInnRecall = 1
 // Set AltInnRecall variable above if recalling into an inn room not owned by the character. 
 // This will bring you right into your room.
                 wait 2000
@@ -2483,7 +2431,7 @@ if AltInnRecall = 1
                 wait 2000
                 gumpresponse 100
                 wait 2000
-endif
+    endif
 
             overhead "Home Sweet Home!" 2086
             wait 2000
@@ -2494,17 +2442,126 @@ endif
                 dclick boardbag
                 wait 250
             endif
-
+            
                 for 10
                     if findtype 'log%s' backpack 
                             wait 500
-                    overhead '*making boards...*' 0
+                            overhead '*making boards...*' 0
                             dclicktype 'log%s' 
                             wait 250
                             hotkey 'Organizer Agent-01'
                             wait 1500
                     endif
-                endfor     
+                endfor
+
+    if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                overhead "*storing boards...*" 37
+                hotkey "Organizer Agent-06"
+                wait 3000
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 3000
+            endif
+            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
+                hotkey "Organizer Agent-06"
+                wait 1000
+            endif
+        endif 
+        hotkey "Organizer Agent-04"
+        overhead "[ STOPPING SCRIPT! ]" 37
+        stop
+    endif
+    
+endif 
+          
+    if not findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' self
+       
+        overhead "I can't fight without a weapon!"  2086
+        wait 1500 
+        overhead "I'd better RUN!!" 37
+        hotkey 'Toggle Peace Only'  
+                            
+            hotkey 'Cancel Current Target'
+            wait 100
+            while not targetexists 
+            dclick mining_runebook
+            waitforgump 1551740969 
+            gumpresponse 2
+            wait 500 
+            
+                for 5
+                    if insysmsg 'Your concentration is disturbed'
+                        overhead 'Shit! Trying that again...' 2086
+                        while not targetexists 
+                        dclick mining_runebook
+                        waitforgump 1551740969 
+                        gumpresponse 2
+                        wait 500
+                        clearsysmsg 
+                    endif
+                endfor
+                
+                wait 2500
+
+                        if not findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' hand and findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' backpack as weapon 
+                            dclick weapon
+                            wait 250 
+                        endif
+
+    if HomeRecall = 1
+//  This closes my house door behind me after it auto opens.  
+//  Modify to suit your own needs or remove.
+
+########################################
+            wait 750
+            dclick 0x50F70A17 
+            overhead "*door slams!*" 0 0x50F70A17
+            wait 1000
+########################################
+    endif 
+
+    if InnRecall = 1
+// Set InnRecall variable above if recalling into an inn. 
+// This will bring you right into your room.
+                wait 2000
+                say "Innkeeper, I need a room!"
+                waitforgump 2393832411
+                gumpresponse 4
+                wait 3000
+    endif
+
+    if AltInnRecall = 1
+// Set AltInnRecall variable above if recalling into an inn room not owned by the character. 
+// This will bring you right into your room.
+                wait 2000
+                say "Innkeeper, I need a room!"
+                waitforgump 2393832411
+                gumpresponse 5
+                wait 2000
+                gumpresponse 100
+                wait 2000
+    endif
+
+            overhead "Home Sweet Home!" 2086
+            wait 2000
+            useskill "Hiding"
+            wait 100
+
+            if OpenBoardBag = 1 
+                dclick boardbag
+                wait 250
+            endif
+            
+                for 10
+                    if findtype 'log%s' backpack 
+                            wait 500
+                            overhead '*making boards...*' 0
+                            dclicktype 'log%s' 
+                            wait 250
+                            hotkey 'Organizer Agent-01'
+                            wait 1500
+                    endif
+                endfor
 
     if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
                 overhead "*storing boards...*" 37
@@ -2519,330 +2576,11 @@ endif
                 wait 1000
             endif
     endif 
+    hotkey "Organizer Agent-04"
     overhead "[ STOPPING SCRIPT! ]" 37
     stop
-endif
-          
-    if not findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' backpack
-       
-        if findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' lefthand  
-                wait 100     
-                hotkey 'Target Random Murderer Player'       
-                wait 500  
-                   if insysmsg "No one matching that was found"    
-                       for 100
-                        wait 500  
-                        hotkey 'Target Closest Grey Monster'    
-                        wait 1000
-                            if insysmsg "No one matching that was found" 
-                      
-                                 // Will toggle peace mode and restart script if no targets:
-                                wait 1000   
-                                overhead "Is there no one else??" 2086
-                                wait 3000    
-                                overhead "Alright, back to work..." 2086
-                                
-                                if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                            if findtype "corpse" ground -1 -1 2 as body
-                                dclicktype "Elven Spellblade"
-                                waitfortarget 1500
-                                target 'self'
-                                wait 100
-                                overhead "*skinning corpse...*" 0
-                                wait 500
-                                @ignore body
-                            endif 
-                        endif
-                        
-                                hotkey 'Toggle Peace Only'
-                                wait 100
-                                hotkey 'Cancel Current Target'
-                                wait 100
-                                hotkey 'Clear Target Queue'
-                                wait 1000  
-                                replay
-                            endif
-                    
-                // Will target and attack nearest grey target if warmode engaged:
-                wait 500
-                hotkey 'Attack Last Target'
-                wait 500
-                    # Restart auto bandage
-                    if not bandaging and hits < maxhits
-                        overhead '*applying bandages*' 88
-                    hotkey "Bandage Self"
-                    wait 500
-                endif
-                        
-                if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                            if findtype "corpse" ground -1 -1 2 as body
-                                dclicktype "Elven Spellblade"
-                                waitfortarget 1500
-                                target 'self'
-                                wait 100
-                                overhead "*skinning corpse...*" 0
-                                wait 500
-                                @ignore body
-                            endif 
-                        endif
-                
-if poisoned and not cooldown "Cure Potion"
-    if findtype "Orange Potion" backpack as pot
-    overhead '*drinking cure potion*' 44
-        dclick pot
-    cooldown "Cure Potion" 10000
-        wait 200
-    else
-        overhead "Out of cure pots!" 337
-    endif
-endif
-
-if hits < 70 and not cooldown "Healing Potion"
-    if findtype "Yellow Potion" backpack as pot
-    overhead '*drinking heal potion*' 253
-        dclick pot
-    cooldown "Healing Potion" 10000
-        wait 200
-    else 
-        overhead 'Out of heal pots!' 337
-    endif
-endif
-
-if stam < 100 and not cooldown "Refresh Potion"
-        if findtype "Red Potion" backpack as pot
-            overhead '*drinking refresh potion*' 34
-            dclick pot
-            cooldown "Refresh Potion" 10500
-            wait 200
-        else 
-            overhead 'Out of refresh pots!' 337
-        endif
-    endif
-endif
-
-                    wait 2500 
-                endfor
-                
-                replay 
-                
-            endif 
-           
-            // Will recall out if red player targeted in war mode:                   
-            hotkey 'Cancel Current Target'
-            wait 100
-            while not targetexists 
-            dclick  lumber_runebook
-            waitforgump 1551740969 
-            gumpresponse 2
-            # Change gumpresponse to '2' to select first rune in book.
-            wft 500 
-            
-
-                // Will try up to 5 mores times if spell is disrupted. 
-                for 5
-                    if insysmsg 'Your concentration is disturbed'
-                        overhead 'Shit! Trying that again...' 2086
-                        while not targetexists 
-                        dclick lumber_runebook
-                        waitforgump 1551740969 
-                        gumpresponse 2
-                        # Change gumpresponse to '2' to select first rune in book.
-                        clearsysmsg 
-                        wft 500
-                    endif
-                endfor
-              
-                wait 2500
-
-                            if lhandempty and findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' backpack as weapon 
-                                dclick weapon
-                                wait 250 
-                            endif
-                            
-if HomeRecall = 1
-//  This closes my house door behind me after it auto opens.  
-//  Modify to suit your own needs or remove.
-
-########################################
-            wait 750
-            dclick 0x50F70A17 
-            overhead "*door slams!*" 0 0x50F70A17
-            wait 1000
-########################################
+    endif  
 endif 
-
-if InnRecall = 1
-// Set InnRecall variable above if recalling into an inn. 
-// This will bring you right into your room.
-                wait 2000
-                say "Innkeeper, I need a room!"
-                waitforgump 2393832411
-                gumpresponse 4
-                wait 3000
-endif
-
-if AltInnRecall = 1
-// Set AltInnRecall variable above if recalling into an inn room not owned by the character. 
-// This will bring you right into your room.
-                wait 2000
-                say "Innkeeper, I need a room!"
-                waitforgump 2393832411
-                gumpresponse 5
-                wait 2000
-                gumpresponse 100
-                wait 2000
-endif
-
-            overhead "Home Sweet Home!" 2086
-            wait 2000
-            useskill "Hiding"
-            wait 100
-
-            if OpenBoardBag = 1 
-                dclick boardbag
-                wait 250
-            endif
-
-                for 10
-                    if findtype 'log%s' backpack 
-                            wait 500
-                    overhead '*making boards...*' 0
-                            dclicktype 'log%s' 
-                            wait 250
-                            hotkey 'Organizer Agent-01'
-                            wait 1500
-                    endif
-                endfor
-
-    if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
-                overhead "*storing boards...*" 2086
-                hotkey "Organizer Agent-06"
-                wait 3000
-            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
-                hotkey "Organizer Agent-06"
-                wait 3000
-            endif
-            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
-                hotkey "Organizer Agent-06"
-                wait 1000
-            endif
-    endif 
-    overhead "[ STOPPING SCRIPT! ]" 37
-    stop
-                        
-endif  
-        
-        
-        wait 1000  
-        overhead "I can't fight without a weapon!"  2086
-        wait 2000 
-        overhead "I'd better RUN!!" 2086
-        hotkey 'Toggle Peace Only'  
-               
-            // Will recall out if war mode engaged with no weapons:                
-            hotkey 'Cancel Current Target'
-            wait 100
-            while not targetexists 
-            dclick lumber_runebook
-            waitforgump 1551740969 
-            gumpresponse 2
-            # Change gumpresponse to '2' to select first rune in book.
-            wft 500 
-            
-                // Will try up to 5 mores times if spell is disrupted. 
-                for 5
-                    if insysmsg 'Your concentration is disturbed'
-                        overhead 'Shit! Trying that again...' 2086
-                        while not targetexists 
-                        dclick lumber_runebook
-                        waitforgump 1551740969 
-                        gumpresponse 2
-                        # Change gumpresponse to '2' to select first rune in book.
-                        wft 500
-                        clearsysmsg 
-                    endif
-                endfor
-                
-                wait 2500
-
-                            if lhandempty and findtype 'double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword' backpack as weapon 
-                                dclick weapon
-                                wait 250 
-                            endif
-
-if HomeRecall = 1
-//  This closes my house door behind me after it auto opens.  
-//  Modify to suit your own needs or remove.
-
-########################################
-            wait 750
-            dclick 0x50F70A17 
-            overhead "*door slams!*" 0 0x50F70A17
-            wait 1000
-########################################
-endif 
-
-if InnRecall = 1
-// Set InnRecall variable above if recalling into an inn. 
-// This will bring you right into your room.
-                wait 2000
-                say "Innkeeper, I need a room!"
-                waitforgump 2393832411
-                gumpresponse 4
-                wait 3000
-endif
-
-if AltInnRecall = 1
-// Set AltInnRecall variable above if recalling into an inn room not owned by the character. 
-// This will bring you right into your room.
-                wait 2000
-                say "Innkeeper, I need a room!"
-                waitforgump 2393832411
-                gumpresponse 5
-                wait 2000
-                gumpresponse 100
-                wait 2000
-endif
-
-            overhead "Home Sweet Home!" 2086
-            wait 2000
-            useskill "Hiding"
-            wait 100
-
-            if OpenBoardBag = 1 
-                dclick boardbag
-                wait 250
-            endif
-
-                for 10
-                    if findtype 'log%s' backpack 
-                            wait 500
-                    overhead '*making boards...*' 0
-                            dclicktype 'log%s' 
-                            wait 250
-                            hotkey 'Organizer Agent-01'
-                            wait 1500
-                    endif
-                endfor
-
-    if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
-                overhead "*storing boards...*" 2086
-                hotkey "Organizer Agent-06"
-                wait 3000
-            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
-                hotkey "Organizer Agent-06"
-                wait 3000
-            endif
-            if findtype "cut up leather|iron ingot%s|board%s|feather%s|seed of renewal|shaft%s|blank scroll%s%|gold coin" backpack
-                hotkey "Organizer Agent-06"
-                wait 1000
-            endif
-    endif 
-    overhead "[ STOPPING SCRIPT! ]" 37
-    stop
-endif  
-
-endif      
 
 
 
@@ -2935,9 +2673,9 @@ if insysmsg "Now tracking"
 
                         clearsysmsg  
                         hotkey 'Organizer Agent-02'  
-                        wait 500  
+                        wait 1500  
                         hotkey 'Organizer Agent-03'
-                        wait 10000
+                        wait 12000
                         replay
  
 endif 

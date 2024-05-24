@@ -36,10 +36,11 @@
     # Bandages
     # Healing, Cure and Refresh potions (strength, agility and magic resist pots help too *)
     # Skinning knife *
-    # Cheese or fish steak *
+    # Cheese (or fish steaks) *
     # Adventurers rope *
-    # Harvest Aspect leather armour *
     # A blessed codex of Macing *
+    # A blessed codex of Healing *
+    # Harvest Aspect leather armour *
 
     # Organizer Agent-11 hotbag (for ingots - can be trapped pouch)
     # Organizer Agent-04 hotbag (for main inventory - I use a hidden stack of trapped pouches to deter theives and set this as the bottom one)
@@ -102,32 +103,6 @@
 ##  Script is very effective against Red PKs with either successful auto recall or auto bandages/pots keeping you alive long enough to evade or fight back!  
 
 
-////// ANYTIME YOU NEED TO RESET OR CHANGE PERMANENT VARIABLES (ie. ESCAPE RUNEBOOK AND INGOT BAG): ////// 
-    # Run script once with this ALLVARIABLERESET set to 1 to clear ALL variables. 
-    # Then reset ALLVARIABLERESET to 0 and restart script to prompt for new targets!
-    
-
-    @setvar! ALLVARIABLERESET 0
-
-    
-clearsysmsg
-hotkey 'Cancel Current Target'
-
-
-if ALLVARIABLERESET = 1
-    unsetvar mining_runebook
-    unsetvar ingotbag
-    overhead "All permanent variables reset!" 0
-    wait 1000
-    overhead "Restart script to prompt for new targets..." 0
-    wait 1000
-    overhead "Make sure to set ALLVARIABLERESET back to 0" 84
-    wait 1500
-    overhead "[ STOPPING SCRIPT! ]" 37
-    stop    
-endif 
-
-
 ########################################################
 ### Set values below as 1 to enable or 0 to disable. ###
 ########################################################
@@ -152,12 +127,12 @@ endif
 
 
 # Set auto recall to Home or Inn or Inn (alt):
-@setvar! InnRecall 1
+@setvar! InnRecall 0
 // or 
-@setvar! HomeRecall 0
+@setvar! HomeRecall 1
 // or
 @setvar! AltInnRecall 0
-# Alt in will enter an Inn room that you don't own (for second accounts or someone else's room)
+# Alt will enter an Inn room that you don't own (for second accounts or someone else's room)
 
 
 # Set time between natural forge checks (default is every 5 seconds):
@@ -208,8 +183,34 @@ endif
 @setvar! BlackInventoryMessage 1
 
 
+////// ANYTIME YOU NEED TO RESET OR CHANGE PERMANENT VARIABLES (ie. ESCAPE RUNEBOOK & INGOT BAG): ////// 
+    # Run script once with this ALLVARIABLERESET set to 1 to clear ALL variables. 
+    # Then reset ALLVARIABLERESET to 0 and restart script to prompt for new targets!
     
+
+    @setvar! ALLVARIABLERESET 0
+
+    
+clearsysmsg
+hotkey 'Cancel Current Target'
+
+
+if ALLVARIABLERESET = 1
+    unsetvar mining_runebook
+    unsetvar ingotbag
+    overhead "All permanent variables reset!" 0
+    wait 1000
+    overhead "Restart script to prompt for new targets..." 0
+    wait 1000
+    overhead "Make sure to set ALLVARIABLERESET back to 0" 84
+    wait 1500
+    overhead "[ STOPPING SCRIPT! ]" 37
+    stop    
+endif 
+
+
 if skill "Mining" > 49.9
+    
 
 #############################################
 ######### Mining Script starts here #########
@@ -274,16 +275,13 @@ endif
 if inlist "mining_alert" "red_alert_recall" and EnableRedAlertRecall = 1
     overhead "[ RED ALERT!! ]" 37
     wait 500
-    overhead "Looks like trouble coming!" 37
+    overhead "Looks like trouble coming!" 2086
      
-        // Auto open trapped pouch if paralyzed 
             if paralyzed 
                 overhead "[ !!POP!! ]" 149
                 say "[pouch"
             endif
         
-        // Auto bandage when damaged and not healing.
-        // Will try for heal potion if no bandages.
             if skill 'Healing' > 50 and not bandaging and hits < maxhits
                     hotkey "Bandage self"
                     overhead '*applying bandages...*' 88
@@ -343,7 +341,7 @@ if inlist "mining_alert" "red_alert_recall" and EnableRedAlertRecall = 1
                     endif
                 endfor
  
-        poplist "mining_recall" "red_alert_recall" 
+                poplist "mining_alert" "red_alert_recall" 
         
         wait 2500
 
@@ -360,12 +358,12 @@ if inlist "mining_alert" "red_alert_recall" and EnableRedAlertRecall = 1
     if HomeRecall = 1
     //  This closes my house door behind me after it auto opens.  
     //  Modify to suit your own needs or remove.
-########################################
+############################################
     wait 750
     dclick 0x50F70A17 
     overhead "*door slams!*" 0 0x50F70A17
     wait 1000
-########################################
+############################################
     endif 
 
     if InnRecall = 1
@@ -437,7 +435,7 @@ endif
 
 if skill 'Healing' > 50 
     if not bandaging and hits < maxhits
-        overhead '*applying bandages*' 88
+    overhead '*applying bandages...*' 88
         hotkey "Bandage Self"
     endif
     
@@ -489,22 +487,18 @@ endif
 // Auto buff check and activation for Magic Reflect (if Magery > 50)
 // Not used on my mining build, but might help others.  Enable in variable section above (off by default)!
 
-if EnableMagicReflection = 1
-    if skill 'Magery' > 50 and not findbuff 'Magic Reflection' and not cooldown "Magic Shield"
-        overhead 'I should protect myself...' 2086
-        cast 'Magic Reflection' 
-        waitfortarget 1500
-        hotkey 'Target Self'
-        wait 1000
-
+if skill 'Magery' > 50 and not findbuff 'Magic Reflection' and not cooldown "Magic Shield" and EnableMagicReflection = 1
+    overhead 'I should protect myself...' 2086
+    cast 'Magic Reflection' 
+    waitfortarget 1500
+    hotkey 'Target Self'
+    wait 1000
         if insysmsg "That spell will not adhere"
             cooldown "Magic Shield" 30000
         endif 
-        
-        wait 1500
-        replay
-    endif  
-endif 
+    wait 1500
+    replay
+endif  
 
 
 // Auto carve any corpses if skinning knife found in inventory (modify under variable section).
@@ -521,11 +515,12 @@ if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
         wait 500
         @ignore body
     endif 
+endif
     
-    if not findtype 'Elven SpellBlade' backpack
-        overhead "[ NO SKINNING KNIFE! ]" 339
-    endif 
+if not findtype 'Elven SpellBlade' self and EnableAutoCarving = 1
+    overhead "[ NO SKINNING KNIFE! ]" 339
 endif 
+ 
 
 
 // Weapon, rope and potion inventory checks.  Overhead message if anything is out of stock.
@@ -575,10 +570,9 @@ endif
 
 
 // Auto recall initiated if more than 2000 ingots in inventory (by default).
-// Modify amount or disable this option under variable section above.
 
 if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
-    overhead "I'd hate to lose all this work..." 2086
+    overhead "I'd hate to lose all this hard work..." 2086
     wait 2500
     overhead "I'm going to go unload before it's too late!" 2086
     wait 1000
@@ -617,12 +611,12 @@ if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
 if HomeRecall = 1
 //  This closes my house door behind me after it auto opens.  
 //  Modify to suit your own needs or remove.
-########################################
+############################################
     wait 750
     dclick 0x50F70A17 
     overhead "*door slams!*" 0 0x50F70A17
     wait 1000
-########################################
+############################################
 endif 
 
 if InnRecall = 1
@@ -717,7 +711,6 @@ endif
 // Food satisfaction check.  Will eat cheese/fish if any found in backpack while no food buff is active.
 ### I just use this as a one-hour timer to track my harvesting progress. ###
 
-
 if insysmsg "Your food satisfaction effect" and EnableCheeseTimer = 1
     overhead "*stomach growls*" 0
     wait 2500
@@ -757,18 +750,16 @@ endif
 
 // Will notify via system message when tool is about to break (5 uses and less).
 
-if ToolCountdown = 1
-    if findtype 'pickaxe' hand as MyAxe
-        getlabel MyAxe AxeLabel
-        if '(5 uses' in AxeLabel or '(4 uses' in AxeLabel or '(3 uses' in AxeLabel or '(2 uses' in AxeLabel or '(1 use' in AxeLabel
-            sysmsg "Your tool is about to break..." 153
-            wait 100
-        endif 
+if findtype 'pickaxe' hand as MyAxe and ToolCountdown = 1
+    getlabel MyAxe AxeLabel
+    if '(5 uses' in AxeLabel or '(4 uses' in AxeLabel or '(3 uses' in AxeLabel or '(2 uses' in AxeLabel or '(1 use' in AxeLabel
+        sysmsg "Your tool is about to break..." 153
+        wait 100
     endif 
 endif 
 
 
-// Will recycle tool before it break (if tool kit in inventory).
+// Will recycle tool before it breaks (if tool kit in inventory).
 
 if findtype 'tool kit' self as ToolKit and RecycleTool = 1
     if findtype 'pickaxe|hatchet' hand as MyAxe
@@ -792,16 +783,21 @@ if findtype 'tool kit' self as ToolKit and RecycleTool = 1
                     gumpclose 949095101
                     wait 1000
                     overhead "Every little bit counts!" 2086
-                    hotkey 'Organizer Agent-11'  
+                    hotkey 'Organizer Agent-01'  
                     wait 500
                     replay
-                elseif
+                else
                     gumpresponse 2
                     wait 500
             endfor 
+            endif 
         endif 
     endif 
-endif 
+endif
+
+if not findtype 'tool kit' self and RecycleTool = 1
+    overhead "[ NO TOOL KIT! ]" 339
+endif
 
 
 ###########################
@@ -930,7 +926,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
                             if EnableRefreshPotion = 1
                                 if stam < RefreshPotSP and not cooldown "Refresh Potion"
                                     if findtype "Red Potion" backpack as refreshpot
-                                        overhead '*drinking refresh potion*' 34
+                                        overhead '*drinking refresh potion...*' 34
                                         dclick refreshpot
                                         cooldown "Refresh Potion" 10500
                                         wait 200
@@ -984,12 +980,12 @@ if warmode and EnableAutoAttackGreyMOB = 1
     if HomeRecall = 1
     //  This closes my house door behind me after it auto opens.  
     //  Modify to suit your own needs or remove.
-    ########################################
+    ############################################
         wait 750
         dclick 0x50F70A17 
         overhead "*door slams!*" 0 0x50F70A17
         wait 1000
-    ########################################
+    ############################################
     endif 
 
     if InnRecall = 1
@@ -1088,12 +1084,12 @@ if skill "Mace Fighting" > 50 and not findtype "quarter staff|war mace|maul|war 
     //  This closes my house door behind me after it auto opens.  
     //  Modify to suit your own needs or remove.
 
-    ########################################
+    ############################################
         wait 750
         dclick 0x50F70A17 
         overhead "*door slams!*" 0 0x50F70A17
         wait 1000
-    ########################################
+    ############################################
     endif 
 
     if InnRecall = 1
@@ -1226,7 +1222,13 @@ endif
 hotkey 'Use item in hand' 
 waitfortarget 500
 hotkey 'Target Self' 
-wait 550
+
+
+// Increase this wait time if lag is causing error message //
+############
+  wait 600
+############
+
 
 if insysmsg "Achievement: Miner"  
     overhead '*mining ore...*' 2128
@@ -1238,18 +1240,17 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
     pushlist "mining_alert" "red_alert_recall" 
     replay 
         
-               elseif insysmsg 'world is saving' 
+                elseif insysmsg 'world is saving' 
                     overhead '[ WORLD SAVING... ]' 253 
-                        wait 3000 
-                        for 10 
+                    wait 1000 
+                        for 5
                         if insysmsg 'world save complete' 
                             overhead '[ SAVE COMPLETE! ]' 253 
-                            clearsysmsg 
-                        replay 
+                            wait 1000
                         endif 
-                        break 
                         endfor 
-                    replay 
+                            clearsysmsg 
+                            replay 
         
                 elseif insysmsg 'Harvesting is not allowed' 
                     overhead 'You need to leave town...' 84
@@ -1320,18 +1321,17 @@ else
         clearsysmsg 
         replay
         
-            elseif insysmsg 'world is saving'
-                overhead '[ WORLD SAVING... ]' 253
-                wait 3000
-                for 10
-                    if insysmsg 'world save complete'
-                    overhead '[ SAVE COMPLETE! ]' 253
+            elseif insysmsg 'world is saving' 
+                overhead '[ WORLD SAVING... ]' 253 
+                wait 1000 
+                    for 5
+                    if insysmsg 'world save complete' 
+                        overhead '[ SAVE COMPLETE! ]' 253 
+                        wait 1000
+                    endif 
+                    endfor 
                         clearsysmsg 
-                        replay
-                    endif
-                    break
-                endfor
-                replay
+                        replay 
             
             elseif insysmsg 'Harvesting is not allowed' 
                 overhead 'You need to leave town...' 84
@@ -1429,19 +1429,23 @@ else
     
             elseif insysmsg "You must wait"
                 overhead 'You must wait...' 337
-                wait 100
                 clearsysmsg 
                 replay  
 endif 
     
-    sysmsg "Increase wait time value on line 1223 of Auto Mining script if this message appears..." 69
+    sysmsg "If this error message appears frequently:  INCREASE WAIT TIME VALUE ON LINE 1250 OF SCRIPT!" 149
+    wait 100
     replay
+    endif
+    
+endif
+                
+
 
 #####################################################
 ##########  END AUTO MINER/SMELTER SCRIPT  ##########
 #####################################################
 
-endif 
 
     wait 1000
     overhead "Train skill to 50.0 at NPC and then restart script!" 0
@@ -1457,3 +1461,6 @@ endif
 
 
 //////// REACH OUT AND LET ME KNOW IF THERE'S ANY ISSUES:  DAN@DANSTOCKMAN.COM ////////
+ 
+
+##############################################################################################################################################################

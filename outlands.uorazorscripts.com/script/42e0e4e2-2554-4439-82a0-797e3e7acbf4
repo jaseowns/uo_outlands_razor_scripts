@@ -132,6 +132,7 @@
 // - Update 19-Dec-2023: Added ground item overhead support
 // - Update 09-Mar-2024: Runspeed optimization - changed fixed wait times to dynamic ping checks via getlabel command (many thanks to Jaseowns for sharing the idea)
 // - Update 28-Apr-2024: Added option to ignore brain fungi infested pots
+// - Update 29-May-2024: Added short wait periods between actions to fix issues mainly related to object delay (making the script run slower but more stable for people with low ping)
 //
 //////////////////////////////
 
@@ -139,7 +140,9 @@ if gardeningDebugMode > 0
     settimer gardeningRunTimer 0
 endif
 @clearignore
-setvar! gardeningWaitForServerResponse 1000
+setvar! gardeningMinWaitForServerResponse 200
+setvar! gardeningMaxWaitForServerResponse 1000
+setvar! gardeningWaitForObjectDelay 600
 while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 ground -1 -1 gardeningRange
     if not timerexists gardeningOverheadTimer
         overhead "|* Gardening *|"
@@ -155,7 +158,13 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
         while timer globalWorldSaveTimer < 10000
             if insysmsg "save complete"
                 sysmsg "The world has been saved!"
+                settimer gardeningMinWaitTimer 0
+                                settimer gardeningMinWaitTimer 0
                 getlabel backpack waitForPing
+                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                endwhile
+                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                endwhile
                 break
             endif
         endwhile
@@ -170,7 +179,7 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
             if gardeningDebugMode > 0
                 sysmsg "[Gardening] Trying to refill water containers (Timer: {{gardeningRunTimer}} ms)" 100
             endif
-            wait 500
+            wait gardeningWaitForObjectDelay
             @ignore myWaterContainer
         endwhile
         while findtype "water" ground -1 -1 2 and findtype 3703|3707|3715|4090|5344|5453 backpack as myWaterContainer
@@ -178,7 +187,7 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
             if gardeningDebugMode > 0
                 sysmsg "[Gardening] Trying to refill water containers (Timer: {{gardeningRunTimer}} ms)" 100
             endif
-            wait 500
+            wait gardeningWaitForObjectDelay
             @ignore myWaterContainer
         endwhile
     endif
@@ -189,16 +198,29 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
         overhead "  ¼  " 55 myFlowerPot
         if gumpexists 3224608375
             gumpclose 3224608375
+            settimer gardeningMinWaitTimer 0
             getlabel backpack waitForPing
+            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+            endwhile
             if insysmsg "That plant bowl is too far away."
             endif
         endif
         if gardeningDebugMode > 0
             settimer gardeningRunTimer 0
         endif
-        dclick myFlowerPot
-        waitforgump 3224608375 gardeningWaitForServerResponse
         getlabel myFlowerPot myFlowerPotLabel
+        settimer gardeningMinWaitTimer 0
+        while timer gardeningMinWaitTimer < gardeningWaitForObjectDelay
+            dclick myFlowerPot
+            waitforgump 3224608375 gardeningMaxWaitForServerResponse
+            while timer gardeningMinWaitTimer < gardeningWaitForObjectDelay 
+                if insysmsg "You must wait to perform another action."
+                    wait gardeningMinWaitForServerResponse
+                    settimer gardeningMinWaitTimer 0
+                    break
+                endif
+            endwhile
+        endwhile
         if gardeningDebugMode > 0
             sysmsg "[Gardening] Active flower pot: {{myFlowerPot}}, {{myFlowerPotLabel}}" 100
         endif
@@ -208,7 +230,10 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
             if gardeningDebugMode > 0
                 sysmsg "[Gardening] Harvesting flower (Timer: {{gardeningRunTimer}} ms)" 100
             endif
+            settimer gardeningMinWaitTimer 0
             getlabel backpack waitForPing
+            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+            endwhile
         endif
         //Check if we need to plant a seed
         if "% grown" in myFlowerPotLabel and gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away."
@@ -251,81 +276,120 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                         if inlist gardeningSpecialSeedList "dungeon seed" and findtype 51098 backpack as myNewSeed
                             //Plant dungeon seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "mushroom spore" and findtype 55139|53611 backpack as myNewSeed
                             //Plant mushroom spore event item
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "watermelon seeds" and findtype 54062 backpack as myNewSeed
                             //Plant watermelon seeds event item
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "melloweed seed" and findtype 51078 backpack 0 as myNewSeed
                             //Plant melloweed seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "barley seed" and findtype 51078 backpack 2418 as myNewSeed
                             //Plant barley seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "hops seed" and findtype 51078 backpack 2208 as myNewSeed
                             //Plant hops seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "extremely rare seed" and findtype 22326 backpack 2465 as myNewSeed
                             //Plant extremely rare seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "very rare seed" and findtype 22326 backpack 2661 as myNewSeed
                             //Plant very rare seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "rare seed" and findtype 22326 backpack 1266 as myNewSeed
                             //Plant rare seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "uncommon seed" and findtype 22326 backpack 63 as myNewSeed
                             //Plant uncommon seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "common seed" and findtype 22326 backpack 2451 as myNewSeed
                             //Plant common seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "very common seed" and findtype 22326 backpack 2882 as myNewSeed
                             //Plant very common seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif inlist gardeningSpecialSeedList "extremely common seed" and findtype 22326 backpack 2401 as myNewSeed
                             //Plant extremely common seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         endif
                         if insysmsg! "You plant a seed."
                             if gardeningDebugMode > 1
@@ -337,81 +401,120 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                         if not inlist gardeningSpecialSeedList "dungeon seed" and findtype 51098 backpack as myNewSeed
                             //Plant dungeon seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "mushroom spore" and findtype 55139|53611 backpack as myNewSeed 
                             //Plant mushroom spore
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "watermelon seeds" and findtype 54062 backpack as myNewSeed
                             //Plant watermelon seeds event item
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "melloweed seed" and findtype 51078 backpack 0 as myNewSeed
                             //Plant melloweed seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "barley seed" and findtype 51078 backpack 2418 as myNewSeed
                             //Plant barley seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "hops seed" and findtype 51078 backpack 2208 as myNewSeed
                             //Plant hops seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                        elseif not inlist gardeningSpecialSeedList "extremely rare seed" and findtype 22326 backpack 2465 as myNewSeed
                             //Plant extremely rare seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "very rare seed" and findtype 22326 backpack 2661 as myNewSeed
                             //Plant very rare seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "rare seed" and findtype 22326 backpack 1266 as myNewSeed
                             //Plant rare seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "uncommon seed" and findtype 22326 backpack 63 as myNewSeed
                             //Plant uncommon seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "common seed" and findtype 22326 backpack 2451 as myNewSeed
                             //Plant common seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "very common seed" and findtype 22326 backpack 2882 as myNewSeed
                             //Plant very common seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         elseif not inlist gardeningSpecialSeedList "extremely common seed" and findtype 22326 backpack 2401 as myNewSeed
                             //Plant extremely common seed
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myNewSeed
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                         endif
                         if gardeningDebugMode > 1 and insysmsg! "You plant a seed."
                             sysmsg "[Gardening] Non listed seed planted to non listed planter (gardeningAutoPlantNewSeed: {{gardeningAutoPlantNewSeed}}, Timer: {{gardeningRunTimer}} ms)" 100
@@ -425,81 +528,120 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                 if findtype 51098 backpack as myNewSeed
                     //Plant dungeon seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 55139|53611 backpack as myNewSeed
                     //Plant mushroom spore
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 54062 backpack as myNewSeed
                     //Plant watermelon seeds event item
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 51078 backpack 0 as myNewSeed
                     //Plant melloweed seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 51078 backpack 2418 as myNewSeed
                     //Plant barley seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 51078 backpack 2208 as myNewSeed
                     //Plant hops seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 22326 backpack 2465 as myNewSeed
                     //Plant extremely rare seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 22326 backpack 2661 as myNewSeed
                     //Plant very rare seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 22326 backpack 1266 as myNewSeed
                     //Plant rare seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 22326 backpack 63 as myNewSeed
                     //Plant uncommon seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 22326 backpack 2451 as myNewSeed
                     //Plant common seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 22326 backpack 2882 as myNewSeed
                     //Plant very common seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 elseif findtype 22326 backpack 2401 as myNewSeed
                     //Plant extremely common seed
                     gumpresponse 2 3224608375
-                    wft gardeningWaitForServerResponse
+                    wft gardeningMaxWaitForServerResponse
                     target myNewSeed
+                    settimer gardeningMinWaitTimer 0
                     getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
                 endif
                 if gardeningDebugMode > 1 and insysmsg! "You plant a seed."
                     if gardeningAutoPlantNewSeed = 1
@@ -532,7 +674,7 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                 //Heat
                 if gardeningIgnoreHeatLevel = 0 and findtype 29868 backpack and gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away."
                     gumpresponse 3 3224608375
-                    waitforgump 3224608375 gardeningWaitForServerResponse
+                    waitforgump 3224608375 gardeningMaxWaitForServerResponse
                 endif
                 while gardeningWaterDone != 1 or gardeningSoilDone != 1
                     if gardeningDebugMode > 0
@@ -545,7 +687,10 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                         while timer globalWorldSaveTimer < 10000
                             if insysmsg "save complete"
                                 sysmsg "The world has been saved!"
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                                 break
                             endif
                         endwhile
@@ -560,17 +705,17 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                         else
                             //Try a refill
                             dclick myWateringCan
-                            getlabel backpack waitForPing
+                            wait gardeningWaitForObjectDelay
                         endif
                         //Fill to optimal
                         if not gumpexists 3929333591
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myWateringCan
-                            waitforgump 3929333591 gardeningWaitForServerResponse
+                            waitforgump 3929333591 gardeningMaxWaitForServerResponse
                         endif
                         gumpresponse 2 3929333591
-                        waitforgump 3929333591 gardeningWaitForServerResponse
+                        waitforgump 3929333591 gardeningMaxWaitForServerResponse
                         gumpclose 3929333591
                     endif
                     //Soil
@@ -578,16 +723,19 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                         //Fill to optimal
                         if not gumpexists 4024474571
                             gumpresponse 2 3224608375
-                            wft gardeningWaitForServerResponse
+                            wft gardeningMaxWaitForServerResponse
                             target myPlantSoil
-                            waitforgump 4024474571 gardeningWaitForServerResponse
+                            waitforgump 4024474571 gardeningMaxWaitForServerResponse
                         endif
                         gumpresponse 2 4024474571
-                        waitforgump 4024474571 gardeningWaitForServerResponse
+                        waitforgump 4024474571 gardeningMaxWaitForServerResponse
                         gumpclose 4024474571
                     endif
                     if gumpexists 3224608375
+                        settimer gardeningMinWaitTimer 0
                         getlabel backpack waitForPing
+                        while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                        endwhile
                         if insysmsg! "That is not a plant seed."
                             if gardeningDebugMode > 1
                                 sysmsg "[Gardening] Soil&Water ... no seed planted fail (Timer: {{gardeningRunTimer}} ms)" 100
@@ -606,7 +754,7 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                             if findtype 29868 backpack
                                 //Identify needed water amount, Planters Spade: 29868
                                 gumpresponse 4 3224608375
-                                waitforgump 3224608375 gardeningWaitForServerResponse
+                                waitforgump 3224608375 gardeningMaxWaitForServerResponse
                             else
                                 overhead "|* No spade found *|" 33
                                 setvar! gardeningWaterDone 1
@@ -632,7 +780,7 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                             if findtype 29868 backpack
                                 //Identify needed soil amount, Planters Spade: 29868
                                 gumpresponse 5 3224608375
-                                waitforgump 3224608375 gardeningWaitForServerResponse
+                                waitforgump 3224608375 gardeningMaxWaitForServerResponse
                             else
                                 overhead "|* No spade found *|" 33
                                 setvar! gardeningSoilDone 1
@@ -674,7 +822,10 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                 while timer globalWorldSaveTimer < 10000
                                     if insysmsg "save complete"
                                         sysmsg "The world has been saved!"
+                                        settimer gardeningMinWaitTimer 0
                                         getlabel backpack waitForPing
+                                        while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                        endwhile
                                         break
                                     endif
                                 endwhile
@@ -699,11 +850,23 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                             else
                                 clearlist gardeningCreatureCounterList
                             endif
-                            dclick myFlowerPot
-                            waitforgump 3224608375 gardeningWaitForServerResponse
+                            settimer gardeningMinWaitTimer 0
+                            while timer gardeningMinWaitTimer < gardeningWaitForObjectDelay
+                                dclick myFlowerPot
+                                waitforgump 3224608375 gardeningMaxWaitForServerResponse
+                                while timer gardeningMinWaitTimer < gardeningWaitForObjectDelay 
+                                    if insysmsg "You must wait to perform another action."
+                                        wait gardeningMinWaitForServerResponse
+                                        settimer gardeningMinWaitTimer 0
+                                        break
+                                    endif
+                                endwhile
+                            endwhile
                             setvar! gardeningGumpResponse 10
                             gumpresponse gardeningGumpResponse 3224608375
                             getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile
                             while gumpexists 3224608375 and not insysmsg "Permanent" and not insysmsg "That plant effect no longer exists." and not insysmsg! "That plant bowl is too far away."
                                 if insysmsg "Brain Fungi"
                                     setvar! gardeningActiveBrainFungus 1
@@ -818,11 +981,14 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                     else
                                         gumpresponse 7 3224608375
                                         setvar! gardeningGumpResponse 10
-                                        waitforgump 3224608375 gardeningWaitForServerResponse
+                                        waitforgump 3224608375 gardeningMaxWaitForServerResponse
                                     endif
                                 endif
                                 gumpresponse gardeningGumpResponse 3224608375
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endwhile
                             //Remove debuffs if necessary
                             if list gardeningFungiCounterList > 0 and findtype 6193 backpack
@@ -852,9 +1018,12 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                         sysmsg "[Gardening] ... trying to remove brain fungus (Timer: {{gardeningRunTimer}} ms)" 100
                                     endif
                                     gumpresponse 2 3224608375
-                                    wft gardeningWaitForServerResponse
+                                    wft gardeningMaxWaitForServerResponse
                                     target myFungicide
+                                    settimer gardeningMinWaitTimer 0
                                     getlabel backpack waitForPing
+                                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                    endwhile
                                     if insysmsg "You use a fungicide to remove a fungus from the plant bowl (Brain Fungi)."
                                         setvar! gardeningActiveBrainFungus 0
                                         if gardeningDebugMode > 1
@@ -870,9 +1039,12 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                                 sysmsg "[Gardening] ... removing pestilent effect (Timer: {{gardeningRunTimer}} ms)" 100
                                             endif                        
                                             gumpresponse 2 3224608375
-                                            wft gardeningWaitForServerResponse
+                                            wft gardeningMaxWaitForServerResponse
                                             target myDefoliant
+                                            settimer gardeningMinWaitTimer 0
                                             getlabel backpack waitForPing
+                                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                            endwhile
                                         endwhile
                                         if gardeningClearFungalEffects = 0 and gardeningClearCreatureEffects = 0
                                             if gardeningDebugMode > 0
@@ -886,18 +1058,24 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                             sysmsg "[Gardening] ... removing fungal effect (Timer: {{gardeningRunTimer}} ms)" 100
                                         endif
                                         gumpresponse 2 3224608375
-                                        wft gardeningWaitForServerResponse
+                                        wft gardeningMaxWaitForServerResponse
                                         target myFungicide
+                                        settimer gardeningMinWaitTimer 0
                                         getlabel backpack waitForPing
+                                        while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                        endwhile
                                     endif
                                     if gardeningClearCreatureEffects = 1 and gumpexists 3224608375 and findtype 29343 backpack as myFarmerAlmanac and not insysmsg! "That plant bowl is too far away."
                                         if gardeningDebugMode > 1
                                             sysmsg "[Gardening] ... removing creature effect (Timer: {{gardeningRunTimer}} ms)" 100
                                         endif
                                         gumpresponse 2 3224608375
-                                        wft gardeningWaitForServerResponse
+                                        wft gardeningMaxWaitForServerResponse
                                         target myFarmerAlmanac
+                                        settimer gardeningMinWaitTimer 0
                                         getlabel backpack waitForPing
+                                        while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                        endwhile
                                     endif
                                 else
                                     if gardeningDebugMode > 1
@@ -921,7 +1099,10 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                             while timer globalWorldSaveTimer < 10000
                                 if insysmsg "save complete"
                                     sysmsg "The world has been saved!"
+                                    settimer gardeningMinWaitTimer 0
                                     getlabel backpack waitForPing
+                                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                    endwhile
                                     break
                                 endif
                             endwhile
@@ -930,23 +1111,33 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                             target cancel
                         endif
                         gumpclose 3224608375
-                        dclick myFlowerPot
-                        waitforgump 3224608375 gardeningWaitForServerResponse
+                        settimer gardeningMinWaitTimer 0
+                        while timer gardeningMinWaitTimer < gardeningWaitForObjectDelay
+                            dclick myFlowerPot
+                            waitforgump 3224608375 gardeningMaxWaitForServerResponse
+                            while timer gardeningMinWaitTimer < gardeningWaitForObjectDelay 
+                                if insysmsg "You must wait to perform another action."
+                                    wait gardeningMinWaitForServerResponse
+                                    settimer gardeningMinWaitTimer 0
+                                    break
+                                endif
+                            endwhile
+                        endwhile
                         while gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away."
                             //Collect all active condition system messages
                             gumpresponse 10 3224608375
-                            waitforgump 3224608375 gardeningWaitForServerResponse
+                            waitforgump 3224608375 gardeningMaxWaitForServerResponse
                             gumpresponse 11 3224608375
-                            waitforgump 3224608375 gardeningWaitForServerResponse
+                            waitforgump 3224608375 gardeningMaxWaitForServerResponse
                             gumpresponse 12 3224608375
-                            waitforgump 3224608375 gardeningWaitForServerResponse
+                            waitforgump 3224608375 gardeningMaxWaitForServerResponse
                             gumpresponse 13 3224608375
-                            waitforgump 3224608375 gardeningWaitForServerResponse
+                            waitforgump 3224608375 gardeningMaxWaitForServerResponse
                             if ingump "Perma" 3224608375 or insysmsg! "Permanent" or insysmsg "That plant effect no longer exists."
                                 break
                             else
                                 gumpresponse 7 3224608375
-                                waitforgump 3224608375 gardeningWaitForServerResponse
+                                waitforgump 3224608375 gardeningMaxWaitForServerResponse
                             endif
                         endwhile
                         if insysmsg "Brain Fungi"
@@ -957,10 +1148,13 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                     sysmsg "[Gardening] ... removing brain fungus (Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myFungicide
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
-                                waitforgump 3224608375 gardeningWaitForServerResponse
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
+                                waitforgump 3224608375 gardeningMaxWaitForServerResponse
                                 if insysmsg "You use a fungicide to remove a fungus from the plant bowl (Brain Fungi)."
                                     setvar! gardeningActiveBrainFungus 0
                                     if gardeningDebugMode > 1
@@ -976,9 +1170,20 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                             if insysmsg "Permanent"
                             endif
                             gumpclose 3224608375
-                            dclick myFlowerPot
-                            waitforgump 3224608375 gardeningWaitForServerResponse
+                            settimer gardeningMinWaitTimer 0
+                            while timer gardeningMinWaitTimer < gardeningWaitForObjectDelay
+                                dclick myFlowerPot
+                                waitforgump 3224608375 gardeningMaxWaitForServerResponse
+                                while timer gardeningMinWaitTimer < gardeningWaitForObjectDelay 
+                                    if insysmsg "You must wait to perform another action."
+                                        wait gardeningMinWaitForServerResponse
+                                        settimer gardeningMinWaitTimer 0
+                                        break
+                                    endif
+                                endwhile
+                            endwhile
                             gumpresponse 10 3224608375
+                            settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
                             while insysmsg! "Reduces" and gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "That plant effect no longer exists." and not insysmsg "Permanent"
                                 if insysmsg "(Pestilent Effect)" and findtype 6187 backpack as myDefoliant
@@ -986,28 +1191,40 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                         sysmsg "[Gardening] ... removing pestilent effect (Timer: {{gardeningRunTimer}} ms)" 100
                                     endif                        
                                     gumpresponse 2 3224608375
-                                    wft gardeningWaitForServerResponse
+                                    wft gardeningMaxWaitForServerResponse
                                     target myDefoliant
+                                    settimer gardeningMinWaitTimer 0
                                     getlabel backpack waitForPing
+                                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                    endwhile
                                 elseif insysmsg "(Fungal Effect)" and findtype 6193 backpack as myFungicide
                                     if gardeningDebugMode > 1
                                         sysmsg "[Gardening] ... removing fungal effect (Timer: {{gardeningRunTimer}} ms)" 100
                                     endif
                                     gumpresponse 2 3224608375
-                                    wft gardeningWaitForServerResponse
+                                    wft gardeningMaxWaitForServerResponse
                                     target myFungicide
+                                    settimer gardeningMinWaitTimer 0
                                     getlabel backpack waitForPing
+                                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                    endwhile
                                 elseif insysmsg "(Creature Effect)" and findtype 29343 backpack as myFarmerAlmanac
                                     if gardeningDebugMode > 1
                                         sysmsg "[Gardening] ... removing creature effect (Timer: {{gardeningRunTimer}} ms)" 100
                                     endif
                                     gumpresponse 2 3224608375
-                                    wft gardeningWaitForServerResponse
+                                    wft gardeningMaxWaitForServerResponse
                                     target myFarmerAlmanac
+                                    settimer gardeningMinWaitTimer 0
                                     getlabel backpack waitForPing
+                                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                    endwhile
                                 endif
                                 gumpresponse 10 3224608375
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endwhile
                         elseif gardeningActiveBrainFungus = 1 and gardeningIgnoreBrainFungus = 0
                             if gardeningDebugMode > 0
@@ -1068,36 +1285,48 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                     sysmsg "[Gardening] ... installing growth serum (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewGrowthSerum
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                             if gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "Heat Filter" and findtype 28719|11942|28741 backpack as myNewHeatFilter
                                 if gardeningDebugMode > 1
                                     sysmsg "[Gardening] ... installing heat filter (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewHeatFilter
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                             if gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "Fertilizer" and findtype 29217|19403|4154 backpack as myNewFertilizer
                                 if gardeningDebugMode > 1
                                     sysmsg "[Gardening] ... installing fertilizer (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewFertilizer
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                             if gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "Purified Water" and findtype 20503|20502|20501 backpack as myNewPurifiedWater
                                 if gardeningDebugMode > 1
                                     sysmsg "[Gardening] ... installing purified water (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewPurifiedWater
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                         elseif gardeningSelectiveBuffs = 2 and gardeningSpecialPlanter = 1                    
                             //Apply superior and exceptional items only
@@ -1106,36 +1335,48 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                     sysmsg "[Gardening] ... installing growth serum (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewGrowthSerum
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                             if gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "Heat Filter" and findtype 28719|11942 backpack as myNewHeatFilter
                                 if gardeningDebugMode > 1
                                     sysmsg "[Gardening] ... installing heat filter (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewHeatFilter
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                             if gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "Fertilizer" and findtype 29217|19403 backpack as myNewFertilizer
                                 if gardeningDebugMode > 1
                                     sysmsg "[Gardening] ... installing fertilizer (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewFertilizer
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                             if gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "Purified Water" and findtype 20503|20502 backpack as myNewPurifiedWater
                                 if gardeningDebugMode > 1
                                     sysmsg "[Gardening] ... installing purified water (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewPurifiedWater
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                         elseif gardeningSelectiveBuffs = 2 and gardeningSpecialPlanter = 0
                             //Apply only store-bought items
@@ -1144,36 +1385,48 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                                     sysmsg "[Gardening] ... installing growth serum (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewGrowthSerum
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                             if gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "Heat Filter" and findtype 28741 backpack as myNewHeatFilter
                                 if gardeningDebugMode > 1
                                     sysmsg "[Gardening] ... installing heat filter (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewHeatFilter
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                             if gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "Fertilizer" and findtype 4154 backpack as myNewFertilizer
                                 if gardeningDebugMode > 1
                                     sysmsg "[Gardening] ... installing fertilizer (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewFertilizer
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                             if gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "Purified Water" and findtype 20501 backpack as myNewPurifiedWater
                                 if gardeningDebugMode > 1
                                     sysmsg "[Gardening] ... installing purified water (gardeningSelectiveBuffs: {{gardeningSelectiveBuffs}}, gardeningSpecialPlanter: {{gardeningSpecialPlanter}}, Timer: {{gardeningRunTimer}} ms)" 100
                                 endif
                                 gumpresponse 2 3224608375
-                                wft gardeningWaitForServerResponse
+                                wft gardeningMaxWaitForServerResponse
                                 target myNewPurifiedWater
+                                settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
+                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                                endwhile
                             endif
                         endif
                     endif
@@ -1185,12 +1438,12 @@ while findtype 6341|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 grou
                     endif
                     if not gumpexists 1429840072
                         gumpresponse 2 3224608375    
-                        wft gardeningWaitForServerResponse
+                        wft gardeningMaxWaitForServerResponse
                         target myPlanterSpade
-                        waitforgump 1429840072 gardeningWaitForServerResponse
+                        waitforgump 1429840072 gardeningMaxWaitForServerResponse
                     endif
                     gumpresponse 6 1429840072
-                    waitforgump 1429840072 gardeningWaitForServerResponse
+                    waitforgump 1429840072 gardeningMaxWaitForServerResponse
                     gumpclose 1429840072
                 endif
             endif

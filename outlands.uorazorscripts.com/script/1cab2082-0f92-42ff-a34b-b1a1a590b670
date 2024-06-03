@@ -1,0 +1,215 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/1cab2082-0f92-42ff-a34b-b1a1a590b670 for latest
+# Automation by Jaseowns
+## Script: Map Decoder
+## Created by: arktik#0
+#############################################
+
+# Resource Map Decoder v1.0.1 by Arktik
+#
+# Set to 1 if you want to restock maps from tomes when backpack has no maps
+# Set to 0 if you do NOT want to restock maps from tomes when backpack has no maps
+@setvar! map_restock 1
+
+# If you want to restock spyglasses, add them to your shelf loadout
+# Set to 1 if you want to restock spyglasses from shelf when backpack has none
+# Set to 0 if you do NOT want to restock spyglasses from shelf when backpack has none
+@setvar! spyglass_restock 0
+
+@setvar! timeout 650
+@setvar! short_timeout 200
+
+@setvar! ore_gump 3367641484
+@setvar! skinning_gump 3473029237
+@setvar! lumber_gump 1332805401
+@setvar! treasure_gump 1520869851
+@setvar! fishing_gump 2589357942
+@clearignore
+
+if not listexists undecoded_map_list
+    createlist undecoded_map_list
+else
+    clearlist undecoded_map_list
+endif
+
+// Refill Spyglasses
+if spyglass_restock == 1
+    if not findtype "spyglass" backpack
+        if findtype "storage shelf" ground -1 -1 2 as shelf
+            menu shelf 1
+            wait short_timeout
+        endif
+
+        for 12
+            say "Need spyglass" 34
+            wait 5000
+            if findtype "spyglass" backpack
+                break
+            endif
+        endfor
+    endif
+endif
+
+if map_restock == 1
+    // Tome Gumps
+    if not listexists tome_gump_list
+        createlist tome_gump_list
+    else
+        clearlist tome_gump_list
+    endif
+    // treasure tome gump
+    pushlist tome_gump_list 1863945839
+    // lumber tome gump
+    pushlist tome_gump_list 3576069391
+    // ore tome gump
+    pushlist tome_gump_list 1667380559
+    // fishing tome gump
+    pushlist tome_gump_list 3448468591
+    // skinning tome gump
+    pushlist tome_gump_list 4027121519
+
+    foreach tome_gump in tome_gump_list
+        gumpclose tome_gump
+    endfor
+
+    // Tome Hues
+    if not listexists tome_hue_list
+        createlist tome_hue_list
+    else
+        clearlist tome_hue_list
+    endif
+    // Treasure
+    pushlist tome_hue_list 2990
+    // Lumber
+    pushlist tome_hue_list 2799
+    // Ore
+    pushlist tome_hue_list 2796
+    // Fishing
+    pushlist tome_hue_list 2722
+    // Skinning
+    pushlist tome_hue_list 2651
+
+    for 5
+        if poplist tome_hue_list front as tome_hue
+            if poplist tome_gump_list front as tome_gump
+                if findtype 29104 ground tome_hue any 2 as tome
+                    dclick tome
+                    wait timeout
+                    gumpresponse 3 tome_gump
+                    wait short_timeout
+                    gumpresponse 10 tome_gump
+                    wait short_timeout
+                    gumpresponse 11 tome_gump
+                    wait short_timeout
+                    gumpresponse 12 tome_gump
+                    wait short_timeout
+                    gumpresponse 13 tome_gump
+                    wait short_timeout
+                    gumpresponse 14 tome_gump
+                    wait short_timeout
+                    gumpresponse 15 tome_gump
+                    wait short_timeout
+                    gumpresponse 16 tome_gump
+                    wait short_timeout
+                    gumpresponse 17 tome_gump
+                    wait short_timeout
+                    if tome_hue != 2990
+                        gumpresponse 18 tome_gump
+                        wait short_timeout
+                    endif
+                    gumpclose tome_gump
+                    wait timeout
+                endif
+            endif
+        endif
+    endfor
+endif
+
+// Close map gumps
+gumpclose ore_gump
+gumpclose skinning_gump
+gumpclose lumber_gump
+gumpclose treasure_gump
+gumpclose fishing_gump
+
+
+@clearignore
+while findtype "map" backpack as resource_map
+    getlabel resource_map desc
+    overhead desc
+    
+    if "[100.0%" in desc or "(100.0%" in desc
+        @ignore resource_map
+    else
+        // Find number of undecoded maps left
+        if findtypelist undecoded_map_list "map" backpack any
+        endif
+        for 200
+            if list undecoded_map_list = "index"
+                @setvar! num_undecoded_maps "index"
+                break
+            endif
+        endfor
+        if num_undecoded_maps == 0
+        elseif num_undecoded_maps == 1
+            overhead "{{num_undecoded_maps}} map to decode" 88
+        else
+            overhead "{{num_undecoded_maps}} maps to decode" 88
+        endif
+        
+        // Check for spyglasses
+        if findtype "spyglass" backpack as glass
+            dclick glass
+        elseif spyglass_restock == 1
+            replay
+        else
+            for 12
+                say "Out of Spyglasses!" 34
+                wait 5000
+            endfor
+        endif
+        wft 1500
+        target resource_map
+        
+        // Select gump for current map
+        @setvar! gumpIdToCheck 0
+        if "ore" in desc
+            @setvar! gumpIdToCheck ore_gump
+        elseif "skinning" in desc
+            @setvar! gumpIdToCheck skinning_gump
+        elseif "lumber" in desc
+            @setvar! gumpIdToCheck lumber_gump
+        elseif "treasure" in desc
+            @setvar! gumpIdToCheck treasure_gump
+        elseif "fishing" in desc
+            @setvar! gumpIdToCheck fishing_gump
+        else
+        overhead "Unknown gump!" 34
+        endif
+        
+        waitforgump gumpIdToCheck 1000
+        
+        // Decode the map
+        overhead "Updating..."
+        clearsysmsg
+        while gumpexists gumpIdToCheck
+            getlabel resource_map desc
+            if "[100.0%" in desc or "(100.0%" in desc
+                gumpclose gumpIdToCheck
+                @ignore resource_map
+            else
+                gumpresponse 4 gumpIdToCheck
+                wait timeout
+            endif
+        endwhile
+    endif
+    
+    wait short_timeout
+endwhile
+
+// Restock all maps back into tomes
+@clearignore
+while findtype 29104 ground -1 -1 2 as tome
+    menu tome 0
+    wait short_timeout
+    @ignore tome
+endwhile

@@ -4,26 +4,32 @@
 ## Created by: wolfgeist#0
 #############################################
 
-//CHECK FOR TRACKING
-if not timerexists 'tracking'
-    createtimer 'tracking'
+if targetexists 'neutral'
+    hotkey 'Target Self'
 endif
 
-if not findbuff 'tracking' and timer 'tracking' > 10000
-    overhead 'I should look for tracks.'
-settimer 'tracking' 0
+if not dead 
+    if not hidden
+        if hp < maxhp and not bandaging
+            hotkey 'Bandage Self'
+        endif
+        wait 50
+    endif
 endif
+
+//CHECK FOR TRACKING
+
+while not findbuff 'tracking'
+
+skill 'tracking'
+waitforgump 4267467659
+gumpresponse 6
+waitforgump 4267467659
+gumpclose
+endwhile
 
 //ANTI THIEF
-if counttype "log%s" > 150 as nb and findtype "pouch" backpack 38 as trappedPouch
-    overhead 'Hiding logs.'
-    while findtype "log%s" backpack as item 
-        lift item 60000
-        drop trappedPouch -1 -1 -1
-        wait 650
-        @ignore item
-    endwhile
-endif
+
 
 if findtype hatchet lefthand as myhatchet
     getlabel myhatchet hlabel
@@ -60,14 +66,7 @@ if counttype 'pouch' backpack 38 < 3
 endif
 
 //END ANTI-THIEF
-if not dead 
-    if not hidden
-        if hp < maxhp and not bandaging
-            hotkey 'Bandage Self'
-        endif
-    wait 200
-    endif
-endif
+
 
 if not listexists "lumberjack_actions"
     createlist "lumberjack_actions"
@@ -82,12 +81,12 @@ endif
 if inlist "lumberjack_actions" "red_alert"
     overhead "Red Alert!" 34
     poplist "lumberjack_actions" "red_alert"
-    pause 500
     clearhands 'both'
+    pause 250
     skill 'Hiding'
     overhead "Stopping script..." 34
     clearsysmsg 
-    pause 500
+    pause 250
     script 'Camp'
 endif
 
@@ -99,15 +98,25 @@ endif
 
 if list "4-failures" = 1
     overhead "Ive gathered all I can here."
+//hide wood in trapped pouch
+if findtype "pouch" backpack 38 as trappedPouch
+overhead 'Hiding logs.'
+while findtype "log%s" backpack as wood 
+    lift wood 60000
+    drop trappedPouch -1 -1 -1
+    @ignore wood
+endwhile
+endif
+//
 elseif list "4-failures" = 7
     overhead "Im going to rest soon."
 elseif list "4-failures" = 8
     overhead "Taking a break." 34
-    wait 1000
+    wait 250
 elseif list "4-failures" = 9
-    wait 1000
+    wait 250
 elseif list "4-failures" >= 10  
-    wait 120  
+    wait 250  
         if skill "Hiding" >= 40
             useskill "Hiding"
         endif
@@ -117,13 +126,16 @@ elseif list "4-failures" >= 10
         clearlist "4-failures"
         if insysmsg "now tracking"
             overhead 'MURDERER ON THE PROWL!' 34
-            pause 1000
+            pause 50
             script 'Camp'
         endif
     endwhile
 endif
 
+##CLEAR SYSMSG
 clearsysmsg 
+##CLEAR SYSMSG
+
 
 //Check for hatchet
 
@@ -140,11 +152,17 @@ if lhandempty ?? 0
 endif
 
 //Main chopping loop
-
-wait 300
+if insysmsg "You chop"
+    clearlist "4-failures"
+endif
+wait 50
 hotkey 'Use item in hand'
-wft 1000
+wft 5000
 hotkey 'Target Self'
+if insysmsg "harvestable"
+    
+endif
+
 for 75
     wait 150
     if insysmsg 'world is saving'
@@ -208,16 +226,8 @@ for 75
         endif
     endif
 endfor
-
-if insysmsg "You must wait"
-    // Wait message
-    overhead 'You must wait..' 34
-    wait 500
-    replay
-endif
-
 overhead 'Captcha break!' 34
-for 20
+for 10
     overhead 'Awaiting Captcha...' 34
     wait 1000
     if insysmsg 'Captcha successful'
@@ -226,4 +236,4 @@ for 20
         replay
     endif
 endfor
-overhead 'Stopping script' 34
+replay

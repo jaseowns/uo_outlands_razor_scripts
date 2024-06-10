@@ -1,0 +1,360 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/336767fb-b18c-4bf3-8635-d5187723951f for latest
+# Automation by Jaseowns
+## Script: Keep Me Alive
+## Created by: promess#0
+#############################################
+
+@setvar! minimumWaitForPing 200
+// todo @setvar! cdReactiveArmor 61000
+@setvar! cdMushroom 61000
+@setvar! canYouMakeAMushroom 1
+@setvar! cdLightning 20000
+@setvar! cdMagicArrow 20000
+@setvar! cdHarm 20000
+@setvar! cdFireball 60000
+@setvar! cdSkinningCheck 3000
+@setvar! cdMeditation 10000
+
+
+@setvar! hpCheckToTriggerGreaterHealSpell 40
+@setvar! hpCheckToTriggerMiniEmergencyHealSpell 65
+@setvar! hpCheckToTriggerHealPotion 50
+@setvar! hpCheckToTriggerCurePotion 45
+//statuses
+@setvar! automaticallySkinCorpses 1
+@setvar! canMushroom 1
+@setvar! canDiscord 0
+@setvar! isDiscorded 0
+@setvar! firstPet 0
+@setvar! secondPet 0
+
+
+if not timerexists magicMushroomTimer
+    createtimer magicMushroomTimer
+endif
+
+if not timerexists meditationTimer
+    createtimer meditationTimer
+    settimer meditationTimer 0
+endif
+
+if not timerexists statusM
+    createtimer statusM
+    settimer statusM 21000
+endif
+
+if not timerexists cdMushroom
+    createtimer cdMushroom
+endif
+
+if not timerexists musicTimer
+    createtimer musicTimer
+endif
+
+if not timerexists antispam
+    createtimer antispam
+endif
+
+if not timerexists ssTimer
+    createtimer ssTimer
+endif
+
+if timer statusM > 20000
+    sysmsg 'Keeping you up'
+    if followers = 1
+        sysmsg 'one follower, probably bs'
+    elseif followers = 2
+        sysmsg 'one pet'
+    elseif followers = 3
+        sysmsg 'big + bs'
+    elseif followers = 4
+        sysmsg 'two pets'
+    elseif followers = 5
+        sysmsg 'two pets + bs'
+    else
+        overhead 'no pets'
+    endif
+    settimer statusM 0
+endif
+
+if not listexists petNameList
+    createlist petNameList
+endif
+
+if list petNameList = 0
+    pushlist petNameList "ThiccBoi"
+    pushlist petNameList "Disposable"
+    pushlist petNameList "BadName"
+    #pushlist petNameList "Timmy"
+    #pushlist petNameList "Harry"
+endif
+
+if not listexists nameToChange
+    createlist nameToChange
+endif
+
+if paralyzed 
+    say [pouch
+    say 'Get the fuck off me'
+endif
+
+if poisoned
+    if diffhits >= hpCheckToTriggerCurePotion and findtype "Orange Potion" backpack as pot 
+        dclick pot
+        wait 200
+    endif
+    
+    while not targetexists beneficial
+        if not poisoned
+            hotkey '> Interrupt'
+            say 'Not today!'
+            break
+        else
+            cast 'Cure'
+            wait 50
+        endif 
+    endwhile
+    if targetexists beneficial
+        hotkey "Target Self"
+        wait 500
+    endif
+    say 'Not today!'
+endif
+
+if diffhits >= hpCheckToTriggerGreaterHealSpell
+    if targetexists 
+        hotkey 'Cancel Current Target'
+    endif
+    while not targetexists 'beneficial'
+        if diffhits >= hpCheckToTriggerMiniEmergencyHealSpell
+           cast 'Heal'
+        else
+            cast 'Greater Heal'                
+        endif
+        wait 50
+    endwhile
+    if targetexists 'beneficial'
+        hotkey "Target Self"
+    endif
+    if diffhits >= hpCheckToTriggerHealPotion and findtype "Yellow Potion" backpack as pot 
+        getlabel pot desc
+        if "next usable" in desc
+            // do nothing
+        else
+            dclick pot
+            wait 650
+        endif
+    endif
+    replay
+endif
+
+if diffmana > 41 
+    if timer magicMushroomTimer >= cdMushroom and findtype "mushroom" backpack as shroom
+        if timer antispam > 10000
+            overhead "Eating shrooms" 66
+        endif
+        dclick shroom
+        wait 200
+        if insysmsg "You consume a magic mushroom and restore some mana."
+            settimer magicMushroomTimer 0    
+        elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
+            settimer magicMushroomTimer 30000
+        endif
+        if followers > 0 and timer antispam > 10000
+            say "all guard me"
+        endif
+    endif
+
+    if not findbuff "actively meditating" and not warmode
+        if meditationTimer > cdMeditation
+            useskill 'Meditation'
+            overhead 'Meditating, chill'
+        endif
+        
+    endif
+endif
+
+@setvar! autoTarg lasttarget
+if not warmode
+    if targetexists beneficial
+        if noto autoTarg = 'friend','innocent' #or noto lasttarget = 'innocent'
+            wait 800 
+            target lasttarget
+        else 
+            wait 1600
+            @setvar! myFriend
+            target myFriend
+        endif
+    elseif targetexists harmful
+        if dead myKillTarget
+            wait 800
+            target closest gray,red
+            @setvar myKillTarget lasttarget
+        elseif noto autoTarg = 'hostile' or noto autoTarg = 'criminal' or noto autoTarg = 'enemy' or noto autoTarg = 'murderer'
+            wait 800
+            target lasttarget
+        else
+
+        endif
+    endif
+    if insysmsg "Target cannot be seen"
+        overhead "Cannot see target, move closer."
+    endif
+else
+    waitfortarget
+endif
+
+if skill "Discordance" >= 50 and not warmode
+    if canDiscord = 1
+        if not dead myKillTarget
+            getlabel myKillTarget discordDesc
+            if "discord" in discordDesc
+                @setvar isDiscorded 1
+            endif
+        endif
+        if timer musicTimer >= 11000 and isDiscorded = 0
+            if not dead myKillTarget
+                useskill 'Discordance'
+                wft 500
+            endif
+            if insysmsg "What instrument"
+                if findtype "bamboo flute" backpack as inny
+                    target inny
+                elseif findtype "tambourine" backpack as inny
+                    target inny
+                elseif findtype "drum" backpack as inny
+                    target inny
+                elseif findtype "lute" backpack as inny
+                    target inny
+                elseif findtype "harp" backpack as inny
+                    target inny
+                elseif findtype "lap harp" backpack as inny
+                    target inny
+                else
+                    overhead "I do not have an inny" 34
+                    @setvar! canDiscord 0
+                endif
+                wft 500
+            endif
+            if targetexists and not dead myKillTarget
+                target myKillTarget
+                overhead "Discorded" 88 myKillTarget
+                wait 100
+            else
+                // do nothing intentionally
+            endif
+            settimer musicTimer 5000
+        endif
+    endif
+    
+    if not findbuff "song of discordance" and timer musicTimer >= 11000 and canDiscord = 1
+        useskill 'Discordance'
+        wft 500
+        if insysmsg "What instrument"
+            if findtype "bamboo flute" backpack as inny
+                target inny
+            elseif findtype "tambourine" backpack as inny
+                target inny
+            elseif findtype "drum" backpack as inny
+                target inny
+            elseif findtype "lute" backpack as inny
+                target inny
+            elseif findtype "harp" backpack as inny
+                target inny
+            elseif findtype "lap harp" backpack as inny
+                target inny
+            else
+                overhead "I do not have an inny" 34
+                @setvar! canDiscord 0
+            endif
+            wft 500
+        endif
+        target backpack
+        settimer musicTimer 0
+    endif    
+endif
+
+if dead 
+    overhead "Rip" 34
+    for 20
+        if gumpexists 2957810225
+            gumpresponse 1 2957810225
+            break
+        endif        
+        wait 2000
+    endfor
+    replay
+endif
+
+if skill "Tracking" > 0
+    if not findbuff "tracking"
+        clearsysmsg
+        while not gumpexists 4267467659
+            useskill 'tracking'
+            wait minimumWaitForPing
+        endwhile
+        if gumpexists 4267467659
+            while not insysmsg "You will now hunt all hostile players."
+                gumpresponse 8 4267467659
+                waitforgump 4267467659 5000
+            endwhile
+            gumpresponse 6 4267467659
+            wait minimumWaitForPing
+        endif
+       gumpclose 4267467659
+    endif
+endif
+
+// 15 - a fire elemental
+// 9 - a demon
+// 14 - a earth elemental
+// 16 - a water elemental
+// 574 - blade spirit
+if findtype 16|9|14|15 ground -1 -1 3 as myPet and followers > 0 and not warmode
+    if noto myPet = "friend" and list petNameList > 0
+        wait 200
+        if insysmsg 'getlabel - Skipped getting label because serial'
+            @ignore myPet
+        endif
+        getlabel myPet petLabel
+        sysmsg petLabel
+        overhead "Renaming..."
+        foreach petName in petNameList
+            sysmsg petName
+            rename myPet petName
+            break
+        endfor
+        poplist petNameList "front"
+        wait 500
+        @ignore myPet
+    endif
+endif
+
+if timer antispam > 11000
+    settimer antispam 0
+endif
+
+if timer ssTimer > 20000
+    skill 'spiritspeak'
+    settimer ssTimer 0
+endif
+
+if not timerexists skinningCheckTimer
+    settimer skinningCheckTimer cdSkinningCheck
+endif
+
+if automaticallySkinCorpses = 1 and findtype "corpse" ground -1 -1 2 as jorpse and not warmode
+    if findtype "Elven Spellblade" backpack and timer skinningCheckTimer >= cdSkinningCheck 
+        while not targetexists 
+            useskill 'forensicevaluation'
+        endwhile
+        if targetexists beneficial or targetexists neutral 
+            hotkey "Target Self"
+            wait minimumWaitForPing
+            settimer skinningCheckTimer 0
+            @ignore jorpse
+        endif
+    endif
+endif
+
+loop

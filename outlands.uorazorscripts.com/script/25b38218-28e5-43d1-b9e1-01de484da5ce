@@ -7,9 +7,11 @@
 # One hotkey mage cycle, nox, poison by Jaseowns
 # UO Outlands - https://outlands.uorazorscripts.com/mage-bot
 #
-# Version: v12.0.0
+# Version: v12.1.0
 #
 #    
+// 06/14/2024
+//  - allow no pets
 // 01/19/2024
 //  - new target / all kill no skill
 #
@@ -105,6 +107,40 @@
 # Blade Spirit: 0, 1
 @setvar! castBladeSpiritCount 0
 @setvar! castSkeletalHuskCount 0
+
+if skill "Arcane" >= 80
+    @setvar! breakSpellCastAndResummonIfLessThanXFollowers 0
+    # Earth: 0, 1, 2
+    @setvar! castSummonEarthElementalCount 0
+    @setvar! castSummonMummyCount 0
+
+    # Fire: 0, 1, 2
+    @setvar! castSummonFireElementalCount 0
+    @setvar! castSummonLichCount 0
+
+    # Demon: 0, 1, 2
+    @setvar! castSummonDemonCount 0
+    @setvar! castSummonThrallCount 0
+
+    # Air: 0, 1, 2
+    @setvar! castSummonAirCount 0
+    @setvar! castSummonFiendCount 0
+
+    # Water: 0, 1, 2
+    @setvar! castSummonWaterCount 0
+    @setvar! castSummonRagWitchCount 0
+
+    # Creature: 0, 1, 2, 3, 4, 5
+    @setvar! castSummonCreatureCount 0
+
+    # Energy Vortex: 0, 1
+    @setvar! castEnergyVortexCount 0
+    @setvar! castJackalSpiritCount 0
+
+    # Blade Spirit: 0, 1
+    @setvar! castBladeSpiritCount 0
+    @setvar! castSkeletalHuskCount 0
+endif
 
 ###############
 ###  Choose your spells
@@ -428,18 +464,22 @@ if automaticallySkinCorpses = 1 and findtype "corpse" ground -1 -1 2 as jorpse
     endif
 endif
 
-// Make sure we have a spell book attached
-if findlayer self righthand as item
+if skill "Arcane" >= 80
     // do nothing
-elseif findtype "3834" backpack as item
-    getlabel item spellBookDesc
-    if "blessed" in spellBookDesc
-        @ignore item
-    else
-        dclick item    
+else
+    // Make sure we have a spell book attached
+    if findlayer self righthand as item
+        // do nothing
+    elseif findtype "3834" backpack as item
+        getlabel item spellBookDesc
+        if "blessed" in spellBookDesc
+            @ignore item
+        else
+            dclick item    
+        endif
+    else 
+        overhead "No book bro!" 34
     endif
-else 
-    overhead "No book bro!" 34
 endif
 
 // Setting current necro symbols - checks again it the attack loop
@@ -1222,8 +1262,13 @@ if targetexists harmful
 endif
 
 if useTargetSystem = 0
-    say "all kill"
-    wait 200
+    if followers > 0
+        say "all kill"
+        wait 200
+    else
+        hotkey "Set Last Target"
+        wait 200
+    endif
     while targetexists 
         // wait
         wait 50
@@ -1654,11 +1699,20 @@ if myKillTarget != 0 and find myKillTarget ground -1 -1 12
                 settimer jaseowns_SystemMsgCheck 0
                 while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD
                     if insysmsg "You cannot inspect that."
-                        while not targetexists "harmful"
-                            say "ALL KILL" 88
-                            wft 500
-                        endwhile
-                        if targetexists "harmful"
+                        if followers > 0
+                            while not targetexists "harmful"
+                                say "ALL KILL" 88
+                                wft 500
+                            endwhile
+                            if targetexists "harmful"
+                                target jaseowns_KillTarget
+                                @setvar! lastCannotBeSeen 0
+                                @setvar! jaseowns_LastFocusAggressionTarget jaseowns_KillTarget
+                                settimer jaseowns_HerdAgainTimer 0
+                                @setvar! jaseowns_DiscordThisTarget jaseowns_KillTarget
+                                break
+                            endif
+                        else
                             target jaseowns_KillTarget
                             @setvar! lastCannotBeSeen 0
                             @setvar! jaseowns_LastFocusAggressionTarget jaseowns_KillTarget
@@ -1666,6 +1720,7 @@ if myKillTarget != 0 and find myKillTarget ground -1 -1 12
                             @setvar! jaseowns_DiscordThisTarget jaseowns_KillTarget
                             break
                         endif
+
                     elseif insysmsg "Target cannot be seen"
 #                        overhead "Cannot be seen inside the arms lore check"
 #                        sysmsg "Cannot be seen inside the arms lore check"
@@ -1873,7 +1928,9 @@ endif
 
 clearsysmsg 
 
-say "all guard"
+if followers > 0
+    say "all guard"
+endif
 
 @setvar! isLethalPoison 0
 
@@ -3183,5 +3240,6 @@ endif
 
 // thanks for using a Jaseowns script!
 // https://www.youtube.com/jaseowns
+// https://jaseowns.com/discord
     
 // We did it

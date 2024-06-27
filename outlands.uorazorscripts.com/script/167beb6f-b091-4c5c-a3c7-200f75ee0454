@@ -1,0 +1,177 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/167beb6f-b091-4c5c-a3c7-200f75ee0454 for latest
+# Automation by Jaseowns
+## Script: Vendor - Platemail Set Bag Filler
+## Created by: jfrostp#0
+#############################################
+
+# Auto platemail vendor bags by Frost
+# How to use this script:
+# 1) Set all the bag hue values to the dye colors you use
+# 2) Optionally, set the sourceBag and destinationBag variables to permanent values for convenience
+#
+# NOTES:
+# ***THE SOURCE AND DESTINATION BAGS MUST BE DIFFERENT!***
+# The script will halt if it encounters a non-exceptional item
+# Any pieces that do not have a bag will remain in the source bag
+
+# Set this to the container with your plate pieces
+setvar! sourceBag
+# Set this to the container with your dyed bags
+setvar! destinationBag
+
+setvar! delay 400
+
+# Set the values below to the hues you dye your bags to (use >info to get the hues)
+setvar! ironBagHue 0
+setvar! dullCopperBagHue 993
+setvar! shadowBagHue 803
+setvar! copperBagHue 648
+setvar! bronzeBagHue 543
+setvar! goldBagHue 248
+setvar! agapiteBagHue 708
+setvar! veriteBagHue 568
+setvar! valoriteBagHue 488
+setvar! avariteBagHue 513
+
+removelist plateHues
+createlist plateHues
+pushlist plateHues 0
+pushlist plateHues 2419
+pushlist plateHues 2406
+pushlist plateHues 2413
+pushlist plateHues 2418
+pushlist plateHues 2213
+pushlist plateHues 2425
+pushlist plateHues 2207
+pushlist plateHues 2219
+pushlist plateHues 1763
+
+removelist bagHues
+createlist bagHues
+pushlist bagHues ironBagHue 
+pushlist bagHues dullCopperHue 
+pushlist bagHues shadowBagHue 
+pushlist bagHues copperBagHue 
+pushlist bagHues bronzeBagHue 
+pushlist bagHues goldBagHue 
+pushlist bagHues agapiteBagHue 
+pushlist bagHues veriteBagHue 
+pushlist bagHues valoriteBagHue 
+pushlist bagHues avariteBagHue 
+
+removelist plateTypes
+createlist plateTypes
+pushlist plateTypes 5138
+pushlist plateTypes 5139
+pushlist plateTypes 5142
+pushlist plateTypes 5143
+pushlist plateTypes 5144
+pushlist plateTypes 5146
+
+@clearignore 
+cleardragdrop
+
+while list plateHues > 0
+    foreach color in plateHues
+        setvar! plateColor color
+        break
+    endfor
+    if poplist plateHues front as throwaway
+    endif
+    
+    # Commence janky syntax to get our array values
+    foreach color in bagHues
+        setvar! bagColor color
+        break
+    endfor
+    if poplist bagHues front as throwaway
+    endif
+        
+    removelist xPositions
+    createlist xPositions
+    pushlist xPositions 0
+    pushlist xPositions 75
+    pushlist xPositions 100
+    pushlist xPositions 0
+    pushlist xPositions 400
+    pushlist xPositions 400
+
+    removelist yPositions
+    createlist yPositions
+    pushlist yPositions 0
+    pushlist yPositions 85
+    pushlist yPositions 95
+    pushlist yPositions 400
+    pushlist yPositions 0
+    pushlist yPositions 400
+
+    removelist tempTypes
+    createlist tempTypes
+    
+    # Cycle through item types to find them bags
+    setvar! itemType 0
+    while list plateTypes > 0
+        foreach x in xPositions
+            setvar! itemX x
+            break
+        endfor
+        if poplist xPositions front as throwaway
+        endif
+        foreach y in yPositions
+            setvar! itemY y
+            break
+        endfor
+        if poplist yPositions front as throwaway
+        endif
+        
+        foreach type in plateTypes
+            setvar! itemType type
+            break
+        endfor
+        if poplist plateTypes front as throwaway
+        endif
+        pushlist tempTypes itemType
+        
+        while findtype itemType sourceBag plateColor as item
+            getlabel item itemLabel
+            if "master" in itemLabel
+            else
+                sysmsg 'Non-exceptional item found, stopping script:' 33
+                sysmsg itemLabel 33
+                sysmsg 'Hue:' 33
+                sysmsg plateColor 33
+                stop
+            endif
+        
+            # Find a bag that needs this color plate piece
+            setvar! foundBagForItem 0
+            while findtype 3701|3702 destinationBag bagColor as plateBag
+                if findtype itemType plateBag
+                else
+                    lift item 1
+                    wait delay
+                    drop plateBag itemX itemY
+                    wait delay
+                    setvar! foundBagForItem 1
+                    break
+                endif
+                @ignore plateBag
+            endwhile
+            
+            @clearignore
+            if foundBagForItem = 0
+                #overhead 'Not enough bags'
+                break
+            endif
+        endwhile
+    endwhile
+    
+    foreach tempType in tempTypes
+        pushlist plateTypes tempType
+    endfor
+endwhile
+
+sysmsg 'Done filling platemail bags'
+
+@clearignore
+cleardragdrop

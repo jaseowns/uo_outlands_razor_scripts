@@ -1,0 +1,172 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/42a8a9e7-04d1-4f84-91b7-20e0329afd80 for latest
+# Automation by Jaseowns
+## Script: Cluster MIBs part 2 (python)
+## Created by: dabiri#0
+#############################################
+
+#This is python not razor! It expects your journal file in a folder named 'journal' and it will return a razor script that can be run once you're back in game to target the box of all SOS's, then target each individual bag, then it moves each mib into its cluster appropriate bag. Enjoy and good luck! Depending on your programmin experience this is perhaps not for the faint of heart :)
+
+import os
+import re
+import glob
+import numpy as np
+from sklearn.metrics import pairwise_distances
+
+batch_size = 10
+
+def parse_log_file(file_path):
+    sos_data = []
+    coordinates_pattern = r'\[Razor\]: a waterstained SOS message \(located at (\d+), (\d+)\)'
+    serial_pattern = r'\[Razor\]: Added (\d+) to ignore list'
+    
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+        
+    i = 0
+    while i < len(lines):
+        coord_match = re.search(coordinates_pattern, lines[i])
+        if coord_match:
+            x, y = coord_match.groups()
+            # Look for the serial number in the next few lines
+            for j in range(i+1, min(i+5, len(lines))):
+                serial_match = re.search(serial_pattern, lines[j])
+                if serial_match:
+                    serial = serial_match.group(1)
+                    sos_data.append({
+                        'coordinates': (int(x), int(y)),
+                        'serial': serial
+                    })
+                    break
+        i += 1
+    
+    return sos_data
+
+def is_in_big_blue(coord):
+    x, y = coord
+    return 1600 <= x <= 4000 and 750 <= y <= 3000
+
+def ball_clustering(sos_data, batch_size):
+    coordinates = np.array([entry['coordinates'] for entry in sos_data])
+    
+    # Separate points into Big Blue and outside
+    big_blue_indices = [i for i, coord in enumerate(coordinates) if is_in_big_blue(coord)]
+    outside_indices = [i for i, coord in enumerate(coordinates) if not is_in_big_blue(coord)]
+    
+    # Function to cluster a set of indices
+    def cluster_indices(indices):
+        clusters = []
+        unclustered = indices.copy()
+        
+        while unclustered:
+            start_point = unclustered.pop(0)
+            current_cluster = [start_point]
+            
+            if unclustered:
+                distances = pairwise_distances([coordinates[start_point]], coordinates[unclustered])[0]
+                closest_indices = np.argsort(distances)[:min(batch_size - 1, len(distances))]
+                
+                for idx in sorted(closest_indices, reverse=True):
+                    point_idx = unclustered.pop(idx)
+                    current_cluster.append(point_idx)
+            
+            clusters.append([sos_data[i] for i in current_cluster])
+        
+        return clusters
+    
+    # Cluster Big Blue and outside separately
+    big_blue_clusters = cluster_indices(big_blue_indices)
+    outside_clusters = cluster_indices(outside_indices)
+    
+    # Combine and return all clusters
+    return big_blue_clusters + outside_clusters
+
+def cluster_coordinates(sos_data, batch_size):
+    return ball_clustering(sos_data, batch_size)
+
+
+
+def generate_razor_script(batches):
+    script = []
+    
+    # Add header
+    script.append("// You will be targeting {} bags".format(len(batches)))
+    script.append("")
+    script.append("overhead 'Target main box'")
+    script.append("@setvar main_box")
+    script.append("")
+
+    # Add bag targeting instructions
+    for i in range(len(batches)):
+        script.append(f"overhead 'Target bag {i+1}'")
+        script.append(f"@setvar bag_{i+1}")
+        script.append("")
+
+    # Process each batch
+    for i, batch in enumerate(batches):
+        script.append(f"//Process bag_{i+1}")
+        for entry in batch:
+            script.append(f"lift {entry['serial']}")
+            script.append(f"drop bag_{i+1} -1 -1 0")
+            script.append("pause 650")
+            script.append("")
+
+    # Join all lines and return
+    return "\n".join(script)
+
+def generate_map_pin_files(batches):
+    output_folder = './output'
+    os.makedirs(output_folder, exist_ok=True)
+
+    for i, batch in enumerate(batches):
+        filename = os.path.join(output_folder, f'bag_{i+1}.txt')
+        with open(filename, 'w') as f:
+            for entry in batch:
+                x, y = entry['coordinates']
+                name = f"{x}/{y}"
+                line = f"+\t{name}\t{x}\t{y}\t7\tfalse\n"
+                f.write(line)
+        
+        print(f"Map pin file for bag {i+1} has been written to {filename}")
+
+# Find the most recent log file in the 'journal' folder
+journal_folder = './journal'
+list_of_files = glob.glob(os.path.join(journal_folder, '*_journal.txt'))
+if not list_of_files:
+    print("No journal files found.")
+    exit()
+
+latest_file = max(list_of_files, key=os.path.getctime)
+
+# Parse the log file
+sos_data = parse_log_file(latest_file)
+    
+
+batches = cluster_coordinates(sos_data, batch_size)
+
+# Print the results
+for i, batch in enumerate(batches):
+    print(f"Batch {i+1}:")
+    for entry in batch:
+        print(f"  Coordinates: {entry['coordinates']}, Serial: {entry['serial']}")
+    print()
+    
+
+# After clustering
+razor_script = generate_razor_script(batches)
+
+# Write to file
+output_folder = './output'
+os.makedirs(output_folder, exist_ok=True)
+output_file = os.path.join(output_folder, 'process_bags.razor')
+
+with open(output_file, 'w') as f:
+    f.write(razor_script)
+
+print(f"Razor script has been written to {output_file}")
+
+# After clustering and generating the Razor script
+generate_map_pin_files(batches)
+
+print('\n\n~~~Map pin files have been generated~~~\n\n')
+    
+print ('\n~~~All done~~~\n')

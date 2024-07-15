@@ -1,0 +1,118 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/a86ad404-5e26-41c3-b171-e0658130c8a3 for latest
+# Automation by Jaseowns
+## Script: backstabberHide
+## Created by: tarouca#0
+#############################################
+
+# THIS SCRIPT DEPENDS FROM:
+# SCRIPTS: backstabberSetup
+# COOLDOWNS: Tactics, Weapon Ability, Smoke Bomb, Health Potion, Hiding, Rope
+# TO SET THIS COOLDOWNS:
+# PAPERDOLL > OPTIONS > COOLDOWNS > NEW ENTRY
+# ALL COOLDOWNS SHOULD BE SET AS MENTIONED (Tactics, Weapon Ability, Smoke Bomb, Health Potion, Hiding, Rope)
+# ON EACH CHECK: HIDE WHEN INACTIVE, PAUSE DURING WORLD SAVE
+# MOUNT TOKEN
+
+# OVERHEAD MESSAGES ARE USEFUL
+# TO SETUP OVERHEAD MESSAGES:
+# RAZOR > DISPLAY/COUNTERS > OVERHEAD MESSAGES
+# CHECK: SHOW
+# ADD MESSAGE FOR: stealth steps remaining. WITH OVERHEAD OF: {3} STEPS
+# ADD MESSAGE FOR: You feel ready to continue stealthing. WITH OVERHEAD OF: RENEWED
+# ADD MESSAGE FOR: You will automatically stealth when out of steps. WITH OVERHEAD OF: RENEWED
+
+# TO SETUP ENSURE YOU EDIT THE backstabberSetup SCRIPT
+# ADJUST THE lagTimer_ TO YOUR LIKING OR LEAVE IT AS IS
+# ADJUST THE smokeBombCooldown_ TO REFLECT YOUR COOLDOWN (120000 IS THE BASE)
+# ADJUST THE useMagery_ TO 0 IF TEMPLATE HAS MAGERY < 60
+# IF MAGERY >= 60 INVISIBILITY SCROLLS ARE NEEDED
+# REGARDING SERIALS REPLACE XXXXXXXXXX BY THE SERIALS OF YOUR ITEMS:
+# IF NOT USING 2 WEAPON SKILLS, SET THE myBow_ WITH THE SAME VALUE AS myMace_
+# A MAGICAL WIZARD HAT IS NEEDED TO KEEP A DIFFERENCE IN STAMINA SO THAT ON MOVEMENT CHARACTER WON'T GET OUT OF STEALTH
+# SET SERIALS FOR: myMount_, myHeadPiece_, myWizardHat_, myMace_, myBow_
+
+#HIDE
+setvar notStealthing_ 1
+setvar checkSteps_ 1
+
+if hp < 90 and not cooldown "Health Potion" and findtype "Yellow Potion" backpack
+    dclicktype "Yellow Potion"
+    cooldown "Health Potion" 11000
+endif
+
+if not cooldown "Hiding"
+    useskill "Hiding"
+    wait lagTimer_
+    if hidden
+        cooldown "Hiding" 10000
+    endif
+endif
+
+if not hidden and not cooldown "Smoke Bomb" and findtype "bombs" backpack and not cooldown "Hiding" and not cooldown "Rope"
+    overhead "Hiding Failed"
+    say "[SmokeBomb"
+    wait lagTimer_
+    if hidden
+        cooldown "Smoke Bomb" smokeBombCooldown_
+        setvar notStealthing_ 0
+    endif
+endif
+
+if useMagery_ = 1 and not hidden
+    if mana >= 20 and skill "magery" >= 60
+        if findtype "Invisibility Scrol" backpack or skill "magery" >= 80
+            overhead "CASTING INVISIBILITY" 43
+            hotkey "Invisibility"
+            waitfortarget 
+            target "self"
+            warmode "on"
+            warmode "off"
+            wait lagTimer_
+            useskill "Hiding"
+            cooldown "Hiding" 10000
+        else 
+            overhead "SCROLL/REGS" 28
+        endif
+    else 
+        overhead "MANA/SKILL" 28
+    endif
+endif
+
+if hidden and mounted
+    dclick myMount_
+endif
+
+clearsysmsg
+while hidden
+    if find myMace_ backpack
+        dclick myMace_
+    endif
+    while notStealthing_ = 1 and hidden
+        if timer "dontWalkOverheadTimer_" > dontWalkOverheadTimerTarget_
+            overhead "DONT WALK" 28
+            settimer "dontWalkOverheadTimer_" 0
+        endif
+        if insysmsg "You feel comfortable enough to begin stealthing."
+            setvar notStealthing_ 0
+            overhead "STEALTH"
+        endif
+    endwhile
+    if stam = maxstam and timer "staminaControlTimer_" > staminaControlTimerTarget_
+        dclick myWizardHat_ backpack
+        dclick myHeadPiece_ backpack
+        settimer "staminaControlTimer_" 0
+    endif
+    if checkSteps_ = 1
+        if insysmsg "You have 4 stealth steps remaining." or insysmsg "You have 3 stealth steps remaining." or insysmsg "You have 2 stealth steps remaining." 
+            overhead "WARNING" 43
+        elseif insysmsg "You have 1 stealth steps remaining." or insysmsg "You have 0 stealth steps remaining."
+            overhead "STOP" 28
+        endif
+    endif
+    if insysmsg "You have 0 stealth steps remaining." and checkSteps_ = 0
+        setvar checkSteps_ 1
+    endif
+    if insysmsg "You will automatically stealth when out of steps." and checkSteps_ = 1
+        setvar checkSteps_ 0
+    endif  
+endwhile

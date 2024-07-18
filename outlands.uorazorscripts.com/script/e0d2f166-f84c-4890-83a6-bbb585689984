@@ -1,0 +1,282 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/e0d2f166-f84c-4890-83a6-bbb585689984 for latest
+# Automation by Jaseowns
+## Script: Bapeth's Trapper Mapper
+## Created by: barryroser#0
+#############################################
+
+# TrapMapper Script by Bapeth
+#
+# This script uses both Harvest and Gadget aspect, both aspects are required.
+# This script also uses two Mastery Chains one for Trap Damage and the other for Loot Chance.
+# If you only have one chain then set it for both chain settings when prompted.
+#
+# "REQUIRED": User must create two cooldowns named "Aspect" and "Chain Swap".
+# Cooldowns can be found in the in game options.
+#
+# HOW TO USE:
+#    
+# Items needed in backpack - Shovel, T-map, Adv Pack, Ground Trap, Lockpicks.
+#
+# In PEACEMODE - Play the script when you are nearby the map location to being digging for the chest.
+# When the script begins digging the chest it will use the adv pack, summon an earth ele, and place a ground trap.
+# The script will stop when chest is fully dug up.
+#
+# At this time the user should kill all the monsters.
+# It is best to Stay the elemental in the direct center of the trap and wait for the mobs to move in to range.
+# Detonate the trap and ready another trap if needed, repeat as needed.
+# A good trapper template with high gadget and a good chain will only need 2 traps maximum to clear any tmap under level 8.
+#
+# In WARMODE - Play the script once again when all monsters are dead and it will switch to Harvest aspect and equip your loot chain.
+# Approach the chest and the script will automatically invis the user and begin picking and looting.
+# Low level tmaps will often open faster then the chain swap cooldown of 30 seconds so the user should wait 10 seconds after swapping to begin picking.
+# When the script is done looting it will switch back to gadget aspect and equip the Trap damage chain and stop.
+# You are now ready to go do another Tmap!
+#
+# Please remember to destroy your empty treasure chest before leaving the site.
+#
+# "Script is in an early state and requires the user to edit line 85 and line 179"  Ignore this if you only have one chain.
+#
+# "If you have two chains you must input their name types (single click info)" Ignore this if you only have one chain.
+
+if not varexist "TrapChain"
+    overhead "Set Trap Chain..." 88
+    setlasttarget 
+    wft 500
+    while targetexists 
+        //do nothing
+    endwhile
+    @setvar "TrapChain" lasttarget 
+    overhead "Trap Chain Set..." 88
+endif
+
+if not varexist "LootChain"
+    overhead "Set Loot Chain..." 58
+    setlasttarget 
+    wft 500
+    while targetexists 
+        //do nothing
+    endwhile
+    @setvar "LootChain" lasttarget 
+    overhead "Loot Chain Set..." 58
+endif
+
+if skill "Cartography" >= 10 and findtype "adventure pack" backpack as advpack
+    @setvar "bappack" advpack
+else
+    overhead "I will need an adventure pack..." 38
+    stop
+endif
+
+if skill "Tinkering" >= 80 and findtype "metal trap" backpack as btrap
+    @setvar "baptrap" btrap
+else
+    overhead "I will need some ground traps..." 38
+    stop
+endif
+
+if skill "Lockpicking" >= 50 and findtype "lockpicks" backpack
+    //donothing
+else
+    overhead "I will need some lockpicks..." 38
+    stop
+endif
+
+if timerexists bchestopen
+    removetimer bchestopen
+endif
+
+if not warmode
+    if findlayer self talisman as bchain
+        getlabel bchain desc
+        if "twin loop" in desc
+            //donothing
+        else
+            lift bchain
+            drop backpack -1 -1 0
+            pause 500
+            getlabel backpack ping
+            lift "TrapChain"
+            drop self Talisman
+            overhead "Trap Chain Equipped..." 44
+            cooldown "Chain Swap" 30000
+            pause 500
+            getlabel backpack ping
+        endif
+    else
+        lift "TrapChain"
+        drop self Talisman
+        getlabel backpack ping
+        overhead "Trap Chain Equipped..." 44
+        cooldown "Chain Swap" 30000
+    endif
+    if not timerexists checkforgadget
+        clearsysmsg 
+        say "[AspectArmor Gadget"
+        getlabel backpack ping
+        if insysmsg "You must wait a moment before activating another armor aspect"
+            overhead "Aspect swap cooling..." 44
+            pause 1500
+            replay
+        elseif insysmsg "Your armor is already of that aspect"
+            createtimer checkforgadget
+        else
+            createtimer checkforgadget
+            cooldown "Aspect" 30000
+        endif
+        stop
+    endif
+    removetimer checkforharvest
+    if findtype "map" backpack
+        //donothing
+    else
+        overhead "I will need a treasure map..." 38
+        stop
+    endif
+    if findtype "shovel" backpack as bshovel
+        dclick bshovel
+        pause 1200
+        if insysmsg "Perhaps you should step outdoors."
+            overhead "I should hunt outside..." 45
+            pause 2000 
+            replay
+        elseif findbuff "Paralyze"
+            if mana >= 50 and followers < 4
+                cast "Earth Elemental"
+            endif
+            dclick "bappack"
+            getlabel backpack ping
+            pause 500
+            dclick "baptrap"
+            while findbuff "Paralyze"
+                if skill "Spirit Speak" >= 80 and findtype "an earth elemental" ground -1 -1 1 as Summon
+                    if not find "bsummon1" ground -1 -1
+                        while findtype "an earth elemental" ground -1 -1 1 as bsummon1
+                            if noto bsummon1 = "friend"
+                                @setvar "bsummon1" bsummon1
+                                # Name your summon if you like (no spaces must be unique)
+                                rename bsummon1 "LootGolem"
+                            endif
+                            break
+                        endwhile
+                        getlabel backpack ping
+                    elseif not find "bsummon2" ground -1 -1
+                        while findtype "an earth elemental" ground -1 -1 1 as bsummon2
+                            if noto bsummon2 = "friend"
+                                @setvar "bsummon2" bsummon2
+                                # Name your summon if you like (no spaces must be unique)
+                                rename bsummon2 "LootGolem"
+                            endif
+                            break
+                        endwhile
+                    endif
+                endif                
+            endwhile
+            pause 1100
+            overhead "Time to slay monsters!!!" 88
+            stop
+        endif
+    else
+        overhead "I will need a shovel..." 38
+        stop
+    endif
+elseif warmode
+    if findlayer self talisman as bchain
+        getlabel bchain desc
+        if "horn pendant" in desc
+            //donothing
+        else
+            lift bchain
+            drop backpack -1 -1 0
+            pause 500
+            getlabel backpack ping
+            lift "LootChain"
+            drop self Talisman
+            overhead "Loot Chain Equipped..." 74
+            cooldown "Chain Swap" 30000
+            pause 500
+            getlabel backpack ping
+        endif
+    else
+        lift "LootChain"
+        drop self Talisman
+        getlabel backpack ping
+        overhead "Loot Chain Equipped..." 74
+        cooldown "Chain Swap" 30000
+    endif
+    if not timerexists checkforharvest
+        clearsysmsg 
+        say "[AspectArmor Harvest"
+        getlabel backpack ping
+        if insysmsg "You must wait a moment before activating another armor aspect"
+            overhead "Aspect swap cooling..." 74
+            pause 1500
+            replay
+        elseif insysmsg "Your armor is already of that aspect"
+            createtimer checkforharvest
+        else
+            createtimer checkforharvest
+            cooldown "Aspect" 30000
+        endif
+    endif
+    removetimer checkforgadget
+    if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 1 as bchest
+        clearsysmsg 
+        dclick bchest
+        getlabel backpack ping
+        if gumpexists 736038070 and ingump "Cleared Of Traps"
+            while gumpexists 736038070
+                gumpresponse 4
+                waitforgump 736038070 500
+                if insysmsg "You attempt to pick the lock"
+                    clearsysmsg
+                    break
+                elseif insysmsg "You must rid the area"
+                    overhead "I must kill these monsters first..." 88
+                    stop
+                endif
+            endwhile
+            while not dead 
+                if not hidden and mana >= 20
+                    cast "Invisibility"
+                    wft 5000
+                    target self
+                    getlabel backpack ping
+                    hotkey "Cancel Current Target"
+                endif
+                if insysmsg "You successfully pick the lock"
+                    break
+                endif
+                if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
+                    break
+                endif
+            endwhile
+        endif
+        while findtype "cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|hieroglyph|figurine|statue|44987|49730|47107|18653|47103|45127|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|8826|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|3922|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|3861|3821" bchest as bitem
+            warmode off
+            if not timerexists bchestopen
+                createtimer bchestopen
+                overhead "The treasure is mine!" 2091
+            endif
+            hotkey 'Grab Item' 
+            target bitem
+            while queued
+                wait 500
+            endwhile
+            if insysmsg "That container cannot hold"
+                overhead "My cup runneth over!..." 1779
+                if not targetexists 
+                    clearall 
+                endif
+                if findtype "gold coin" backpack as gold
+                    lift gold 7000
+                    drop "bchest"
+                    while queued
+                        wait 500
+                        getlabel backpack ping
+                    endwhile
+                endif
+            endif
+        endwhile
+    endif
+endif
+loop

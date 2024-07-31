@@ -1,0 +1,130 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/5227b0cf-8db6-433c-8664-f584f34ca333 for latest
+# Automation by Jaseowns
+## Script: Deposit gold, repair, dump loot, restock, and resupply
+## Created by: icebearfpv#0
+#############################################
+
+@setvar! globalTimeout 650
+
+@setvar! recycler 0x4346EC2A
+@setvar! storageShelf 0x4139C061
+@setvar! stockpile 0x4346D41C
+@setvar! satchel 0x74C832DC
+@setvar! lootBag 0x74C932DE
+
+
+#
+# Deposit gold or dabloons
+#
+if findtype "bank deposit safe" ground -1 -1 2 as safe
+    while findtype "gold coin" backpack as gold
+        lift gold 60000
+        drop safe -1 -1 -1
+        wait 2500
+    endwhile
+    while findtype 2539 backpack 2125 as joubloons
+        lift joubloons 60000
+        drop safe -1 -1 -1
+        wait 2500
+    endwhile
+endif
+
+wait globalTimeout
+
+#
+# Repair Bench - Repair all items
+#
+if findtype "repair bench" ground -1 -1 2 as bench
+    clearsysmsg 
+    dclick bench
+    getlabel backpack jaseowns_PingCheck
+    if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
+        // continue
+    else
+        settimer lilJaseTimer 0
+        while timer lilJaseTimer <= 5000 
+            if insysmsg "Repair"
+                break
+            endif
+        endwhile
+        overhead "Repair took: {{lilJaseTimer}}"
+        removetimer lilJaseTimer
+    endif
+endif
+
+wait globalTimeout
+
+#
+# Check into Inn Room
+#
+@setvar rentalGumpID 2393832411
+
+if gumpexists rentalGumpID
+    gumpclose
+    wait 100
+endif
+
+say 'room'
+waitforgump rentalGumpID 3000
+
+if not gumpexists rentalGumpID
+    overhead 'Failed to enter room!' 38
+    overhead 'Are you even near the inn?' 53
+elseif ingump 'Enter Your Room'
+    wait 250
+
+    while not insysmsg 'You enter the rental room'
+        overhead 'Entering room...' 903
+        gumpresponse 4
+        wait 250
+        
+        if insysmsg 'That vendor is too far away'
+            overhead 'Innkeeper is too far away!' 38
+            overhead 'Move closer!' 53
+            stop
+        endif
+    endwhile
+    
+    overhead 'Welcome home.'
+else 
+    sysmsg 'Character does not have a room or access to one!' 38
+    overhead 'No room access!' 38
+endif
+
+wait globalTimeout
+
+clearsysmsg 
+clearignore 
+
+#
+# Magic Item Recycler - Add all unidentified magic items
+#
+if find recycler ground -1 -1 2 as container
+    menu container 1
+endif
+
+wait globalTimeout
+
+#
+# Stockpile - Restock
+#
+if find stockpile ground -1 -1 2 as container
+    menu container 0
+    wft 500
+    target lootBag
+endif
+
+wait globalTimeout
+
+#
+# Storage Shelf - Resupply
+#
+if find storageShelf ground -1 -1 2 as container
+    menu container 0 # Dump reagents from satchel back into the storage shelf
+    wft 500
+    target satchel
+    
+    wait 1000
+    
+    menu container 1 # resupply reagents with exact amount from desired loadout
+endif

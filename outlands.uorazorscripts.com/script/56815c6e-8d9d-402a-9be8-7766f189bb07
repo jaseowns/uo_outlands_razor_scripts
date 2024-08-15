@@ -10,7 +10,7 @@
 #
 # "In War Mode" This script will additionally look for nearby forges, smelt ingots, and auto sort them into Boombox/Trapped Pouch
 #
-# Cooldowns Required "Peacemaking" "Peacemaking Fail" "Tracking"
+# Cooldowns Required "Peacemaking" "Tracking"
 #
 # Items required : Picaxe or Hatchet, BoomBox, Musical Instrument (supreme is good), trapped pouch
 #
@@ -58,7 +58,7 @@ if not find "harvboombox" backpack
     pause 750
 endif
     
-if rhandempty and findtype 3718|3908 backpack as harvtool
+if rhandempty and not casting and findtype 3718|3908 backpack as harvtool
     @setvar "bharvest" harvtool
     dclick harvtool
     overhead "Harvest Time!" 88
@@ -104,7 +104,7 @@ while findlayer self righthand
         overhead desc
         settimer htoolcheck 0
     endif
-    if not cooldown "Peacemaking" and not cooldown "Peacemaking Fail" and timer findpeacetarget >= 600
+    if not cooldown "Peacemaking" and timer findpeacetarget >= 600
         for 12
             hotkey 'Next Grey Monster Target'
             @setvar peacetarget lasttarget
@@ -139,20 +139,19 @@ while findlayer self righthand
                 getlabel peacetarget desc
                 if "pacified" in desc
                     //donothing
-                elseif not warmode
+                else
                     overhead "Peace target acquired..." 2085
                     overhead desc 1161
                     skill "Peacemaking"
                     wft 500
                     target "peacetarget"
-                elseif warmode
-                    overhead "Peace AoE" 2085
-                    overhead desc 1161
-                    skill "Peacemaking"
-                    wft 500
-                    target self
-                    hotkey "Cancel Current Target"
-                endif
+                    getlabel backpack ping
+                    if insysmsg "You play successfully, pacifying your target"
+                        cooldown "Peacemaking" 10000
+                    elseif insysmsg "You fail"
+                        cooldown "Peacemaking" 5000
+                    endif
+                endif 
                 break
             endif
         endfor
@@ -221,11 +220,12 @@ while findlayer self righthand
         endif
     endif
     
-    if skill "Magery" >= 80
+    if skill "Magery" >= 80 and mana >= 15
         if timerexists reflect and not findbuff "Magic Reflection"
             if timer reflect > 30000
-                cast "Magic Reflect"
+                cast "Magic Reflection"
                 pause 1800
+                replay
             endif
         endif
         if findbuff "Magic Reflection" and timerexists reflect
@@ -236,11 +236,12 @@ while findlayer self righthand
         endif
     endif
 
-    if skill "Magery" >= 20
+    if skill "Magery" >= 20 and mana >= 4
         if timerexists reactive and not findbuff "Reactive Armor"
             if timer reactive > 30000
                 cast "Reactive Armor"
                 pause 900
+                replay
             endif
         endif
         if findbuff "Reactive Armor" and timerexists reactive

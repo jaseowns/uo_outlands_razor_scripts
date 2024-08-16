@@ -6,9 +6,9 @@
 
 # Bapeths Peaceful Harvester
 #
-# Aug 15th 2024
+# Aug 16th 2024
 #
-# "In Peace Mode" This script will auto harvest, auto heal/cure, auto peacemake hostile, auto track (set hunting mode manually)
+# "In Peace Mode" This script will auto harvest, auto heal/cure, auto peacemake hostile, auto track (set hunting mode manually), auto sort wood into Boombox/Trapped Pouch
 #
 # "In War Mode" This script will additionally look for nearby forges, smelt ingots, and auto sort them into Boombox/Trapped Pouch
 #
@@ -18,8 +18,11 @@
 #
 # Additional Items Script Uses : Cure pot, Heal pot, Refresh pot, Strength pot, Cleansing brew
 #
-# How to use: Gather required items and play script near resource.  Do not put anything in boombox other than ingots.  Script will auto handle this.
-# To get ingots out of trapped box: use resource stockpile in your house/inn room to grab ingots without triggering trap    
+# How to use: 
+# 1. Gather required items and play script near resource
+# 2. Do not put anything in boombox other than ingots, script will auto handle this
+# 3. To get ingots out of trapped box: use resource stockpile in your house/inn room to grab ingots without triggering trap    
+# 4. Do not carry both a picaxe and a hatchet at the same time, choose one or the other
 #    
 # "***Recommended Build***"
 # -"Peace Harvester"-
@@ -59,23 +62,50 @@ if not find "harvboombox" backpack
     overhead "Boom Box Set" 78
     pause 750
 endif
-    
-if rhandempty and not casting and findtype 3718 backpack as harvtool
+
+if not find "bharvest" and findtype 3718|3908 backpack as harvtool
     @setvar "bharvest" harvtool
-    dclick harvtool
+endif
+if not find "bharvest" self and findlayer self lefthand as leftdrop
+    lift leftdrop
+    drop backpack
+    pause 500
+    getlabel backpack ping
+    replay
+elseif not find "bharvest" self and findlayer self righthand as rightdrop
+    lift rightdrop
+    drop backpack
+    pause 500
+    getlabel backpack ping
+    replay
+endif
+if find "bharvest" backpack and findlayer self lefthand as leftdrop 
+    lift leftdrop
+    drop backpack
+    pause 500
+    getlabel backpack ping
+    replay
+elseif find "bharvest" backpack and findlayer self righthand as rightdrop 
+    lift rightdrop
+    drop backpack
+    pause 500
+    getlabel backpack ping
+    replay
+endif
+if rhandempty and find "bharvest" backpack
+    dclick "bharvest"
     overhead "Harvest Time!" 88
     pause 500
     getlabel backpack ping
 endif
-if lhandempty and not casting and findtype 3908 backpack as harvtool
-    @setvar "bharvest" harvtool
-    dclick harvtool
+if lhandempty and find "bharvest" backpack
+    dclick "bharvest"
     overhead "Harvest Time!" 88
     pause 500
     getlabel backpack ping
 endif
 clearsysmsg 
-while find "bharvest"
+while find "bharvest" self
     if insysmsg "You have recently traveled and must wait"
         overhead "Travel Cooldown" 67
     endif
@@ -126,7 +156,7 @@ while find "bharvest"
         overhead desc
         settimer htoolcheck 0
     endif
-    if not cooldown "Peacemaking" and timer findpeacetarget >= 600
+    if skill "Peacemaking" >= 10 and not cooldown "Peacemaking" and timer findpeacetarget >= 600
         for 18
             hotkey 'Next Grey Monster Target'
             @setvar peacetarget lasttarget
@@ -194,12 +224,12 @@ while find "bharvest"
         settimer findpeacetarget 0
         removetimer peaceit
     endif
-    if not findbuff "Song Of Peacemaking"
+    if skill "Peacemaking" >= 10 and not findbuff "Song Of Peacemaking"
         skill "Peacemaking"
         wft 500
         targetrelloc -1 -1
     endif
-    if skill "Tracking" >= 1 and not cooldown "Tracking" and not findbuff "Tracking Hunting"
+    if skill "Tracking" >= 10 and not cooldown "Tracking" and not findbuff "Tracking Hunting"
         skill 'tracking'
         waitforgump 4267467659 500
         gumpresponse 6
@@ -280,7 +310,7 @@ while find "bharvest"
         getlabel backpack ping
     endif
     
-    while hp < 33
+    while hp < 33 and skill "Magery" >= 30 
         hotkey 'Cancel Current Target'
         cast 'Heal'
         wft 2500
@@ -293,7 +323,7 @@ while find "bharvest"
         pause 500
         getlabel backpack ping
     endif
-    if hp < 55
+    if hp < 55 and skill "Magery" >= 60 
         hotkey 'Cancel Current Target'
         cast 'Greater Heal'
         wft 3500

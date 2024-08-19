@@ -43,9 +43,13 @@
 #
 # "In War Mode" In addition to everything peace mode does...
 # Look for and display nearby forges
-# Smelt ingots when near forge
+# Auto smelt ingots when near "player forge"
 # Turn logs into boards
 # Auto sort boards/ingots/ore into a Boombox or Trapped Pouch
+#
+# "Atlas" Required to smelt at non-player "natrual forges"
+# Open your atlas "while in War Mode" near a natrual forge to auto smelt
+# Reason : Staff changed natrual forges and they cannot be sensed with scripts
 #
 # War mode uses action resources and may slow down active mining slightly
 #
@@ -117,6 +121,15 @@ if not timerexists freshlogin
     if findtype "alchemists satchel" backpack as satch
         dclick satch
     endif
+endif
+
+if not findtype "atlas" backpack
+    say "[Atlas"
+    getlabel backpack ping
+endif
+
+if gumpexists 341416395
+    gumpclose 341416395
 endif
 
 if not find "bharvest" and findtype 3718|3908 backpack as harvtool
@@ -294,10 +307,25 @@ while find "bharvest" self and not hidden
                 endfor
             endif
             
+            if gumpexists 341416395
+                @clearignore 
+                while findtype "6585" backpack as natore
+                    dclick natore
+                    pause 500
+                    getlabel backpack ping
+                    if insysmsg "You do not see any nearby forges"
+                        gumpclose 341416395
+                        getlabel backpack ping
+                        break
+                    endif
+                endwhile
+                gumpclose 341416395
+            endif
+            
             if findtype "6585" backpack 0 as baseore
                 @ignore baseore
             endif
-            
+                        
             if findlayer self righthand and findtype "forge" ground -1 -1 2
                 @clearignore
                 while findtype 7154|7127| backpack as refinedresource
@@ -311,6 +339,9 @@ while find "bharvest" self and not hidden
             endif
             
             while findtype "6585" backpack as rawore
+                if findtype "6585" backpack 0 as baseore
+                    @ignore baseore
+                endif                
                 if find "harvboombox" backpack
                     hotkey "Set Grab Item HotBag"
                     wft 500
@@ -465,14 +496,18 @@ while find "bharvest" self and not hidden
             getlabel backpack ping
         endif
         
-        while hp < 33 and skill "Magery" >= 30 
-            hotkey 'Cancel Current Target'
-            cast 'Heal'
-            wft 2500
-            hotkey 'Target Self'
-            hotkey 'Cancel Current Target'
-            pause 250
-        endwhile
+        if hp < 33
+            while hp < 33 and skill "Magery" >= 30 
+                hotkey 'Cancel Current Target'
+                cast 'Heal'
+                wft 2500
+                hotkey 'Target Self'
+                hotkey 'Cancel Current Target'
+                pause 250
+            endwhile
+            replay
+        endif
+        
         if hp < 77 and findtype "Yellow Potion" backpack as healpot
             dclick healpot
             pause 500
@@ -485,17 +520,22 @@ while find "bharvest" self and not hidden
             hotkey 'Target self'
             hotkey 'Cancel Current Target'
             pause 250
+            replay
         endif
         while poisoned and not targetexists 
             if findtype "Orange Potion" backpack as curepot
                 dclick curepot
                 pause 500
                 getlabel backpack ping
-            elseif mana >= 6
-                cast "Cure"
-                wft 2500
-                target self
-                hotkey 'Cancel Current Target'
+            elseif poisoned
+                while poisoned
+                    mana >= 6
+                    cast "Cure"
+                    wft 2500
+                    target self
+                    hotkey 'Cancel Current Target'
+                endwhile
+                replay
             endif
         endwhile
     endif

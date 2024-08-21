@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER ID-Recycler-while-farming ver.1.11
+#SUPER ID-Recycler-while-farming ver.1.12
 
 #Made by @dennozz12 on discord. 
 #Inspired/learned by other scrips in https://outlands.uorazorscripts.com/
@@ -367,7 +367,7 @@ foreach b in bad_items
         gumpresponse 3 craftingToolGumpID
         waitfortarget 1000 
         target b
-        wait 1
+        wait 10
         while not ingump "you recycle" 949095101 and itemError = 0
             if ingump "That cannot be recycled"
                 @getlabel b notLabel
@@ -388,11 +388,13 @@ gumpclose craftingToolGumpID
 #********** EAT ARCANE ESSENCES  **********  
 
 if eatArcaneEssence = 1
-    if findtype 12686 backpack any any 1
+    wait 200
+    if findtype 12686 backpack
         sysmsg "Eating arcane.." 11
         dclicktype 12686 backpack
         waitfortarget maxwaittimeinms
         while not targetexists 
+            sysmsg "Trying to eat arcane.." 11
             dclicktype 12686 backpack
             waitfortarget maxwaittimeinms
         endwhile
@@ -406,7 +408,7 @@ endif
 sysmsg "Moving materiasl to bag..." 11
 
 if findtype "bag" backpack as baggyz and materialsIntoBag = 1
-    
+ 
     while findtype 'cut up leather' backpack any any 1 as leather
         sysmsg "moving leathers..." 6
         lift leather 1000
@@ -420,21 +422,21 @@ if findtype "bag" backpack as baggyz and materialsIntoBag = 1
         drop baggyz -1 -1 0
         wait maxwaittimeinms
     endwhile
-    
+
     while findtype 'iron ingot%s' backpack any any 1 as iron
         sysmsg "moving ingots..." 6
         lift iron 1000
         drop baggyz -1 -1 0
         wait maxwaittimeinms
     endwhile
-      
+
     while findtype 'blank scroll%s%' backpack any any 1 as blankz
         sysmsg "moving scrolls..." 6
         lift blankz 1000
         drop baggyz -1 -1 0
-        wait 750
+        wait maxwaittimeinms
     endwhile
-    
+
     if eatArcaneEssence = 0
         while findtype 12686 backpack any any 1 as arcanyz
             sysmsg "moving arcanes..." 6
@@ -443,7 +445,478 @@ if findtype "bag" backpack as baggyz and materialsIntoBag = 1
             wait maxwaittimeinms
         endwhile
     endif
+
+endif
+
+#********** DISPLAY ALL GOOD AND BAD ITEMS PROCCESED  **********  
+
+if list display_goods = 0
+    sysmsg "0 Good items" 55
+else 
+    foreach dg in display_goods
+        sysmsg dg 55
+    endfor
+endif
+
+removelist display_goods
+
+if list display_bads = 0
+    sysmsg "0 Bad items" 33
+else     
+    foreach db in display_bads
+        sysmsg db 33
+    endfor
+endif
+
+removelist display_bads
+
+hotkey 'cancel current target'
+gumpclose craftingToolGumpID
+
+overhead "Recycle Finished!" 65
+sysmsg "Time Elapse in miliseconds : {{testTimer}}" 65
+removetimer testTimer#SUPER ID-Recycler-while-farming ver.1.12
+
+#Made by @dennozz12 on discord. 
+#Inspired/learned by other scrips in https://outlands.uorazorscripts.com/
+
+#This is a recycling while farming script!
+#You will need sewing kit, regular/container ID wand or 80 > in ID Skill
+#Optional The script will look for a bag (rounded one) and will move all good items and recycled materials to the bag
+
+# ** Set this to 1 if you want to auto consume arcane essence **
+setvar! eatArcaneEssence 1
+
+# ** Set this var to 0 if you want to leave all recycled materials in your main backpack. Set to 1 to move it to a bag (rounded one)
+setvar! materialsIntoBag 1
+
+removelist "MagicalItems"
+createlist "MagicalItems"
+
+# ** Add or remove magical items you want to keep to the list **
+# ** Copy & Paste one line and add description of the item you are looking for **
+
+#********** ADD YOU MAGICAL ITEMS YOU WANT TO SAVE ********** 
+
+pushlist "MagicalItems" "slaying"
+
+pushlist "MagicalItems" "indestructible"
+pushlist "MagicalItems" "invulnerability"
+pushlist "MagicalItems" "supremely"
+pushlist "MagicalItems" "vanquishing"
+
+pushlist "MagicalItems" "fortified"
+pushlist "MagicalItems" "fortification"
+pushlist "MagicalItems" "exceedingly"
+pushlist "MagicalItems" "power"
+
+pushlist "MagicalItems" "eminently potent might"
+pushlist "MagicalItems" "eminently potent force"
+pushlist "MagicalItems" "surpassingly potent might"
+pushlist "MagicalItems" "surpassingly potent force"
+
+#**********  DO NOT EDIT FROM HERE  ********** 
+
+if not findtype 3997 backpack
+    overhead "Sewing kit NOT found" 34
+    stop
+endif   
+
+if skill 'item identification' < 80
+    if not findtype 20495 backpack and not findtype 20496 backpack
+        overhead "ID wand NOT found" 34
+        stop
+    endif   
+endif
+
+setvar! maxwaittimeinms 650
+setvar! singleWandWaitTimeUse 125
+setvar! eatingEssenceWaitTime 100
+
+removetimer testTimer
+createtimer testTimer
+settimer testTimer 0
+
+setvar! deleteAllLists 0
+
+if deleteAllLists = 1
+    removelist identified_items
+    removelist display_goods
+    removelist display_bads
+    removelist good_items
+    removelist bad_items
+    overhead "All lists cleared" 65
+    stop
+endif
+
+setvar! craftingToolGumpID 949095101
+
+if not listexists display_goods
+    createlist display_goods
+endif
+
+if not listexists display_bads
+    createlist display_bads
+endif
+
+removelist loot_items
+createlist loot_items
+
+clearsysmsg
+
+overhead "Beginning Item Recycle:" 65
+
+#********** SCAN ALL ARMOR  **********  
+
+sysmsg "Scanning All Armor..." 11
+
+#Armor - all serials:
+while findtype 5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|5101|5103|5105|5106|5129|5131|5132|5135|5138|5139|5142|5143|5144|5146|5201|5203|5204|5205|5207|7169|7170|7173|7175|7177|7179|7181|7610|7947|31003|31004|31005|31006|31007|31008|31009|31010|31011|31012|31015|31191 backpack as itemzy
     
+    getlabel itemzy itemDesc
+    
+    if "unidentified" in itemDesc
+        if "aspect" in itemDesc
+            sysmsg "aspect item not added : {{itemDesc}}" 44
+        else 
+            pushlist loot_items itemzy
+        endif
+    endif   
+    @ignore itemzy
+endwhile
+
+#********** SCAN ALL ARCANES, STAFF, SPELLBOOKS  **********  
+
+sysmsg "Scanning Arcane Staffs, Spellbooks..." 11
+
+#Arcane Staffs, Spellbook - all serials:
+while findtype 31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037|31038|31041|31043|31045|31047|31049|31051|31053|31055|3834 backpack as itemzy
+   
+    getlabel itemzy itemDesc
+    
+    if "unidentified" in itemDesc
+        if "aspect" in itemDesc
+            sysmsg "aspect item not added : {{itemDesc}}" 44
+        else 
+            pushlist loot_items itemzy
+        endif
+    endif 
+    @ignore itemzy
+endwhile
+
+#********** SCAN ALL SHIELDS & INSTRUMENTS  **********  
+
+sysmsg "Scanning Shields & Instruments..." 11
+
+#Instruments, Shields - all serials:
+while findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130 backpack as itemzy
+    
+    getlabel itemzy itemDesc
+    
+    if "unidentified" in itemDesc
+        if "aspect" in itemDesc
+            sysmsg "aspect item not added : {{itemDesc}}" 44
+        else 
+            pushlist loot_items itemzy
+        endif
+    endif 
+    @ignore itemzy
+endwhile
+
+#********** SCAN ALL MELEE WEAPONS  **********  
+
+sysmsg "Scanning Dexxers Weapons..." 11
+
+#Archery, Fencing, Mace Fighting, Swordsmanship, Wrestling - all serials:
+while findtype 3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3922|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|30999|31000|31001|31014|31178|31180|31182|3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|5187|30988|31128|31190|22187|31141|31142|31169|31172 backpack as itemzy
+    
+    getlabel itemzy itemDesc
+    
+    if "unidentified" in itemDesc
+        if "aspect" in itemDesc
+            sysmsg "aspect item not added : {{itemDesc}}" 44
+        else 
+            pushlist loot_items itemzy
+        endif
+    endif  
+    @ignore itemzy
+endwhile
+
+clearignore
+
+#********** START IDENTIFYING ITEMS  **********  
+
+sysmsg "Identiying all items..." 11
+
+if not listexists identified_items
+    createlist identified_items
+endif
+  
+foreach loot in loot_items
+
+    if skill 'item identification' = 120 or findtype 20495 backpack
+        pushlist identified_items loot 
+        
+    elseif skill 'item identification' >= 80
+        getlabel loot lootDesc
+        
+        while "unidentified" in lootDesc
+            if index != 0
+                poplist identified_items loot
+            endif
+            overhead "Slowly identifying with skill..." 10
+            wait 1200
+            skill 'itemidentification'
+            waitfortarget maxwaittimeinms
+            
+            while not targetexists
+                skill 'itemidentification'
+                waitfortarget maxwaittimeinms
+            endwhile
+            
+            target loot
+            pushlist identified_items loot 
+            getlabel loot lootDesc
+        endwhile  
+        
+    elseif findtype 20496 backpack as wandy
+        
+        getlabel wandy wandDesc
+    
+        if "(10 uses" in wandDesc
+            overhead "ID wand 10 uses left!!" 34
+        elseif "(5 uses" in wandDesc
+            overhead "ID wand 5 uses left!!" 34
+        elseif "(1 uses" in wandDesc
+            overhead "ID wand 1 use left!!" 34
+        endif
+                  
+        
+        dclicktype 20496 backpack
+        waitfortarget singleWandWaitTimeUse
+        
+        while not targetexists and findtype 20496 backpack
+            dclicktype 20496 backpack
+            waitfortarget singleWandWaitTimeUse
+        endwhile       
+        
+        if targetexists
+            target loot
+            pushlist identified_items loot 
+            wait singleWandWaitTimeUse    
+        endif
+    else         
+        overhead "Wand ID not found" 34  
+    endif
+    
+    hotkey 'cancel current target'
+endfor
+
+#********** IF FOUND USE 120 ITEM ID OR CONTAINER WAND ID  **********  
+
+if list loot_items > 0 
+    if skill 'item identification' = 120
+        overhead "ID with 120 skill"
+        wait maxwaittimeinms
+        skill 'itemidentification'
+        waitfortarget maxwaittimeinms
+        
+        while not targetexists
+            skill 'itemidentification'
+            waitfortarget maxwaittimeinms
+        endwhile     
+        
+        target backpack
+        pushlist identified_items loot 
+        wait maxwaittimeinms  
+    elseif findtype 20495 backpack
+        overhead "ID with container WAND"    
+        wait maxwaittimeinms
+        dclicktype 20495 backpack
+        waitfortarget maxwaittimeinms
+        
+        while not targetexists
+            dclicktype 20495 backpack
+            waitfortarget maxwaittimeinms
+        endwhile         
+        target backpack
+        pushlist identified_items loot 
+        wait maxwaittimeinms 
+    endif
+endif
+
+#********** SEPARATE GOOD ITEMS AND BAD ITEMS **********  
+
+sysmsg "Sorting good/bad items" 11
+
+if not listexists good_items
+    createlist good_items
+endif
+
+if not listexists bad_items
+    createlist bad_items
+endif
+
+@setvar! alertCD 800
+settimer alertTimer alertCD
+
+foreach i in identified_items
+    if timer alertTimer > alertCD
+        settimer alertTimer 0
+        overhead "sorting items.." 44
+    endif
+    
+    if i != 'x'
+        setvar! found 0
+        getlabel i itemDesc  
+             
+        foreach keepDesc in "MagicalItems"                        
+            if keepDesc in itemDesc
+                setvar! found 1
+            endif             
+        endfor   
+        
+        if found = 0
+            pushlist bad_items i  
+            pushlist display_bads itemDesc
+        else 
+            pushlist good_items i
+            pushlist display_goods itemDesc
+        endif
+        
+        poplist identified_items i
+        pushlist identified_items 'x' front
+        
+    endif
+    
+endfor
+
+removelist identified_items
+
+#********** MOVE GOOD ITEMS TO BAG  **********  
+
+sysmsg "Moving good items if any..." 11
+
+foreach g in good_items
+
+    if g != 'x'
+
+        if findtype 3702 backpack as myBaggy
+            while not find g myBaggy                            
+                lift g 1  
+                drop myBaggy -1 -1 0
+                wait maxwaittimeinms 
+            endwhile 
+            
+            poplist good_items g
+            pushlist good_items 'x' front 
+            sysmsg "Item saved." 55
+        else 
+            overhead "No bag found to move item!" 34
+        endif
+
+    endif
+    
+endfor
+
+removelist good_items
+
+#********** RECYCLE BAD ITEMS  **********  
+
+sysmsg "Reciclying bad items..." 11
+
+foreach b in bad_items
+    if find b backpack
+        @setvar! itemError 0
+        
+        while not gumpexists craftingToolGumpID
+            sysmsg "Opening sewing kit..." 11
+            dclicktype 3997 backpack
+            waitforgump craftingToolGumpID maxwaittimeinms
+        endwhile
+        
+        gumpresponse 3 craftingToolGumpID
+        waitfortarget 1000 
+        target b
+        wait 10
+        while not ingump "you recycle" 949095101 and itemError = 0
+            if ingump "That cannot be recycled"
+                @getlabel b notLabel
+                sysmsg "Not recycled : {{notLabel}}" 44
+                @setvar! itemError 1
+                wait maxwaittimeinms
+            endif
+        endwhile
+   endif
+   
+endfor
+
+removelist bad_items
+
+hotkey 'cancel current target'
+gumpclose craftingToolGumpID
+
+#********** EAT ARCANE ESSENCES  **********  
+
+if eatArcaneEssence = 1
+    wait 200
+    if findtype 12686 backpack
+        sysmsg "Eating arcane.." 11
+        dclicktype 12686 backpack
+        waitfortarget maxwaittimeinms
+        while not targetexists 
+            sysmsg "Trying to eat arcane.." 11
+            dclicktype 12686 backpack
+            waitfortarget maxwaittimeinms
+        endwhile
+        waitfortarget maxwaittimeinms
+        target 'self'
+    endif        
+endif
+
+#********** MOVE RECYCLED MATERIALS TO BAG  **********  
+
+sysmsg "Moving materiasl to bag..." 11
+
+if findtype "bag" backpack as baggyz and materialsIntoBag = 1
+ 
+    while findtype 'cut up leather' backpack any any 1 as leather
+        sysmsg "moving leathers..." 6
+        lift leather 1000
+        drop baggyz -1 -1 0
+        wait maxwaittimeinms
+    endwhile
+
+    while findtype 'board%s' backpack any any 1 as board
+        sysmsg "moving boards..." 6
+        lift board 1000
+        drop baggyz -1 -1 0
+        wait maxwaittimeinms
+    endwhile
+
+    while findtype 'iron ingot%s' backpack any any 1 as iron
+        sysmsg "moving ingots..." 6
+        lift iron 1000
+        drop baggyz -1 -1 0
+        wait maxwaittimeinms
+    endwhile
+
+    while findtype 'blank scroll%s%' backpack any any 1 as blankz
+        sysmsg "moving scrolls..." 6
+        lift blankz 1000
+        drop baggyz -1 -1 0
+        wait maxwaittimeinms
+    endwhile
+
+    if eatArcaneEssence = 0
+        while findtype 12686 backpack any any 1 as arcanyz
+            sysmsg "moving arcanes..." 6
+            lift arcanyz 1000
+            drop baggyz -1 -1 0
+            wait maxwaittimeinms
+        endwhile
+    endif
+
 endif
 
 #********** DISPLAY ALL GOOD AND BAD ITEMS PROCCESED  **********  

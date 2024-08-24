@@ -11,7 +11,10 @@
 # https://youtube.com/jaseowns/live
 #######
 #####
-##  Verison 4.3.0
+##  Verison 4.4.0
+##  8/23/2024
+##     - adding explosion potions
+##
 ##  8/16/2024
 ##     - fix potion check for satchel equipped or not
 ##
@@ -41,6 +44,12 @@
 ################
 @setvar! automaticallySkinCorpses 0
 @setvar! automaticallyPoisonWeaponThatIsEquipped 1
+
+###
+## Alchemy Throw Pot (will disable automatically if less than 80 alchemy)
+###
+@setvar! jaseowns_AutoExplodePot 1
+
 
 ###
 ## Auto Taunt
@@ -251,6 +260,16 @@ endif
 ###########  DO NOT EDIT BELOW THIS
 #######
         
+
+@setvar! jaseowns_AutoExplodePotTimerCD 15000
+if not timerexists jaseowns_AutoExplodePotTimer
+    settimer jaseowns_AutoExplodePotTimer jaseowns_AutoExplodePotTimerCD
+endif
+
+if skill "Alchemy" < 80
+    @setvar! jaseowns_AutoExplodePot 0
+endif
+
 @setvar! jaseowns_TauntingTimerCD 15000
 
 if not timerexists jaseowns_TauntingTimer
@@ -566,6 +585,33 @@ while not dead
                 settimer preventOverheadSpamTimer 0
             endif
             attack lasttarget 
+
+            # Purple Potion
+            if jaseowns_AutoExplodePot = 1 and timer jaseowns_AutoExplodePotTimer >= jaseowns_AutoExplodePotTimerCD and findtype 3853 self 0 as jaseowns_Pot
+                
+                dclick jaseowns_Pot
+
+                if findtype 3853 self 0 as jaseowns_Pot2
+                    getlabel jaseowns_Pot2 jaseowns_PotDesc    
+                    if "next" in jaseowns_PotDesc
+                        if "12 seconds" in jaseowns_PotDesc
+                            @setvar! jaseowns_AutoExplodePotTimerCD 12000
+                        elseif "13 seconds" in jaseowns_PotDesc
+                            @setvar! jaseowns_AutoExplodePotTimerCD 13000
+                        elseif "14 seconds" in jaseowns_PotDesc
+                            @setvar! jaseowns_AutoExplodePotTimerCD 14000
+                        elseif "15 seconds" in jaseowns_PotDesc
+                            @setvar! jaseowns_AutoExplodePotTimerCD 15000
+                        endif
+                        settimer jaseowns_AutoExplodePotTimer 0
+                        cooldown "Purple Pot" jaseowns_AutoExplodePotTimerCD
+                    endif
+                endif
+                
+                wft 500
+                target lasttarget
+            endif
+            
 
             if jaseowns_UseAbility1 = 1 and timer jaseowns_UseAbility1Timer >= jaseowns_UseAbilityTimerCD
                 say "[WeaponAbility1"

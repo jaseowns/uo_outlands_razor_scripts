@@ -5,7 +5,7 @@
 #############################################
 
 # "***Bapeths Modern Dungeon Picker***"
-# Updated July 12th 2024 (Loot List Update)
+# Updated Aug 25th 2024 (Outlands container update logic fix and action delay improvements)
 #
 # "***READ THIS***READ THIS***READ THIS***READ THIS***"
 #
@@ -18,7 +18,7 @@
 # "Auto Loot Control"
 # This script uses razor "Auto-Queue Object Delay" setting
 # Make sure this setting is turned ON in the razor Options tab > Targeting & Queues sub-tab
-# And set "object delay to 500" AUTO LOOTING WILL BE SLOW IF YOU DONT DO THIS!
+# And set "object delay to 503" AUTO LOOTING WILL BE SLOW IF YOU DONT DO THIS!
 #
 # "Cooldowns"
 # This script uses three cooldowns called "Hiding" "Stealth" and "Stealing" (Stealing only for those with 80+ skill)
@@ -214,7 +214,7 @@ if not timerexists rptimer
 endif
 
 if skill "Magery" >= 80
-    if timerexists reflect
+    if timerexists reflect and not findbuff "Magic Reflection"
         if timer reflect > 30000
             overhead "Magic Reflect is ready..." 201
             settimer reflect 12000
@@ -229,7 +229,7 @@ if skill "Magery" >= 80
 endif
 
 if skill "Magery" >= 20
-    if timerexists reactive
+    if timerexists reactive and not findbuff "Reactive Armor"
         if timer reactive > 30000
             overhead "Reactive Armor is ready..." 139
             settimer reactive 13500
@@ -247,7 +247,10 @@ if not hidden and not timerexists brew and findbuff "Bleed" and findtype 50675 b
     pause 1200
     dclick cbrew
     createtimer brew
-    elseif not hidden and not timerexists brew and findbuff "Diseased" and findtype 50675 backpack as cbrew
+elseif not hidden and not timerexists brew and findbuff "Diseased" and findtype 50675 backpack as cbrew
+    while queued
+        //donothing
+    endwhile
     dclick cbrew
     createtimer brew
 endif
@@ -258,15 +261,24 @@ if timerexists brew
 endif
 
 if not hidden and findbuff "Weaken" and not targetexists and findtype "White Potion" backpack as stpot
+    while queued
+        //donothing
+    endwhile
     dclick stpot
 endif
 
-if not hidden and insysmsg "You are too fat" and not findbuff "Strength" and findtype "White Potion" backpack as wpot
+if not hidden and insysmsg "You are carrying too much weight" and not findbuff "Strength" and findtype "White Potion" backpack as wpot
+    while queued
+        //donothing
+    endwhile
     dclick wpot
 endif
 
 if not hidden and stam <= 1 and timer rptimer > 1200 and findbuff "Strength" and findtype "Red Potion" backpack as redpot
-    if counttype "Red Potion" >= 2
+    if counttype "Red Potion" >= 1
+        while queued
+            //donothing
+        endwhile
         dclick redpot
         settimer rptimer 0
     endif
@@ -277,6 +289,9 @@ if not hidden and paralyzed and not targetexists and findtype "pouch" backpack 3
 endif
 
 if not hidden and poisoned and not targetexists and findtype "Orange Potion" backpack as curepot
+    while queued
+        //donothing
+    endwhile
     dclick curepot
 endif
     
@@ -328,7 +343,7 @@ if warmode and findtype "barred metal door|metal door" ground -1 -1 2 as doorloc
         overhead "Time is of the essence..." 67
         for 2000
             dclick picks
-            wft 500
+            wft 1000
             target doorlock
             getlabel backpack ping
             if insysmsg "That is not locked"
@@ -408,7 +423,7 @@ if skill "Stealing" >= 80 and warmode
                         settimer spellinvis 0
                     endif
                     skill "Stealing"
-                    wft 500
+                    wft 1000
                     target pilfertarget
                     hotkey 'Cancel Current Target'
                 endif
@@ -426,6 +441,9 @@ if skill "Stealing" >= 80 and warmode
             warmode off
             if not hidden
                 if skill "Stealth" >= 80 and not cooldown "Smoke bomb" and not cooldown "Hiding" and not cooldown "Stealth" and findtype 52149 backpack as sbombs
+                    while queued
+                        //donothing
+                    endwhile
                     dclick sbombs
                     getlabel backpack ping
                     if hidden
@@ -472,6 +490,9 @@ if skill "Stealing" >= 80 and warmode
             warmode off
             cooldown "Stealing" 5000
             if skill "Stealth" >= 80 and not cooldown "Smoke bomb" and not cooldown "Hiding" and not cooldown "Stealth" and findtype 52149 backpack as sbombs
+                while queued
+                    //donothing
+                endwhile
                 dclick sbombs
                 getlabel backpack ping
                 if hidden
@@ -499,7 +520,7 @@ if skill "Stealing" >= 80 and warmode
                 clearsysmsg 
                 if not targetexists 
                     skill "Stealing"
-                    wft 500
+                    wft 1000
                     target pilfertarget
                     hotkey 'Cancel Current Target'
                 endif
@@ -512,6 +533,9 @@ if skill "Stealing" >= 80 and warmode
             cooldown "Stealing" 5000
             warmode off
             if not hidden and findtype "yellow potion" backpack as healpot
+                while queued
+                    //donothing
+                endwhile
                 dclick healpot
             endif
         endif
@@ -555,11 +579,11 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
     endif
     dclick bchest
     @setvar "bchest" lastobject
-    waitforgump 736038070 500
+    waitforgump 736038070 1000
     if gumpexists 736038070 and not ingump "Cleared Of Traps"
         while gumpexists 736038070
             gumpresponse 7
-            waitforgump 736038070 500
+            waitforgump 736038070 1000
             if insysmsg "You attempt to remove traps"
                 clearsysmsg
                 break
@@ -581,22 +605,22 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
             if followers >= 1
                 if find "bsummon1"
                     menu bsummon1 2
-                    wft 500
+                    wft 1000
                     target self
                     getlabel backpack ping
                     if find "bsummon2"
                         menu bsummon2 2
-                        wft 500
+                        wft 1000
                         target self  
                     endif
                 elseif find "bsummon2"
                     menu bsummon2 2
-                    wft 500
+                    wft 1000
                     target self
                     getlabel backpack ping
                     if find "bsummon1"
                         menu bsummon1 2
-                        wft 500
+                        wft 1000
                         target self  
                     endif
                 endif
@@ -848,13 +872,13 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
                 endwhile
             endif
         endwhile
-        waitforgump 736038070 500
+        waitforgump 736038070 1000
         overhead "That should do it..." 67
     endif
     if gumpexists 736038070 and ingump "Cleared Of Traps"
         while gumpexists 736038070
             gumpresponse 4
-            waitforgump 736038070 500
+            waitforgump 736038070 1000
             if insysmsg "You attempt to pick the lock"
                 clearsysmsg
                 break
@@ -876,22 +900,22 @@ if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targe
             if followers >= 1
                 if find "bsummon1"
                     menu bsummon1 2
-                    wft 500
+                    wft 1000
                     target self
                     getlabel backpack ping
                     if find "bsummon2"
                         menu bsummon2 2
-                        wft 500
+                        wft 1000
                         target self  
                     endif
                 elseif find "bsummon2"
                     menu bsummon2 2
-                    wft 500
+                    wft 1000
                     target self
                     getlabel backpack ping
                     if find "bsummon1"
                         menu bsummon1 2
-                        wft 500
+                        wft 1000
                         target self  
                     endif
                 endif
@@ -1145,7 +1169,7 @@ endif
 
 if find "bchest" ground -1 -1 2 as bchest
     clearsysmsg 
-    while findtype "cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|hieroglyph|figurine|statue|44987|49730|47107|18653|45127|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|3922|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|3861|3821" bchest as bitem
+    while findtype "cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|hieroglyph|figurine|statue|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|3922|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|3861|3821" bchest as bitem
         if not timerexists bchestopen
             createtimer bchestopen
             overhead "The treasure is mine!" 2091
@@ -1153,20 +1177,25 @@ if find "bchest" ground -1 -1 2 as bchest
         hotkey 'Grab Item' 
         target bitem
         while queued
-            wait 500
+            //donothing
         endwhile
         if insysmsg "That container cannot hold"
-            overhead "My cup runneth over!..." 1779
-            if not targetexists 
-                clearall 
+            if str = 120
+                overhead "My cup runneth over!..." 1779
+            else 
+                overhead "Waiting on skill cooldown..." 45
+                pause 2000
             endif
-            if findtype "gold coin" backpack as gold
-                lift gold 7000
-                drop "bchest"
-                while queued
-                    wait 500
-                    getlabel backpack ping
-                endwhile
+            while queued
+                //donothing
+            endwhile
+            if str < 120 and not cooldown "Hiding" and not cooldown "Stealth" and not cooldown "Stealing" and findtype "White Potion" backpack as fatpot
+                dclick fatpot
+                overhead "Mandrake strengthens me..." 88
+                skill "Hiding"
+                getlabel backpack ping
+            elseif findbuff "Strength"
+                break
             endif
         endif
         if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
@@ -1189,7 +1218,7 @@ if ingump "Shrines"
         removetimer "Tele"
         removetimer "None"
         removetimer "Reveal" 
-        elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80 and skill "Magery" >= 100
+    elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80 and skill "Magery" >= 100
         gumpclose 341416395
         overhead "Earth Elemental ACP ------Enabled------" 1501
         createtimer "Elemental"
@@ -1201,7 +1230,7 @@ if ingump "Shrines"
         removetimer "Tele"
         removetimer "None"
         removetimer "Reveal" 
-        elseif not timerexists "Tacp" and skill "Magery" >= 50
+    elseif not timerexists "Tacp" and skill "Magery" >= 50
         gumpclose 341416395
         overhead "Teleport + Rope ACP ------Enabled------" 1272
         createtimer "Tele"
@@ -1212,7 +1241,7 @@ if ingump "Shrines"
         removetimer "Elemental"
         removetimer "None" 
         removetimer "Reveal"  
-        elseif not timerexists "Racp" and skill "Magery" >= 80
+    elseif not timerexists "Racp" and skill "Magery" >= 80
         gumpclose 341416395
         overhead "Reveal Spellcast ACP ------Enabled------" 2040
         createtimer "Racp"

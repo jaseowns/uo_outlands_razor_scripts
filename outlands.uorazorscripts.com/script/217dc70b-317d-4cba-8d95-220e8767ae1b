@@ -1,0 +1,1680 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/217dc70b-317d-4cba-8d95-220e8767ae1b for latest
+# Automation by Jaseowns
+## Script: SUPER Auto-mining
+## Created by: dennozz#0
+#############################################
+
+#SUPER Auto-mining 4.31
+
+#********** INFORMATION **********# 
+
+#Made by @dennozz on discord. 
+#Inspired/learned by other scrips in https://outlands.uorazorscripts.com/
+
+#IMPORTANT: You will need 1 wooden box and 1 copper key that opens the wooden box!
+    
+#IMPORTANT: You will need to create an in-game options cooldown named `Danger`. 
+#Options -> Cooldowns -> New Entry -> Name: `Danger` -> Cooldown Type -> `PvP Timer` -> Done
+
+#********** SET YOUR SETTINGS **********# 
+
+#--- Set max followers ---#
+# 0 - none
+# 2 - one water elemental (recommended)
+# 4 - two water elemental
+
+@setvar! maxFollowers 2
+
+#--- Set auto recall ---#
+# 0 - will auto recall when PKs are 40 steps or closer (medioum risk)
+# 1 - will auto recall when detect PKs at any distance (low risk)
+
+@setvar! autoRecall 1
+
+#-- Set recall type --#
+# 0 - using regs
+# 1 - using scroll
+# 2 - using charge recall from first rune in book
+# 3 - using charge recall from last rune in book
+
+@setvar! recallType 3
+
+#--- Set recall object ---#
+# 0 - carry one runebook | carry one rune | if multiple runes name the one you recall `home`
+# 1234 - if you carry multiple runebooks or runetomes set the hue of the book you wish to recall (type `>info` to get hue info)
+
+@setvar! recallBookHue 176
+
+#--- If regs are low auto recall ---#
+# 0 - you dont carry regs
+# 123 - if below this number will recall
+
+@setvar! minRegs 5
+
+#--- Auto split regs ---#
+# 0 - you dont want to split regs into different groups 
+# 1 - will auto split regs in different groups (anti-theft)
+
+@setvar! autoSplitRegs 1
+
+# 0 - will let you target the bag you wish to split your regs into
+# 1 - will automatically select the bag in your backpack on this order : satchel > pouch > backpack bag > round bag > char backpack
+    
+@setvar! autoSelectBag 1
+
+#--- Set potions ---#
+
+@setvar! drinkStr 1
+@setvar! drinkMagicResist 1
+
+#--- Set Mage auto heals ---#
+
+@setvar! miniHeal 1
+@setvar! greaterHeal 1
+
+#--- Set Mage Buffs ---#
+
+@setvar! magicReflect 1
+@setvar! armorReflect 1
+@setvar! protectionSpell 1
+@setvar! miniumManaToBuff 50
+
+#--- Set Cooldowns ---#
+
+#Set value at `600` if have 60-80 ping ms. Adjust depending on ping
+
+@setvar! mineTimerCD 600
+
+#********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********
+
+@setvar! myHarvestingTool 3718
+@setvar! maxwaittimeinms 650
+@setvar! foundBook 0
+@setvar! myPack 0
+@setvar! smeltingOre 0
+
+#** Auto healing hp diffs **
+
+@setvar! lowDiff 1 
+@setvar! medDiff 25
+@setvar! highDiff 40
+
+#** Weight trigger **
+
+@setvar! myWeightDiff 41
+
+#** Recall triggers **
+
+@setvar! enemyFound 0
+
+#** Cut & Store timers **
+
+@setvar! storeTimerCD 45000
+settimer storeTimer storeTimerCD
+
+#** Magery buffs timers **
+
+@setvar! magicReflectCD 15000
+settimer magicReflectTimer 15000
+
+@setvar! armorReflectCD 15000
+settimer armorReflectTimer 15000
+
+@setvar! protectionCD 15000
+settimer protectionTimer 15000
+
+#** Script msgs timers **
+
+@setvar! scriptMessageCD 4500
+settimer scriptMessageTimer 0
+
+@setvar! guardMessageCD 5500
+settimer guardMessageTimer guardMessageCD
+
+@setvar! summonCD 2500
+settimer summonTimer summonCD
+
+@setvar! beingAttackedCD 5000
+settimer beingAttackedTimer 5000
+
+#** Items in backpack timers **
+
+@setvar! pouchMessageCD 5000
+settimer pouchMessageTimer pouchMessageCD
+
+@setvar! aidsMessageCD 4000
+settimer aidsMessageTimer aidsMessageCD
+
+@setvar! whiteMessageCD 3000
+settimer whiteMessageTimer whiteMessageCD
+
+@setvar! blackMessageCD 2500
+settimer blackMessageTimer blackMessageCD
+
+@setvar! orangeMessageCD 2000
+settimer orangeMessageTimer orangeMessageCD
+
+@setvar! yellowMessageCD 1500
+settimer yellowMessageTimer yellowMessageCD
+
+@setvar! redMessageCD 1000
+settimer redMessageTimer redMessageCD
+
+@setvar! healingPotCD 11000
+
+#********** PRE-SCRIPT FOOD BUFF AND TRACKING ON **********
+
+if not findbuff "food" and findtype "tray" backpack as fody    
+    dclick fody
+    wait 200
+endif
+
+if not findbuff "tracking"
+    
+    while not gumpexists 4267467659
+        skill "tracking"
+        wait maxwaittimeinms
+    endwhile
+
+    while not insysmsg "You will now hunt all hostile players"
+        gumpresponse 8
+        wait 500
+        waitforgump 4267467659 maxwaittimeinms
+    endwhile
+    
+    if ingump "Begin Hunting" 4267467659
+        gumpresponse 6
+        wait maxwaittimeinms
+        waitforgump 4267467659 maxwaittimeinms
+        wait maxwaittimeinms
+        gumpclose 4267467659 
+        wait 100
+    endif
+
+    sysmsg "* tracking ON *" 66
+endif
+
+#********** AUTO SPLIT REAGENTS **********# 
+
+if autoSplitRegs = 1 
+
+    clearignore 
+
+    @setvar! amount 0
+    @setvar! myBag 0
+    @setvar! maxwaittimeinms 650
+
+    if autoSelectBag = 1
+        if findtype 30765 self as b
+            @setvar! myBag b
+        elseif findtype 3705 self as b
+            @setvar! myBag b
+        elseif findtype 3701 self as b
+            @setvar! myBag b
+        elseif findtype 3702 self as b
+            @setvar! myBag b
+        else 
+            @setvar! myBag backpack
+        endif
+    else 
+        clearsysmsg
+        overhead "Select bag:" 68
+        @setvar! myBag
+        wait 200
+        while not targetexists and not insysmsg "Select"
+            @setvar! myBag    
+        endwhile
+        
+        if find myBag self
+            getlabel myBag bagLabel
+            
+            if "wizard" in bagLabel or "pouch" in bagLabel or "bag" in bagLabel or "backpack" in bagLabel
+                sysmsg "new bag set" 55
+            else 
+                @setvar! myBag 0
+                overhead "That is not a bag" 34
+                sysmsg "That is not a bag" 34
+                stop
+            endif
+        else 
+            overhead "No bag found!" 34
+            stop    
+        endif
+    endif
+
+    overhead "Splitter Begin.." 55
+
+    #***** SPIDER SILK 3981 *****
+
+    @setvar! regsID 3981
+    @setvar! myCounter 0
+
+    while findtype regsID self as r 
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype regsID self <= 10
+        @setvar! amount 2
+    elseif counttype regsID self <= 20
+        @setvar! amount 4       
+    elseif counttype regsID self <= 50
+        @setvar! amount 10    
+    elseif counttype regsID self <= 100
+        @setvar! amount 20    
+    elseif counttype regsID self <= 150
+        @setvar! amount 30
+    elseif counttype regsID self <= 200
+        @setvar! amount 40
+    else 
+        @setvar! amount 50
+    endif
+
+    while findtype regsID self as regs
+        @setvar! moveRegs 0 
+        
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myBag
+            @setvar! moveRegs 1
+        endif
+        
+        if moveRegs = 1    
+            overhead "splitting silks.." 0
+            if index = 0
+                lift regs amount
+                drop myBag 44 65 0      
+            elseif index = 1
+                lift regs amount
+                drop myBag 68 65 0           
+            elseif index = 2
+                lift regs amount
+                drop myBag 96 65 0             
+            elseif index = 3
+                lift regs amount
+                drop myBag 121 65 0            
+            else
+                lift regs amount
+                drop myBag 142 65 0         
+            endif
+        endif
+        
+        @ignore regs 
+        
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+    #***** BLACK PEARL 3962 *****
+
+    @setvar! regsID 3962
+    @setvar! myCounter 0
+
+    while findtype regsID self as r 
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype regsID self <= 10
+        @setvar! amount 2
+    elseif counttype regsID self <= 20
+        @setvar! amount 4       
+    elseif counttype regsID self <= 50
+        @setvar! amount 10    
+    elseif counttype regsID self <= 100
+        @setvar! amount 20    
+    elseif counttype regsID self <= 150
+        @setvar! amount 30
+    elseif counttype regsID self <= 200
+        @setvar! amount 40
+    else 
+        @setvar! amount 50
+    endif
+
+    while findtype regsID self as regs
+        @setvar! moveRegs 0 
+        
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myBag
+            @setvar! moveRegs 1
+        endif
+        
+        if moveRegs = 1    
+            overhead "splitting pearls.." 11
+            if index = 0
+                lift regs amount
+                drop myBag 44 65 0      
+            elseif index = 1
+                lift regs amount
+                drop myBag 68 65 0           
+            elseif index = 2
+                lift regs amount
+                drop myBag 96 65 0             
+            elseif index = 3
+                lift regs amount
+                drop myBag 121 65 0            
+            else
+                lift regs amount
+                drop myBag 142 65 0         
+            endif
+        endif
+        
+        @ignore regs 
+        
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+
+    #***** NIGHTSHADE 3976 *****
+
+    @setvar! regsID 3976
+    @setvar! myCounter 0
+
+    while findtype regsID self as r 
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype regsID self <= 10
+        @setvar! amount 2
+    elseif counttype regsID self <= 20
+        @setvar! amount 4       
+    elseif counttype regsID self <= 50
+        @setvar! amount 10    
+    elseif counttype regsID self <= 100
+        @setvar! amount 20    
+    elseif counttype regsID self <= 150
+        @setvar! amount 30
+    elseif counttype regsID self <= 200
+        @setvar! amount 40
+    else 
+        @setvar! amount 50
+    endif
+
+    while findtype regsID self as regs
+        @setvar! moveRegs 0 
+        
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myBag
+            @setvar! moveRegs 1
+        endif
+        
+        if moveRegs = 1    
+            overhead "splitting shades.." 66
+            if index = 0
+                lift regs amount
+                drop myBag 44 88 0      
+            elseif index = 1
+                lift regs amount
+                drop myBag 68 88 0           
+            elseif index = 2
+                lift regs amount
+                drop myBag 96 88 0             
+            elseif index = 3
+                lift regs amount
+                drop myBag 121 88 0            
+            else
+                lift regs amount
+                drop myBag 142 88 0         
+            endif
+        endif
+        
+        @ignore regs 
+        
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+    #***** MANDRAKE ROOT 3974 *****
+
+    @setvar! regsID 3974
+    @setvar! myCounter 0
+
+    while findtype regsID self as r 
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype regsID self <= 10
+        @setvar! amount 2
+    elseif counttype regsID self <= 20
+        @setvar! amount 4       
+    elseif counttype regsID self <= 50
+        @setvar! amount 10    
+    elseif counttype regsID self <= 100
+        @setvar! amount 20    
+    elseif counttype regsID self <= 150
+        @setvar! amount 30
+    elseif counttype regsID self <= 200
+        @setvar! amount 40
+    else 
+        @setvar! amount 50
+    endif
+
+    while findtype regsID self as regs
+        @setvar! moveRegs 0 
+        
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myBag
+            @setvar! moveRegs 1
+        endif
+        
+        if moveRegs = 1    
+            overhead "splitting roots.." 439
+            if index = 0
+                lift regs amount
+                drop myBag 44 88 0      
+            elseif index = 1
+                lift regs amount
+                drop myBag 68 88 0           
+            elseif index = 2
+                lift regs amount
+                drop myBag 96 88 0             
+            elseif index = 3
+                lift regs amount
+                drop myBag 121 88 0            
+            else
+                lift regs amount
+                drop myBag 142 88 0         
+            endif
+        endif
+        
+        @ignore regs 
+        
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+    #***** SULFUROUS ASH 3980 *****
+
+    @setvar! regsID 3980
+    @setvar! myCounter 0
+
+    while findtype regsID self as r 
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype regsID self <= 10
+        @setvar! amount 2
+    elseif counttype regsID self <= 20
+        @setvar! amount 4       
+    elseif counttype regsID self <= 50
+        @setvar! amount 10    
+    elseif counttype regsID self <= 100
+        @setvar! amount 20    
+    elseif counttype regsID self <= 150
+        @setvar! amount 30
+    elseif counttype regsID self <= 200
+        @setvar! amount 40
+    else 
+        @setvar! amount 50
+    endif
+
+    while findtype regsID self as regs
+        @setvar! moveRegs 0 
+        
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myBag
+            @setvar! moveRegs 1
+        endif
+        
+        if moveRegs = 1    
+            overhead "splitting ashes.." 56
+            if index = 0
+                lift regs amount
+                drop myBag 44 112 0      
+            elseif index = 1
+                lift regs amount
+                drop myBag 68 112 0           
+            elseif index = 2
+                lift regs amount
+                drop myBag 96 112 0             
+            elseif index = 3
+                lift regs amount
+                drop myBag 121 112 0            
+            else
+                lift regs amount
+                drop myBag 142 112 0         
+            endif
+        endif
+        
+        @ignore regs 
+        
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+    #***** GINSENG 3973 *****
+
+    @setvar! regsID 3973
+    @setvar! myCounter 0
+
+    while findtype regsID self as r 
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype regsID self <= 10
+        @setvar! amount 2
+    elseif counttype regsID self <= 20
+        @setvar! amount 4       
+    elseif counttype regsID self <= 50
+        @setvar! amount 10    
+    elseif counttype regsID self <= 100
+        @setvar! amount 20    
+    elseif counttype regsID self <= 150
+        @setvar! amount 30
+    elseif counttype regsID self <= 200
+        @setvar! amount 40
+    else 
+        @setvar! amount 50
+    endif
+
+    while findtype regsID self as regs
+        @setvar! moveRegs 0 
+        
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myBag
+            @setvar! moveRegs 1
+        endif
+        
+        if moveRegs = 1    
+            overhead "splitting gings.." 149
+            if index = 0
+                lift regs amount
+                drop myBag 44 112 0      
+            elseif index = 1
+                lift regs amount
+                drop myBag 68 112 0           
+            elseif index = 2
+                lift regs amount
+                drop myBag 96 112 0             
+            elseif index = 3
+                lift regs amount
+                drop myBag 121 112 0            
+            else
+                lift regs amount
+                drop myBag 142 112 0         
+            endif
+        endif
+        
+        @ignore regs 
+        
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+    #***** BLOSSMOSS 3963 *****
+
+    @setvar! regsID 3963
+    @setvar! myCounter 0
+
+    while findtype regsID self as r 
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype regsID self <= 10
+        @setvar! amount 2
+    elseif counttype regsID self <= 20
+        @setvar! amount 4       
+    elseif counttype regsID self <= 50
+        @setvar! amount 10    
+    elseif counttype regsID self <= 100
+        @setvar! amount 20    
+    elseif counttype regsID self <= 150
+        @setvar! amount 30
+    elseif counttype regsID self <= 200
+        @setvar! amount 40
+    else 
+        @setvar! amount 50
+    endif
+
+    while findtype regsID self as regs
+        @setvar! moveRegs 0 
+        
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myBag
+            @setvar! moveRegs 1
+        endif
+        
+        if moveRegs = 1    
+            overhead "splitting bloods.." 35
+            if index = 0
+                lift regs amount
+                drop myBag 44 130 0      
+            elseif index = 1
+                lift regs amount
+                drop myBag 68 130 0           
+            elseif index = 2
+                lift regs amount
+                drop myBag 96 130 0             
+            elseif index = 3
+                lift regs amount
+                drop myBag 121 130 0            
+            else
+                lift regs amount
+                drop myBag 142 130 0         
+            endif
+        endif
+        
+        @ignore regs 
+        
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+    #***** GARILIC 3972 *****
+
+    @setvar! regsID 3972
+    @setvar! myCounter 0
+
+    while findtype regsID self as r 
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype regsID self <= 10
+        @setvar! amount 2
+    elseif counttype regsID self <= 20
+        @setvar! amount 4       
+    elseif counttype regsID self <= 50
+        @setvar! amount 10    
+    elseif counttype regsID self <= 100
+        @setvar! amount 20    
+    elseif counttype regsID self <= 150
+        @setvar! amount 30
+    elseif counttype regsID self <= 200
+        @setvar! amount 40
+    else 
+        @setvar! amount 50
+    endif
+
+    while findtype regsID self as regs
+        @setvar! moveRegs 0 
+        
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myBag
+            @setvar! moveRegs 1
+        endif
+        
+        if moveRegs = 1    
+            overhead "splitting garlics.." 910
+            if index = 0
+                lift regs amount
+                drop myBag 44 130 0      
+            elseif index = 1
+                lift regs amount
+                drop myBag 68 130 0           
+            elseif index = 2
+                lift regs amount
+                drop myBag 96 130 0             
+            elseif index = 3
+                lift regs amount
+                drop myBag 121 130 0            
+            else
+                lift regs amount
+                drop myBag 142 130 0         
+            endif
+        endif
+        @ignore regs 
+        
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+    #***** RECALL SCROLL 8012 *****
+
+    @setvar! regsID 8012
+    @setvar! myCounter 0
+
+    while findtype regsID self as r 
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype regsID self <= 5
+        @setvar! amount 1
+    elseif counttype regsID self <= 10
+        @setvar! amount 2       
+    elseif counttype regsID self <= 20
+        @setvar! amount 4    
+    elseif counttype regsID self <= 40
+        @setvar! amount 8    
+    else 
+        @setvar! amount 15
+    endif
+
+    while findtype regsID self as regs
+        @setvar! moveRegs 0 
+        
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myBag
+            @setvar! moveRegs 1
+        endif
+        if moveRegs = 1    
+            overhead "splitting scrolls.." 0
+            if index = 0
+                lift regs amount
+                drop myBag 44 88 0      
+            elseif index = 1
+                lift regs amount
+                drop myBag 68 88 0           
+            elseif index = 2
+                lift regs amount
+                drop myBag 96 88 0             
+            elseif index = 3
+                lift regs amount
+                drop myBag 121 88 0            
+            else
+                lift regs amount
+                drop myBag 142 88 0         
+            endif
+        endif
+        
+        @ignore regs 
+        
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+    endwhile
+
+    overhead "Splitter completed" 44
+
+endif
+
+sysmsg "* auto-mining activated *" 66
+overhead "* auto-mining activated *" 66
+
+clearsysmsg
+clearhands both
+
+while not dead 
+    settimer cycleTimer 0
+    
+    if targetexists
+        hotkey 'cancel current target'  
+    endif
+    
+    if enemyFound = 0
+        if insysmsg! "Now tracking" or insysmsg! "Distance to"
+            @setvar! enemyFound 1
+        endif
+    endif
+
+#********** TRIGGER AUTO-RECALL IF BEING ATTACKED / OUT OF REGS / ENEMY TOO CLOSE **********
+    
+    if cooldown "Danger" > 0 
+        if timer beingAttackedTimer > beingAttackedCD
+            sysmsg "* being attacked *" 34
+            settimer beingAttackedTimer 0
+        endif
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    endif  
+    
+    if minRegs != 0
+        if counttype 3963 self <= minRegs or counttype 3973 self <= minRegs or counttype 3972 self <= minRegs or counttype 3980 self <= minRegs or counttype 3962 self <= minRegs or counttype 3981 self <= minRegs or counttype 3974 self <= minRegs or counttype 3976 self <= minRegs
+            overhead "* low reagents *" 34
+            sysmsg " *low reagents recalling out *" 34
+            
+            @setvar! autoRecall 1
+            @setvar! enemyFound 1
+        endif
+    endif
+    
+    if insysmsg ": 0 s" or insysmsg ": 1 s" or insysmsg ": 2 s" or insysmsg ": 3 s" or insysmsg ": 4 s" or insysmsg ": 5 s" or insysmsg ": 6 s" or insysmsg ": 7 s" or insysmsg ": 8 s" or insysmsg ": 9 s"
+        sysmsg "* recalling enemy very close [d 0-9] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    elseif insysmsg ": 10 s" or insysmsg ": 11 s" or insysmsg ": 12 s" or insysmsg ": 13 s" or insysmsg ": 14 s" or insysmsg ": 15 s" or insysmsg ": 16 s" or insysmsg ": 17 s"
+        sysmsg "* recalling enemy very close [d 10-17] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    elseif insysmsg ": 18 s" or insysmsg ": 19 s" or insysmsg ": 20 s" or insysmsg ": 21 s" or insysmsg ": 22 s" or insysmsg ": 23 s" or insysmsg ": 24 s" or insysmsg ": 25 s"
+        sysmsg "* recalling enemy very close [d 18-25] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    elseif insysmsg ": 26 s" or insysmsg ": 27 s" or insysmsg ": 28 s" or insysmsg ": 29 s" or insysmsg ": 30 s" or insysmsg ": 31 s" or insysmsg ": 32 s" or insysmsg ": 33 s"
+        sysmsg "* recalling enemy very close [d 26-33] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    elseif insysmsg ": 34 s" or insysmsg ": 35 s" or insysmsg ": 36 s" or insysmsg ": 37 s" or insysmsg ": 38 s" or insysmsg ": 39 s" or insysmsg ": 40 s"
+        sysmsg "* recalling enemy very close [d 34-40] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    elseif insysmsg "(0 s" or insysmsg "(1 s" or insysmsg "(2 s" or insysmsg "(3 s" or insysmsg "(4 s" or insysmsg "(5 s" or insysmsg "(6 s" or insysmsg "(7 s" or insysmsg "(8 s" or insysmsg "(9 s"
+        sysmsg "* recalling enemy very close [n 0-9] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    elseif insysmsg "(10 s" or insysmsg "(11 s" or insysmsg "(12 s" or insysmsg "(13 s" or insysmsg "(14 s" or insysmsg "(15 s" or insysmsg "(16 s" or insysmsg "(17 s"
+        sysmsg "* recalling enemy very close [n 10-17] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    elseif insysmsg "(18 s" or insysmsg "(19 s" or insysmsg "(20 s" or insysmsg "(21 s" or insysmsg "(22 s" or insysmsg "(23 s" or insysmsg "(24 s" or insysmsg "(25 s"
+        sysmsg "* recalling enemy very close [n 18-25] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    elseif insysmsg "(26 s" or insysmsg "(27 s" or insysmsg "(28 s" or insysmsg "(29 s" or insysmsg "(30 s" or insysmsg "(31 s" or insysmsg "(32 s" or insysmsg "(33 s"
+        sysmsg "* recalling enemy very close [n 26-33] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    elseif insysmsg "(34 s" or insysmsg "(35 s" or insysmsg "(36 s" or insysmsg "(37 s" or insysmsg "(38 s" or insysmsg "(39 s" or insysmsg "(40 s"
+        sysmsg "* recalling enemy very close [n 34-40] *" 33
+        @setvar! autoRecall 1
+        @setvar! enemyFound 1
+    endif
+    
+#********** AUTO-RECALL OUT IF NECESSARY **********
+    
+    if enemyFound = 1 and autoRecall = 1
+        sysmsg "recalling..." 66
+        interrupt
+        clearignore
+        if targetexists
+            hotkey 'cancel current target'  
+        endif
+        wait 200
+        
+        if mana <= 10
+            overhead "* low mana to recall *" 44
+        else
+        
+#********** USING REAGENTS OR RECALL SCROLL ********** 
+
+            if recallType = 0 or recallType = 1
+            
+                while diffhits < medDiff and not targetexists
+                    
+                    if recallType = 0
+                        cast 'recall'
+                        sysmsg "recalling using regs" 11
+                    else 
+                        dclicktype "recall" self
+                        sysmsg "recalling using scroll" 11
+                    endif
+                    
+                    while not casting   
+                        if recallType = 0
+                            cast 'recall'  
+                        else 
+                            dclicktype "recall" self
+                        endif    
+                    endwhile  
+                    
+                    while not targetexists and casting
+                        if insysmsg "your concentration"
+                            break;
+                        endif
+                    endwhile
+                    
+                    waitfortarget maxwaittimeinms
+                    
+                endwhile     
+                
+                if targetexists and findtype "runebook|runetome" backpack as obj
+                    
+                    while findtype "runebook|runetome" backpack as book 
+                        if hue book = recallBookHue or recallBookHue = 0                           
+                            target book
+                            break
+                        endif                              
+                        @ignore book                           
+                    endwhile
+                    
+                    @clearignore
+                    wait 200
+                    
+                    if insysmsg "marked"
+                        overhead "Runebook is not marked! Mark the book NOW!" 34
+                    elseif targetexists
+                        overhead "Recall Book not found. Switching hue type to 0" 34
+                        @setvar! recallBookHue 0
+                    else 
+                        overhead "Finished!" 65
+                        stop  
+                    endif                    
+                    
+                elseif targetexists and findtype "recall rune" backpack as obj
+                    @setvar! tempRune 0  
+
+                    while findtype "recall rune" backpack as obj
+                        getlabel obj runeLabel  
+                        if "blank" in runeLabel
+                        else 
+                            if "home" in runeLabel
+                                target obj
+                                @setvar! tempRune obj  
+                                break
+                            endif
+                            @setvar! tempRune obj    
+                        endif
+                        @ignore obj
+                    endwhile
+                    
+                    @clearignore
+                    wait 200
+                        
+                    if targetexists and tempRune != 0
+                        target tempRune
+                        overhead "Finished!"
+                    elseif tempRune = 0
+                        overhead "No recalleable rune found" 34
+                        hotkey "cancel current target"
+                    elseif insysmsg "blocked" 
+                        overhead "Location blocked" 34
+                    else
+                        overhead "Finished!"     
+                    endif                                     
+                    stop
+                                                         
+                elseif targetexists
+                    overhead "No recall book or rune found" 34
+                else 
+                    overhead "Recall Interrupted" 34
+                endif
+
+            elseif recallType = 2 or recallType = 3
+            
+#********** USING RECALL BOOK CHARGE **********   
+                
+                if findtype "runebook|runetome" backpack
+                    @setvar! foundBook 0
+                    
+                    while findtype "runebook" backpack as book
+                        if hue book = recallBookHue or recallBookHue = 0
+                            dclick book backpack
+                            waitforgump 1551740969 maxwaittimeinms
+                            
+                            if recallType = 2
+                                gumpresponse 2 
+                            elseif recallType = 3
+                                gumpresponse 92
+                            endif
+                            
+                            @setvar! foundBook book
+                            break
+                        else 
+                            @ignore book
+                        endif
+                    endwhile
+                    
+                    while foundBook = 0 and findtype "runetome" backpack as book
+                        if hue book = recallBookHue or recallBookHue = 0
+                            dclick book backpack
+                            waitforgump 167090027 maxwaittimeinms
+                            
+                            if recallType = 2
+                                gumpresponse 100 
+                            elseif recallType = 3 
+                                gumpresponse 125
+                            endif
+                            
+                            @setvar! foundBook book
+                            break
+                        else 
+                            @ignore book
+                        endif
+                    endwhile
+                    
+                    wait maxwaittimeinms
+                    
+                    if foundBook = 0 
+                        overhead "Recall book hue {{recallBookHue}} cannot be found!" 34    
+                    else
+                        if not casting
+                            if insysmsg "charges"
+                                overhead "Recall book out of charges!" 34
+                            else 
+                                if recallType = 2 
+                                    overhead "First rune in the book NOT found" 34    
+                                else
+                                    overhead "Last rune in the book NOT found" 34 
+                                endif
+                                
+                            endif
+                            stop
+                        else 
+                            while casting
+                            endwhile
+                            wait maxwaittimeinms
+                            
+                            if insysmsg "concentration"
+                                overhead "Interrupted!" 34
+                            elseif insysmsg "location"
+                                overhead "Location blocked!" 
+                            else
+                                overhead "Successful" 65 
+                                stop
+                            endif
+                            
+                        endif
+                    endif
+                else 
+                    overhead "No runebook or runetome found to use charge!" 34
+                endif
+            else 
+                overhead "Variable 'recallType' value out of range" 34
+            endif                     
+        endif
+    endif
+    
+#********** AUTO-HEALING IF NEEDED **********    
+
+    while diffhits >= lowDiff or paralyzed
+    
+        if enemyFound = 0
+            if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                @setvar! enemyFound 1
+            endif
+        endif
+        
+        if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+            break
+        endif  
+    
+        if timer scriptMessageTimer > scriptMessageCD
+            overhead "* running auto-healing *" 66
+            settimer scriptMessageTimer 0
+        endif
+            
+        if followers > 0 
+            if timer guardMessageTimer > guardMessageCD
+                say 'all guard me'
+                settimer guardMessageTimer 0
+            endif
+        endif
+            
+        #** Trapped ** 
+        
+        if paralyzed 
+            if findtype "pouch" backpack 38 
+                yell "[pouch"            
+                wait 200
+            else
+                if timer pouchMessageTimer > pouchMessageCD
+                    overhead "Out of Pouches!" 34
+                    settimer pouchMessageTimer 0
+                endif
+            endif
+        endif
+            
+        #** Self bandage **
+        
+        if diffhits >= 1 and not bandaging
+            if skill 'healing' >= 50 or skill "veterinary" >= 50
+                if findtype 'clean bandage%s%' backpack
+                
+                    if targetexists
+                        hotkey 'cancel current target'  
+                    endif
+                    dclicktype 'clean bandage%s%'
+                    waitfortarget maxwaittimeinms
+                    target 'self'
+                    wait 200            
+                else
+                    if timer aidsMessageTimer > aidsMessageCD
+                        overhead "Out of bandages" 34
+                        settimer aidsMessageTimer 0
+                    endif
+                endif
+            endif
+        endif
+        
+        #** Drink str pot **
+        
+        if drinkStr = 1
+            if not findbuff "Strength" 
+                if findtype "White Potion" self
+                    dclicktype "White Potion"
+                    wait 200
+                else
+                    if timer whiteMessageTimer > whiteMessageCD
+                        overhead "Out of str pots" 34
+                        settimer whiteMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+            
+        #** Drink magic resist pot **
+    
+        if drinkMagicResist = 1
+            if not findbuff "Magic Resist" 
+                if findtype "Black Potion" self
+                    dclicktype "Black Potion"
+                    wait 200
+                else
+                    if timer blackMessageTimer > blackMessageCD
+                        overhead "Out of resist pots" 34
+                        settimer blackMessageTimer 0
+                    endif
+                endif
+            endif
+        endif
+            
+        #** Poison **
+        
+        while poisoned
+            if findtype "Orange Potion" self
+                dclicktype "Orange Potion"
+                wait 200
+            else
+                if timer orangeMessageTimer > orangeMessageCD
+                    overhead "Out of cure pots" 34
+                    settimer orangeMessageTimer 0
+                endif
+                if skill 'magery' >= 40 and mana >= 6
+                    if targetexists
+                        hotkey 'cancel current target'  
+                    endif
+                    cast 'cure'           
+                    while not casting                   
+                        cast 'cure'  
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                    endwhile  
+                    while not targetexists and casting
+                    endwhile
+                    waitfortarget maxwaittimeinms
+                    target 'self' 
+                    wait 200
+                endif
+            endif
+            
+            if diffhits > highDiff
+                break
+            endif
+        endwhile
+            
+        #** Heal Pot **
+        
+        if diffhits >= highDiff
+            if findtype "Yellow Potion" self
+                @setvar! ch 0
+                
+                if counttype 3852 self as c
+                    @setvar! ch c
+                endif
+                clearsysmsg        
+                dclicktype 3852
+                wait 200
+                            
+                if ch != counttype 3852 self or insysmsg "potion satchel used"
+                    cooldown "Heal Pot" healingPotCD
+                endif
+            else
+                if timer yellowMessageTimer > yellowMessageCD
+                    overhead "Out of heals pots" 34
+                    settimer yellowMessageTimer 200
+                endif
+            endif
+        endif
+                
+        #** Drink red pot ** 
+        
+        if stam <= 1
+            if findtype "Red Potion" self
+                dclicktype "Red Potion"
+                wait 200
+            else
+                if tiemr redMessageTimer > redMessageCD
+                    overhead "Out of refresh pots" 34
+                    settimer redMessageTimer 0 
+                endif
+            endif
+        endif
+            
+        #** Cast heals ** 
+        
+        if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits <= medDiff and mana >= 4 and miniHeal = 1
+            if targetexists
+                hotkey 'cancel current target'  
+            endif
+            cast 'heal'           
+            while not casting                   
+                cast 'heal'
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+            endwhile  
+            while not targetexists and casting
+            endwhile
+            waitfortarget maxwaittimeinms
+            target 'self' 
+            wait 200  
+        elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1
+            if targetexists
+                hotkey 'cancel current target'  
+            endif
+            cast 'greater heal'           
+            while not casting                   
+                cast 'greater heal'
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+            endwhile  
+            while not targetexists and casting
+            endwhile
+            waitfortarget maxwaittimeinms
+            target 'self' 
+            wait 200 
+        elseif skill 'magery' >= 40 and diffhits >= medDiff and mana >= 4 and miniHeal = 1
+            if targetexists
+                hotkey 'cancel current target'  
+            endif
+            cast 'heal'           
+            while not casting                   
+                cast 'heal'  
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+            endwhile  
+            while not targetexists and casting
+            endwhile
+            waitfortarget maxwaittimeinms
+            target 'self' 
+            wait 200  
+        
+        endif 
+    endwhile
+    
+#********** AUTO-MAGERY BUFFS IF NEEDED ********** 
+
+    if enemyFound = 0 or autoRecall = 0
+        if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < lowDiff
+        
+            if timer magicReflectTimer > magicReflectCD
+                if targetexists
+                    hotkey 'cancel current target'  
+                endif
+                cast 'Magic Reflection'
+                while not casting and diffhits < lowDiff                   
+                    if insysmsg "that spell will not"
+                        settimer magicReflectTimer 0
+                        break  
+                    endif
+                    cast 'Magic Reflection'
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                endwhile  
+                while casting
+                    if diffhits >= lowDiff
+                        interrupt
+                        break
+                    endif
+                endwhile
+                
+                wait 200  
+                
+            endif    
+        endif
+        
+        if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < lowDiff
+            if timer magicReflectTimer > magicReflectCD
+                if targetexists
+                    hotkey 'cancel current target'  
+                endif   
+                cast 'Reactive Armor'
+                while not casting and diffhits < lowDiff                   
+                    if insysmsg "that spell will not"
+                        settimer armorReflectTimer 0
+                        break  
+                    endif
+                    cast 'Reactive Armor'
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                endwhile  
+                while casting
+                    if diffhits >= lowDiff
+                        interrupt
+                        break
+                    endif
+                endwhile
+                
+                wait 200  
+            endif    
+        endif     
+        
+        if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < lowDiff
+    
+            if targetexists
+                hotkey 'cancel current target'  
+            endif
+            cast 'Protection'
+            while not casting and diffhits < lowDiff                   
+                cast 'Protection'
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+            endwhile  
+            while casting
+                if diffhits >= lowDiff
+                    interrupt
+                    break
+                endif
+            endwhile
+                
+            wait 200  
+    
+        endif 
+    endif
+    
+#********** CHECK FOR WOODEN BOX & CAST SUMMONS ********** 
+
+    if not findtype "wooden box" backpack or not findtype "copper key" backpack
+        overhead "Need 1 wooden box and 1 copper key to begin!" 33
+        wait maxwaittimeinms       
+    elseif counttype 2474 backpack > 1 or counttype 4110 backpack > 1 
+         overhead "You have more than 2 wooden boxes or more than 2 copper keys" 33
+         wait maxwaittimeinms       
+    elseif findtype "wooden box" backpack as chest and findtype "copper key" backpack as key
+        getlabel chest chestLabel
+        if "items" in chestLabel
+            dclick key
+            waitfortarget maxwaittimeinms
+            target chest
+            wait maxwaittimeinms
+            overhead "[chest locked]" 55
+        endif
+    
+        #Check if we want to cast
+        if enemyFound = 0 or autoRecall = 0
+            #Summon elemental if counters goes below min followers
+            
+            if followers < 4 and followers < maxFollowers and skill 'magery' >= 80 and diffhits < lowDiff
+                
+                if mana <= 49 
+                    overhead "low mana to summon" 89
+                else 
+                    cast 'Water Elemental'
+                    wait 200
+                    while casting
+                        if enemyFound = 0
+                            if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                                @setvar! enemyFound 1
+                            endif
+                        endif
+                        
+                        if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                            interrupt
+                            break
+                        endif
+                        
+                        if diffhits >= lowDiff
+                            interrupt
+                            break
+                        endif
+                        
+                        if timer summonTimer > summonCD
+                            overhead "* summoning... *"
+                            settimer summonTimer 0
+                        endif
+                    endwhile
+                    wait 1000
+                    say 'all guard me' 901
+                endif
+            endif
+        endif
+        
+  #********** IF OVERWEIGHT AUTO-DETECT PACK HORSE/LLAMA AND MOVE ORE TO PACK **********  
+        
+        if findtype 291|292 ground -1 -1 12 as pack
+            if myPack = 0 and noto pack = "friend"
+                @setvar! myPack pack
+            endif            
+        endif
+        
+        if diffweight <= myWeightDiff
+        
+            overhead '[Overveight Reached]' 44   
+            
+            if myPack != 0
+                
+                while findtype "iron ore" backpack any any 1 as ore and diffhits < lowDiff   
+                
+                    if enemyFound = 0
+                        if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                            @setvar! enemyFound 1
+                        endif
+                    endif
+                    
+                    if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                        break
+                    endif  
+                    
+                    if find myPack ground -1 -1 2
+                        dclick myPack
+                        wait 200
+                        if counttype "iron ore" myPack >= 975
+                            overhead "* packy is full *" 34
+                            sysmsg  "* auto recalling packy is full *" 34
+                            @setvar! enemyFound 1
+                            @setvar! autoRecall 1  
+                        else 
+                            lift ore 25
+                            drop myPack 
+                            getlabel myPack testyL
+                            sysmsg '{{testyL}}'
+                            overhead "* dropping ore in pack *" 54
+                            wait 650       
+                        endif 
+                    else 
+                        overhead "* move closer to pack *" 44
+                        wait 650  
+                    endif
+                       
+                endwhile  
+                
+                getlabel myPack packLabel
+                
+                overhead "{{packLabel}}" 88 myPack
+                sysmsg "{{packLabel}}" 88 myPack
+                
+            endif
+        else
+
+ #********** BEGIN HARVESTING **********  
+ 
+            while lhandempty and rhandempty
+                if enemyFound = 0
+                    if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                        @setvar! enemyFound 1
+                    endif
+                endif
+                
+                if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                    break
+                endif  
+                    
+                if not findtype myHarvestingTool backpack
+                    overhead "Out of pickaxes!" 36
+                    wait maxwaittimeinms
+                elseif not casting
+                    dclicktype myHarvestingTool
+                    wait 200
+                endif
+            endwhile
+            
+
+            hotkey 'Use Item In Hand'
+            
+            settimer mineTimer 0
+            
+            while timer mineTimer < mineTimerCD and diffhits < lowDiff
+                if enemyFound = 0
+                    if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                        @setvar! enemyFound 1
+                    endif
+                endif
+                
+                if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                    break
+                endif                         
+            endwhile
+            
+            wait 200  
+            
+            if insysmsg "you do not see any"
+                overhead "* no more ore to mine*" 44 
+            elseif insysmsg "you have recently traveled"
+                overhead "* travel cooldown *" 901
+            else
+                overhead "* mining ore *" 11  
+            endif    
+
+
+ #********** SECURING INGOTS in LOCKED WOODEN BOX IF FOUND IN BACKPACK **********   
+
+            while findtype 7154 backpack any any 1 as ingotz and diffhits < lowDiff
+                
+                if enemyFound = 0
+                    if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                        @setvar! enemyFound 1
+                    endif
+                endif
+                
+                if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                    break
+                endif    
+
+                overhead "* securing ingots *" 11
+                clearsysmsg 
+                wait 200
+                lift ingotz 9999
+                drop chest -1 -1 0
+                wait 650
+                
+                if insysmsg "it appears"
+                    overhead "[unlocking chest]" 44
+                    dclick key
+                    waitfortarget 1000
+                    target chest
+                    wait 650
+                endif
+            endwhile
+            
+            getlabel chest chestLabel
+            if "items" in chestLabel
+                dclick key
+                waitfortarget 1000
+                target chest
+                overhead "[chest closed]" 54
+            endif
+            
+#********** AUTO-DETECT NEARBY FORGES AND AUTO SMELT ORE FROM BACKPACK AND PACK HORSE/LLAMA **********               
+            
+            if findtype "forge" ground -1 -1 3 as forgy
+                overhead " * FORGE NEAR HERE *" 88 forgy 
+                while find forgy ground -1 -1 3 and findtype "iron ore" backpack as ore
+                
+                    if enemyFound = 0
+                        if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                            @setvar! enemyFound 1
+                        endif
+                    endif
+                    
+                    if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                        break
+                    endif  
+                    
+                    dclick ore
+                    wait 650
+                    if insysmsg "you smelt"
+                        overhead "* backpack ore smelted *" 88
+                    elseif insysmsg "You do not see any nearby forges"
+                        overhead "* forge too far away *" 44
+                    endif                
+                endwhile
+                
+                if find myPack ground -1 -1 2
+                    getlabel myPack packLabel
+                    
+                    if "[0/2000" in packLabel
+                        #pack is empty
+                    else    
+                        dclick myPack
+                        wait 650
+                        
+                        while find forgy ground -1 -1 3 and findtype "iron ore" myPack as ore
+                            if enemyFound = 0
+                                if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                                    @setvar! enemyFound 1
+                                endif
+                            endif
+                            
+                            if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                                interrupt
+                                break
+                            endif
+                            
+                            dclick ore
+                            wait 650
+                            if insysmsg "you smelt"
+                                overhead "* pack ore smelted *" 88
+                                getlabel myPack packLabel
+                                overhead "{{packLabel}}" 11
+                                sysmsg "{{packLabel}}" 11
+                            elseif insysmsg "you do not see" 
+                                overhead "* pack too far smelt *" 44 myPack
+                            endif                  
+                        endwhile
+                        
+                    endif
+                endif
+                
+            elseif findtype "forge" ground -1 -1 4 as forgy
+                overhead " * FORGE HERE *" 88 forgy 
+            elseif findtype "forge" ground -1 -1 6 as forgy
+                overhead " * FORGE HERE *" 88 forgy 
+            elseif findtype "forge" ground -1 -1 8 as forgy
+                overhead " * FORGE HERE *" 88 forgy  
+            elseif findtype "forge" ground -1 -1 10 as forgy
+                overhead " * FORGE HERE *" 88 forgy  
+            elseif findtype "forge" ground -1 -1 12 as forgy
+                overhead " * FORGE HERE *" 88 forgy  
+            endif
+
+        endif
+    endif
+    
+    #sysmsg "Loop cycle elapsed : {{cycleTimer}}"
+endwhile

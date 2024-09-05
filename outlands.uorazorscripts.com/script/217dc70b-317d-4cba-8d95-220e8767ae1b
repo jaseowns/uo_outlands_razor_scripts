@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-mining 4.31
+#SUPER Auto-mining 4.40
 
 #********** INFORMATION **********# 
 
@@ -16,6 +16,17 @@
     
 #IMPORTANT: You will need to create an in-game options cooldown named `Danger`. 
 #Options -> Cooldowns -> New Entry -> Name: `Danger` -> Cooldown Type -> `PvP Timer` -> Done
+
+#My Gathering template (Anti PK):
+#Lumber - 120
+#Mining - 120
+#Magery - 100
+#Healing - 80
+#Resist - 80
+#Tracking -80
+#Wrestling - 80
+#Spirit - 40
+#Alchemy - 20
 
 #********** SET YOUR SETTINGS **********# 
 
@@ -82,12 +93,13 @@
 
 #--- Set Cooldowns ---#
 
-#Set value at `600` if have 60-80 ping ms. Adjust depending on ping
+#Set value at `575` if have 60-80 ping ms. Adjust depending on ping
 
-@setvar! mineTimerCD 600
+@setvar! mineTimerCD 575
 
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********
 
+@setvar! isOverweight 0
 @setvar! myHarvestingTool 3718
 @setvar! maxwaittimeinms 650
 @setvar! foundBook 0
@@ -126,8 +138,8 @@ settimer protectionTimer 15000
 
 #** Script msgs timers **
 
-@setvar! scriptMessageCD 4500
-settimer scriptMessageTimer 0
+@setvar! healingMessageCD 4500
+settimer healingMessageTimer 0
 
 @setvar! guardMessageCD 5500
 settimer guardMessageTimer guardMessageCD
@@ -137,6 +149,9 @@ settimer summonTimer summonCD
 
 @setvar! beingAttackedCD 5000
 settimer beingAttackedTimer 5000
+
+@setvar! overweightCD 2000
+settimer overweightTimer overweightCD
 
 #** Items in backpack timers **
 
@@ -1109,9 +1124,9 @@ while not dead
             break
         endif  
     
-        if timer scriptMessageTimer > scriptMessageCD
+        if timer healingMessageTimer > healingMessageCD
             overhead "* running auto-healing *" 66
-            settimer scriptMessageTimer 0
+            settimer healingMessageTimer 0
         endif
             
         if followers > 0 
@@ -1464,58 +1479,20 @@ while not dead
             endif            
         endif
         
-        if diffweight <= myWeightDiff
-        
-            overhead '[Overveight Reached]' 44   
-            
-            if myPack != 0
-                
-                while findtype "iron ore" backpack any any 1 as ore and diffhits < lowDiff   
-                
-                    if enemyFound = 0
-                        if insysmsg! "Now tracking" or insysmsg! "Distance to"
-                            @setvar! enemyFound 1
-                        endif
-                    endif
-                    
-                    if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
-                        break
-                    endif  
-                    
-                    if find myPack ground -1 -1 2
-                        dclick myPack
-                        wait 200
-                        if counttype "iron ore" myPack >= 975
-                            overhead "* packy is full *" 34
-                            sysmsg  "* auto recalling packy is full *" 34
-                            @setvar! enemyFound 1
-                            @setvar! autoRecall 1  
-                        else 
-                            lift ore 25
-                            drop myPack 
-                            getlabel myPack testyL
-                            sysmsg '{{testyL}}'
-                            overhead "* dropping ore in pack *" 54
-                            wait 650       
-                        endif 
-                    else 
-                        overhead "* move closer to pack *" 44
-                        wait 650  
-                    endif
-                       
-                endwhile  
-                
-                getlabel myPack packLabel
-                
-                overhead "{{packLabel}}" 88 myPack
-                sysmsg "{{packLabel}}" 88 myPack
-                
+        if diffweight <= myWeightDiff or weight > maxweight
+            @setvar! isOverweight 1
+            if timer overweightTimer > overweightCD
+                overhead '[Overweight Reached]' 44   
+                settimer overweightTimer 0
             endif
-        else
-
- #********** BEGIN HARVESTING **********  
- 
-            while lhandempty and rhandempty
+        else 
+            @setvar! isOverweight 0
+        endif
+            
+        if myPack != 0
+            
+            while findtype "iron ore" backpack any any 1 as ore and diffhits < lowDiff   
+            
                 if enemyFound = 0
                     if insysmsg! "Now tracking" or insysmsg! "Distance to"
                         @setvar! enemyFound 1
@@ -1525,19 +1502,63 @@ while not dead
                 if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
                     break
                 endif  
-                    
-                if not findtype myHarvestingTool backpack
-                    overhead "Out of pickaxes!" 36
-                    wait maxwaittimeinms
-                elseif not casting
-                    dclicktype myHarvestingTool
+                
+                if find myPack ground -1 -1 2
+                    dclick myPack
                     wait 200
+                    if counttype "iron ore" myPack >= 975
+                        overhead "* packy is full *" 34
+                        sysmsg  "* auto recalling packy is full *" 34
+                        @setvar! enemyFound 1
+                        @setvar! autoRecall 1  
+                    else 
+                        lift ore 25
+                        drop myPack 
+                        getlabel myPack testyL
+                        sysmsg '{{testyL}}'
+                        overhead "* dropping ore in pack *" 54
+                        wait 650       
+                    endif 
+                else 
+                    overhead "* move closer to pack *" 44
+                    wait 650  
                 endif
-            endwhile
+                   
+            endwhile  
             
+            getlabel myPack packLabel
+            
+            overhead "{{packLabel}}" 88 myPack
+            sysmsg "{{packLabel}}" 88 myPack
+            
+        endif
+   
 
-            hotkey 'Use Item In Hand'
+#********** BEGIN HARVESTING **********  
+
+        while lhandempty and rhandempty
+            if enemyFound = 0
+                if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                    @setvar! enemyFound 1
+                endif
+            endif
             
+            if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                break
+            endif  
+                
+            if not findtype myHarvestingTool backpack
+                overhead "Out of pickaxes!" 36
+                wait maxwaittimeinms
+            elseif not casting
+                dclicktype myHarvestingTool
+                wait 200
+            endif
+        endwhile
+        
+        if 0 = isOverweight
+            hotkey 'Use Item In Hand'
+        
             settimer mineTimer 0
             
             while timer mineTimer < mineTimerCD and diffhits < lowDiff
@@ -1560,13 +1581,55 @@ while not dead
                 overhead "* travel cooldown *" 901
             else
                 overhead "* mining ore *" 11  
+            endif 
+        
+        endif
+
+
+#********** SECURING INGOTS in LOCKED WOODEN BOX IF FOUND IN BACKPACK **********   
+
+        while findtype 7154 backpack any any 1 as ingotz and diffhits < lowDiff
+            
+            if enemyFound = 0
+                if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                    @setvar! enemyFound 1
+                endif
+            endif
+            
+            if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                break
             endif    
 
-
- #********** SECURING INGOTS in LOCKED WOODEN BOX IF FOUND IN BACKPACK **********   
-
-            while findtype 7154 backpack any any 1 as ingotz and diffhits < lowDiff
-                
+            overhead "* securing ingots *" 11
+            clearsysmsg 
+            wait 200
+            lift ingotz 9999
+            drop chest -1 -1 0
+            wait 650
+            
+            if insysmsg "it appears"
+                overhead "[unlocking chest]" 44
+                dclick key
+                waitfortarget 1000
+                target chest
+                wait 650
+            endif
+        endwhile
+        
+        getlabel chest chestLabel
+        if "items" in chestLabel
+            dclick key
+            waitfortarget 1000
+            target chest
+            overhead "[chest closed]" 54
+        endif
+        
+#********** AUTO-DETECT NEARBY FORGES AND AUTO SMELT ORE FROM BACKPACK AND PACK HORSE/LLAMA **********               
+        
+        if findtype "forge" ground -1 -1 3 as forgy
+            overhead " * FORGE NEAR HERE *" 88 forgy 
+            while find forgy ground -1 -1 3 and findtype "iron ore" backpack as ore
+            
                 if enemyFound = 0
                     if insysmsg! "Now tracking" or insysmsg! "Distance to"
                         @setvar! enemyFound 1
@@ -1575,106 +1638,65 @@ while not dead
                 
                 if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
                     break
-                endif    
-
-                overhead "* securing ingots *" 11
-                clearsysmsg 
-                wait 200
-                lift ingotz 9999
-                drop chest -1 -1 0
-                wait 650
+                endif  
                 
-                if insysmsg "it appears"
-                    overhead "[unlocking chest]" 44
-                    dclick key
-                    waitfortarget 1000
-                    target chest
-                    wait 650
-                endif
+                dclick ore
+                wait 650
+                if insysmsg "you smelt"
+                    overhead "* backpack ore smelted *" 88
+                elseif insysmsg "You do not see any nearby forges"
+                    overhead "* forge too far away *" 44
+                endif                
             endwhile
             
-            getlabel chest chestLabel
-            if "items" in chestLabel
-                dclick key
-                waitfortarget 1000
-                target chest
-                overhead "[chest closed]" 54
-            endif
-            
-#********** AUTO-DETECT NEARBY FORGES AND AUTO SMELT ORE FROM BACKPACK AND PACK HORSE/LLAMA **********               
-            
-            if findtype "forge" ground -1 -1 3 as forgy
-                overhead " * FORGE NEAR HERE *" 88 forgy 
-                while find forgy ground -1 -1 3 and findtype "iron ore" backpack as ore
+            if find myPack ground -1 -1 2
+                getlabel myPack packLabel
                 
-                    if enemyFound = 0
-                        if insysmsg! "Now tracking" or insysmsg! "Distance to"
-                            @setvar! enemyFound 1
-                        endif
-                    endif
-                    
-                    if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
-                        break
-                    endif  
-                    
-                    dclick ore
+                if "[0/2000" in packLabel
+                    #pack is empty
+                else    
+                    dclick myPack
                     wait 650
-                    if insysmsg "you smelt"
-                        overhead "* backpack ore smelted *" 88
-                    elseif insysmsg "You do not see any nearby forges"
-                        overhead "* forge too far away *" 44
-                    endif                
-                endwhile
-                
-                if find myPack ground -1 -1 2
-                    getlabel myPack packLabel
                     
-                    if "[0/2000" in packLabel
-                        #pack is empty
-                    else    
-                        dclick myPack
+                    while find forgy ground -1 -1 3 and findtype "iron ore" myPack as ore
+                        if enemyFound = 0
+                            if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                                @setvar! enemyFound 1
+                            endif
+                        endif
+                        
+                        if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                            interrupt
+                            break
+                        endif
+                        
+                        dclick ore
                         wait 650
-                        
-                        while find forgy ground -1 -1 3 and findtype "iron ore" myPack as ore
-                            if enemyFound = 0
-                                if insysmsg! "Now tracking" or insysmsg! "Distance to"
-                                    @setvar! enemyFound 1
-                                endif
-                            endif
-                            
-                            if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
-                                interrupt
-                                break
-                            endif
-                            
-                            dclick ore
-                            wait 650
-                            if insysmsg "you smelt"
-                                overhead "* pack ore smelted *" 88
-                                getlabel myPack packLabel
-                                overhead "{{packLabel}}" 11
-                                sysmsg "{{packLabel}}" 11
-                            elseif insysmsg "you do not see" 
-                                overhead "* pack too far smelt *" 44 myPack
-                            endif                  
-                        endwhile
-                        
-                    endif
+                        if insysmsg "you smelt"
+                            overhead "* pack ore smelted *" 88
+                            getlabel myPack packLabel
+                            overhead "{{packLabel}}" 11
+                            sysmsg "{{packLabel}}" 11
+                        elseif insysmsg "you do not see" 
+                            overhead "* pack too far smelt *" 44 myPack
+                        endif                  
+                    endwhile
+                    
                 endif
-                
-            elseif findtype "forge" ground -1 -1 4 as forgy
-                overhead " * FORGE HERE *" 88 forgy 
-            elseif findtype "forge" ground -1 -1 6 as forgy
-                overhead " * FORGE HERE *" 88 forgy 
-            elseif findtype "forge" ground -1 -1 8 as forgy
-                overhead " * FORGE HERE *" 88 forgy  
-            elseif findtype "forge" ground -1 -1 10 as forgy
-                overhead " * FORGE HERE *" 88 forgy  
-            elseif findtype "forge" ground -1 -1 12 as forgy
-                overhead " * FORGE HERE *" 88 forgy  
             endif
-
+            
+        elseif findtype "forge" ground -1 -1 4 as forgy
+            overhead " * FORGE HERE *" 88 forgy 
+        elseif findtype "forge" ground -1 -1 6 as forgy
+            overhead " * FORGE HERE *" 88 forgy 
+        elseif findtype "forge" ground -1 -1 8 as forgy
+            overhead " * FORGE HERE *" 88 forgy  
+        elseif findtype "forge" ground -1 -1 10 as forgy
+            overhead " * FORGE HERE *" 88 forgy  
+        elseif findtype "forge" ground -1 -1 12 as forgy
+            overhead " * FORGE HERE *" 88 forgy  
         endif
+
     endif
     
     #sysmsg "Loop cycle elapsed : {{cycleTimer}}"

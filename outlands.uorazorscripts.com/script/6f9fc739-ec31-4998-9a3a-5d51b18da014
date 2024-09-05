@@ -1,0 +1,173 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/6f9fc739-ec31-4998-9a3a-5d51b18da014 for latest
+# Automation by Jaseowns
+## Script: Auto-DISCO
+## Created by: dennozz#0
+#############################################
+
+#Auto-DISCO 1.00
+
+#********** INFORMATION **********# 
+
+#Made by @dennozz on discord. 
+#Inspired/learned by other scrips in https://outlands.uorazorscripts.com/
+
+#This script will auto discordance the closest gray creature, if the creature is already discorded it will start looking for other nearby creatures.
+
+#Optional: Set overhead messages on Razor > Display/Counters > Overhead messages
+           Add overhead messages when success discordance, fail discordance or skill needs to wait for use.
+
+
+#********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
+
+@setvar! currentTarget 0
+@setvar! foundTarget 0
+
+#********** SET INSTRUMENT **********# 
+
+if not varexist myDiscoInstrument
+    @setvar! myDiscoInstrument 0
+endif
+
+if not find myDiscoInstrument backpack
+    clearsysmsg
+    overhead "Select instrument:" 55
+    @setvar! myDiscoInstrument
+    wait 200
+    while not targetexists and not insysmsg "Select"
+        @setvar! myDiscoInstrument    
+    endwhile
+    
+    if find myDiscoInstrument backpack as inst
+        getlabel inst iLabel
+        
+        if "flute" in iLabel or "drums" in iLabel or "harp" in iLabel or "lute" in iLabel or "tambourine" in iLabel or "gemshorn" in iLabel or "hurdy" in iLabel or "psaltery" in iLabel or "sackbut" in iLabel or "shawm" in iLabel or "Vielle" in iLabel
+            dclick inst
+            wait 200
+        else 
+            @setvar! myDiscoInstrument 0
+            overhead "Not an instrument!" 33
+            stop
+        endif
+    else
+        @setvar! myDiscoInstrument 0
+        overhead "Not in backpack" 33
+        stop    
+    endif
+endif
+
+if not timerexists mushroomTimer
+    settimer mushroomTimer cdMushroom
+endif
+
+if not timerexists discoTimer
+    settimer discoTimer 0
+endif
+
+clearsysmsg
+
+if targetexists
+    hotkey 'cancel current target'
+endif
+
+#********* AUTO-SELECT NEW TARGET *********
+
+sysmsg "Discord Start.." 65
+hotkey 'target closest grey monster'
+wait 25
+
+if not find lasttarget ground -1 -1 12
+    overhead 'No target found' 33
+    #@setvar! foundTarget 2
+else
+    while index != 20
+        @setvar! tempTarget lasttarget 
+        if index != 0 
+            hotkey "next non-friendly monster target"
+            @setvar! tempTarget lasttarget 
+            #overhead "*{{index}}*" 34 tempTarget
+            
+            if index = 1
+                @setvar! firstTarget lasttarget
+            elseif firstTarget = tempTarget
+                @setvar! foundTarget 2
+                break
+            endif
+        endif
+        
+        if find tempTarget ground -1 -1 12
+            getlabel tempTarget targetLabel
+                        
+            if "discord" in targetLabel
+                #next
+            elseif "-" in targetLabel
+                sysmsg "Label error, replaying search.." 34
+                replay
+            else 
+                clearsysmsg
+                
+                skill 'begging'
+                waitfortarget 1000
+                target tempTarget
+                wait 100
+                
+                if insysmsg "Target cannot be seen"
+                    overhead  "*Not visible* [{{index}}]" 44 tempTarget
+                elseif insysmsg "That is too far away"
+                    overhead "*Too far* [{{index}}] " 44 tempTarget
+                else 
+                    @setvar! foundTarget 1 
+                    @setvar! currentTarget tempTarget
+                    getlabel currentTarget myLabel
+                    sysmsg "Target: {{myLabel}}" 66
+                    break
+                endif
+                
+            endif
+        endif
+        wait 50
+    endwhile
+endif
+
+#********* DISCO IF TARGET FOUND *********
+
+if 1 = foundTarget
+    skill 'discordance'
+    waitfortarget 650   
+    target currentTarget
+    
+    if followers > 0
+        say 'all guard me' 32
+        attack currentTarget 
+    endif
+elseif 2 = foundTarget
+    if followers > 0
+        say 'all guard me' 32
+        hotkey 'target closest grey monster'
+        attack lasttarget 
+    endif
+endif
+
+wait 100
+
+if insysmsg 'target cannot be seen'
+    overhead '[Target not seen]' 33
+elseif insysmsg 'You must wait a few'
+    overhead '[Wait for skill]' 33
+elseif insysmsg 'That is too far away.'
+    overhead '[Too Far away]' 33
+elseif insysmsg 'You fail to discord'
+    overhead "Discord FAILED" 44 currentTarget
+elseif insysmsg "You play successfully, disrupting" 
+    getlabel currentTarget myLabel
+    overhead "{{myLabel}}" 88 currentTarget
+endif
+
+#********* SONG BUFF *********
+
+if not findbuff "Song Of Discordance"
+    skill 'discordance'
+    waitfortarget 650
+    target backpack
+endif
+
+sysmsg "Discord Finish!" 44

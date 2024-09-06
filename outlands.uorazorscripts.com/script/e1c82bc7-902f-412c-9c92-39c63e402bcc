@@ -1,0 +1,175 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/e1c82bc7-902f-412c-9c92-39c63e402bcc for latest
+# Automation by Jaseowns
+## Script: dexxerPoisonWeapon
+## Created by: tarouca#0
+#############################################
+
+@setvar lagTimer_ 500
+
+@setvar usingShelf_ 0
+if findtype "storage shelf" ground -1 -1 3 as myShelf__
+    @setvar myShelf_ myShelf__
+    @setvar usingShelf_ 1
+endif
+@setvar usingStockPile_ 0
+if findtype "resource container" ground -1 -1 3 as myStockPile__
+    @setvar myStockPile_ myStockPile__
+    @setvar usingStockPile_ 1
+endif
+@setvar usingAlchemistBag_ 0
+if findtype "alchemists satchel" self as myAlchemistBag__
+    @setvar myAlchemistBag_ myAlchemistBag__
+    @setvar usingAlchemistBag_ 1
+    if not find myAlchemistBag_ backpack
+        lift myAlchemistBag_
+        drop backpack
+    endif
+    dclick myAlchemistBag_
+    wait lagTimer_
+endif
+
+@setvar weaponFound_ 0
+while weaponFound_ = 0
+    if findlayer self righthand as weaponToApply__
+        @setvar weaponToApply_ weaponToApply__
+        overhead "FOUND WEAPON"
+        @setvar weaponFound_ 1
+    else 
+        overhead "EQUIP WEAPON TO POISON" 48
+        overhead "I'LL WAIT 3 SECONDS" 48
+        wait lagTimer_
+        wait lagTimer_
+    endif
+endwhile
+
+if not timerexists "cureTimer_"
+    createtimer "cureTimer_"
+    settimer "cureTimer_" 99999
+endif
+if not timerexists "healTimer_"
+    createtimer "healTimer_"
+    settimer "healTimer_" 99999
+endif
+if not timerexists "poisonTimer_"
+    createtimer "poisonTimer_"
+    settimer "poisonTimer_" 99999
+endif
+
+
+overhead "WAIT FOR: WEAPON POISONED" 48
+
+@setvar keepGoing_ 1
+while keepGoing_ = 1
+    if not poisoned
+        getlabel weaponToApply_ myWeaponLabel_
+        if "10 lethal" in myWeaponLabel_
+            if ".10 lethal" in myWeaponLabel_
+            else
+                @setvar keepGoing_ 0
+            endif
+            if keepGoing_ = 0
+                overhead "WEAPON POISONED"
+                if usingShelf_ = 1 and find myShelf_ ground -1 -1 3
+                    menu myShelf_ 1
+                    wait lagTimer_
+                    if usingStockPile_ = 1 and findtype 3854 backpack 0 as emptyBottle_
+                        menu myStockPile_ 0
+                        waitfortarget
+                        target emptyBottle_
+                        wait lagTimer_
+                    endif
+                elseif usingShelf_ = 0
+                    overhead "NOT USING SHELF" 48
+                else
+                    overhead "NOT NEAR SHEFL" 48
+                endif
+                stop
+            endif
+        endif
+    endif
+    if not poisoned and timer "poisonTimer_" > 5100
+        @setvar needToRestock_ 0
+        @setvar foundTargetPot_ 0
+        if usingAlchemistBag_ = 1 and findtype "Green Potion" myAlchemistBag_
+            @setvar foundTargetPot_ 1
+        elseif findtype "Green Potion" backpack
+            @setvar foundTargetPot_ 1
+        endif
+        if foundTargetPot_ = 1
+            menu weaponToApply_ 0
+            settimer "poisonTimer_" 0
+        else 
+            @setvar needToRestock_ 1
+        endif
+        if needToRestock_ = 1 
+            if usingShelf_ = 1 and find myShelf_ ground -1 -1 3
+                menu myShelf_ 1
+                wait lagTimer_
+            else 
+                overhead "NO POISON" 38
+                overhead "NOT NEAR/USING SHELF" 38
+            endif
+        endif
+    endif
+
+    if poisoned and timer "cureTimer_" > 3000
+        @setvar needToRestock_ 0
+        @setvar foundTargetPot_ 0
+        if usingAlchemistBag_ = 1 and findtype "Orange Potion" myAlchemistBag_ as pot_
+            @setvar foundTargetPot_ 1
+        elseif findtype "Orange Potion" backpack as pot_
+            @setvar foundTargetPot_ 1
+        endif
+        if foundTargetPot_ = 1
+            dclick pot_
+            settimer "cureTimer_" 0
+        else 
+            @setvar needToRestock_ 1
+        endif
+        if needToRestock_ = 1
+            if usingShelf_ = 1 and find myShelf_ ground -1 -1 3
+                menu myShelf_ 1
+                wait lagTimer_
+            else
+                overhead "NO CURE" 38
+                overhead "NOT NEAR/USING SHELF" 38
+            endif
+        endif
+    endif
+
+    if hp < maxhp
+        @setvar needToRestock_ 0
+        @setvar foundTargetPot_ 0
+        if not bandaging
+            if findtype "clean bandage%s%" backpack 
+                hotkey "Bandage Self"
+            else
+                @setvar needToRestock_ 1
+            endif
+        endif
+        if hp < 60
+            if timer "healTimer_" > 11000
+                if usingAlchemistBag_ = 1 and findtype "Yellow Potion" myAlchemistBag_ as pot_
+                    @setvar foundTargetPot_ 1
+                elseif findtype "Yellow Potion" backpack as pot_
+                    @setvar foundTargetPot_ 1
+                endif
+                if foundTargetPot_ = 1
+                    dclick pot_
+                    settimer "healTimer_" 0
+                else 
+                    @setvar needToRestock_ 1
+                endif
+            endif
+        endif
+        if needToRestock_ = 1
+            if usingShelf_ = 1 and find myShelf_ ground -1 -1 3
+                menu myShelf_ 1
+                wait lagTimer_
+            else
+                overhead "NO HEAL" 38
+                overhead "NOT NEAR/USING SHELF" 38
+            endif
+        endif        
+    endif
+endwhile

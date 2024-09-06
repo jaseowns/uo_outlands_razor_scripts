@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-mining 4.40
+#SUPER Auto-mining 4.50
 
 #********** INFORMATION **********# 
 
@@ -49,13 +49,13 @@
 # 2 - using charge recall from first rune in book
 # 3 - using charge recall from last rune in book
 
-@setvar! recallType 3
+@setvar! recallType 0
 
 #--- Set recall object ---#
 # 0 - carry one runebook | carry one rune | if multiple runes name the one you recall `home`
 # 1234 - if you carry multiple runebooks or runetomes set the hue of the book you wish to recall (type `>info` to get hue info)
 
-@setvar! recallBookHue 176
+@setvar! recallBookHue 0
 
 #--- If regs are low auto recall ---#
 # 0 - you dont carry regs
@@ -99,6 +99,7 @@
 
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********
 
+@setvar! isRecalling 0
 @setvar! isOverweight 0
 @setvar! myHarvestingTool 3718
 @setvar! maxwaittimeinms 650
@@ -840,6 +841,7 @@ overhead "* auto-mining activated *" 66
 clearsysmsg
 clearhands both
 
+
 while not dead 
     settimer cycleTimer 0
     
@@ -1030,75 +1032,81 @@ while not dead
 #********** USING RECALL BOOK CHARGE **********   
                 
                 if findtype "runebook|runetome" backpack
-                    @setvar! foundBook 0
-                    
-                    while findtype "runebook" backpack as book
-                        if hue book = recallBookHue or recallBookHue = 0
-                            dclick book backpack
-                            waitforgump 1551740969 maxwaittimeinms
-                            
-                            if recallType = 2
-                                gumpresponse 2 
-                            elseif recallType = 3
-                                gumpresponse 92
-                            endif
-                            
-                            @setvar! foundBook book
-                            break
-                        else 
-                            @ignore book
-                        endif
-                    endwhile
-                    
-                    while foundBook = 0 and findtype "runetome" backpack as book
-                        if hue book = recallBookHue or recallBookHue = 0
-                            dclick book backpack
-                            waitforgump 167090027 maxwaittimeinms
-                            
-                            if recallType = 2
-                                gumpresponse 100 
-                            elseif recallType = 3 
-                                gumpresponse 125
-                            endif
-                            
-                            @setvar! foundBook book
-                            break
-                        else 
-                            @ignore book
-                        endif
-                    endwhile
-                    
-                    wait maxwaittimeinms
-                    
-                    if foundBook = 0 
-                        overhead "Recall book hue {{recallBookHue}} cannot be found!" 34    
-                    else
-                        if not casting
-                            if insysmsg "charges"
-                                overhead "Recall book out of charges!" 34
-                            else 
-                                if recallType = 2 
-                                    overhead "First rune in the book NOT found" 34    
-                                else
-                                    overhead "Last rune in the book NOT found" 34 
+                
+                    if diffhits < medDiff
+                        @setvar! foundBook 0
+                        
+                        while findtype "runebook" backpack as book
+                            if hue book = recallBookHue or recallBookHue = 0
+                                dclick book backpack
+                                waitforgump 1551740969 maxwaittimeinms
+                                
+                                if recallType = 2
+                                    gumpresponse 2 
+                                elseif recallType = 3
+                                    gumpresponse 92
                                 endif
                                 
+                                @setvar! foundBook book
+                                break
+                            else 
+                                @ignore book
                             endif
-                            stop
-                        else 
+                        endwhile
+                        
+                        while foundBook = 0 and findtype "runetome" backpack as book
+                            if hue book = recallBookHue or recallBookHue = 0
+                                dclick book backpack
+                                waitforgump 167090027 maxwaittimeinms
+                                
+                                if recallType = 2
+                                    gumpresponse 100 
+                                elseif recallType = 3 
+                                    gumpresponse 125
+                                endif
+                                
+                                @setvar! foundBook book
+                                break
+                            else 
+                                @ignore book
+                            endif
+                        endwhile
+                        
+                        wait 200
+                        
+                        if foundBook = 0 
+                            overhead "Recall book not found!" 34    
+                        elseif insysmsg "charges"
+                                overhead "Recall book out of charges!" 34
+                        elseif insysmsg "This book"
+                                overhead "Recall book cooldown!" 34
+                        elseif casting
                             while casting
-                            endwhile
-                            wait maxwaittimeinms
+                            endwhile 
                             
+                            wait 200
+                                
                             if insysmsg "concentration"
                                 overhead "Interrupted!" 34
                             elseif insysmsg "location"
                                 overhead "Location blocked!" 
                             else
                                 overhead "Successful" 65 
+                                sysmsg "Mining Completed!" 65
                                 stop
                             endif
-                            
+                        else 
+                            if insysmsg "concentration"
+                                overhead "Interrupted!" 34
+                            else 
+                                if recallType = 2 
+                                    overhead "First rune not found" 34    
+                                else
+                                    overhead "Last rune not found" 34
+                                    overhead "Changing to first rune.." 34
+                                    @setvar! recallType 2
+                                endif                                
+                            endif
                         endif
                     endif
                 else 
@@ -1121,6 +1129,7 @@ while not dead
         endif
         
         if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+            @setvar! isRecalling 1
             break
         endif  
     
@@ -1422,7 +1431,7 @@ while not dead
     elseif counttype 2474 backpack > 1 or counttype 4110 backpack > 1 
          overhead "You have more than 2 wooden boxes or more than 2 copper keys" 33
          wait maxwaittimeinms       
-    elseif findtype "wooden box" backpack as chest and findtype "copper key" backpack as key
+    elseif findtype "wooden box" backpack as chest and findtype "copper key" backpack as key and 0 = isRecalling
         getlabel chest chestLabel
         if "items" in chestLabel
             dclick key
@@ -1436,7 +1445,7 @@ while not dead
         if enemyFound = 0 or autoRecall = 0
             #Summon elemental if counters goes below min followers
             
-            if followers < 4 and followers < maxFollowers and skill 'magery' >= 80 and diffhits < lowDiff
+            if followers < 4 and followers < maxFollowers and skill 'magery' >= 80 and diffhits < lowDiff and 0 = isRecalling
                 
                 if mana <= 49 
                     overhead "low mana to summon" 89
@@ -1451,6 +1460,7 @@ while not dead
                         endif
                         
                         if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                            @setvar! isRecalling 1
                             interrupt
                             break
                         endif
@@ -1489,9 +1499,9 @@ while not dead
             @setvar! isOverweight 0
         endif
             
-        if myPack != 0
+        if find myPack ground -1 -1 12 and Overweight = 1
             
-            while findtype "iron ore" backpack any any 1 as ore and diffhits < lowDiff   
+            while findtype "iron ore" backpack any any 1 as ore and diffhits < lowDiff and 0 = isRecalling   
             
                 if enemyFound = 0
                     if insysmsg! "Now tracking" or insysmsg! "Distance to"
@@ -1500,6 +1510,7 @@ while not dead
                 endif
                 
                 if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                    @setvar! isRecalling 1
                     break
                 endif  
                 
@@ -1535,8 +1546,9 @@ while not dead
    
 
 #********** BEGIN HARVESTING **********  
-
-        while lhandempty and rhandempty
+        
+        while lhandempty and rhandempty and 0 = isRecalling
+            sysmsg "empty"
             if enemyFound = 0
                 if insysmsg! "Now tracking" or insysmsg! "Distance to"
                     @setvar! enemyFound 1
@@ -1544,19 +1556,20 @@ while not dead
             endif
             
             if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                @setvar! isRecalling 1
                 break
             endif  
-                
+  
             if not findtype myHarvestingTool backpack
                 overhead "Out of pickaxes!" 36
                 wait maxwaittimeinms
-            elseif not casting
+            elseif not casting               
                 dclicktype myHarvestingTool
-                wait 200
+                wait maxwaittimeinms
             endif
         endwhile
-        
-        if 0 = isOverweight
+
+        if 0 = isOverweight and 0 = isRecalling
             hotkey 'Use Item In Hand'
         
             settimer mineTimer 0
@@ -1569,6 +1582,7 @@ while not dead
                 endif
                 
                 if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                    @setvar! isRecalling 1
                     break
                 endif                         
             endwhile
@@ -1582,13 +1596,11 @@ while not dead
             else
                 overhead "* mining ore *" 11  
             endif 
-        
         endif
-
 
 #********** SECURING INGOTS in LOCKED WOODEN BOX IF FOUND IN BACKPACK **********   
 
-        while findtype 7154 backpack any any 1 as ingotz and diffhits < lowDiff
+        while findtype 7154 backpack any any 1 as ingotz and diffhits < lowDiff and 0 = isRecalling
             
             if enemyFound = 0
                 if insysmsg! "Now tracking" or insysmsg! "Distance to"
@@ -1597,6 +1609,7 @@ while not dead
             endif
             
             if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                @setvar! isRecalling 1
                 break
             endif    
 
@@ -1626,7 +1639,7 @@ while not dead
         
 #********** AUTO-DETECT NEARBY FORGES AND AUTO SMELT ORE FROM BACKPACK AND PACK HORSE/LLAMA **********               
         
-        if findtype "forge" ground -1 -1 3 as forgy
+        if findtype "forge" ground -1 -1 3 as forgy and 0 = isRecalling
             overhead " * FORGE NEAR HERE *" 88 forgy 
             while find forgy ground -1 -1 3 and findtype "iron ore" backpack as ore
             
@@ -1637,6 +1650,7 @@ while not dead
                 endif
                 
                 if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                    @setvar! isRecalling 1
                     break
                 endif  
                 
@@ -1666,6 +1680,7 @@ while not dead
                         endif
                         
                         if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                            @setvar! isRecalling 1
                             interrupt
                             break
                         endif

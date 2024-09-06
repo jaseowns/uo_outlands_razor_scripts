@@ -5,7 +5,7 @@
 #############################################
 
 /////// DANSTOCK'S ULTIMATE HARVESTING AUTO PILOT SCRIPT
-/////   UO Outlands Razor script - Last updated Sept 2, 2024 (email any bug reports/tips to dan@danstockman.com) 
+/////   UO Outlands Razor script - Last updated Sept 6, 2024 (email any bug reports/tips to dan@danstockman.com) 
 ///     Created by DanStock.
 
 
@@ -65,6 +65,8 @@
     // Cure Potion 
     // Refresh Potion
     // Forge Radar 
+    // Ore Radar
+    // Ore Vacuum
     // Target Timer
     // Magic Shield *
     // Spell Fail * (w/ overhead text trigger of "The spell fizzles" and a 2 second cooldown)
@@ -111,6 +113,8 @@ if skill "Mining" > 49.9 and EnableMining = 1
 
 @setvar! MinerWaitTime 100
 
+
+@setvar! EnableOreVacuum 1
 
 @setvar! EnableForgeRadar 1
 @setvar! EnableAutoSmeltNaturalForge 1
@@ -296,7 +300,25 @@ if EnableForgeRadar = 1
         cooldown "Forge Radar" 3500
     endif 
 endif
-                    
+          
+
+if EnableOreVacuum = 1
+    if findtype "iron ore" ground -1 -1 2 as droppedore and not cooldown "Ore Vacuum"
+        overhead '[ CLEANUP... ]' 84
+        hotkey "Grab Item"
+        wft 2500
+        target droppedore
+        wait 1000
+        hotkey 'Organizer Agent-11'  
+        cooldown "Ore Vacuum" 1500
+    endif
+
+    if findtype "iron ore" ground -1 -1 12 as ore and not cooldown "Ore Radar"                    
+        overhead "¼" 84 droppedore
+        cooldown "Ore Radar" 2500
+    endif
+endif 
+          
 
 if not listexists "mining_alert"
     createlist "mining_alert"  
@@ -775,7 +797,7 @@ endif
 if findtype 'tool kit' self as ToolKit and EnableRecycleTool = 1
     if findtype 'pickaxe|hatchet' hand as MyAxe
         getlabel MyAxe AxeLabel
-        if '(1 use' in AxeLabel
+        if '(2 use' in AxeLabel
             overhead "[ RECYCLING TOOL! ]" 4
             clearhands both
             wait 1000
@@ -876,7 +898,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
                         @setvar CurrentTarget lasttarget 
                         if not cooldown "Target Timer"
                             overhead "¼ TARGET ¼ " 253 CurrentTarget  
-                            cooldown "Target Timer" 2500
+                            cooldown "Target Timer" 3000
                         endif                   
                         attack CurrentTarget
                         getlabel CurrentTarget TargetDesc
@@ -1248,7 +1270,10 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                     
                 elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any'
                     if MOVE = 1
-                        overhead "[ KEEP MOVING... ]" 1909
+                        if not cooldown "Move Timer"
+                            overhead "[ KEEP MOVING... ]" 1909
+                            cooldown "Move Timer" 2500
+                        endif
                 
                         if insysmsg "Being perfectly rested" 
                             overhead "Outta my way!  I've got a pickaxe and know how to use it..." 1909
@@ -1283,7 +1308,10 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                         endif 
                     
                     if MOVE = 0
-                        overhead "[ KEEP MOVING... ]" 53
+                        if not cooldown "Move Timer"
+                            overhead "[ KEEP MOVING... ]" 37
+                            cooldown "Move Timer" 2500
+                        endif
                     
                         if insysmsg "Being perfectly rested" 
                             overhead "Move it!  I've got work to do..." 1909
@@ -1323,9 +1351,9 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
   
                 elseif insysmsg "travel" 
                     overhead "I'm tired from travelling." 1909
-                    wait 2500 
+                    wait 2000 
                     overhead "Just give me a minute to recover..." 1909
-                    wait 12000
+                    wait 11000
                     clearsysmsg 
                     replay 
             
@@ -1351,7 +1379,7 @@ else
             overhead "We made it!" 1909
             wait 1500
             clearsysmsg 
-            overhead "[ TIME FOR A BREAK! ]" 337
+            overhead "[ TIME FOR A WELL DESERVED BREAK! ]" 337
             stop
         endif
     endif
@@ -1389,7 +1417,10 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                     
             elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any'
                     if MOVE = 1
-                overhead "[ KEEP MOVING... ]" 1909
+                        if not cooldown "Move Timer"
+                            overhead "[ KEEP MOVING... ]" 1909
+                            cooldown "Move Timer" 2500
+                        endif
             
                         if insysmsg "Being perfectly rested" 
                             overhead "Move it!  I'm behind schedule..." 1909
@@ -1424,7 +1455,10 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                     endif 
                     
                     if MOVE = 0
-                        overhead "[ KEEP MOVING... ]" 53
+                        if not cooldown "Move Timer"
+                            overhead "[ KEEP MOVING... ]" 53
+                            cooldown "Move Timer" 2500
+                        endif
                     
                         if insysmsg "Being perfectly rested" 
                             overhead "Outta the way!  I've got work to do..." 1909
@@ -1473,39 +1507,39 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                 overhead '*fail!*' 337
                 replay              
               
-            elseif insysmsg "You dig some iron ore and put it in your backpack." 
+            elseif insysmsg "You dig some iron ore" 
                 overhead '*you harvest iron ore*' 1900
                 replay    
         
-            elseif insysmsg "You dig some dull copper ore and put it in your backpack." 
+            elseif insysmsg "You dig some dull copper ore" 
                 overhead '*you harvest dull copper ore*' 2419
                 replay     
   
-            elseif insysmsg "You dig some shadow iron ore and put it in your backpack." 
+            elseif insysmsg "You dig some shadow iron ore" 
                 overhead '*you harvest shadow iron ore*' 2406
                 replay     
 
-            elseif insysmsg "You dig some copper ore and put it in your backpack." 
+            elseif insysmsg "You dig some copper ore" 
                 overhead '*you harvest copper ore*' 2413
                 replay  
 
-            elseif insysmsg "You dig some bronze ore and put it in your backpack." 
+            elseif insysmsg "You dig some bronze ore" 
                 overhead '*you harvest bronze ore*' 2418
                 replay  
 
-                elseif insysmsg "You dig some golden ore and put it in your backpack." 
-                overhead '*you harvest gold ore!*' 2213
+                elseif insysmsg "You dig some golden ore" 
+                overhead '*you harvest golden ore!*' 2213
                 replay  
 
-            elseif insysmsg "You dig some agapite ore and put it in your backpack." 
+            elseif insysmsg "You dig some agapite ore" 
                 overhead '*you harvest agapite ore!*' 2425
                 replay  
 
-            elseif insysmsg "You dig some verite ore and put it in your backpack." 
+            elseif insysmsg "You dig some verite ore" 
                 overhead '*you harvest verite ore!!*' 2207
                 replay  
 
-            elseif insysmsg "You dig some valorite ore and put it in your backpack." 
+            elseif insysmsg "You dig some valorite ore" 
                 overhead '*you harvest valorite ore!!*' 2219
                 replay  
 

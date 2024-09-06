@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-lumber ver.5.00
+#SUPER Auto-lumber ver.5.10
 
 #********** INFORMATION **********# 
 
@@ -16,6 +16,17 @@
     
 #IMPORTANT: You will need to create an in-game options cooldown named `Danger`. 
 #Options -> Cooldowns -> New Entry -> Name: `Danger` -> Cooldown Type -> `PvP Timer` -> Done
+
+#My Gathering template (Anti PK):
+#Lumber - 120
+#Mining - 120
+#Magery - 100
+#Healing - 80
+#Resist - 80
+#Tracking -80
+#Wrestling - 80
+#Spirit - 40
+#Alchemy - 20
 
 #********** SET YOUR SETTINGS **********# 
 
@@ -1006,8 +1017,6 @@ while not dead
                                                          
                 elseif targetexists
                     overhead "No recall book or rune found" 34
-                else 
-                    overhead "Recall Interrupted" 34
                 endif
 
             elseif recallType = 2 or recallType = 3
@@ -1015,75 +1024,81 @@ while not dead
 #********** USING RECALL BOOK CHARGE **********   
                 
                 if findtype "runebook|runetome" backpack
-                    @setvar! foundBook 0
-                    
-                    while findtype "runebook" backpack as book
-                        if hue book = recallBookHue or recallBookHue = 0
-                            dclick book backpack
-                            waitforgump 1551740969 maxwaittimeinms
-                            
-                            if recallType = 2
-                                gumpresponse 2 
-                            elseif recallType = 3
-                                gumpresponse 92
-                            endif
-                            
-                            @setvar! foundBook book
-                            break
-                        else 
-                            @ignore book
-                        endif
-                    endwhile
-                    
-                    while foundBook = 0 and findtype "runetome" backpack as book
-                        if hue book = recallBookHue or recallBookHue = 0
-                            dclick book backpack
-                            waitforgump 167090027 maxwaittimeinms
-                            
-                            if recallType = 2
-                                gumpresponse 100 
-                            elseif recallType = 3 
-                                gumpresponse 125
-                            endif
-                            
-                            @setvar! foundBook book
-                            break
-                        else 
-                            @ignore book
-                        endif
-                    endwhile
-                    
-                    wait maxwaittimeinms
-                    
-                    if foundBook = 0 
-                        overhead "Recall book hue {{recallBookHue}} cannot be found!" 34    
-                    else
-                        if not casting
-                            if insysmsg "charges"
-                                overhead "Recall book out of charges!" 34
-                            else 
-                                if recallType = 2 
-                                    overhead "First rune in the book NOT found" 34    
-                                else
-                                    overhead "Last rune in the book NOT found" 34 
+                
+                    if diffhits < medDiff
+                        @setvar! foundBook 0
+                        
+                        while findtype "runebook" backpack as book
+                            if hue book = recallBookHue or recallBookHue = 0
+                                dclick book backpack
+                                waitforgump 1551740969 maxwaittimeinms
+                                
+                                if recallType = 2
+                                    gumpresponse 2 
+                                elseif recallType = 3
+                                    gumpresponse 92
                                 endif
                                 
+                                @setvar! foundBook book
+                                break
+                            else 
+                                @ignore book
                             endif
-                            stop
-                        else 
+                        endwhile
+                        
+                        while foundBook = 0 and findtype "runetome" backpack as book
+                            if hue book = recallBookHue or recallBookHue = 0
+                                dclick book backpack
+                                waitforgump 167090027 maxwaittimeinms
+                                
+                                if recallType = 2
+                                    gumpresponse 100 
+                                elseif recallType = 3 
+                                    gumpresponse 125
+                                endif
+                                
+                                @setvar! foundBook book
+                                break
+                            else 
+                                @ignore book
+                            endif
+                        endwhile
+                        
+                        wait 200
+                        
+                        if foundBook = 0 
+                            overhead "Recall book not found!" 34    
+                        elseif insysmsg "charges"
+                                overhead "Recall book out of charges!" 34
+                        elseif insysmsg "This book"
+                                overhead "Recall book cooldown!" 34
+                        elseif casting
                             while casting
-                            endwhile
-                            wait maxwaittimeinms
+                            endwhile 
                             
+                            wait 200
+                                
                             if insysmsg "concentration"
                                 overhead "Interrupted!" 34
                             elseif insysmsg "location"
                                 overhead "Location blocked!" 
                             else
                                 overhead "Successful" 65 
+                                sysmsg "Mining Completed!" 65
                                 stop
                             endif
-                            
+                        else 
+                            if insysmsg "concentration"
+                                overhead "Interrupted!" 34
+                            else 
+                                if recallType = 2 
+                                    overhead "First rune not found" 34    
+                                else
+                                    overhead "Last rune not found" 34
+                                    overhead "Changing to first rune.." 34
+                                    @setvar! recallType 2
+                                endif                                
+                            endif
                         endif
                     endif
                 else 
@@ -1095,19 +1110,15 @@ while not dead
         endif
     endif
     
-#********** AUTO-HEALING IF NEEDED **********    
+#********** AUTO-HEALING IF NEEDED **********      
 
-    while diffhits >= lowDiff or paralyzed
+    while diffhits >= lowDiff or paralyzed or poisoned
     
         if enemyFound = 0
             if insysmsg! "Now tracking" or insysmsg! "Distance to"
                 @setvar! enemyFound 1
             endif
         endif
-        
-        if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
-            break
-        endif    
     
         if timer scriptMessageTimer > scriptMessageCD
             overhead "* running auto-healing *" 66

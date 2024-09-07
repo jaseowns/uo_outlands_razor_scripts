@@ -57,6 +57,7 @@
     // "Achievement"
     // "You have worn out your tool"
     // "You carve materials from the corpse"
+    // "Target item to grab"
 
 
 # Please add the following COOLDOWNS (case sensitive) in UO client under Options -> Cooldowns:
@@ -69,6 +70,7 @@
     // Ore Vacuum
     // Target Timer
     // Move Timer
+    // Weight Timer
     // Magic Shield *
     // Spell Fail * (w/ overhead text trigger of "The spell fizzles" and a 2 second cooldown)
     
@@ -85,7 +87,7 @@
     # Then reset ALLVARIABLERESET to 0 and restart script to prompt for new targets!
 
     
-@setvar! ALLVARIABLERESET 0
+    @setvar! ALLVARIABLERESET 0
 
     if ALLVARIABLERESET = 1
         unsetvar lumber_runebook
@@ -145,7 +147,7 @@ endif
 if skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1
 
 
-// Increase this wait time if lag is causing error message: // 
+// Increase this wait time if lag is causing errors: // 
 
 @setvar! LumberWaitTime 550
 
@@ -214,9 +216,9 @@ endif
 @setvar! YellowInventoryMessage 1
 @setvar! OrangeInventoryMessage 1
 @setvar! RedInventoryMessage 1
-@setvar! WhiteInventoryMessage 1
-@setvar! BlueInventoryMessage 1
-@setvar! BlackInventoryMessage 1
+@setvar! WhiteInventoryMessage 0
+@setvar! BlueInventoryMessage 0
+@setvar! BlackInventoryMessage 0
 
 
 
@@ -225,6 +227,14 @@ endif
 ############################################
 #########    SCRIPT STARTS HERE    #########
 ############################################
+
+
+if hidden 
+    overhead "[ HIDDEN... ]" 6
+    sysmsg "You cannot use this script while hidden!  Please unhide and try again..." 0
+    stop
+endif
+
 
 if not dead and skill "Mining" > 49.9 and EnableMining = 1
 
@@ -272,9 +282,9 @@ endif
 
 if insysmsg 'world is saving' 
     for 25
-	wait 500
+    wait 250
         if insysmsg 'world save complete' 
-            wait 1000
+            wait 250
             overhead '[ WORLD SAVE COMPLETE! ]' 253 
             clearsysmsg 
             replay
@@ -304,19 +314,24 @@ endif
           
 
 if EnableOreVacuum = 1
-    if findtype "iron ore" ground -1 -1 2 as droppedore and not cooldown "Ore Vacuum"
-        overhead '[ CLEANUP... ]' 84
+    if findtype "iron ore|iron ingot%s" ground -1 -1 15 as droppedmetal and not cooldown "Ore Radar"                    
+        overhead "¼" 69 droppedmetal
+        cooldown "Ore Radar" 3500
+    endif
+    
+    if findtype "iron ore|iron ingot%s" ground -1 -1 2 as droppedore and not cooldown "Ore Vacuum"
+        overhead "[ CLEANUP... ]" 69
         hotkey "Grab Item"
         wft 2500
         target droppedore
         wait 1000
+        if insysmsg "Invalid or inaccessible item"
+            overhead "I can't reach that!" 1909
+            wait 1000
+            @ignore droppedore
+        endif
         hotkey 'Organizer Agent-11'  
         cooldown "Ore Vacuum" 1500
-    endif
-
-    if findtype "iron ore" ground -1 -1 12 as ore and not cooldown "Ore Radar"                    
-        overhead "¼" 84 droppedore
-        cooldown "Ore Radar" 2500
     endif
 endif 
           
@@ -993,6 +1008,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
             wait 500 
             
                 for 5
+                    wait 500
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying again...' 337
                         while not targetexists 
@@ -1002,8 +1018,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
                         wait 500
                     endif
                 endfor
-                
-                    wait 2000
+
 
                 if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand and findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack as weapon
                     dclick weapon      
@@ -1097,6 +1112,7 @@ if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cu
             wait 500 
             
                 for 5
+                    wait 500
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying that again...' 1909
                         while not targetexists 
@@ -1107,8 +1123,7 @@ if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cu
                         clearsysmsg 
                     endif
                 endfor
-                
-                wait 2000
+
 
     if HouseRecall = 1
         wait 500
@@ -1215,13 +1230,15 @@ endfor
 endif
 
 
-if EnableWeightWarningMessage = 1
+if EnableWeightWarningMessage = 1 and not cooldown "Weight Timer"
     if weight > GreenWarningWeight and weight < YellowWarningWeight
-        overhead "[ WEIGHT WARNING! ]" 1267
+        overhead "[ WEIGHT WARNING! ]" 126
+        cooldown "Weight Timer" 3500
     endif
 
     if weight > YellowWarningWeight and weight < RedWeightLimit
         overhead "[ TIME TO FORGE! ]" 149
+    cooldown "Weight Timer" 3500
     endif 
 
     if weight > RedWeightLimit
@@ -1245,9 +1262,8 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
         
                 elseif insysmsg 'world is saving'                     
                         for 25
-                        wait 500
+                        wait 250
                         if insysmsg 'world save complete' 
-                            wait 1000
                             overhead '[ WORLD SAVE COMPLETE! ]' 253 
                             clearsysmsg 
                             replay
@@ -1273,7 +1289,7 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                     if MOVE = 1
                         if not cooldown "Move Timer"
                             overhead "[ KEEP MOVING... ]" 1909
-                            cooldown "Move Timer" 2500
+                            cooldown "Move Timer" 3500
                             @setvar! MOVE 0
                         endif
                 
@@ -1311,8 +1327,8 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                     
                     if MOVE = 0
                         if not cooldown "Move Timer"
-                            overhead "[ KEEP MOVING... ]" 37
-                            cooldown "Move Timer" 2500
+                        overhead "[ KEEP MOVING... ]" 44
+                            cooldown "Move Timer" 3500
                             @setvar! MOVE 1
                         endif
                     
@@ -1369,7 +1385,7 @@ else
    
     if insysmsg "Mining skillgain" 
         if skill 'Mining' > 100.0 and skill 'Mining' < 119.9
-        sysmsg "Hmm... there is something special about these stones..." 84
+        sysmsg "Hmm... these stones are tricky to work with..." 84
          
         elseif skill 'Mining' = 119.9
             overhead "THIS COULD BE IT......" 1909
@@ -1394,9 +1410,9 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
         
             elseif insysmsg 'world is saving' 
                     for 25
-                    wait 500
+                    wait 250
                         if insysmsg 'world save complete' 
-                            wait 1000
+                            wait 100
                             overhead '[ WORLD SAVE COMPLETE! ]' 253 
                             clearsysmsg 
                             replay
@@ -1421,7 +1437,7 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                     if MOVE = 1
                         if not cooldown "Move Timer"
                             overhead "[ KEEP MOVING... ]" 1909
-                            cooldown "Move Timer" 2500
+                            cooldown "Move Timer" 3500
                             @setvar! MOVE 0
                         endif
             
@@ -1458,8 +1474,8 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                     
                     if MOVE = 0
                         if not cooldown "Move Timer"
-                            overhead "[ KEEP MOVING... ]" 53
-                            cooldown "Move Timer" 2500
+                            overhead "[ KEEP MOVING... ]" 44
+                            cooldown "Move Timer" 3500
                             @setvar! MOVE 1
                         endif
                     
@@ -1611,8 +1627,9 @@ endif
 
 if insysmsg 'world is saving' 
     for 25
+        wait 250
         if insysmsg 'world save complete' 
-            wait 1000
+            wait 100
             overhead '[ WORLD SAVE COMPLETE! ]' 253 
             clearsysmsg 
             replay
@@ -1636,10 +1653,12 @@ if not listexists "lumber_alert"
     createlist "lumber_alert"  
 endif
 
+
 if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
     pushlist "lumber_alert" "red_alert_recall" 
     replay
 endif
+
 
 if inlist "lumber_alert" "red_alert_recall" and EnableRedAlertRecall = 1
     overhead "[ RED ALERT!! ]" 37
@@ -1703,6 +1722,7 @@ if inlist "lumber_alert" "red_alert_recall" and EnableRedAlertRecall = 1
             wait 500 
             
                 for 5
+                    wait 500
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying that again...' 2086
                         while not targetexists 
@@ -2107,7 +2127,7 @@ endif
 if findtype 'tool kit' self as ToolKit and EnableRecycleTool = 1
     if findtype 'pickaxe|hatchet' hand as MyAxe
         getlabel MyAxe AxeLabel
-        if '(1 use' in AxeLabel
+        if '(2 use' in AxeLabel
             overhead "[ RECYCLING TOOL! ]" 4
             clearhands both
             wait 1000
@@ -2144,20 +2164,22 @@ if not findtype 'tool kit' self and EnableRecycleTool = 1
 endif
 
 
-if EnableWeightWarningMessage = 1
+if EnableWeightWarningMessage = 1 and not cooldown "Weight Timer"
     if weight > GreenWarningWeight and weight < YellowWarningWeight
-        overhead "[ WEIGHT WARNING! ]" 1267
+        overhead "[ WEIGHT WARNING! ]" 126
+        cooldown  "Weight Timer" 3500
     endif
 
     if weight > YellowWarningWeight and weight < RedWeightLimit
         overhead "[ TIME TO UNLOAD! ]" 149
+        cooldown  "Weight Timer" 3500
     endif 
 
     if weight > RedWeightLimit
         overhead "[ WEIGHT LIMIT REACHED!!! ]" 37
         wait 2000
-       overhead "Please reduce weight in order to continue..." 0
-        wait 2500
+        overhead "Please reduce weight in order to continue..." 0
+        cooldown  "Weight Timer" 3000
         replay
     endif
 endif
@@ -2227,7 +2249,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
                         @setvar CurrentTarget lasttarget 
                         if not cooldown "Target Timer"
                             overhead "¼ TARGET ¼ " 253 CurrentTarget    
-                            cooldown "Target Timer" 2500
+                            cooldown "Target Timer" 3500
                         endif                 
                         attack CurrentTarget
                         getlabel CurrentTarget TargetDesc
@@ -2237,7 +2259,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
                                 overhead "Did you see that?? I just killed {{TargetDesc}}!" 2086
                                 hotkey 'Cancel Current Target'
                                 @setvar CurrentTarget 0
-                                wait 1500
+                                wait 100
                             endif
                             
                             if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
@@ -2321,6 +2343,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
             wait 500 
             
                 for 5
+                    wait 500
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying again...' 337
                         while not targetexists 
@@ -2330,8 +2353,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
                         wait 500
                     endif
                 endfor
-                
-                wait 2000
+
 
                 if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand and findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack as weapon
                     dclick weapon      
@@ -2423,6 +2445,7 @@ if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cu
             wait 500 
             
                 for 5
+                    wait 500
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying that again...' 2086
                         while not targetexists 
@@ -2433,8 +2456,7 @@ if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cu
                         clearsysmsg 
                     endif
                 endfor
-                
-                wait 2000
+
 
                 if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand and findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack as weapon
                     dclick weapon      
@@ -2551,9 +2573,13 @@ if insysmsg "Now tracking"
                     replay 
                     
                 elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any'
-                        if MOVE = 1
-                        overhead "[ KEEP MOVING... ]" 69
-                        wait 500
+                    
+                    if MOVE = 1
+                        if not cooldown "Move Timer"
+                        overhead "[ KEEP MOVING... ]" 2086
+                            cooldown "Move Timer" 2500
+                            @setvar! MOVE 0
+                        endif
                 
                         if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
                             pushlist "mining_alert" "red_alert_recall" 
@@ -2572,6 +2598,7 @@ if insysmsg "Now tracking"
                             dclick MyDoor 
                             wait 1000
                         endif
+                        
                         for 10
                         if findtype 'log%s' backpack 
                             overhead '*making boards...*' 0
@@ -2579,17 +2606,20 @@ if insysmsg "Now tracking"
                             wait 500
                         endif
                         endfor
-                    hotkey 'Organizer Agent-01'
-                    wait 200 
-                    hotkey 'Organizer Agent-02'
+                        
+                        hotkey 'Organizer Agent-01'
+                        wait 200 
+                        hotkey 'Organizer Agent-02'
 
-                            @setvar! MOVE 0
                         replay
-                        endif 
+                    endif 
                     
                     if MOVE = 0
-                        overhead "[ KEEP MOVING... ]" 1196
-                        wait 500
+                        if not cooldown "Move Timer"
+                            overhead "[ KEEP MOVING... ]" 69
+                            cooldown "Move Timer" 2500
+                            @setvar! MOVE 1
+                        endif
                 
                         if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
                             pushlist "mining_alert" "red_alert_recall" 
@@ -2608,6 +2638,7 @@ if insysmsg "Now tracking"
                             dclick MyDoor 
                             wait 1000
                         endif
+                        
                         for 10
                         if findtype 'log%s' backpack 
                             overhead '*making boards...*' 0
@@ -2615,16 +2646,13 @@ if insysmsg "Now tracking"
                             wait 500
                         endif
                         endfor
-                    hotkey 'Organizer Agent-01'
-                    wait 200 
-                    hotkey 'Organizer Agent-02'
-
-                            @setvar! MOVE 1
+                        
+                        hotkey 'Organizer Agent-01'
+                        wait 200 
+                        hotkey 'Organizer Agent-02'
                         replay
-                        endif 
-                    clearsysmsg 
-                    @setvar! MOVE 1
-                    replay
+                    endif 
+                    
         
                 elseif insysmsg "travel" 
                     overhead "I'm tired from travelling." 2086 
@@ -2653,7 +2681,7 @@ endif
     
     if insysmsg "Lumberjacking skillgain" 
         if skill 'Lumberjacking' > 100.0 and skill 'Lumberjacking' < 119.9
-            sysmsg "Hmm... there is something special about this tree..." 84
+        sysmsg "Hmm... this tree will really test my skills..." 84
          
         elseif skill 'Lumberjacking' = 119.9
             overhead "THIS COULD BE IT......" 2086
@@ -2673,20 +2701,23 @@ endif
 if insysmsg "Now tracking"
             pushlist "lumber_alert" "red_alert_recall"
             replay
+            
      
-            elseif insysmsg 'world is saving' 
-                overhead '[ WORLD SAVING... ]' 253 
-                    for 25
-                        if insysmsg 'world save complete' 
-                            wait 1000
-                            overhead '[ SAVE COMPLETE! ]' 253 
-                            clearsysmsg 
-                            replay
-                        endif 
+            if insysmsg 'world is saving' 
+                for 25
+                wait 250
+                if insysmsg 'world save complete' 
                     wait 100
-                    endfor 
+                    overhead '[ WORLD SAVE COMPLETE! ]' 253 
+                    clearsysmsg 
+                    replay
+                endif  
+                wait 100
+                endfor 
                 clearsysmsg 
-                replay 
+                replay    
+            endif 
+            
             
             elseif insysmsg 'Harvesting is not allowed'
                 overhead 'You need to leave town...' 0

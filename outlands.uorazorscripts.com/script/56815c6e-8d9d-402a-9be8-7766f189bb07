@@ -6,7 +6,7 @@
 
 # Bapeths Peaceful Harvester
 #
-# Aug 24th 2024
+# September 7th 2024
 #
 # "Required" - Do not include quotations when entering data
 # Create cooldowns in game called : 
@@ -19,7 +19,7 @@
 # "Harvest Speed"
 # This script uses razor "Auto-Queue Object Delay" setting
 # Make sure this setting is turned ON in the razor Options tab > Targeting & Queues sub-tab
-# And set "object delay to 505" MINING WILL BE SLOW IF YOU DONT DO THIS
+# And set "object delay to 503" MINING WILL BE SLOW IF YOU DONT DO THIS
 #
 # Items : Pickaxe or Hatchet, BoomBox (and/or trapped pouch), Musical Instrument (supreme is good), Resource stockpile, Atlas
 #
@@ -29,15 +29,15 @@
 # Paste them into your characters razor profile in the "Overheads" section
 # Default pathway is " C:\Program Files (x86)\Ultima Online Outlands\ClassicUO\Data\Plugins\Assistant\Profiles "
 #
-# Additional Items Script Uses : Cure pot, Heal pot, Refresh pot, Strength pot, Cleansing brew
+# Additional Items Script Uses : Cure pot, Heal pot, Refresh pot, Strength pot, Cleansing brew, Scissors (Blessed), Rune Tome
 #
 # "Spam Reduction"
 # Options tab > Targeting & Queues subtab > Uncheck "Attack/Target name overhead"
 # Filters tab > Text & Messages subtab > Check "Filter Repeating Razor Messages" ONLY
 # Filters tab > Text & Messages subtab > Add > "You cannot produce any wood from that." and filter from overhead
 #
-# Yell Emote is used on "line 297" - Edit this to any emote you may have
-# Default cooldown is 2mins - Edit "line 298" to match your character customization emote unlocks
+# Yell Emote is used on "line 332 & line 363" - Edit this to any emote you may have
+# Default cooldown is 2mins - Edit "line 331 & line 363" to match your character customization emote unlocks
 #
 # "**HOW TO USE**" 
 # 1. Gather required items and play script near resource
@@ -62,6 +62,10 @@
 # Actions in this script are very tight - you may need to attempt to open the atlas a couple times, or, hold down your atlas hoktey
 # Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
 # Reason : Staff changed natrual forges and they cannot be sensed with scripts
+#    
+# "Auto-Escape" Toggled on and off by double clicking the "scissors" while the script is playing
+# This feature requires the user have a "Rune Tome" and your escape rune must be placed in the very "first slot"
+# This feature will always be default "Off" and will reset to default if you restart your game completely
 #
 # War mode uses action resources and may slow down active mining slightly
 #
@@ -124,6 +128,20 @@ if not find "harvboombox" backpack
     pause 750
 endif
 
+if not find "escaperune" backpack
+    overhead "Select Escape Runebook" 88
+    pause 750
+    setlasttarget 
+    wft 500
+    while targetexists 
+        //donothing
+    endwhile
+    @setvar "escaperune" lasttarget 
+    hotkey "Cancel Current Target"
+    overhead "Escape Runebook Set" 78
+    pause 750
+endif
+
 if not timerexists freshlogin
     createtimer freshlogin
     lift "harvboombox"
@@ -142,6 +160,22 @@ endif
 
 if gumpexists 341416395
     gumpclose 341416395
+endif
+
+if not timerexists escapeswitch
+    if insysmsg "What should I use these scissors on?"
+        hotkey "Cancel Current Target"
+        createtimer escapeswitch
+        overhead "--Escape Mode Enabled--" 88
+    endif
+endif
+
+if timerexists escapeswitch
+    if insysmsg "What should I use these scissors on?"
+        hotkey "Cancel Current Target"
+        removetimer escapeswitch
+        overhead "--Escape Mode Disabled--" 38
+    endif
 endif
 
 if not find "bharvest" and findtype 3718|3908 backpack as harvtool
@@ -294,22 +328,55 @@ while find "bharvest" self and not hidden
         removetimer peaceit
     endif
     
-    if insysmsg 'Now tracking:'
-        if not timerexists emotetimer
-            createtimer emotetimer
-            settimer emotetimer 120000
+    if timerexists escapeswitch
+        if insysmsg 'Now tracking:'
+            if not timerexists emotetimer
+                createtimer emotetimer
+                settimer emotetimer 120000
+            endif
+            if timer emotetimer >= 120000
+                say "[Yell" 454
+                settimer emotetimer 0
+            endif
+            while not dead 
+                dclick "escaperune"
+                waitforgump 167090027 500
+                if skill "Magery" <= 59
+                    gumpresponse 100
+                    while casting 
+                        //donothing
+                    endwhile
+                elseif skill "Magery" >= 60
+                    gumpresponse 200
+                    waitforgump 167090027 500
+                    gumpresponse 10  
+                    while casting 
+                        //donothing
+                    endwhile
+                endif
+                break
+            endwhile
         endif
-        if timer emotetimer >= 60000
-            say "[Yell" 454
-            settimer emotetimer 0
-        endif
-        if not cooldown "Tracking" and not findtype "map" backpack
-            gumpclose 4267467659
-            getlabel backpack ping
-            skill "Tracking"
-            waitforgump 4267467659 500
-            gumpresponse 5
-            cooldown "Tracking" 6000
+    endif  
+    
+    if not timerexists escapeswitch
+        if insysmsg 'Now tracking:'
+            if not timerexists emotetimer
+                createtimer emotetimer
+                settimer emotetimer 120000
+            endif
+            if timer emotetimer >= 120000
+                say "[Yell" 454
+                settimer emotetimer 0
+            endif
+            if not cooldown "Tracking" and not findtype "map" backpack
+                gumpclose 4267467659
+                getlabel backpack ping
+                skill "Tracking"
+                waitforgump 4267467659 500
+                gumpresponse 5
+                cooldown "Tracking" 6000
+            endif
         endif
     endif
     
@@ -598,8 +665,39 @@ while find "bharvest" self and not hidden
         removetimer usetool
     endif
     
+    if not timerexists escapeswitch
+        if insysmsg "What should I use these scissors on?"
+            hotkey "Cancel Current Target"
+            createtimer escapeswitch
+            overhead "--Escape Mode Enabled--" 88
+        endif
+    endif
 
+    if timerexists escapeswitch
+        if insysmsg "What should I use these scissors on?"
+            hotkey "Cancel Current Target"
+            removetimer escapeswitch
+            overhead "--Escape Mode Disabled--" 38
+        endif
+    endif
 endwhile
+
+if not timerexists escapeswitch
+    if insysmsg "What should I use these scissors on?"
+        hotkey "Cancel Current Target"
+        createtimer escapeswitch
+        overhead "--Escape Mode Enabled--" 88
+    endif
+endif
+
+if timerexists escapeswitch
+    if insysmsg "What should I use these scissors on?"
+        hotkey "Cancel Current Target"
+        removetimer escapeswitch
+        overhead "--Escape Mode Disabled--" 38
+    endif
+endif
+
 if not findlayer self righthand
     overhead "Lets take a break..." 45
     stop

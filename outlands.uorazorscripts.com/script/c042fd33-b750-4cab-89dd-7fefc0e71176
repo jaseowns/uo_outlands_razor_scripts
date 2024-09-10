@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-lumber ver.5.10
+#SUPER Auto-lumber ver.5.18
 
 #********** INFORMATION **********# 
 
@@ -78,11 +78,15 @@
 
 @setvar! drinkStr 1
 @setvar! drinkMagicResist 1
+@setvar! drinkHeal 1
+@setvar! drinkCure 1
+@setvar! drinkRefresh 1
 
 #--- Set Mage auto heals ---#
 
 @setvar! miniHeal 1
 @setvar! greaterHeal 1
+@setvar! cureSpell 1
 
 #--- Set Mage Buffs ---#
 
@@ -95,6 +99,11 @@
 
 #Adjust depending on server ping (1100 for around 50-70 ping)
 @setvar! cutTimerCD 1100
+
+#** Secure wood cooldown & timer **
+
+@setvar! storeTimerCD 90000
+settimer storeTimer storeTimerCD
 
 
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********#
@@ -118,11 +127,6 @@
 @setvar! enemyFound 0
 
 @setvar! myHarvestingTool 3908
-
-#** Cut & Store timers **
-
-@setvar! storeTimerCD 45000
-settimer storeTimer storeTimerCD
 
 #** Magery buffs timers **
 
@@ -1202,42 +1206,49 @@ while not dead
             
         #** Poison **
         
-        while poisoned
-            if findtype "Orange Potion" self
-                dclicktype "Orange Potion"
-                wait 200
-            else
-                if timer orangeMessageTimer > orangeMessageCD
-                    overhead "Out of cure pots" 34
-                    settimer orangeMessageTimer 0
-                endif
-                if skill 'magery' >= 40 and mana >= 6
-                    if targetexists
-                        hotkey 'cancel current target'  
-                    endif
-                    cast 'cure'           
-                    while not casting                   
-                        cast 'cure'  
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                    endwhile  
-                    while not targetexists and casting
-                    endwhile
-                    waitfortarget maxwaittimeinms
-                    target 'self' 
+        if 1 = drinkCure or 1 = cureSpell
+            while poisoned
+                if findtype "Orange Potion" self
+                    dclicktype "Orange Potion"
                     wait 200
+                else
+                    if timer orangeMessageTimer > orangeMessageCD
+                        overhead "Out of cure pots" 34
+                        settimer orangeMessageTimer 0
+                    endif
+                    if skill 'magery' >= 40 and mana >= 6 and 1 = cureSpell
+                        if not findtype 3972 self or not findtype 3973 self
+                            break
+                        endif
+                        if targetexists
+                            hotkey 'cancel current target'  
+                        endif
+                        cast 'cure'           
+                        while not casting                   
+                            cast 'cure'  
+                            if targetexists
+                                hotkey 'cancel current target'
+                            endif
+                        endwhile  
+                        while not targetexists and casting
+                        endwhile
+                        waitfortarget maxwaittimeinms
+                        target 'self' 
+                        wait 200
+                    else 
+                        break
+                    endif
                 endif
-            endif
-            
-            if diffhits > highDiff
-                break
-            endif
-        endwhile
+                
+                if diffhits > highDiff
+                    break
+                endif
+            endwhile
+        endif
             
         #** Heal Pot **
         
-        if diffhits >= highDiff
+        if diffhits >= highDiff and 1 = drinkHeal
             if findtype "Yellow Potion" self
                 @setvar! ch 0
                 
@@ -1261,7 +1272,7 @@ while not dead
                 
         #** Drink red pot ** 
         
-        if stam <= 1
+        if stam <= 1 and 1 = drinkRefresh
             if findtype "Red Potion" self
                 dclicktype "Red Potion"
                 wait 200
@@ -1514,7 +1525,7 @@ while not dead
 
 #********** CUT LOGS INTO BOARDS AND SECURE BOARDS INSIDE LOCKED WOODEN BOX **********  
 
-            if timer storeTimer > storeTimerCD
+            if timer storeTimer > storeTimerCD or counttype 7133 backpack > 100 or counttype 7133 backpack 2207 > 15 or counttype 7133 backpack 2219 > 10 or counttype 7133 backpack 1763 > 5
                 settimer storeTimer 0
                 if targetexists
                     hotkey 'cancel current target'  
@@ -1566,6 +1577,16 @@ while not dead
                 
             endif
         endif
+        
+        getlabel chest chestLabel
+        if "items" in chestLabel
+            dclick key
+            waitfortarget maxwaittimeinms
+            target chest
+            wait maxwaittimeinms
+            overhead "[chest locked]" 55
+        endif
+        
     endif
     
     #sysmsg "Loop cycle elapsed : {{cycleTimer}}"    

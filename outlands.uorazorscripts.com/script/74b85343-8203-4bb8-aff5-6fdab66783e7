@@ -1,0 +1,521 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/74b85343-8203-4bb8-aff5-6fdab66783e7 for latest
+# Automation by Jaseowns
+## Script: SUPER-Auto healing
+## Created by: dennozz#0
+#############################################
+
+#SUPER Auto-healer ver.2.27
+
+#********** INFORMATION **********# 
+
+#Made by @dennozz on discord. 
+#Inspired/learned by other scrips in https://outlands.uorazorscripts.com/
+
+#Information : This is a script to auto heal you using Magery, Chivarly, Potions, Bandages and magery buffs
+
+#Optional : Set system messages filters in razor since the script spams alot to heal you as soon as possible.
+
+#********** SET YOUR SETTINGS **********# 
+
+#--- Set Mage auto heals ---#
+
+@setvar! miniHeal 1
+@setvar! greaterHeal 1
+
+#--- Set Mage Buffs ---#
+
+@setvar! magicReflect 1
+@setvar! armorReflect 1
+@setvar! protectionSpell 1
+@setvar! miniumManaToBuff 50
+
+#--- Set Chivarly auto heals ---#
+
+@setvar! nobleSacrifice 1
+@setvar! holyLight 1
+
+#--- Set potions ---#
+
+@setvar! drinkStr 1
+@setvar! drinkMagicResist 1
+@setvar! drinkHeal 1
+
+#--- Auto healing hp diffs ---#
+
+@setvar! lowDiff 1 
+@setvar! medDiff 30
+@setvar! highDiff 50
+@setvar! extremeDiff 60
+@setvar! criticalDiff 75
+
+#--- Optional : Have a cooldown named `Heal Pot` ---#
+
+@setvar! healingPotCD 11000
+
+#********** DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING  **********    
+
+@setvar! holyPoints 0
+
+@setvar nobleCD 5000
+settimer nobleTimer nobleCD
+
+@setvar! maxwaittimeinms 650
+
+#--- Script msgs timers ---#
+
+@setvar! scriptMessageCD 6500
+settimer scriptMessageTimer 0
+
+@setvar! guardMessageCD 5500
+settimer guardMessageTimer guardMessageCD
+
+#--- Resources timers ---#
+
+@setvar! pouchMessageCD 5000
+settimer pouchMessageTimer pouchMessageCD
+
+@setvar! aidsMessageCD 4000
+settimer aidsMessageTimer aidsMessageCD
+
+@setvar! whiteMessageCD 3000
+settimer whiteMessageTimer whiteMessageCD
+
+@setvar! blackMessageCD 2500
+settimer blackMessageTimer blackMessageCD
+
+@setvar! orangeMessageCD 2000
+settimer orangeMessageTimer orangeMessageCD
+
+@setvar! yellowMessageCD 1500
+settimer yellowMessageTimer yellowMessageCD
+
+@setvar! redMessageCD 1000
+settimer redMessageTimer redMessageCD
+
+#--- Magery buffs timers ---#
+
+@setvar! magicReflectCD 15000
+settimer magicReflectTimer 15000
+
+@setvar! armorReflectCD 15000
+settimer armorReflectTimer 15000
+
+@setvar! protectionCD 15000
+settimer protectionTimer 15000
+
+overhead "* auto-healing activated*" 66
+
+if nobleSacrifice = 1 or holyLight = 1
+    if findtype 'paladin spellbook' backpack
+        yell '[chivalryhotbar'
+        while not gumpexists 1387930325
+            yell '[chivalryhotbar'
+            waitforgump 1387930325 maxwaittimeinms
+        endwhile
+    endif
+endif
+    
+while not dead
+
+    if timer scriptMessageTimer > scriptMessageCD
+        overhead "* auto-healing *" 11
+        settimer scriptMessageTimer 0
+    endif
+
+#********** AUTO-HEALING IF NEEDED **********   
+
+    if diffhits >= lowDiff or paralyzed or poisoned
+            
+        #--- Trapped ---#
+        
+        if paralyzed 
+            if findtype "pouch" backpack 38 
+                yell "[pouch"            
+                wait 200
+            else
+                if timer pouchMessageTimer > pouchMessageCD
+                    overhead "Out of Pouches!" 34
+                    settimer pouchMessageTimer 0
+                endif
+            endif
+        endif
+            
+        #--- Self bandage ---#
+        
+        if diffhits >= 1 and not bandaging
+            if skill 'healing' >= 50 or skill "veterinary" >= 50
+                if findtype 'clean bandage%s%' backpack
+                
+                    if targetexists
+                        hotkey 'cancel current target'  
+                    endif
+                    dclicktype 'clean bandage%s%'
+                    waitfortarget maxwaittimeinms
+                    target 'self'
+                    wait 200            
+                else
+                    if timer aidsMessageTimer > aidsMessageCD
+                        overhead "Out of bandages" 34
+                        settimer aidsMessageTimer 0
+                    endif
+                endif
+            endif
+        endif
+        
+        #--- Drink str pot ---#
+        
+        if drinkStr = 1
+            if not findbuff "Strength" 
+                if findtype "White Potion" self
+                    dclicktype "White Potion"
+                    wait 200
+                else
+                    if timer whiteMessageTimer > whiteMessageCD
+                        overhead "Out of str pots" 34
+                        settimer whiteMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+            
+        #--- Drink magic resist pot ---#
+    
+        if drinkMagicResist = 1
+            if not findbuff "Magic Resist" 
+                if findtype "Black Potion" self
+                    dclicktype "Black Potion"
+                    wait 200
+                else
+                    if timer blackMessageTimer > blackMessageCD
+                        overhead "Out of resist pots" 34
+                        settimer blackMessageTimer 0
+                    endif
+                endif
+            endif
+        endif
+            
+        #--- Poisoned ---#
+        
+        while poisoned
+            if findtype "Orange Potion" self
+                dclicktype "Orange Potion"
+                wait 200
+            else
+                if timer orangeMessageTimer > orangeMessageCD
+                    overhead "Out of cure pots" 34
+                    settimer orangeMessageTimer 0
+                endif
+                if skill 'magery' >= 40 and mana >= 6
+                    if targetexists
+                        hotkey 'cancel current target'  
+                    endif
+                    cast 'cure'           
+                    while not casting                   
+                        cast 'cure'  
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                    endwhile  
+                    while not targetexists and casting
+                    endwhile
+                    waitfortarget maxwaittimeinms
+                    target 'self' 
+                    wait 200
+                endif
+            endif
+            
+            if diffhits > highDiff
+                break
+            endif
+        endwhile
+            
+        #--- Heal Pot ---#
+        
+        if diffhits >= highDiff and 1 = drinkHeal and timer nobleTimer > nobleCD
+            if findtype "Yellow Potion" self
+                @setvar! ch 0
+                
+                if counttype 3852 self as c
+                    @setvar! ch c
+                endif
+                clearsysmsg        
+                dclicktype 3852
+                wait 200
+                            
+                if ch != counttype 3852 self or insysmsg "potion satchel used"
+                    cooldown "Heal Pot" healingPotCD
+                endif
+            else
+                if timer yellowMessageTimer > yellowMessageCD
+                    overhead "Out of heals pots" 34
+                    settimer yellowMessageTimer 200
+                endif
+            endif
+        endif
+                
+        #--- Drink red pot ---#
+        
+        if stam <= 1
+            if findtype "Red Potion" self
+                dclicktype "Red Potion"
+                wait 200
+            else
+                if tiemr redMessageTimer > redMessageCD
+                    overhead "Out of refresh pots" 34
+                    settimer redMessageTimer 0 
+                endif
+            endif
+        endif
+        
+        #--- Cast Chivarly ---#
+        
+        if ingump "20/" 1387930325
+            @setvar! holyPoints 20
+        elseif ingump "19/" 1387930325
+            @setvar! holyPoints 19
+        elseif ingump "18/" 1387930325
+            @setvar! holyPoints 18
+        elseif ingump "17/" 1387930325
+            @setvar! holyPoints 17
+        elseif ingump "16/" 1387930325
+            @setvar! holyPoints 16
+        elseif ingump "15/" 1387930325
+            @setvar! holyPoints 15
+        elseif ingump "14/" 1387930325
+            @setvar! holyPoints 14
+        elseif ingump "13/" 1387930325
+            @setvar! holyPoints 13
+        elseif ingump "12/" 1387930325
+            @setvar! holyPoints 12
+        elseif ingump "11/" 1387930325
+            @setvar! holyPoints 11
+        elseif ingump "10/" 1387930325
+            @setvar! holyPoints 10
+        elseif ingump "9/" 1387930325
+            @setvar! holyPoints 9
+        elseif ingump "8/" 1387930325
+            @setvar! holyPoints 8
+        elseif ingump "7/" 1387930325
+            @setvar! holyPoints 7
+        elseif ingump "6/" 1387930325
+            @setvar! holyPoints 6
+        elseif ingump "5/" 1387930325
+            @setvar! holyPoints 5
+        elseif ingump "4/" 1387930325
+            @setvar! holyPoints 4
+        elseif ingump "3/" 1387930325
+            @setvar! holyPoints 3
+        elseif ingump "2/" 1387930325
+            @setvar! holyPoints 2
+        elseif ingump "1/" 1387930325
+            @setvar! holyPoints 1
+        else 
+            @setvar holyPoints 0
+        endif    
+        
+        if skill 'chivalry' >= 95 and diffhits >= extremeDiff and 1 = holyLight and 4 < holyPoints and timer nobleTimer > nobleCD 
+            if targetexists
+                hotkey 'cancel current target'  
+            endif
+            clearsysmsg
+            yell '[holylight'  
+            wait 200
+            if insysmsg "Holy symbols"
+                overhead "[> Holy Light <]" 55
+                #Activate timer
+            endif
+        endif
+
+        if ingump "20/" 1387930325
+            @setvar! holyPoints 20
+        elseif ingump "19/" 1387930325
+            @setvar! holyPoints 19
+        elseif ingump "18/" 1387930325
+            @setvar! holyPoints 18
+        elseif ingump "17/" 1387930325
+            @setvar! holyPoints 17
+        elseif ingump "16/" 1387930325
+            @setvar! holyPoints 16
+        elseif ingump "15/" 1387930325
+            @setvar! holyPoints 15
+        elseif ingump "14/" 1387930325
+            @setvar! holyPoints 14
+        elseif ingump "13/" 1387930325
+            @setvar! holyPoints 13
+        elseif ingump "12/" 1387930325
+            @setvar! holyPoints 12
+        elseif ingump "11/" 1387930325
+            @setvar! holyPoints 11
+        elseif ingump "10/" 1387930325
+            @setvar! holyPoints 10
+        elseif ingump "9/" 1387930325
+            @setvar! holyPoints 9
+        elseif ingump "8/" 1387930325
+            @setvar! holyPoints 8
+        elseif ingump "7/" 1387930325
+            @setvar! holyPoints 7
+        elseif ingump "6/" 1387930325
+            @setvar! holyPoints 6
+        elseif ingump "5/" 1387930325
+            @setvar! holyPoints 5
+        elseif ingump "4/" 1387930325
+            @setvar! holyPoints 4
+        elseif ingump "3/" 1387930325
+            @setvar! holyPoints 3
+        elseif ingump "2/" 1387930325
+            @setvar! holyPoints 2
+        elseif ingump "1/" 1387930325
+            @setvar! holyPoints 1
+        else 
+            @setvar holyPoints 0
+        endif    
+        
+        if skill 'chivalry' >= 80 and diffhits >= criticalDiff and 1 = nobleSacrifice and 3 < holyPoints
+            if targetexists
+                hotkey 'cancel current target'  
+            endif
+            clearsysmsg
+            yell '[noblesacrifice'  
+            wait 200  
+            if targetexists
+                waitfortarget maxwaittimeinms
+                target 'self' 
+                wait 200 
+                
+                if insysmsg "Holy symbols"
+                    overhead "[> Noble Sacrifice <]" 55
+                    settimer nobleTimer 0
+                endif
+            endif
+        endif
+            
+        #--- Cast heals ---#
+        
+        if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits <= medDiff and mana >= 4 and miniHeal = 1 and timer nobleTimer > nobleCD
+            if targetexists
+                hotkey 'cancel current target'  
+            endif
+            cast 'heal'           
+            while not casting                   
+                cast 'heal'
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+            endwhile  
+            while not targetexists and casting
+            endwhile
+            waitfortarget maxwaittimeinms
+            target 'self' 
+            wait 200  
+        elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1 and timer nobleTimer > nobleCD
+            if targetexists
+                hotkey 'cancel current target'  
+            endif
+            cast 'greater heal'           
+            while not casting                   
+                cast 'greater heal'
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+            endwhile  
+            while not targetexists and casting
+            endwhile
+            waitfortarget maxwaittimeinms
+            target 'self' 
+            wait 200 
+        elseif skill 'magery' >= 40 and diffhits >= medDiff and mana >= 4 and miniHeal = 1 and timer nobleTimer > nobleCD
+            if targetexists
+                hotkey 'cancel current target'  
+            endif
+            cast 'heal'           
+            while not casting                   
+                cast 'heal'  
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+            endwhile  
+            while not targetexists and casting
+            endwhile
+            waitfortarget maxwaittimeinms
+            target 'self' 
+            wait 200  
+        
+        endif 
+        
+#********** AUTO-MAGERY BUFFS IF NEEDED **********          
+    else 
+        
+        if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= 14
+            if timer magicReflectTimer > magicReflectCD
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Magic Reflection'
+                wait 100
+                while not casting and diffhits < lowDiff                   
+                    if insysmsg "that spell will not"
+                        settimer magicReflectTimer 0
+                        break  
+                    endif
+                    cast 'Magic Reflection'
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    wait 100
+                endwhile  
+                while casting and diffhits < lowDiff   
+                    sysmsg "* applying magic reflect *" 55
+                    wait 200
+                endwhile
+                wait 200  
+            endif    
+        endif
+        
+        if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= 4
+            if timer magicReflectTimer > magicReflectCD
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Reactive Armor'
+                wait 100
+                while not casting and diffhits < lowDiff                   
+                    if insysmsg "that spell will not"
+                        settimer armorReflectTimer 0
+                        break  
+                    endif
+                    cast 'Reactive Armor'
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    wait 100
+                endwhile  
+                while casting and diffhits < lowDiff   
+                    sysmsg "* applying armor reflect *" 77
+                    wait 200
+                endwhile
+                wait 200  
+            endif    
+        endif     
+        
+        if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= 6
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            cast 'Protection'
+            wait 100
+            while not casting and diffhits < lowDiff                   
+                cast 'Protection'
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+            endwhile  
+            while casting and diffhits < lowDiff   
+                sysmsg "* applying protection *" 77
+                wait 200
+            endwhile
+            wait 200  
+        endif 
+    
+    endif
+            
+endwhile

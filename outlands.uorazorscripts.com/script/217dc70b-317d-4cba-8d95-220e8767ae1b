@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-mining 4.54
+#SUPER Auto-mining ver.4.60
 
 #********** INFORMATION **********# 
 
@@ -78,11 +78,15 @@
 
 @setvar! drinkStr 1
 @setvar! drinkMagicResist 1
+@setvar! drinkHeal 1
+@setvar! drinkCure 1
+@setvar! drinkRefresh 1
 
 #--- Set Mage auto heals ---#
 
 @setvar! miniHeal 1
 @setvar! greaterHeal 1
+@setvar! cureSpell 1
 
 #--- Set Mage Buffs ---#
 
@@ -97,7 +101,9 @@
 
 @setvar! mineTimerCD 575
 
+
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********
+
 
 @setvar! isRecalling 0
 @setvar! isOverweight 0
@@ -1116,7 +1122,7 @@ while not dead
         endif
     endif
     
-#********** AUTO-HEALING IF NEEDED **********    
+#********** AUTO-HEALING IF NEEDED **********      
 
     while diffhits >= lowDiff or paralyzed or poisoned
     
@@ -1126,9 +1132,9 @@ while not dead
             endif
         endif
     
-        if timer healingMessageTimer > healingMessageCD
+        if timer scriptMessageTimer > scriptMessageCD
             overhead "* running auto-healing *" 66
-            settimer healingMessageTimer 0
+            settimer scriptMessageTimer 0
         endif
             
         if followers > 0 
@@ -1208,42 +1214,49 @@ while not dead
             
         #** Poison **
         
-        while poisoned
-            if findtype "Orange Potion" self
-                dclicktype "Orange Potion"
-                wait 200
-            else
-                if timer orangeMessageTimer > orangeMessageCD
-                    overhead "Out of cure pots" 34
-                    settimer orangeMessageTimer 0
-                endif
-                if skill 'magery' >= 40 and mana >= 6
-                    if targetexists
-                        hotkey 'cancel current target'  
-                    endif
-                    cast 'cure'           
-                    while not casting                   
-                        cast 'cure'  
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                    endwhile  
-                    while not targetexists and casting
-                    endwhile
-                    waitfortarget maxwaittimeinms
-                    target 'self' 
+        if 1 = drinkCure or 1 = cureSpell
+            while poisoned
+                if findtype "Orange Potion" self
+                    dclicktype "Orange Potion"
                     wait 200
+                else
+                    if timer orangeMessageTimer > orangeMessageCD
+                        overhead "Out of cure pots" 34
+                        settimer orangeMessageTimer 0
+                    endif
+                    if skill 'magery' >= 40 and mana >= 6 and 1 = cureSpell
+                        if not findtype 3972 self or not findtype 3973 self
+                            break
+                        endif
+                        if targetexists
+                            hotkey 'cancel current target'  
+                        endif
+                        cast 'cure'           
+                        while not casting                   
+                            cast 'cure'  
+                            if targetexists
+                                hotkey 'cancel current target'
+                            endif
+                        endwhile  
+                        while not targetexists and casting
+                        endwhile
+                        waitfortarget maxwaittimeinms
+                        target 'self' 
+                        wait 200
+                    else 
+                        break
+                    endif
                 endif
-            endif
-            
-            if diffhits > highDiff
-                break
-            endif
-        endwhile
+                
+                if diffhits > highDiff
+                    break
+                endif
+            endwhile
+        endif
             
         #** Heal Pot **
         
-        if diffhits >= highDiff
+        if diffhits >= highDiff and 1 = drinkHeal
             if findtype "Yellow Potion" self
                 @setvar! ch 0
                 
@@ -1267,7 +1280,7 @@ while not dead
                 
         #** Drink red pot ** 
         
-        if stam <= 1
+        if stam <= 1 and 1 = drinkRefresh
             if findtype "Red Potion" self
                 dclicktype "Red Potion"
                 wait 200

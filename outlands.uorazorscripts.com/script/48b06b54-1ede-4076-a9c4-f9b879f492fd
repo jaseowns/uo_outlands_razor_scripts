@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-PEACE ver.1.05
+#Auto-PEACE 1.10
 
 #********** INFORMATION **********# 
 
@@ -15,14 +15,20 @@
 
 #Optional: Set overhead messages on Razor > Display/Counters > Overhead messages
            #Add overhead messages when success peacemaking, fail peacemaking or skill needs to wait for use.
+           
+#********** SET YOUR SETTINGS **********#            
 
+@setvar! attackAfterBarding 1
 
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
 
 @setvar! currentTarget 0
 @setvar! foundTarget 0
 
-#********** SET INSTRUMENT **********# 
+removelist peacedCreatures
+createlist peacedCreatures
+
+#********** FIND INSTRUMENT **********# 
 
 if not varexist myInstruz
     @setvar! myInstruz 0
@@ -69,7 +75,6 @@ wait 25
 
 if not find lasttarget ground -1 -1 12
     overhead 'No target found' 33
-    #@setvar! foundTarget 2
 else
     while index != 20
         @setvar! tempTarget lasttarget 
@@ -91,6 +96,7 @@ else
                         
             if "pacified" in targetLabel
                 #next
+                pushlist peacedCreatures tempTarget
             elseif "-" in targetLabel
                 sysmsg "Label error, replaying search.." 34
                 replay
@@ -115,7 +121,7 @@ else
                     @setvar! foundTarget 1 
                     @setvar! currentTarget tempTarget
                     getlabel currentTarget myLabel
-                    sysmsg "Target: {{myLabel}}" 66
+                    sysmsg "Target: {{myLabel}}" 55
                     break
                 endif
                 
@@ -132,39 +138,70 @@ if 1 = foundTarget
     waitfortarget 650   
     target currentTarget
     
+    wait 100
+    
+    if insysmsg 'You fail to peace'
+        overhead "Peace FAILED" 44 currentTarget
+    elseif insysmsg "You play successfully, disrupting" 
+        getlabel currentTarget myLabel
+        overhead "{{myLabel}}" 88 currentTarget
+    endif
+    
+    getlabel myInstruz instLabel
+    
+    if "(10/" in instLabel
+        overhead "Instrument : 10 uses left" 33
+        sysmsg "Instrument : 10 uses left" 33
+    elseif "(8/" in instLabel
+        overhead "Instrument : 8 uses left" 33
+        sysmsg "Instrument : 8 uses left" 33
+    elseif "(6/" in instLabel
+        overhead "Instrument : 6 uses left" 33
+        sysmsg "Instrument : 6 uses left" 33
+    elseif "(4/" in instLabel
+        overhead "Instrument : 4 uses left" 33
+        sysmsg "Instrument : 4 uses left" 33
+    elseif "(2/" in instLabel
+        overhead "Instrument : 2 uses left" 33
+        sysmsg "Instrument : 2 uses left" 33
+    elseif "(1/" in instLabel
+        overhead "Instrument : 1 use left" 33
+        sysmsg "Instrument : 1 use left" 33
+    endif
+    
     if followers > 0
         say 'all guard me' 32
-        attack currentTarget 
     endif
+    
+    if 1 = attackAfterBarding
+        attack currentTarget
+    endif
+    
 elseif 2 = foundTarget
     if followers > 0
         say 'all guard me' 32
-        hotkey 'target closest grey monster'
-        attack lasttarget 
     endif
-endif
-
-wait 100
-
-if insysmsg 'target cannot be seen'
-    overhead '[Target not seen]' 33
-elseif insysmsg 'You must wait a few'
-    overhead '[Wait for skill]' 33
-elseif insysmsg 'That is too far away.'
-    overhead '[Too Far away]' 33
-elseif insysmsg 'You fail to peace'
-    overhead "Peace FAILED" 44 currentTarget
-elseif insysmsg "You play successfully, disrupting" 
-    getlabel currentTarget myLabel
-    overhead "{{myLabel}}" 88 currentTarget
+    
+    #look here for closest peaced target
+    #foreach creature in peacedCreatures
+        
+    #endfor
+    ###
 endif
 
 #********* SONG BUFF *********
 
 if not findbuff "Song Of Peacemaking"
+    wait 650
     skill 'peacemaking'
-    waitfortarget 650
-    target backpack
+    wait 200
+    
+    if insysmsg "You must wait"
+        overhead "Peace buff skill cooldown" 11
+    else
+        waitfortarget 650
+        target backpack
+    endif
 endif
 
 sysmsg "Peace Finish!" 44

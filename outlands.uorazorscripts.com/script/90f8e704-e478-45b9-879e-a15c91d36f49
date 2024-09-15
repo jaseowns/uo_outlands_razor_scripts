@@ -1,0 +1,101 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/90f8e704-e478-45b9-879e-a15c91d36f49 for latest
+# Automation by Jaseowns
+## Script: Throw nets at an SOS / MIB spot, spyglass, heal
+## Created by: dabiri#0
+#############################################
+
+// This is solid but not perfect. I'm out of MIBs and not planning much fishing in the short term, so decided to share the current state.
+// It will heal, cure, spyglass, and throw nets at a nearby SOS spot. The color of net can be specified on line 60.
+// I like to launch it with a CUO macro that also triggers mariners fortune greater ability before calling the script
+
+// This script expects you to have cooldowns named EXACTLY:
+# Holy Light
+# Fishing Net
+# Spyglass
+
+// Eat food if we need it
+if not findbuff "food" and findtype "tray" backpack as jood
+    dclick jood
+    wait 200
+endif
+
+//Heals & Cures
+//Bandage Self
+if not bandaging and hp < maxhp
+    hotkey "Bandage Self"
+    wait 100
+endif
+
+//Potion heal
+if diffhits >= 30 
+    if findtype "Yellow Potion" backpack as pot 
+        getlabel pot desc
+        if "next usable" in desc
+            // do nothing
+        else
+            dclick pot
+            overhead 'Heal Potion' 48
+            wait 500
+
+        endif
+    endif
+endif
+
+//Chivalry heal
+if diffhits >= 50 and skill "Chivalry" > 95 and not cooldown 'Holy Light'
+    say '[Holylight'
+    wait 250
+    if insysmsg "Holy symbols remaining:"
+        cooldown 'Holy Light' 31000
+    endif
+endif
+
+if poisoned
+    // Potion cure
+    if diffhits >= hpCheckToTriggerCurePotion and findtype "Orange Potion" backpack as pot 
+        dclick pot
+        overhead 'Cure Potion' 48
+        wait 500
+    endif
+endif
+
+//Fishing Net Routine
+if not cooldown 'Fishing Net'
+    overhead "Throwing Net" 15
+    // 2219 is valehide hue, switch for different color
+    if findtype 3530 backpack 2219 as found
+        dclick found
+        while not targetexists  
+            wait 20
+        endwhile
+        if targetexists 'Neutral'
+            target self
+        cooldown 'Fishing Net' 3500
+        endif
+    endif
+endif
+
+//Spyglass Routine
+if not findtype 5365 backpack
+    overhead "No spyglass"
+    stop
+endif
+if not cooldown 'Spyglass'
+    if targetexists
+        overhead 'Holding spyglass' 15
+        wait 500
+        loop
+    endif
+    gumpclose 2890020940
+    dclicktype 5365
+    wft 1000
+    if targetexists neutral
+        overhead 'Glassing'
+        target 'self'
+        waitforgump 2890020940
+        gumpresponse 4 2890020940
+        waitforgump 2890020940
+        cooldown 'Spyglass' 6300
+    endif
+endif
+replay

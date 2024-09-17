@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER ID-Recycler-while-farming ver.1.18
+#SUPER ID-Recycler-while-farming ver.1.25
 
 #Made by @dennozz on discord. 
 #Inspired/learned by other scrips in https://outlands.uorazorscripts.com/
@@ -44,9 +44,10 @@ pushlist "MagicalItems" "eminently potent force"
 pushlist "MagicalItems" "surpassingly potent might"
 pushlist "MagicalItems" "surpassingly potent force"
 
-#-- Set your wait times depending on your ping (600-700 for avg 70 ping)
+#-- Set your wait times depending on your ping
 
 @setvar! maxwaittimeinms 700
+@setvar! itemusewaittimeinms 200
 
 #**********  DO NOT EDIT FROM HERE  ********** 
 
@@ -219,20 +220,18 @@ foreach loot in loot_items
         elseif "(1 uses" in wandDesc
             overhead "ID wand 1 use left!!" 34
         endif
-                  
-        
+                          
         dclicktype 20496 backpack
-        waitfortarget maxwaittimeinms
+        waitfortarget itemusewaittimeinms
         
         while not targetexists and findtype 20496 backpack
             dclicktype 20496 backpack
-            waitfortarget maxwaittimeinms
+            waitfortarget itemusewaittimeinms
         endwhile       
         
         if targetexists
             target loot
-            pushlist identified_items loot 
-            wait 100    
+            pushlist identified_items loot    
         endif
     else         
         overhead "Wand ID not found" 34  
@@ -322,12 +321,65 @@ endfor
 
 removelist identified_items
 
+#********** RECYCLE BAD ITEMS  **********  
+
+sysmsg "Reciclying bad items..." 11
+
+sysmsg "Opening sewing kit..." 11
+
+dclicktype 3997 backpack
+waitforgump craftingToolGumpID maxwaittimeinms
+clearsysmsg 
+while not gumpexists craftingToolGumpID
+    sysmsg "Opening sewing kit..." 11
+    dclicktype 3997 backpack
+    waitforgump craftingToolGumpID maxwaittimeinms
+endwhile
+
+foreach b in bad_items
+    if find b backpack
+        @setvar! itemError 0
+                
+        gumpresponse 3 craftingToolGumpID
+        waitfortarget maxwaittimeinms 
+        target b
+        
+        while not ingump "you recycle" 949095101 and 0 = itemError
+            if index = 50
+                @setvar! itemError 1
+                sysmsg "Error, item skipped" 34
+                
+                while not gumpexists craftingToolGumpID
+                    sysmsg "Opening sewing kit..." 11
+                    dclicktype 3997 backpack
+                    waitforgump craftingToolGumpID maxwaittimeinms
+                endwhile
+            endif
+            if insysmsg "that is too far"
+                @setvar! itemError 1 
+            endif
+            if ingump "That cannot be recycled" 949095101
+                getlabel b notLabel
+                sysmsg "Not recycled : {{notLabel}}" 34
+                @setvar! itemError 1
+            endif
+        endwhile
+   endif 
+endfor
+
+removelist bad_items
+
+if targetexists
+    hotkey 'cancel current target'
+endif
+gumpclose craftingToolGumpID
+
 #********** MOVE GOOD ITEMS TO BAG  **********  
 
 sysmsg "Moving good items if any..." 11
 
 if weight > maxweight
-   overhead "cancelled overweight" 34 
+    overhead "cancelled, overweight" 34 
 else 
     foreach g in good_items
 
@@ -353,61 +405,6 @@ else
 endif
 
 removelist good_items
-
-#********** RECYCLE BAD ITEMS  **********  
-
-sysmsg "Reciclying bad items..." 11
-
-foreach b in bad_items
-    if find b backpack
-        @setvar! itemError 0
-        
-        while not gumpexists craftingToolGumpID
-            sysmsg "Opening sewing kit..." 11
-            dclicktype 3997 backpack
-            waitforgump craftingToolGumpID maxwaittimeinms
-        endwhile
-        
-        gumpresponse 3 craftingToolGumpID
-        waitfortarget 1000 
-        target b
-        wait 10
-        while not ingump "you recycle" 949095101 and 0 = itemError
-            if ingump "That cannot be recycled" 949095101
-                @getlabel b notLabel
-                sysmsg "Not recycled : {{notLabel}}" 44
-                @setvar! itemError 1
-                wait maxwaittimeinms
-            endif
-        endwhile
-   endif
-   
-endfor
-
-removelist bad_items
-
-if targetexists
-    hotkey 'cancel current target'
-endif
-gumpclose craftingToolGumpID
-
-#********** EAT ARCANE ESSENCES  **********  
-
-if eatArcaneEssence = 1
-    wait 200
-    if findtype 12686 backpack
-        sysmsg "Eating arcane.." 11
-        dclicktype 12686 backpack
-        waitfortarget maxwaittimeinms
-        while not targetexists 
-            sysmsg "Trying to eat arcane.." 11
-            dclicktype 12686 backpack
-            waitfortarget maxwaittimeinms
-        endwhile
-        waitfortarget maxwaittimeinms
-        target 'self'
-    endif        
-endif
 
 #********** MOVE RECYCLED MATERIALS TO BAG  **********  
 
@@ -483,6 +480,24 @@ removelist display_bads
 
 hotkey 'cancel current target'
 gumpclose craftingToolGumpID
+
+#********** EAT ARCANE ESSENCES  **********  
+
+if eatArcaneEssence = 1
+    wait itemusewaittimeinms
+    if findtype 12686 backpack
+        sysmsg "Eating arcane.." 11
+        dclicktype 12686 backpack
+        waitfortarget maxwaittimeinms
+        while not targetexists 
+            sysmsg "Trying to eat arcane.." 11
+            dclicktype 12686 backpack
+            waitfortarget maxwaittimeinms
+        endwhile
+        waitfortarget maxwaittimeinms
+        target 'self'
+    endif        
+endif
 
 overhead "Recycle Finished!" 65
 sysmsg "Time Elapse in miliseconds : {{testTimer}}" 65

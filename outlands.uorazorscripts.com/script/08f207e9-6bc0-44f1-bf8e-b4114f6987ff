@@ -1,0 +1,258 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/08f207e9-6bc0-44f1-bf8e-b4114f6987ff for latest
+# Automation by Jaseowns
+## Script: Auto-PROVO
+## Created by: dennozz#0
+#############################################
+
+#Auto-PROVO 1.06
+
+#********** INFORMATION **********# 
+
+#Made by @dennozz on discord. 
+#Inspired/learned by other scrips in https://outlands.uorazorscripts.com/
+
+#This script will auto provoke two nearest creatures.
+
+#Optional: Set overhead messages on Razor > Display/Counters > Overhead messages
+           #Add overhead messages when success provocation, fail provocation or skill needs to wait for use.
+
+#********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
+
+@setvar! oneTarget 0
+@setvar! twoTarget 0
+
+@setvar! foundFirstTarget 0
+@setvar! foundSecondTarget 0
+
+removelist discordedCreatures
+createlist discordedCreatures
+
+#********** SET INSTRUMENT **********# 
+
+if not varexist myInstruz
+    @setvar! myInstruz 0
+endif
+
+if not find myInstruz backpack
+    clearsysmsg
+    overhead "Select instrument:" 55
+    @setvar! myInstruz
+    wait 200
+    while not targetexists and not insysmsg "Select"
+        @setvar! myInstruz    
+    endwhile
+    wait 200
+    if find myInstruz backpack as inst
+        getlabel inst iLabel
+        
+        if "flute" in iLabel or "drums" in iLabel or "harp" in iLabel or "lute" in iLabel or "tambourine" in iLabel or "gemshorn" in iLabel or "hurdy" in iLabel or "psaltery" in iLabel or "sackbut" in iLabel or "shawm" in iLabel or "Vielle" in iLabel
+            dclick inst
+            wait 200
+        else 
+            @setvar! myInstruz 0
+            overhead "Not an instrument!" 33
+            stop
+        endif
+    else
+        @setvar! myInstruz 0
+        overhead "Not in backpack" 33
+        stop    
+    endif
+endif
+
+if not timerexists discoTimer
+    settimer discoTimer 0
+endif
+
+clearsysmsg
+
+if targetexists
+    hotkey 'cancel current target'
+endif
+
+#********* AUTO-SELECT 1ST TARGET *********
+
+settimer testTimer 0
+sysmsg "Provo Start.." 65
+hotkey 'target closest grey monster'
+
+if not find lasttarget ground -1 -1 12
+    overhead 'No target found' 33
+else
+    while index != 20
+        @setvar! tempTarget lasttarget 
+        if index != 0 
+            hotkey "next non-friendly monster target"
+            @setvar! tempTarget lasttarget 
+            #overhead "*{{index}}*" 34 tempTarget
+            
+            if index = 1
+                @setvar! firstTarget lasttarget
+            elseif firstTarget = tempTarget
+                break
+            endif
+        endif
+        
+        if find tempTarget ground -1 -1 12
+            getlabel tempTarget targetLabel
+                        
+            if "provoked" in targetLabel 
+                #sysmsg "target already provoked {{index}}" 11
+            elseif "break" in targetLabel
+                sysmsg "target on break {{index}}" 11
+            elseif "-" in targetLabel
+                sysmsg "Label error, replaying search.." 34
+                replay
+            else 
+                clearsysmsg
+                skill 'begging'
+                waitfortarget 650
+                target tempTarget
+                wait 200
+                
+                if insysmsg "Target cannot be seen"
+                    #sysmsg "*Not visible* [{{index}}]" 34
+                    overhead  "*Not visible* [{{index}}]" 34 tempTarget
+                elseif insysmsg "That is too far away"
+                    overhead "*Too far* [{{index}}]" 34 tempTarget
+                elseif insysmsg "You must wait"
+                    overhead "*Skill cooldown*" 11
+                    #sysmsg "*Skill cooldown*" 11
+                    break
+                else 
+                    @setvar! foundFirstTarget 1 
+                    @setvar! oneTarget tempTarget
+                    getlabel oneTarget myLabel
+                    sysmsg "Target: {{myLabel}}" 55
+                    break
+                endif
+                
+            endif
+        endif
+    endwhile
+endif
+
+#********* AUTO-SELECT 2ND TARGET *********
+
+if oneTarget != 0
+    while index != 20
+        @setvar! tempTarget lasttarget 
+        if index != 0 
+            hotkey "next non-friendly monster target"
+            @setvar! tempTarget lasttarget 
+            #overhead "*{{index}}*" 34 tempTarget
+            
+            if index = 1
+                @setvar! firstTarget lasttarget
+            elseif firstTarget = tempTarget
+                break
+            endif
+        endif
+        getlabel tempTarget targetLabel
+        if "break" in targetLabel
+            #next
+        elseif tempTarget != oneTarget and find tempTarget ground -1 -1 12
+        
+            clearsysmsg
+            skill 'begging'
+            waitfortarget 650
+            target tempTarget
+            wait 200
+            
+            if insysmsg "Target cannot be seen"
+                #sysmsg "*Not visible* [{{index}}]" 34
+                overhead  "*Not visible* [{{index}}]" 34 tempTarget
+            elseif insysmsg "That is too far away"
+                overhead "*Too far* [{{index}}]" 34 tempTarget
+            elseif insysmsg "You must wait"
+                overhead "*Skill cooldown*" 11
+                #sysmsg "*Skill cooldown*" 11
+                break
+            else 
+                @setvar! foundSecondTarget 1 
+                @setvar! twoTarget tempTarget
+                getlabel twoTarget myLabel
+                sysmsg "Target: {{myLabel}}" 11
+                break
+            endif
+                
+        endif
+    endwhile
+endif
+
+#********* PROVO IF TARGETS FOUND *********
+
+if 1 = foundFirstTarget and 1 = foundSecondTarget
+    skill 'provocation'
+    waitfortarget 650 
+  
+    if insysmsg "What instrument"    
+        target myInstruz
+        replay
+    else 
+        target oneTarget
+        waitfortarget 650
+        target twoTarget
+    endif
+    
+    wait 100
+    
+    if insysmsg 'You fail to incite'
+        overhead "Provo FAILED" 34 oneTarget
+    elseif insysmsg "The creatures"
+        overhead "* too far away< *" 34 oneTarget
+        overhead "* >too far away *" 34 twoTarget
+    elseif insysmsg "You play successfully, provoking" 
+        getlabel oneTarget myLabel
+        overhead "> provoked" 88 oneTarget
+        getlabel twoTarget myLabel2
+        overhead "provoked <" 88 twoTarget
+    endif
+    
+    getlabel myInstruz instLabel
+    
+    if "(10/" in instLabel
+        overhead "Instrument : 10 uses left" 33
+        sysmsg "Instrument : 10 uses left" 33
+    elseif "(8/" in instLabel
+        overhead "Instrument : 8 uses left" 33
+        sysmsg "Instrument : 8 uses left" 33
+    elseif "(6/" in instLabel
+        overhead "Instrument : 6 uses left" 33
+        sysmsg "Instrument : 6 uses left" 33
+    elseif "(4/" in instLabel
+        overhead "Instrument : 4 uses left" 33
+        sysmsg "Instrument : 4 uses left" 33
+    elseif "(2/" in instLabel
+        overhead "Instrument : 2 uses left" 33
+        sysmsg "Instrument : 2 uses left" 33
+    elseif "(1/" in instLabel
+        overhead "Instrument : 1 use left" 33
+        sysmsg "Instrument : 1 use left" 33
+    endif
+    
+elseif 1 = foundFirstTarget
+    sysmsg "2nd target not found" 34
+elseif 1 = foundSecondTarget
+    sysmsg "1st target not found" 34
+else 
+    sysmsg "No one visible found" 34
+endif
+
+#********* SONG BUFF *********
+
+if not findbuff "Song Of Provocation"
+    clearsysmsg
+    wait 650
+    skill 'provocation'
+    wait 200
+    
+    if insysmsg "You must wait"
+        overhead "Provo Buff Cooldown" 11
+    else
+        waitfortarget 650
+        target backpack
+    endif
+endif
+
+sysmsg "Provo Finish! time elapsed: {{testTimer}}" 44

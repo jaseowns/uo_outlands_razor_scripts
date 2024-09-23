@@ -528,7 +528,7 @@ if skill "Stealing" >= 80 and warmode
             endif
         endif
         if insysmsg "You Steal"
-            overhead "I Pilfer Thee!" 68
+            overhead "The goods are mine!" 2091
             cooldown "Stealing" 5000
             warmode off
         endif
@@ -559,7 +559,7 @@ if gumpexists 736038070
     gumpclose 736038070
 endif
 
-if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targetexists 
+if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2 as bchest and not targetexists 
     clearsysmsg 
     if not warmode 
         warmode on
@@ -1448,31 +1448,44 @@ if insysmsg "What should I use these scissors on?"
 endif
 if skill "Forensic Evaluation" >= 50 and not hidden and not casting and findtype "Elven Spellblade" backpack
     if not warmode
-        for 18
-            if index > 0 and findtype "corpse" ground -1 -1 index as corpselocation
-                overhead "corpse" 76 corpselocation
-                @ignore corpselocation
-            endif
-        endfor
-        @clearignore 
+        if not timerexists corpsetimer
+            createtimer corpsetimer
+            settimer corpsetimer 2000
+        endif
+        if timer corpsetimer >= 2000
+            for 18
+                if index > 0 and findtype "corpse" ground -1 -1 index as corpselocation
+                    overhead "corpse" 76 corpselocation
+                    @ignore corpselocation
+                endif
+            endfor
+            @clearignore 
+            settimer corpsetimer 0
+        endif
         if not find "bknife" backpack and findtype "Elven Spellblade" backpack as newknife
             @setvar "bknife" newknife
         endif
         while findtype "corpse" ground -1 -1 2 as bcorpse
-            while queued
-                //do nothing
-            endwhile
-            dclick "bknife"
-            wft 500
-            target bcorpse
-            getlabel backpack ping
-            pause 500
-            if insysmsg "You carve materials from the corpse"
-                overhead "*fresh cut*" 88 bcorpse
+            getlabel bcorpse desc
+            if "the remains of" in desc
+                overhead "avatar corpse" 45 bcorpse
                 @ignore bcorpse
-            elseif insysmsg "That corpse has already been carved"
-                overhead "*carved*" 38 bcorpse
-                @ignore bcorpse
+            else 
+                while queued
+                    //do nothing
+                endwhile
+                dclick "bknife"
+                wft 500
+                target bcorpse
+                getlabel backpack ping
+                pause 500
+                if insysmsg "You carve materials from the corpse"
+                    overhead "*fresh cut*" 88 bcorpse
+                    @ignore bcorpse
+                elseif insysmsg "That corpse has already been carved"
+                    overhead "*carved*" 38 bcorpse
+                    @ignore bcorpse
+                endif
             endif
         endwhile
     endif

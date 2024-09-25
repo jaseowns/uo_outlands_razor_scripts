@@ -8,6 +8,7 @@
 /////   UO Outlands Razor script - Last updated Sept 25, 2024 (email any bug reports/tips to dan@danstockman.com) 
 ///     Created by DanStock.
 
+
 # Required (or optional *) inventory items:
 
     # Hatchet or Pickaxe
@@ -20,6 +21,7 @@
     # Adventurers rope *
     # Cheese (or fish steaks) *
     # Harvest Aspect armour *
+
 
 # Use the following organizer agents (or swap for your own):
 
@@ -121,7 +123,7 @@ if skill "Mining" > 49.9 and EnableMining = 1
 @setvar! IngotRecallAmount 3000
 
 @setvar! EnableIngotBag 1
-@setvar! OpenIngotBag 1
+@setvar! OpenIngotBag 0
 
 @setvar! EnableWeightWarningMessage 1
 @setvar! GreenWarningWeight 400
@@ -144,7 +146,7 @@ if skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1
 @setvar! BoardRecallAmount 3000
 
 @setvar! EnableBoardBag 1
-@setvar! OpenBoardBag 1
+@setvar! OpenBoardBag 0
 @setvar! LogsToBoards 1
 
 @setvar! EnableWeightWarningMessage 1
@@ -162,9 +164,9 @@ endif
 
 @setvar! EnableRedAlertRecall 1
 
-@setvar! EnableAutoAttackGreyMOB 1
-
 @setvar! EnableParalyzePouch 1
+
+@setvar! EnableAutoAttackGreyMOB 0
 
 @setvar! EnableMagicReflection 0
 
@@ -209,7 +211,7 @@ endif
 @setvar! EnableRefreshPotion 1
 @setvar! RefreshPotSP 89
 
-@setvar! EnableWeaponWarning 0
+@setvar! EnableWeaponWarning 1
 
 @setvar! AllInventoryMessage 1
 // or
@@ -235,13 +237,14 @@ if hidden
 endif
 
 
-if not dead and skill "Mining" > 49.9 and EnableMining = 1
+if insysmsg "You have unlocked a codex upgrade point"
+    overhead "[ CODEX POINT UNLOCKED! ]" 2114
+endif 
+ 
 
-if insysmsg "Captcha successful."
-    overhead "I guess you got the magic numbers right??" 1909
-    wait 1500
-    overhead "Alright, let's get to work..." 1909
-endif
+if insysmsg "enough experience to upgrade"
+    overhead "[ ASPECT TIER UNLOCKED! ]" 2086
+endif 
 
 
 if insysmsg "As the owner" or insysmsg "Your house and its contents"
@@ -252,39 +255,10 @@ if insysmsg "As the owner" or insysmsg "Your house and its contents"
 endif
 
 
-if insysmsg "You have unlocked a codex upgrade point"
-    overhead "[ CODEX POINT UNLOCKED! ]" 2114
-endif 
- 
-
-if insysmsg "enough experience to upgrade"
-    overhead "[ ASPECT UPGRADE AVAILABLE! ]" 2086
-endif 
-
-
-clearsysmsg
-hotkey 'Cancel Current Target'
-
-
-if not varexist ingotbag and EnableIngotBag = 1
-    wait 500
-    overhead "Please select your ingot storage bag..." 0
-    wait 500
-    setvar ingotbag
-    wait 2500
-    sysmsg "Disable 'EnableIngotBag' in script variables to turn off this feature!" 0
-    replay
-endif
-
-
-if not varexist mining_runebook and EnableRedAlertRecall = 1
-    wait 500
-    overhead "Please select your escape runebook..." 0
-    wait 500
-    setvar mining_runebook
-    wait 2500
-    sysmsg "Disable 'EnableRedAlertRecall' in script variables to turn off this feature!" 0
-    replay
+if insysmsg "Captcha successful."
+    overhead "I guess you got the magic numbers right??" 2086
+    wait 1500
+    overhead "Alright, let's get to work..." 2086
 endif
 
 
@@ -307,6 +281,307 @@ if insysmsg 'world is saving'
     clearsysmsg 
     replay    
 endif 
+
+
+if EnableGoldVacuum = 1
+    if findtype "gold coin" ground -1 -1 15 as droppedmoney and not cooldown "Gold Radar"   
+        overhead "[ $ ]" 149 droppedmoney         
+        overhead "¼" 149 droppedmoney
+        cooldown "Gold Radar" 3500
+    endif
+
+    
+    if findtype "gold coin" ground -1 -1 2 as droppedmoney and not cooldown "Gold Vacuum"
+        overhead "[ CLEANUP... ]" 149
+        hotkey "Grab Item"
+        wft 2500
+        target droppedmoney
+        wait 1000
+        if insysmsg "Invalid or inaccessible item"
+            overhead "I can't get to that!" 2086
+            wait 1000
+            @ignore droppedmoney
+        endif  
+        cooldown "Gold Vacuum" 1500
+    endif
+endif 
+
+
+if findtype 'Elven SpellBlade' self and EnableAutoCarving = 1
+    if findtype "corpse" ground -1 -1 2 as deadbody
+        wait 500
+        dclicktype "Elven Spellblade"
+        waitfortarget 2000
+        target 'self'
+        wait 250
+        overhead "*skinning corpse...*" 337
+        wait 500
+        @ignore deadbody
+    endif 
+endif
+    
+
+if not findtype 'Elven SpellBlade' self and EnableAutoCarving = 1
+    overhead "[ NO SKINNING KNIFE! ]" 339
+    sysmsg "Disable EnableAutoCarving in script variables to turn off this overhead message!" 0
+endif 
+
+
+if skill 'Healing' > 50 
+    if not bandaging and hits < maxhits
+        overhead '*applying bandages...*' 88
+        hotkey "Bandage Self"
+    endif
+    
+    if counttype 'clean bandage%s%' < 5
+        overhead "[ RESTOCK BANDAGES! ]" 88
+    endif 
+endif 
+            
+
+if EnableCurePotion = 1
+    if poisoned and not cooldown "Cure Potion" and hits < CurePotHP
+        if findtype "Orange Potion" self as curepot
+            overhead '*drinking cure potion...*' 44
+            dclick curepot
+            cooldown "Cure Potion" 10500
+            wait 200
+        else
+            overhead "Out of cure pots!" 337
+        endif
+    endif
+endif 
+
+
+if EnableHealPotion = 1
+    if hits < HealPotHP and not cooldown "Healing Potion"
+        if findtype "Yellow Potion" self as healpot
+            overhead '*drinking heal potion...*' 253
+            dclick healpot
+            cooldown "Healing Potion" 10500
+            wait 200
+        else 
+            overhead 'Out of heal pots!' 337
+        endif
+    endif
+endif 
+
+
+if EnableRefreshPotion = 1
+    if stam < RefreshPotSP and not cooldown "Refresh Potion"
+        if findtype "Red Potion" self as refreshpot
+            overhead '*drinking refresh potion...*' 34
+            dclick refreshpot
+            cooldown "Refresh Potion" 10500
+            wait 200
+        else 
+            overhead 'Out of refresh pots!' 337
+        endif
+    endif
+endif
+
+
+if skill 'Magery' > 50 and not findbuff 'Magic Reflection' and not cooldown "Magic Shield" and EnableMagicReflection = 1 and mana > 14
+    overhead 'I should protect myself...' 2086
+    for 10
+        cast 'Magic Reflection' 
+        waitfortarget 1500
+        hotkey 'Target Self'
+        wait 1000
+            if insysmsg "That spell will not adhere"
+                cooldown "Magic Shield" 30000
+                overhead "Too soon for a new shield.  Give me a sec..." 2086
+                replay
+            endif 
+        if cooldown "Spell Fail"
+            wait 1000
+            overhead "Let me try that again..." 2086
+            wait 1000
+        else
+            break
+        endif 
+    endfor 
+    wait 500
+    overhead "[ MAGIC SHEILD ACTIVATED! ]" 10
+    wait 1000
+    replay
+endif  
+
+
+if EnableWeaponWarning = 1
+    if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack
+        if not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand
+            overhead "[ NO WEAPON! ]" 339
+            sysmsg "Disable 'EnableWeaponWarning' in script variables to turn off this feature!" 0
+        endif
+    endif 
+
+    if skill "Swordsmanship" > 50 and not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" backpack
+        if not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" hand
+            overhead "[ NO WEAPON! ]" 339
+            sysmsg "Disable 'EnableWeaponWarning' in script variables to turn off this feature!" 0
+        endif
+    endif
+endif
+
+
+if AllInventoryMessage = 1
+    if counttype "rope" self = 0 and RopeInventoryMessage = 1
+        overhead "[ RESTOCK ROPE! ]" 2799
+        sysmsg "Disable RopeInventoryMessage in script variables to turn off this overhead message!" 0
+    endif 
+
+    if counttype "Yellow Potion" self = 0 and YellowInventoryMessage = 1
+        overhead "[ RESTOCK HEAL POTIONS! ]" 253
+        sysmsg "Disable YellowInventoryMessage in script variables to turn off this overhead message!" 0
+    endif 
+
+    if counttype "Orange Potion" self = 0 and OrangeInventoryMessage = 1
+        overhead "[ RESTOCK CURE POTIONS! ]" 44
+        sysmsg "Disable OrangeInventoryMessage in script variables to turn off this overhead message!" 0
+    endif 
+
+    if counttype "Red Potion" self = 0 and RedInventoryMessage = 1
+        overhead "[ RESTOCK REFRESH POTIONS! ]" 37
+        sysmsg "Disable RedInventoryMessage in script variables to turn off this overhead message!" 0
+    endif 
+
+    if counttype "White Potion" self = 0 and WhiteInventoryMessage = 1 
+        overhead "[ RESTOCK STRENGTH POTIONS! ]" 956
+        sysmsg "Disable WhiteInventoryMessage in script variables to turn off this overhead message!" 0
+    endif 
+
+    if counttype "Blue Potion" self = 0 and BlueInventoryMessage = 1
+        overhead "[ RESTOCK AGILITY POTIONS! ]" 93
+        sysmsg "Disable BlueInventoryMessage in script variables to turn off this overhead message!" 0
+    endif 
+
+    if counttype "Black Potion" self = 0 and BlackInventoryMessage = 1
+        overhead "[ RESTOCK MAGIC RESIST POTIONS! ]" 0
+        sysmsg "Disable BlackInventoryMessage in script variables to turn off this overhead message!" 0
+    endif 
+endif
+
+
+if skill 'Tracking' > 50 and not findbuff 'tracking' and EnableRedAlertRecall = 1
+        overhead 'I should keep an eye out for trouble...' 2086
+        wait 1500
+        while not gumpexists 4267467659
+        useskill 'tracking'
+            wait 250
+        endwhile
+            if gumpexists 4267467659
+                while not insysmsg "You will now hunt all hostile players."
+                gumpresponse 8 4267467659
+                waitforgump 4267467659 5000
+                endwhile
+                gumpresponse 6 4267467659
+                wait 500
+                clearsysmsg 
+            endif
+        gumpclose 4267467659
+        overhead "[ AUTO RECALL ACTIVATED! ]" 37
+        wait 100
+endif 
+
+
+if not findbuff 'food satisfaction' and findtype "wedge%s% of cheese|fish steak%s%" self and EnableCheeseTimer = 1
+    wait 1500
+    overhead "Hold on, I shouldn't do this on an empty stomach..." 2086
+    wait 500
+        if findtype "wedge%s% of cheese|fish steak%s%" backpack as Food
+            overhead "*eating food...*" 0
+            dclick Food
+            wait 1500
+            overhead "Ok, I'm ready to get to work!" 2086
+            wait 250
+        endif
+endif 
+
+
+if findtype 'pickaxe|hatchet' hand as MyAxe and EnableToolCountdown = 1
+    getlabel MyAxe AxeLabel
+    if '(5 uses' in AxeLabel or '(4 uses' in AxeLabel or '(3 uses' in AxeLabel or '(2 uses' in AxeLabel or '(1 use' in AxeLabel
+        if EnableRecycleTool = 0
+        sysmsg "YOUR TOOL IS ABOUT TO BREAK....." 153
+        endif 
+        if EnableRecycleTool = 1
+        sysmsg "YOUR TOOL IS ABOUT TO BE RECYCLED....." 93
+        endif 
+        wait 100
+    endif 
+endif 
+
+
+if findtype 'tool kit' self as ToolKit and EnableRecycleTool = 1
+    if findtype 'pickaxe|hatchet' hand as MyAxe
+        getlabel MyAxe AxeLabel
+        if '(2 use' in AxeLabel
+            overhead "[ RECYCLING TOOL! ]" 93
+            clearhands both
+            wait 1000
+            if not gumpexists 949095101 
+                dclick ToolKit
+                waitforgump 949095101 2000
+            endif 
+        
+            for 5
+            gumpresponse 3 949095101
+            wait 1000
+                if insysmsg "Target an individual item"
+                    wait 500
+                    target MyAxe
+                    wait 1000
+                    gumpclose 949095101
+                    wait 1000
+                    overhead "Every little bit counts..." 2086
+                    hotkey 'Organizer Agent-11' 
+                    wait 1500
+                    replay
+                else
+                    gumpresponse 2
+                    wait 500
+            endfor 
+            endif 
+        endif 
+    endif 
+endif
+
+
+if not findtype 'tool kit' self and EnableRecycleTool = 1
+    overhead "[ NO TOOL KIT! ]" 339
+    sysmsg "Disable 'EnableRecycleTool' in script variables to turn off this overhead message!" 0
+endif
+
+
+clearsysmsg
+hotkey 'Cancel Current Target'
+
+
+
+if not dead and skill "Mining" > 49.9 and EnableMining = 1
+
+
+if not varexist ingotbag and EnableIngotBag = 1
+    wait 500
+    overhead "Please select your ingot storage bag..." 0
+    wait 500
+    setvar ingotbag
+    wait 2500
+    sysmsg "Disable 'EnableIngotBag' in script variables to turn off this feature!" 0
+    replay
+endif
+
+
+if not varexist mining_runebook and EnableRedAlertRecall = 1
+    wait 500
+    overhead "Please select your escape runebook..." 0
+    wait 500
+    setvar mining_runebook
+    wait 2500
+    sysmsg "Disable 'EnableRedAlertRecall' in script variables to turn off this feature!" 0
+    replay
+endif
     
 
 if EnableForgeRadar = 1
@@ -347,30 +622,6 @@ if EnableOreVacuum = 1
     endif
 endif 
           
-
-if EnableGoldVacuum = 1
-    if findtype "gold coin" ground -1 -1 15 as droppedmoney and not cooldown "Gold Radar"   
-        overhead "[ $ ]" 149 droppedmoney         
-        overhead "¼" 149 droppedmoney
-        cooldown "Gold Radar" 3500
-    endif
-
-    
-    if findtype "gold coin" ground -1 -1 2 as droppedmoney and not cooldown "Gold Vacuum"
-        overhead "[ CLEANUP... ]" 149
-        hotkey "Grab Item"
-        wft 2500
-        target droppedmoney
-        wait 1000
-        if insysmsg "Invalid or inaccessible item"
-            overhead "I can't get to that!" 1909
-            wait 1000
-            @ignore droppedmoney
-        endif  
-        cooldown "Gold Vacuum" 1500
-    endif
-endif 
-
 
 if not listexists "mining_alert"
     createlist "mining_alert"  
@@ -639,162 +890,6 @@ if inlist "mining_alert" "red_alert_recall" and EnableRedAlertRecall = 1
 endif 
 
 
-if skill 'Healing' > 50 
-    if not bandaging and hits < maxhits
-        overhead '*applying bandages...*' 88
-        hotkey "Bandage Self"
-    endif
-    
-    if counttype 'clean bandage%s%' < 5
-        overhead "[ RESTOCK BANDAGES! ]" 88
-    endif 
-endif 
-            
-
-if EnableCurePotion = 1
-    if poisoned and not cooldown "Cure Potion" and hits < CurePotHP
-        if findtype "Orange Potion" self as curepot
-            overhead '*drinking cure potion...*' 44
-            dclick curepot
-            cooldown "Cure Potion" 10500
-            wait 200
-        else
-            overhead "Out of cure pots!" 337
-        endif
-    endif
-endif 
-
-
-if EnableHealPotion = 1
-    if hits < HealPotHP and not cooldown "Healing Potion"
-        if findtype "Yellow Potion" self as healpot
-            overhead '*drinking heal potion...*' 253
-            dclick healpot
-            cooldown "Healing Potion" 10500
-            wait 200
-        else 
-            overhead 'Out of heal pots!' 337
-        endif
-    endif
-endif 
-
-
-if EnableRefreshPotion = 1
-    if stam < RefreshPotSP and not cooldown "Refresh Potion"
-        if findtype "Red Potion" self as refreshpot
-            overhead '*drinking refresh potion...*' 34
-            dclick refreshpot
-            cooldown "Refresh Potion" 10500
-            wait 200
-        else 
-            overhead 'Out of refresh pots!' 337
-        endif
-    endif
-endif
-
-
-if skill 'Magery' > 50 and not findbuff 'Magic Reflection' and not cooldown "Magic Shield" and EnableMagicReflection = 1 and mana > 14
-    overhead 'I should protect myself...' 1909
-    for 10
-        cast 'Magic Reflection' 
-        waitfortarget 1500
-        hotkey 'Target Self'
-        wait 1000
-            if insysmsg "That spell will not adhere"
-                cooldown "Magic Shield" 30000
-                overhead "Too soon for a new shield.  Give me a sec..." 1909
-                replay
-            endif 
-        if cooldown "Spell Fail"
-            wait 1000
-            overhead "Let me try that again..." 1909
-            wait 1000
-        else
-            break
-        endif 
-    endfor 
-    wait 500
-    overhead "[ MAGIC SHEILD ACTIVATED! ]" 10
-    wait 1000
-    replay
-endif  
-
-
-if findtype 'Elven SpellBlade' self and EnableAutoCarving = 1
-    if findtype "corpse" ground -1 -1 2 as deadbody
-        wait 500
-        dclicktype "Elven Spellblade"
-        waitfortarget 2000
-        target 'self'
-        wait 250
-        overhead "*skinning corpse...*" 337
-        wait 500
-        @ignore deadbody
-    endif 
-endif
-    
-
-if not findtype 'Elven SpellBlade' self and EnableAutoCarving = 1
-    overhead "[ NO SKINNING KNIFE! ]" 339
-    sysmsg "Disable EnableAutoCarving in script variables to turn off this overhead message!" 0
-endif 
- 
-
-if EnableWeaponWarning = 1
-    if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack
-        if not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand
-            overhead "[ NO WEAPON! ]" 339
-            sysmsg "Disable 'EnableWeaponWarning' in script variables to turn off this feature!" 0
-        endif
-    endif 
-
-    if skill "Swordsmanship" > 50 and not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" backpack
-        if not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" hand
-            overhead "[ NO WEAPON! ]" 339
-            sysmsg "Disable 'EnableWeaponWarning' in script variables to turn off this feature!" 0
-        endif
-    endif
-endif
-
-
-if AllInventoryMessage = 1
-    if counttype "rope" self = 0 and RopeInventoryMessage = 1
-        overhead "[ RESTOCK ROPE! ]" 2799
-        sysmsg "Disable RopeInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Yellow Potion" self = 0 and YellowInventoryMessage = 1
-        overhead "[ RESTOCK HEAL POTIONS! ]" 253
-        sysmsg "Disable YellowInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Orange Potion" self = 0 and OrangeInventoryMessage = 1
-        overhead "[ RESTOCK CURE POTIONS! ]" 44
-        sysmsg "Disable OrangeInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Red Potion" self = 0 and RedInventoryMessage = 1
-        overhead "[ RESTOCK REFRESH POTIONS! ]" 37
-        sysmsg "Disable RedInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "White Potion" self = 0 and WhiteInventoryMessage = 1 
-        overhead "[ RESTOCK STRENGTH POTIONS! ]" 956
-        sysmsg "Disable WhiteInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Blue Potion" self = 0 and BlueInventoryMessage = 1
-        overhead "[ RESTOCK AGILITY POTIONS! ]" 93
-        sysmsg "Disable BlueInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Black Potion" self = 0 and BlackInventoryMessage = 1
-        overhead "[ RESTOCK MAGIC RESIST POTIONS! ]" 0
-        sysmsg "Disable BlackInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-endif
-
-
 if counttype "iron ingot%s" > IngotRecallAmount and EnableIngotAutoRecall = 1
     overhead "I'd hate to lose all this hard work..." 1909
     wait 2500
@@ -1004,109 +1099,12 @@ endif
 endif 
 
 
-if skill 'Tracking' > 50 and not findbuff 'tracking' and EnableRedAlertRecall = 1
-        overhead 'I should keep an eye out for trouble...' 1909
-        wait 1500
-        while not gumpexists 4267467659
-        useskill 'tracking'
-            wait 250
-        endwhile
-            if gumpexists 4267467659
-                while not insysmsg "You will now hunt all hostile players."
-                gumpresponse 8 4267467659
-                waitforgump 4267467659 5000
-                endwhile
-                gumpresponse 6 4267467659
-                wait 500
-                clearsysmsg 
-            endif
-        gumpclose 4267467659
-        overhead "[ AUTO RECALL ACTIVATED! ]" 37
-        wait 100
-endif 
-
-
-if not findbuff 'food satisfaction' and findtype "wedge%s% of cheese|fish steak%s%" self and EnableCheeseTimer = 1
-    wait 1500
-    overhead "Hold on, I shouldn't do this on an empty stomach..." 1909
-    wait 500
-        if findtype "wedge%s% of cheese|fish steak%s%" backpack as Food
-            overhead "*eating food...*" 0
-            dclick Food
-            wait 1500
-            overhead "Ok, I'm ready to get to work!" 1909
-            wait 250
-        endif
-endif 
-
-
 if not findtype 'pickaxe' self
     overhead "I can't mine with no pickaxes!" 1909
     wait 2500
     overhead '[ STOPPING SCRIPT... ]' 37
     stop  
 endif 
-
-
-if not findtype 'pickaxe' hand and findtype 'pickaxe' backpack
-    dclicktype 'pickaxe' backpack
-    wait 1500
-endif
-
-
-if findtype 'pickaxe' hand as MyAxe and EnableToolCountdown = 1
-    getlabel MyAxe AxeLabel
-    if '(5 uses' in AxeLabel or '(4 uses' in AxeLabel or '(3 uses' in AxeLabel or '(2 uses' in AxeLabel or '(1 use' in AxeLabel
-        if EnableRecycleTool = 0
-        sysmsg "YOUR TOOL IS ABOUT TO BREAK....." 153
-        endif 
-        if EnableRecycleTool = 1
-        sysmsg "YOUR TOOL IS ABOUT TO BE RECYCLED....." 93
-        endif 
-        wait 100
-    endif 
-endif 
-
-
-if findtype 'tool kit' self as ToolKit and EnableRecycleTool = 1
-    if findtype 'pickaxe|hatchet' hand as MyAxe
-        getlabel MyAxe AxeLabel
-        if '(2 use' in AxeLabel
-            overhead "[ RECYCLING TOOL! ]" 93
-            clearhands both
-            wait 1000
-            if not gumpexists 949095101 
-                dclick ToolKit
-                waitforgump 949095101 2000
-            endif 
-        
-            for 5
-            gumpresponse 3 949095101
-            wait 1000
-                if insysmsg "Target an individual item"
-                    wait 500
-                    target MyAxe
-                    wait 1000
-                    gumpclose 949095101
-                    wait 1000
-                    overhead "Every little bit counts..." 1909
-                    hotkey 'Organizer Agent-11' 
-                    wait 1500
-                    replay
-                else
-                    gumpresponse 2
-                    wait 500
-            endfor 
-            endif 
-        endif 
-    endif 
-endif
-
-
-if not findtype 'tool kit' self and EnableRecycleTool = 1
-    overhead "[ NO TOOL KIT! ]" 339
-    sysmsg "Disable 'EnableRecycleTool' in script variables to turn off this overhead message!" 0
-endif
 
 
 if warmode and EnableAutoAttackGreyMOB = 1
@@ -1437,7 +1435,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
                 overhead "*nothing to repair!*" 0
             else
                 settimer RepairTimer 0
-            while timer RepairTimer <= 5000 
+            while timer RepairTimer <= 5000
                 if insysmsg "Repair"
                     break
                 endif
@@ -1477,7 +1475,7 @@ if warmode and EnableAutoAttackGreyMOB = 1
 endif 
 
 if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" self or if skill "Swordsmanship" > 50 and not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" self
-    overhead "I can't fight without a weapon!"  1909
+    overhead "I can't fight without a weapon!"  2086
         wait 1500 
         overhead "I'd better RUN!!" 37
         hotkey 'Toggle Peace Only'  
@@ -1674,8 +1672,14 @@ if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cu
         hotkey "Organizer Agent-04"
         overhead "[ STOPPING SCRIPT! ]" 337
         stop  
+    endif 
 endif 
-endif 
+
+
+if not findtype 'pickaxe' hand and findtype 'pickaxe' backpack
+    dclicktype 'pickaxe' backpack
+    wait 1500
+endif
 
 
 if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
@@ -1734,10 +1738,12 @@ if EnableWeightWarningMessage = 1 and not cooldown "Weight Timer"
     endif
 endif 
 
+
 hotkey 'Use item in hand' 
 waitfortarget 250
 hotkey 'Target Self' 
 wait MinerWaitTime
+
 
 if insysmsg "Now tracking" or insysmsg "Distance to destination"
     pushlist "mining_alert" "red_alert_recall" 
@@ -2051,47 +2057,16 @@ if insysmsg "Now tracking" or insysmsg "Distance to destination"
                 wait 100
                 clearsysmsg 
                 replay  
-endif 
+        endif 
     
-    replay
+        replay
     endif
     
 endif
 
 
-#########################################################
-# END OF MINING SCRIPT / BEGINNING OF LUMBERJACK SCRIPT #
-#########################################################
-
 
 if not dead and skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1
-
-if insysmsg "Captcha successful."
-    overhead "I guess you got the magic numbers right??" 2086
-    wait 1500
-    overhead "Alright, let's get to work..." 2086
-endif
-
-
-if insysmsg "As the owner" or insysmsg "Your house and its contents"
-    wait 500
-    overhead "*door slams!*" 0 MyDoor
-    dclick MyDoor 
-    wait 500
-endif
-
-
-if insysmsg "You have unlocked a codex upgrade point"
-    overhead "[ CODEX POINT UNLOCKED! ]" 2114
-endif 
- 
-if insysmsg "enough experience to upgrade"
-    overhead "[ ASPECT UPGRADE AVAILABLE! ]" 2086
-endif 
-
-
-clearsysmsg
-hotkey 'Cancel Current Target'
 
 
 if not varexist boardbag and EnableBoardBag = 1
@@ -2114,52 +2089,7 @@ if not varexist lumber_runebook and EnableRedAlertRecall = 1
     sysmsg "Disable 'EnableRedAlertRecall' in script variables to turn off this feature!" 0
     replay
 endif
-
-
-if paralyzed and EnableParalyzePouch = 1
-    overhead "[ !!POP!! ]" 2117
-    say "[pouch" 
-endif
-
-
-if insysmsg 'world is saving' 
-    for 25
-        wait 250
-        if insysmsg 'world save complete' 
-            wait 100
-            overhead '[ WORLD SAVE COMPLETE! ]' 253 
-            clearsysmsg 
-            replay
-        endif  
-    endfor 
-    clearsysmsg 
-    replay    
-endif 
     
-
-if EnableGoldVacuum = 1
-    if findtype "gold coin" ground -1 -1 15 as droppedmoney and not cooldown "Gold Radar"   
-        overhead "[ $ ]" 149 droppedmoney         
-        overhead "¼" 149 droppedmoney
-        cooldown "Gold Radar" 3500
-    endif
-
-    
-    if findtype "gold coin" ground -1 -1 2 as droppedmoney and not cooldown "Gold Vacuum"
-        overhead "[ CLEANUP... ]" 149
-        hotkey "Grab Item"
-        wft 2500
-        target droppedmoney
-        wait 1000
-        if insysmsg "Invalid or inaccessible item"
-            overhead "I can't get to that!" 1909
-            wait 1000
-            @ignore droppedmoney
-        endif  
-        cooldown "Gold Vacuum" 1500
-    endif
-endif 
-
 
 if not listexists "lumber_alert"
     createlist "lumber_alert"  
@@ -2432,163 +2362,6 @@ if inlist "lumber_alert" "red_alert_recall" and EnableRedAlertRecall = 1
 endif 
 
 
-if skill 'Healing' > 50 
-    if not bandaging and hits < maxhits
-        overhead '*applying bandages...*' 88
-        hotkey "Bandage Self"
-    endif
-    
-    if counttype 'clean bandage%s%' < 5
-        overhead "[ RESTOCK BANDAGES! ]" 88
-    endif 
-   
-endif 
-
-
-if EnableCurePotion = 1
-    if poisoned and not cooldown "Cure Potion" and hits < CurePotHP
-        if findtype "Orange Potion" self as curepot
-            overhead '*drinking cure potion...*' 44
-            dclick curepot
-            cooldown "Cure Potion" 10500
-            wait 200
-        else
-            overhead "Out of cure pots!" 337
-        endif
-    endif
-endif 
-
-
-if EnableHealPotion = 1
-    if hits < HealPotHP and not cooldown "Healing Potion"
-        if findtype "Yellow Potion" self as healpot
-            overhead '*drinking heal potion...*' 253
-            dclick healpot
-            cooldown "Healing Potion" 10500
-            wait 200
-        else 
-            overhead 'Out of heal pots!' 337
-        endif
-    endif
-endif 
-
-
-if EnableRefreshPotion = 1
-    if stam < RefreshPotSP and not cooldown "Refresh Potion"
-        if findtype "Red Potion" self as refreshpot
-            overhead '*drinking refresh potion...*' 34
-            dclick refreshpot
-            cooldown "Refresh Potion" 10500
-            wait 200
-        else 
-            overhead 'Out of refresh pots!' 337
-        endif
-    endif
-endif
-
-
-if skill 'Magery' > 50 and not findbuff 'Magic Reflection' and not cooldown "Magic Shield" and EnableMagicReflection = 1 and mana > 14
-    overhead 'I should protect myself...' 2086
-    for 10
-        cast 'Magic Reflection' 
-        waitfortarget 1500
-        hotkey 'Target Self'
-        wait 1000
-            if insysmsg "That spell will not adhere"
-                cooldown "Magic Shield" 30000
-            overhead "Too soon for a new shield.  Give me a sec..." 2086
-                replay
-            endif 
-        if cooldown "Spell Fail"
-            wait 1000
-            overhead "Let me try that again..." 2086
-            wait 1000
-        else
-            break
-        endif 
-    endfor 
-    wait 500
-    overhead "[ MAGIC SHEILD ACTIVATED! ]" 10
-    wait 1000
-    replay
-endif  
-
-
-if findtype 'Elven SpellBlade' self and EnableAutoCarving = 1
-    if findtype "corpse" ground -1 -1 2 as goner
-        wait 500
-        dclicktype "Elven Spellblade"
-        waitfortarget 2000
-        target 'self'
-        wait 250
-        overhead "*skinning corpse...*" 337
-        wait 500
-        @ignore goner
-    endif 
-endif
-    
-
-if not findtype 'Elven SpellBlade' self and EnableAutoCarving = 1
-    overhead "[ NO SKINNING KNIFE! ]" 339
-    sysmsg "Disable EnableAutoCarving in script variables to turn off this overhead message!" 0
-endif 
-
-
-if EnableWeaponWarning = 1
-    if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack
-        if not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand
-            overhead "[ NO WEAPON! ]" 339
-            sysmsg "Disable 'EnableWeaponWarning' in script variables to turn off this feature!" 0
-        endif
-    endif 
-
-    if skill "Swordsmanship" > 50 and not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" backpack
-        if not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" hand
-            overhead "[ NO WEAPON! ]" 339
-            sysmsg "Disable 'EnableWeaponWarning' in script variables to turn off this feature!" 0
-        endif
-    endif
-endif 
-
-
-if AllInventoryMessage = 1
-    if counttype "rope" self = 0 and RopeInventoryMessage = 1
-        overhead "[ RESTOCK ROPE! ]" 2799
-        sysmsg "Disable RopeInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Yellow Potion" self = 0 and YellowInventoryMessage = 1
-        overhead "[ RESTOCK HEAL POTIONS! ]" 253
-        sysmsg "Disable YellowInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Orange Potion" self = 0 and OrangeInventoryMessage = 1
-        overhead "[ RESTOCK CURE POTIONS! ]" 44
-        sysmsg "Disable OrangeInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Red Potion" self = 0 and RedInventoryMessage = 1
-        overhead "[ RESTOCK REFRESH POTIONS! ]" 37
-        sysmsg "Disable RedInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "White Potion" self = 0 and WhiteInventoryMessage = 1 
-        overhead "[ RESTOCK STRENGTH POTIONS! ]" 956
-        sysmsg "Disable WhiteInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Blue Potion" self = 0 and BlueInventoryMessage = 1
-        overhead "[ RESTOCK AGILITY POTIONS! ]" 93
-        sysmsg "Disable BlueInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-
-    if counttype "Black Potion" self = 0 and BlackInventoryMessage = 1
-        overhead "[ RESTOCK MAGIC RESIST POTIONS! ]" 0
-        sysmsg "Disable BlackInventoryMessage in script variables to turn off this overhead message!" 0
-    endif 
-endif
-
-
 if counttype "board%s" > BoardRecallAmount and EnableBoardAutoRecall = 1
     overhead "I'd hate to lose all this hard work..." 2086
     wait 2500
@@ -2796,43 +2569,6 @@ endif
 endif 
         
 
-if skill 'Tracking' > 50 and not findbuff 'tracking' and EnableRedAlertRecall = 1
-    overhead 'I should keep an eye out for trouble...' 2086
-    wait 1500
-        while not gumpexists 4267467659
-            useskill 'tracking'
-            wait 250
-        endwhile
-            if gumpexists 4267467659
-                while not insysmsg "You will now hunt all hostile players."
-                gumpresponse 8 4267467659
-                waitforgump 4267467659 5000
-                endwhile
-                gumpresponse 6 4267467659
-                wait 500
-                clearsysmsg 
-            endif
-        gumpclose 4267467659
-        overhead "[ AUTO RECALL ACTIVATED! ]" 37
-        wait 1500
-        overhead "These woods are a dangerous place!" 2086
-        wait 500
-endif 
-
-
-if not findbuff 'food satisfaction' and findtype "wedge%s% of cheese|fish steak%s%" self and EnableCheeseTimer = 1
-    wait 1500
-    overhead "Hold on, I shouldn't do this on an empty stomach..." 2086
-    wait 500
-        if findtype "wedge%s% of cheese|fish steak%s%" backpack as Food
-            overhead "*eating food...*" 0
-            dclick Food
-            wait 1500
-            overhead "Ok, I'm ready to get to work!" 2086
-        endif
-endif 
-
-
 if not findtype 'hatchet' self
     overhead "I can't work with no hatchet!" 2086
     wait 2500
@@ -2844,61 +2580,6 @@ endif
 if not findtype 'hatchet' hand and findtype 'hatchet' backpack
     dclicktype 'hatchet' backpack
     wait 1500
-endif
-
-
-if findtype 'pickaxe' hand as MyAxe and EnableToolCountdown = 1
-    getlabel MyAxe AxeLabel
-    if '(5 uses' in AxeLabel or '(4 uses' in AxeLabel or '(3 uses' in AxeLabel or '(2 uses' in AxeLabel or '(1 use' in AxeLabel
-        if EnableRecycleTool = 0
-            sysmsg "YOUR TOOL IS ABOUT TO BREAK....." 153
-        endif 
-        if EnableRecycleTool = 1
-            sysmsg "YOUR TOOL IS ABOUT TO BE RECYCLED....." 93
-        endif 
-        wait 100
-    endif 
-endif 
-
-
-if findtype 'tool kit' self as ToolKit and EnableRecycleTool = 1
-    if findtype 'pickaxe|hatchet' hand as MyAxe
-        getlabel MyAxe AxeLabel
-        if '(2 use' in AxeLabel
-            overhead "[ RECYCLING TOOL! ]" 93
-            clearhands both
-            wait 1000
-            if not gumpexists 949095101 
-                dclick ToolKit
-                waitforgump 949095101 2000
-            endif 
-        
-            for 5
-            gumpresponse 3 949095101
-            wait 1000
-                if insysmsg "Target an individual item"
-                    wait 500
-                    target MyAxe
-                    wait 1000
-                    gumpclose 949095101
-                    wait 1000
-                    overhead "Every little bit counts!" 2086
-                    hotkey 'Organizer Agent-01'  
-                    wait 1500
-                    replay
-                else
-                    gumpresponse 2
-                    wait 500
-            endfor 
-            endif 
-        endif 
-    endif 
-endif
-
-
-if not findtype 'tool kit' self and EnableRecycleTool = 1
-    overhead "[ NO TOOL KIT! ]" 339
-    sysmsg "Disable 'EnableRecycleTool' in script variables to turn off this overhead message!" 0
 endif
 
 
@@ -3495,13 +3176,15 @@ if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cu
         hotkey "Organizer Agent-04"
         overhead "[ STOPPING SCRIPT! ]" 337
         stop
-endif 
+    endif 
 endif
+
 
 hotkey 'Use item in hand' 
 waitfortarget 1500
 hotkey 'Target Self'   
 wait LumberWaitTime
+
 
 if insysmsg "Now tracking" 
         pushlist "lumber_alert" "red_alert_recall" 
@@ -3636,7 +3319,7 @@ if insysmsg "Now tracking"
                         wait 12000
                         replay
  
-endif 
+    endif 
 
 
     overhead '*chopping wood...*' 2128
@@ -3742,9 +3425,8 @@ if insysmsg "Now tracking"
                 wait 100
                 clearsysmsg 
                 replay
-
-endif 
-    replay
+        endif         
+        replay
     endif
     
 endif
@@ -3762,5 +3444,6 @@ endif
     wait 2500
     overhead '[ STOPPING SCRIPT... ]' 37
     stop    
+
     
 //////// REACH OUT AND LET ME KNOW IF THERE'S ANY ISSUES:  DAN@DANSTOCKMAN.COM ////////

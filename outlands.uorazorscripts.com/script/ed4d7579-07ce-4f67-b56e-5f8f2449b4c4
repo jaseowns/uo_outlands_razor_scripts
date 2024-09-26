@@ -11,7 +11,10 @@
 # https://youtube.com/jaseowns/live
 #######
 #####
-##  Verison 4.4.0
+##  Verison 4.5.0
+##  9/25/2024
+##     - add kegs
+##
 ##  8/23/2024
 ##     - adding explosion potions
 ##
@@ -73,6 +76,26 @@
 
 @setvar! drinkPotionsEvenIfInWarModeAndYouLoseHealth 1
 
+# This will be used to grab from keg if you have one
+@setvar! jaseowns_HealthPotCountInBackpack 2
+@setvar! jaseowns_CurePotCountInBackpack 2
+@setvar! jaseowns_ExplosionPotCountInBackpack 2
+@setvar! jaseowns_StrengthPotCountInBackpack 2
+@setvar! jaseowns_MagicResistPotCountInBackpack 2
+@setvar! jaseowns_RefreshPotCountInBackpack 2
+@setvar! jaseowns_AgilityPotCountInBackpack 2
+
+# Overhead counts (helps to know when low)
+@setvar! jaseowns_OverheadAlertsAboutPotionsTimerCD 5000
+@setvar! jaseowns_NoEmptyBottlesAlert 1
+@setvar! jaseowns_HealPotOverheadAlert 1
+@setvar! jaseowns_CurePotOverheadAlert 1
+@setvar! jaseowns_ExplosionPotOverheadAlert 0
+@setvar! jaseowns_StrengthPotOverheadAlert 1
+@setvar! jaseowns_MagicResistPotOverheadAlert 0
+@setvar! jaseowns_RefreshPotOverheadAlert 0
+@setvar! jaseowns_AgilityPotOverheadAlert 0
+
 ################################
 ###### Chiv abilities
 ################
@@ -130,7 +153,7 @@ if skill "Herding" > 0 and findtype 3713 self as firstJrook
     endwhile
 endif
 
-if skill "Archery" > 50
+if skill "Archery" > 50 or skill "Fishing" > 50
     @setvar! myRangeCheckForTarget 8   
 endif
 
@@ -289,9 +312,161 @@ if not timerexists jaseowns_UseAbility3Timer
 endif
 
 
+# This will be used to grab from keg if you have one
+if not varexist jaseowns_HealthPotCountInBackpack
+    @setvar! jaseowns_HealthPotCountInBackpack 2
+endif
+if not varexist jaseowns_CurePotCountInBackpack
+    @setvar! jaseowns_CurePotCountInBackpack 2
+endif
+if not varexist jaseowns_ExplosionPotCountInBackpack
+    @setvar! jaseowns_ExplosionPotCountInBackpack 2
+endif
+if not varexist jaseowns_StrengthPotCountInBackpack
+    @setvar! jaseowns_StrengthPotCountInBackpack 2
+endif
+if not varexist jaseowns_MagicResistPotCountInBackpack
+    @setvar! jaseowns_MagicResistPotCountInBackpack 2
+endif
+if not varexist jaseowns_RefreshPotCountInBackpack
+    @setvar! jaseowns_RefreshPotCountInBackpack 2
+endif
+if not varexist jaseowns_AgilityPotCountInBackpack
+    @setvar! jaseowns_AgilityPotCountInBackpack 2
+endif
+
+@setvar! jaseowns_UseItemTimerCD 500
+settimer jaseowns_UseItemTimer jaseowns_UseItemTimerCD
+
+
 @setvar! cdWorldSaveOver 15000
 
 while not dead
+
+    ## KEG CHECK (need empty bottles)
+    if findtype 3854 self 0
+
+        @setvar! jaseowns_TempOverheadHelper 0
+    
+        if timer jaseowns_UseItemTimer >= jaseowns_UseItemTimerCD and findtype 3854 self 0 and counttype 3852 self 0 < jaseowns_HealthPotCountInBackpack
+            if findtype 6464 self 253 as jaseowns_Keg
+                settimer jaseowns_UseItemTimer 0
+                dclick jaseowns_Keg
+                wait 200
+            endif
+            if jaseowns_HealPotOverheadAlert = 1 and timer jaseowns_OverheadAlertsAboutPotionsTimer >= jaseowns_OverheadAlertsAboutPotionsTimerCD
+                @setvar! jaseowns_TempOverheadHelper 1
+                if counttype 3852 self 0 as jaseowns_PotCount
+                    overhead "Heal potions: {{jaseowns_PotCount}} / {{jaseowns_HealthPotCountInBackpack}}" 253
+                else
+                    overhead "Heal potions: 0 / {{jaseowns_HealthPotCountInBackpack}}" 253
+                endif
+            endif
+        endif
+        
+        if timer jaseowns_UseItemTimer >= jaseowns_UseItemTimerCD and findtype 3854 self 0 and counttype 3847 self 0 < jaseowns_CurePotCountInBackpack
+            if findtype 6464 self 44 as jaseowns_Keg
+                settimer jaseowns_UseItemTimer 0
+                dclick jaseowns_Keg
+                wait 200
+            endif
+            if jaseowns_CurePotOverheadAlert = 1 and timer jaseowns_OverheadAlertsAboutPotionsTimer >= jaseowns_OverheadAlertsAboutPotionsTimerCD
+                @setvar! jaseowns_TempOverheadHelper 1
+                if counttype 3847 self 0 as jaseowns_PotCount
+                    overhead "Cure potions: {{jaseowns_PotCount}} / {{jaseowns_CurePotCountInBackpack}}" 44
+                else
+                    overhead "Cure potions: 0 / {{jaseowns_CurePotCountInBackpack}}" 44
+                endif
+            endif
+        endif
+                
+        if timer jaseowns_UseItemTimer >= jaseowns_UseItemTimerCD and findtype 3854 self 0 and counttype 3853 self 0 < jaseowns_ExplosionPotCountInBackpack
+            if findtype 6464 self 419 as jaseowns_Keg
+                settimer jaseowns_UseItemTimer 0
+                dclick jaseowns_Keg
+                wait 200
+            endif
+            if jaseowns_ExplosionPotOverheadAlert = 1 and timer jaseowns_OverheadAlertsAboutPotionsTimer >= jaseowns_OverheadAlertsAboutPotionsTimerCD
+                if counttype 3853 self 0 as jaseowns_PotCount
+                    @setvar! jaseowns_TempOverheadHelper 1
+                    overhead "Explosion potions: {{jaseowns_PotCount}} / {{jaseowns_ExplosionPotCountInBackpack}}" 419
+                else
+                    overhead "Explosion potions: 0 / {{jaseowns_ExplosionPotCountInBackpack}}" 419
+                endif
+            endif
+        endif
+
+        if timer jaseowns_UseItemTimer >= jaseowns_UseItemTimerCD and findtype 3854 self 0 and counttype 3849 self 0 < jaseowns_StrengthPotCountInBackpack
+            if findtype 6464 self 956 as jaseowns_Keg
+                settimer jaseowns_UseItemTimer 0
+                dclick jaseowns_Keg
+                wait 200
+            endif
+            if jaseowns_StrengthPotOverheadAlert = 1 and timer jaseowns_OverheadAlertsAboutPotionsTimer >= jaseowns_OverheadAlertsAboutPotionsTimerCD
+                @setvar! jaseowns_TempOverheadHelper 1
+                if counttype 3849 self 0 as jaseowns_PotCount
+                    overhead "Strength potions: {{jaseowns_PotCount}} / {{jaseowns_StrengthPotCountInBackpack}}" 956
+                else
+                    overhead "Strength potions: 0 / {{jaseowns_StrengthPotCountInBackpack}}" 956
+                endif
+            endif
+        endif
+        
+        if timer jaseowns_UseItemTimer >= jaseowns_UseItemTimerCD and findtype 3854 self 0 and counttype 3846 self 0 < jaseowns_MagicResistPotCountInBackpack
+            if findtype 6464 self 1109 as jaseowns_Keg
+                settimer jaseowns_UseItemTimer 0
+                dclick jaseowns_Keg
+                wait 200
+            endif
+            if jaseowns_MagicResistPotOverheadAlert = 1 and timer jaseowns_OverheadAlertsAboutPotionsTimer >= jaseowns_OverheadAlertsAboutPotionsTimerCD
+                @setvar! jaseowns_TempOverheadHelper 1
+                if counttype 3846 self 0 as jaseowns_PotCount
+                    overhead "Resist potions: {{jaseowns_PotCount}} / {{jaseowns_MagicResistPotCountInBackpack}}" 1109
+                else
+                    overhead "Resist potions: 0 / {{jaseowns_MagicResistPotCountInBackpack}}" 1109
+                endif
+            endif
+        endif
+
+        if timer jaseowns_UseItemTimer >= jaseowns_UseItemTimerCD and findtype 3854 self 0 and counttype 3851 self 0 < jaseowns_RefreshPotCountInBackpack
+            if findtype 6464 self 37 as jaseowns_Keg
+                settimer jaseowns_UseItemTimer 0
+                dclick jaseowns_Keg
+                wait 200
+            endif
+            if jaseowns_RefreshPotOverheadAlert = 1 and timer jaseowns_OverheadAlertsAboutPotionsTimer >= jaseowns_OverheadAlertsAboutPotionsTimerCD
+                @setvar! jaseowns_TempOverheadHelper 1
+                if counttype 3851 self 0 as jaseowns_PotCount
+                    overhead "Refresh potions: {{jaseowns_PotCount}} / {{jaseowns_RefreshPotCountInBackpack}}" 37
+                else
+                    overhead "Refresh potions: 0 / {{jaseowns_RefreshPotCountInBackpack}}" 37
+                endif
+            endif
+        endif
+        
+        if timer jaseowns_UseItemTimer >= jaseowns_UseItemTimerCD and findtype 3854 self 0 and counttype 3848 self 0 < jaseowns_AgilityPotCountInBackpack
+            if findtype 6464 self 93 as jaseowns_Keg
+                settimer jaseowns_UseItemTimer 0
+                dclick jaseowns_Keg
+                wait 200
+            endif
+            if jaseowns_AgilityPotOverheadAlert = 1 and timer jaseowns_OverheadAlertsAboutPotionsTimer >= jaseowns_OverheadAlertsAboutPotionsTimerCD
+                @setvar! jaseowns_TempOverheadHelper 1
+                if counttype 3848 self 0 as jaseowns_PotCount
+                    overhead "Agility potions: {{jaseowns_PotCount}} / {{jaseowns_AgilityPotCountInBackpack}}" 93
+                else
+                    overhead "Agility potions: 0 / {{jaseowns_AgilityPotCountInBackpack}}" 93
+                endif
+            endif
+        endif
+        
+        if jaseowns_TempOverheadHelper = 1
+            settimer jaseowns_OverheadAlertsAboutPotionsTimer 0
+        endif
+    elseif jaseowns_NoEmptyBottlesAlert = 1 and timer jaseowns_OverheadAlertsAboutPotionsTimer >= jaseowns_OverheadAlertsAboutPotionsTimerCD and findtype "keg" self
+        overhead "No empty bottles, you might be missing potions" 34
+        settimer jaseowns_OverheadAlertsAboutPotionsTimer 0
+    endif
 
     if not gumpexists 3954121934 and jaseowns_LoadWeaponAbilityBar = 1
         say '[abilitieshotbar'

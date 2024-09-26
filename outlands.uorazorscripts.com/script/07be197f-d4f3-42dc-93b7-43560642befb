@@ -10,6 +10,12 @@
 # Choose what you want to save...
 ###
 
+# 9/25/2024 
+# [-] We are going to fix 120 item id
+# [-] We are going to add Slayer preferences (lesser / greater / etc)
+# [-] Container wand not supported - use regular wand
+# [-] Maybe.. do items already in your bag?
+
 
 # will drop default hued items (regular boards, etc)
 @setvar! jase_AutoDropIngots 1
@@ -18,7 +24,7 @@
 @setvar! jase_AutoDropScrolls 1
 
 # will drink the essence juice at end of script
-@setvar! jase_AutoConsumeArcaneEssence 1
+@setvar! jase_AutoConsumeArcaneEssence 0
 
 # accuracy
 @setvar! jase_save_supremely 1
@@ -35,7 +41,10 @@
 @setvar! jase_save_ruin 0
 
 # slayers
-@setvar! jase_save_slaying 1
+@setvar! jase_save_regular_slaying 1
+@setvar! jase_save_greater_slaying 1
+@setvar! jase_save_lesser_slaying 1
+
 
 # protection
 @setvar! jase_save_invulnerability 1
@@ -44,6 +53,9 @@
 @setvar! jase_save_guarding 0
 @setvar! jase_save_defense 0
 
+# regular items in bag
+@setvar! jaseowns_save_exceptional 1
+
 @setvar! itemsGoInHere backpack
 if findtype "pouch" backpack 38 as jootpouch
     @setvar! itemsGoInHere jootpouch
@@ -51,13 +63,18 @@ elseif findtype "pouch" backpack 0 as jootpouch
     @setvar! itemsGoInHere jootpouch
 endif
 
-
 if skill "Item Identification" = 120
     // will do container
 elseif skill "Item Identification" >= 30
     // will do item id skill
-elseif findtype "wand" backpack as idWandHopefully
+elseif findtype 20496 backpack as idWandHopefully
     // will try to use wand
+elseif findtype 20495 backpack as idWandHopefully
+    overhead "Jase says: WRONG WAND" 34
+    overhead "Jase says: Need single item wand" 77
+    sysmsg "Jase says: WRONG WAND" 34
+    sysmsg "Jase says: Need single item wand" 77
+    stop
 else
     overhead "Jase says: Not able to ID items.." 34
     overhead "Jase says: Need skill or wand" 77
@@ -83,7 +100,6 @@ endif
 ##
 #############
 
-@setvar! jase_currentItem 0
 @setvar! messySourceContainer backpack
 
 # Where items get stored.. leave these here for now
@@ -115,8 +131,10 @@ while findtype 31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
-    if jase_save_slaying = 1 and "slaying" in desc
+    @setvar! recycleItem 1
+    if jase_save_greater_slaying = 1 and "slaying" in desc and "greater" in desc
+        @setvar! saveItem 1
+    elseif jase_save_lesser_slaying = 1 and "slaying" in desc and "lesser" in desc
         @setvar! saveItem 1
     elseif jase_save_supremely = 1 and "supremely" in desc
         @setvar! saveItem 1
@@ -138,51 +156,61 @@ while findtype 31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037
         @setvar! saveItem 1
     elseif jase_save_ruin = 1 and "ruin" in desc
         @setvar! saveItem 1
+    elseif jase_save_regular_slaying = 1 and "slaying" in desc
+        if "lesser" in desc
+            // do nothing
+        else
+            @setvar! saveItem 1
+        endif
     endif
 
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         lift item
         drop jase_Staff_Storage 0 0 0
         wait 650
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -195,8 +223,10 @@ while findtype 3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
-    if jase_save_slaying = 1 and "slaying" in desc
+    @setvar! recycleItem 1
+    if jase_save_greater_slaying = 1 and "slaying" in desc and "greater" in desc
+        @setvar! saveItem 1
+    elseif jase_save_lesser_slaying = 1 and "slaying" in desc and "lesser" in desc
         @setvar! saveItem 1
     elseif jase_save_supremely = 1 and "supremely" in desc
         @setvar! saveItem 1
@@ -218,51 +248,61 @@ while findtype 3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|
         @setvar! saveItem 1
     elseif jase_save_ruin = 1 and "ruin" in desc
         @setvar! saveItem 1
+    elseif jase_save_regular_slaying = 1 and "slaying" in desc
+        if "lesser" in desc
+            // do nothing
+        else
+            @setvar! saveItem 1
+        endif
     endif
 
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         lift item
         drop jase_Swords_Storage 0 0 0
         wait 650
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -278,8 +318,10 @@ while findtype 3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|3099
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
-    if jase_save_slaying = 1 and "slaying" in desc
+    @setvar! recycleItem 1
+    if jase_save_greater_slaying = 1 and "slaying" in desc and "greater" in desc
+        @setvar! saveItem 1
+    elseif jase_save_lesser_slaying = 1 and "slaying" in desc and "lesser" in desc
         @setvar! saveItem 1
     elseif jase_save_supremely = 1 and "supremely" in desc
         @setvar! saveItem 1
@@ -299,53 +341,61 @@ while findtype 3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|3099
         @setvar! saveItem 1
     elseif jase_save_might = 1 and "might" in desc
         @setvar! saveItem 1
-    elseif jase_save_ruin = 1 and "ruin" in desc
-        @setvar! saveItem 1
+    elseif jase_save_regular_slaying = 1 and "slaying" in desc
+        if "lesser" in desc
+            // do nothing
+        else
+            @setvar! saveItem 1
+        endif
     endif
 
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         lift item
         drop jase_Macing_Storage 0 0 0
         wait 650
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -357,12 +407,14 @@ if jase_Fencing_Storage != 0 and jase_Fencing_Storage != itemsGoInHere
     dclick jase_Fencing_Storage
     wait 650
 endif
-while findtype 3719|3922|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188 messySourceContainer as item
+while findtype 31172|31169|3719|3922|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188 messySourceContainer as item
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
-    if jase_save_slaying = 1 and "slaying" in desc
+    @setvar! recycleItem 1
+    if jase_save_greater_slaying = 1 and "slaying" in desc and "greater" in desc
+        @setvar! saveItem 1
+    elseif jase_save_lesser_slaying = 1 and "slaying" in desc and "lesser" in desc
         @setvar! saveItem 1
     elseif jase_save_supremely = 1 and "supremely" in desc
         @setvar! saveItem 1
@@ -384,51 +436,61 @@ while findtype 3719|3922|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176
         @setvar! saveItem 1
     elseif jase_save_ruin = 1 and "ruin" in desc
         @setvar! saveItem 1
+    elseif jase_save_regular_slaying = 1 and "slaying" in desc
+        if "lesser" in desc
+            // do nothing
+        else
+            @setvar! saveItem 1
+        endif
     endif
 
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         lift item
         drop jase_Fencing_Storage 0 0 0
         wait 650
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -444,8 +506,10 @@ while findtype 3920|5042|5117|30990|30993|30994|30995|31184|31186 messySourceCon
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
-    if jase_save_slaying = 1 and "slaying" in desc
+    @setvar! recycleItem 1
+    if jase_save_greater_slaying = 1 and "slaying" in desc and "greater" in desc
+        @setvar! saveItem 1
+    elseif jase_save_lesser_slaying = 1 and "slaying" in desc and "lesser" in desc
         @setvar! saveItem 1
     elseif jase_save_supremely = 1 and "supremely" in desc
         @setvar! saveItem 1
@@ -467,51 +531,61 @@ while findtype 3920|5042|5117|30990|30993|30994|30995|31184|31186 messySourceCon
         @setvar! saveItem 1
     elseif jase_save_ruin = 1 and "ruin" in desc
         @setvar! saveItem 1
+    elseif jase_save_regular_slaying = 1 and "slaying" in desc
+        if "lesser" in desc
+            // do nothing
+        else
+            @setvar! saveItem 1
+        endif
     endif
 
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         lift item
         drop jase_Archery_Storage 0 0 0
         wait 650
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -527,7 +601,7 @@ while findtype 7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130 messySou
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
+    @setvar! recycleItem 1
     if jase_save_invulnerability = 1 and "invulnerability" in desc
         @setvar! saveItem 1
     elseif jase_save_fortification = 1 and "fortification" in desc
@@ -541,48 +615,52 @@ while findtype 7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130 messySou
     endif
 
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         lift item
         drop jase_Shield_Storage 0 0 0
         wait 650
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -598,8 +676,10 @@ while findtype 3570|3571|3572|3573|3834 messySourceContainer as item
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
-    if jase_save_slaying = 1 and "slaying" in desc
+    @setvar! recycleItem 1
+    if jase_save_greater_slaying = 1 and "slaying" in desc and "greater" in desc
+        @setvar! saveItem 1
+    elseif jase_save_lesser_slaying = 1 and "slaying" in desc and "lesser" in desc
         @setvar! saveItem 1
     elseif jase_save_supremely = 1 and "supremely" in desc
         @setvar! saveItem 1
@@ -621,51 +701,61 @@ while findtype 3570|3571|3572|3573|3834 messySourceContainer as item
         @setvar! saveItem 1
     elseif jase_save_ruin = 1 and "ruin" in desc
         @setvar! saveItem 1
+    elseif jase_save_regular_slaying = 1 and "slaying" in desc
+        if "lesser" in desc
+            // do nothing
+        else
+            @setvar! saveItem 1
+        endif
     endif
 
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         lift item
         drop jase_Mage_Storage 0 0 0
         wait 650
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -681,8 +771,10 @@ while findtype 22187|31141|31142 messySourceContainer as item
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
-    if jase_save_slaying = 1 and "slaying" in desc
+    @setvar! recycleItem 1
+    if jase_save_greater_slaying = 1 and "slaying" in desc and "greater" in desc
+        @setvar! saveItem 1
+    elseif jase_save_lesser_slaying = 1 and "slaying" in desc and "lesser" in desc
         @setvar! saveItem 1
     elseif jase_save_supremely = 1 and "supremely" in desc
         @setvar! saveItem 1
@@ -704,51 +796,61 @@ while findtype 22187|31141|31142 messySourceContainer as item
         @setvar! saveItem 1
     elseif jase_save_ruin = 1 and "ruin" in desc
         @setvar! saveItem 1
+    elseif jase_save_regular_slaying = 1 and "slaying" in desc
+        if "lesser" in desc
+            // do nothing
+        else
+            @setvar! saveItem 1
+        endif
     endif
 
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         lift item
         drop jase_Wrestling_Storage 0 0 0
         wait 650
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -764,8 +866,10 @@ while findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 mes
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
-    if jase_save_slaying = 1 and "enticement" in desc
+    @setvar! recycleItem 1
+    if jase_save_greater_slaying = 1 and "enticement" in desc and "greater" in desc
+        @setvar! saveItem 1
+    elseif jase_save_lesser_slaying = 1 and "enticement" in desc and "lesser" in desc
         @setvar! saveItem 1
     elseif jase_save_supremely = 1 and "supremely" in desc
         @setvar! saveItem 1
@@ -787,51 +891,61 @@ while findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 mes
         @setvar! saveItem 1
     elseif jase_save_ruin = 1 and "ruin" in desc
         @setvar! saveItem 1
+    elseif jase_save_regular_slaying = 1 and "enticement" in desc
+        if "lesser" in desc
+            // do nothing
+        else
+            @setvar! saveItem 1
+        endif
     endif
 
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         lift item
         drop jase_Music_Storage 0 0 0
         wait 650
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -843,7 +957,7 @@ while findtype 5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|
     getlabel item desc
     overhead "Item: {{desc}}" 88
     @setvar! saveItem 0
-    @setvar! ignoreItem 1
+    @setvar! recycleItem 1
 
     if jase_save_invulnerability = 1 and "invulnerability" in desc
         @setvar! saveItem 1
@@ -858,30 +972,28 @@ while findtype 5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|
     endif
     
     if "unidentified" in desc
-        @setvar! jase_currentItem item
         if skill "Item Identification" = 120
             useskill "itemId"
             wft 500
             target messySourceContainer
             wait 2000
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         elseif skill "Item Identification" >= 30
             useskill "itemId"
             wft 500
             target item
             wait 2000
-            @setvar! ignoreItem 0
-        elseif findtype "wand" backpack as idWandHopefully
+            @setvar! recycleItem 0
+        elseif findtype 20496 backpack as idWandHopefully
             dclick idWandHopefully
             wft 500
             target item
-            @setvar! ignoreItem 0
+            @setvar! recycleItem 0
         endif
     endif
 
     if saveItem = 1
         overhead "Saving: {{desc}}" 77
-        @setvar! jase_currentItem 0
         if "plate" in desc
             @setvar! saveItem jase_Plate_Storage
         elseif "chain" in desc
@@ -904,18 +1016,24 @@ while findtype 5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|
         @ignore item
     endif
 
-    if ignoreItem = 1
-        if find jase_currentItem backpack
-            if not gumpexists 949095101
-                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
-                    dclick recyclerItemKit
-                    waitforgump 949095101 5000
+    if recycleItem = 1
+        if find item backpack
+            if jaseowns_save_exceptional = 1 and "exceptional" in desc
+                // do nothing
+            elseif "aspect" in desc
+                // do nothing
+            else
+                if not gumpexists 949095101
+                    if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                        dclick recyclerItemKit
+                        waitforgump 949095101 5000
+                    endif
                 endif
-            endif
-            if gumpexists 949095101      
-                gumpresponse 3 949095101
-                wft 500
-                target jase_currentItem
+                if gumpexists 949095101      
+                    gumpresponse 3 949095101
+                    wft 500
+                    target item
+                 endif
              endif
          endif
          @ignore item
@@ -979,7 +1097,11 @@ if jase_AutoDropScrolls = 1 and findtype 3827 backpack 0 as jaseowns_DropItem
     wait 650
 endif
 
-
+if listexists jaseowns_PreviousScript
+    foreach myScript in jaseowns_PreviousScript
+        hotkey myScript
+    endfor
+endif
 
 if name = "Jase Owns"
     hotkey "Play Script: Mage\MageBotTamer"

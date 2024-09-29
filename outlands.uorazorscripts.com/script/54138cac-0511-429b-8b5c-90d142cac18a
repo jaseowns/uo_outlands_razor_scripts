@@ -6,6 +6,8 @@
 
 # Bapeths "Master Background" Ship Script
 #
+# Sept 29th (preliminary pooner code addition, may be buggy its unfinished)
+#
 # Script is desinged for Necromancers
 # Best aspect is "Madness" but many other spell focused aspects work as well
 #
@@ -36,9 +38,76 @@
 # "Auto Loot Control"
 # This script uses razor "Auto-Queue Object Delay" setting
 # Make sure this setting is turned ON in the razor Options tab > Targeting & Queues sub-tab
-# And set "object delay to 500" AUTO LOOTING WILL BE SLOW IF YOU DONT DO THIS!
+# And set "object delay to 503" AUTO LOOTING WILL BE SLOW IF YOU DONT DO THIS!
 #
 # Script starts here
+
+if skill "Tactics" >= 100    
+    if hp = maxhp
+        //donothing
+    elseif not bandaging and findtype 3617 backpack
+        hotkey "Bandage Self"
+    endif
+    while poisoned and not targetexists 
+        if findtype "Orange Potion" backpack as curepot
+            dclick curepot
+            pause 500
+            getlabel backpack ping
+        endif
+    endwhile
+
+    if skill "Alchemy" >= 0 and not hidden
+        if not findbuff "Strength" and findtype "White Potion" backpack as wpot
+            dclick wpot
+            pause 500
+            getlabel backpack ping
+        endif
+        if not findbuff "Agility" and findtype "Blue Potion" backpack as bpot
+            dclick bpot
+            pause 500
+            getlabel backpack ping
+        endif
+        if not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as mpot
+            dclick mpot
+            pause 500
+            getlabel backpack ping
+        endif
+    endif
+
+    if skill "Fishing" >= 80 and cooldown "Fray"
+        clearsysmsg 
+        hotkey "Next Grey Monster Target"
+        if not insysmsg "No one matching"
+            @setvar "oceantarget" lasttarget 
+        endif
+        hotkey "Next Murderer Monster Target"
+        if not insysmsg "No one matching"
+            @setvar "oceantarget" lasttarget 
+        endif
+        settimer oceanscan 0
+    endif
+    if find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and skill "Fishing" >= 80 and cooldown "Fray"
+        attack "oceantarget"
+    endif
+
+    if not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 66 and findtype "spyglass" backpack as bspy
+        gumpclose 2890020940
+        dclick bspy
+        wft 500
+        target self
+        hotkey "Cancel Current Target"
+        waitforgump 2890020940 500
+        if gumpexists 2890020940
+            gumpresponse 4
+            waitforgump 2890020940 500
+        endif
+        if gumpexists 2890020940
+            overhead 'Yarr!' 67
+        endif        
+    endif
+endif
+
+
 if insysmsg "You now feel familiar with the area"
     cooldown "Adv Pack" 720000
 endif
@@ -143,7 +212,7 @@ if not warmode
         cooldown "Disco" 10000
     endif
     if not targetexists 
-        while hp < 33
+        while hp < 33 and skill "Magery" >= 30
             hotkey 'Cancel Current Target'
             cast 'Heal'
             wft 2500
@@ -154,7 +223,7 @@ if not warmode
         if hp < 77 and findtype "Yellow Potion" backpack as healpot
             dclick healpot
         endif
-        if hp < 55
+        if hp < 55 and skill "Magery" >= 60
             hotkey 'Cancel Current Target'
             cast 'Greater Heal'
             wft 3500
@@ -162,7 +231,7 @@ if not warmode
             hotkey 'Cancel Current Target'
             pause 250
         endif
-        if hp < 83
+        if hp < 83 and skill "Magery" >= 30
             hotkey 'Cancel Current Target'
             cast 'Heal'
             wft 2500
@@ -173,14 +242,14 @@ if not warmode
         while poisoned and not targetexists 
             if findtype "Orange Potion" backpack as curepot
                 dclick curepot
-            elseif mana >= 6
+        elseif mana >= 6 and skill "Magery" >= 40
                 cast "Cure"
                 wft 2500
                 target self
                 hotkey 'Cancel Current Target'
             endif
         endwhile
-        if mana <= 20 and not findbuff "Actively Meditating" and not cooldown "Magic Mushroom"
+        if skill "Magery" >= 80 and mana <= 20 and not findbuff "Actively Meditating" and not cooldown "Magic Mushroom"
             dclicktype 'mushroom'
         endif
         if skill "Provocation" >= 10 and not findbuff "Actively Meditating" and not cooldown "Disco" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not findbuff "Song of provocation"
@@ -195,7 +264,7 @@ if not warmode
             wft 500
             targetrelloc -1 -1
         endif
-        if not findbuff "Actively Meditating" and not findbuff "Cunning" and mana >= 6
+        if not findbuff "Actively Meditating" and not findbuff "Cunning" and mana >= 6 and skill "Magery" >= 40
             cast "Cunning"
             wft 1500
             target self
@@ -216,7 +285,7 @@ if not warmode
     if findtype "5188" ground -1 -1 22 as bomb
         overhead "***BOMB***" 34 bomb
     endif
- 
+       
     if skill "Arcane" >= 80 and cooldown "Fray"
         clearsysmsg 
         hotkey "Next Grey Monster Target"
@@ -230,25 +299,26 @@ if not warmode
         settimer oceanscan 0
     endif
     if find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and skill "Arcane" >= 80 and cooldown "Fray"
+        attack "Manual Override"
         attack "oceantarget"
     endif
     
     if find "shiphold" ground -1 -1 1
         clearsysmsg 
-    while findtype "cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|hieroglyph|figurine|statue|44987|49730|47107|18653|45127|47103|29363|47105|29361|3712|3648|3650|3708|3648|2475|3649|29833|29832|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|3922|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|3861|3821" backpack as bitem
+    while findtype "cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|hieroglyph|figurine|statue|44987|49730|47107|18653|45127|47103|29363|47105|29361|3712|3648|3650|3708|3648|2475|3649|29833|29832|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|3861|3821" backpack as bitem
             lift bitem 60000
             drop shiphold
             while queued
-                wait 500
+                //dotnothing
             endwhile
         endwhile
     endif
 elseif warmode 
-    if not timerexists leylinetimer 
+    if skill "Arcane" >= 80 and not timerexists leylinetimer 
         createtimer leylinetimer
         settimer leylinetimer 3000
     endif
-    if mana <= 80 and timer leylinetimer >= 3000 and find "oceantarget" ground -1 -1 12
+    if skill "Arcane" >= 80 and mana <= 80 and timer leylinetimer >= 3000 and find "oceantarget" ground -1 -1 12
         say "[weaponability2"
         settimer leylinetimer 0
     endif
@@ -296,7 +366,7 @@ elseif warmode
     endif
     
     if not targetexists 
-        while hp < 33
+        while hp < 33 and skill "Magery" >= 30
             hotkey 'Cancel Current Target'
             cast 'Heal'
             wft 2500
@@ -307,7 +377,7 @@ elseif warmode
         if hp < 77 and findtype "Yellow Potion" backpack as healpot
             dclick healpot
         endif
-        if hp < 55
+        if hp < 55 and skill "Magery" >= 60
             hotkey 'Cancel Current Target'
             cast 'Greater Heal'
             wft 3500
@@ -315,7 +385,7 @@ elseif warmode
             hotkey 'Cancel Current Target'
             pause 250
         endif
-        if hp < 83
+        if hp < 83 and skill "Magery" >= 30
             hotkey 'Cancel Current Target'
             cast 'Heal'
             wft 2500
@@ -326,7 +396,7 @@ elseif warmode
         while poisoned and not targetexists 
             if findtype "Orange Potion" backpack as curepot
                 dclick curepot
-            elseif mana >= 6
+        elseif mana >= 6 and skill "Magery" >= 40
                 cast "Cure"
                 wft 2500
                 target self
@@ -346,12 +416,12 @@ elseif warmode
                 removetimer brew
             endif
         endif
-        if mana <= 80 and not findbuff "Actively Meditating" and not cooldown "Magic Mushroom"
+        if skill "Magery" >= 80 and mana <= 80 and not findbuff "Actively Meditating" and not cooldown "Magic Mushroom"
             dclicktype 'mushroom'
         endif
     endif
     
-    if not gumpexists 622436516
+    if skill "Necromancy" >= 80 and not gumpexists 622436516
         say [necromancyhotbar
     endif
     
@@ -375,7 +445,7 @@ elseif warmode
             hotkey 'Grab Item' 
             target bitem
             while queued
-                wait 500
+                //donothing
             endwhile
         endwhile
     endif
@@ -426,7 +496,7 @@ elseif warmode
         endif
     endif
     
-    if findtype "corpse" ground -1 -1 12
+    if skill "Necromancy" >= 80 and findtype "corpse" ground -1 -1 12
         if ingump '20/' 622436516
             createtimer pain
         elseif ingump '19/' 622436516
@@ -460,7 +530,7 @@ elseif warmode
         elseif ingump '5/' 622436516
             createtimer pain
         endif
-        if timerexists pain and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and not cooldown 'Pain Spike'
+        if skill "Necromancy" >= 80 and timerexists pain and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and not cooldown 'Pain Spike'
             clearsysmsg
             if targetexists 
                 hotkey 'Cancel Current Target'
@@ -498,7 +568,7 @@ elseif warmode
                 endwhile
             endif
             hotkey "Cancel Current Target"
-            elseif skill "Magery" >= 50 and not queued and mana >= 9 and not cooldown "Explosion Potion" and findtype "Purple Potion" backpack as purp
+        elseif skill "Magery" >= 50 and not queued and mana >= 9 and not cooldown "Explosion Potion" and findtype "Purple Potion" backpack as purp
             clearsysmsg
             cast "Telekinesis"
             wft 3000
@@ -528,7 +598,7 @@ elseif warmode
             endif
             hotkey "Cancel Current Target"
         endif
-        if ingump '20/' 622436516
+        if skill "Necromancy" >= 80 and ingump '20/' 622436516
             createtimer necroab
         elseif ingump '19/' 622436516
             createtimer necroab
@@ -547,7 +617,7 @@ elseif warmode
         elseif ingump '12/' 622436516
             createtimer necroab
         endif
-        if timerexists necroab
+        if skill "Necromancy" >= 80 and timerexists necroab
             if not cooldown "Strangle"
                 pause 550
                 say '[Strangle'
@@ -566,63 +636,65 @@ elseif warmode
             endif
             removetimer necroab
         endif
-        if not cooldown "Magic Arrow" and mana >= 4
-            hotkey 'Cancel Current Target'
-            cast "Magic Arrow"
-            wft 1000
-            if not timerexists changetarget
-                hotkey 'Target Random Grey Monster'
-                hotkey 'Target Random Murderer Monster'
-            elseif timerexists changetarget
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
+        if skill "Magery" >= 80
+            if not cooldown "Magic Arrow" and mana >= 4
+                hotkey 'Cancel Current Target'
+                cast "Magic Arrow"
+                wft 1000
+                if not timerexists changetarget
+                    hotkey 'Target Random Grey Monster'
+                    hotkey 'Target Random Murderer Monster'
+                elseif timerexists changetarget
+                    hotkey 'Target Closest Grey Monster'
+                    hotkey 'Target Closest Murderer Monster'
+                endif
+            elseif not cooldown "Harm" and mana >= 6
+                hotkey 'Cancel Current Target'
+                cast "Harm"
+                wft 1500
+                if not timerexists changetarget
+                    hotkey 'Target Random Grey Monster'
+                    hotkey 'Target Random Murderer Monster'
+                elseif timerexists changetarget
+                    hotkey 'Target Closest Grey Monster'
+                    hotkey 'Target Closest Murderer Monster'
+                endif
+            elseif not cooldown "Lightning" and mana >= 11
+                hotkey 'Cancel Current Target'
+                cast "Lightning"
+                wft 2500
+                if not timerexists changetarget
+                    hotkey 'Target Random Grey Monster'
+                    hotkey 'Target Random Murderer Monster'
+                elseif timerexists changetarget
+                    hotkey 'Target Closest Grey Monster'
+                    hotkey 'Target Closest Murderer Monster'
+                endif
+            elseif not cooldown "Chain Lightning" and cooldown "Lightning" and cooldown "Harm" and cooldown "Magic Arrow" and mana >= 40
+                hotkey 'Cancel Current Target'
+                cast "Chain Lightning"
+                wft 3000
+                if not timerexists changetarget
+                    hotkey 'Target Random Grey Monster'
+                    hotkey 'Target Random Murderer Monster'
+                elseif timerexists changetarget
+                    hotkey 'Target Closest Grey Monster'
+                    hotkey 'Target Closest Murderer Monster'
+                endif
+            elseif cooldown "Lightning" and cooldown "Harm" and cooldown "Magic Arrow" and mana >= 40
+                hotkey 'Cancel Current Target'
+                cast "Flamestrike"
+                wft 3000
+                if not timerexists changetarget
+                    hotkey 'Target Random Grey Monster'
+                    hotkey 'Target Random Murderer Monster'
+                elseif timerexists changetarget
+                    hotkey 'Target Closest Grey Monster'
+                    hotkey 'Target Closest Murderer Monster'
+                endif
             endif
-        elseif not cooldown "Harm" and mana >= 6
-            hotkey 'Cancel Current Target'
-            cast "Harm"
-            wft 1500
-            if not timerexists changetarget
-                hotkey 'Target Random Grey Monster'
-                hotkey 'Target Random Murderer Monster'
-            elseif timerexists changetarget
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
-            endif
-        elseif not cooldown "Lightning" and mana >= 11
-            hotkey 'Cancel Current Target'
-            cast "Lightning"
-            wft 2500
-            if not timerexists changetarget
-                hotkey 'Target Random Grey Monster'
-                hotkey 'Target Random Murderer Monster'
-            elseif timerexists changetarget
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
-            endif
-        elseif not cooldown "Chain Lightning" and cooldown "Lightning" and cooldown "Harm" and cooldown "Magic Arrow" and mana >= 40
-            hotkey 'Cancel Current Target'
-            cast "Chain Lightning"
-            wft 3000
-            if not timerexists changetarget
-                hotkey 'Target Random Grey Monster'
-                hotkey 'Target Random Murderer Monster'
-            elseif timerexists changetarget
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
-            endif
-        elseif cooldown "Lightning" and cooldown "Harm" and cooldown "Magic Arrow" and mana >= 40
-            hotkey 'Cancel Current Target'
-            cast "Flamestrike"
-            wft 3000
-            if not timerexists changetarget
-                hotkey 'Target Random Grey Monster'
-                hotkey 'Target Random Murderer Monster'
-            elseif timerexists changetarget
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
-            endif
+            pause 150
         endif
-        pause 150
     endif
 endif
 loop

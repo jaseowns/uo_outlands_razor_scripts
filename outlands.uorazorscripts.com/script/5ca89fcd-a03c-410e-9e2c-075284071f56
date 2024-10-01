@@ -5,7 +5,7 @@
 #############################################
 
 /////// DANSTOCK'S ULTIMATE HARVESTING AUTO PILOT SCRIPT
-/////   UO Outlands Razor script - Last updated Sept 27, 2024 (email any bug reports/tips to dan@danstockman.com) 
+/////   UO Outlands Razor script - Last updated Oct 1, 2024 (email any bug reports/tips to dan@danstockman.com) 
 ///     Created by DanStock.
 
 
@@ -51,6 +51,7 @@
     // Target Timer
     // Move Timer
     // Weight Timer
+    // Travel 
     // Gold Radar *
     // Gold Vacuum *
     // Magic Shield *
@@ -115,7 +116,6 @@
     endif 
 
 
-
 #################################################
 //         Mining Specific Variables           //
 #################################################
@@ -128,7 +128,7 @@ if skill "Mining" > 49.9 and EnableMining = 1
 
 @setvar! EnableForgeRadar 1
 @setvar! EnableAutoSmeltNaturalForge 1
-@setvar! AutoNaturalForgeTime 2000
+@setvar! AutoNaturalForgeTime 2500
 
 @setvar! EnableIngotAutoRecall 1
 @setvar! IngotRecallAmount 3000
@@ -139,7 +139,7 @@ if skill "Mining" > 49.9 and EnableMining = 1
 @setvar! EnableWeightWarningMessage 1
 @setvar! GreenWarningWeight 400
 @setvar! YellowWarningWeight 430
-@setvar! RedWeightLimit 448
+@setvar! RedWeightLimit 447
 
 endif
 
@@ -151,18 +151,18 @@ endif
 if skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1
 
 @setvar! LumberWaitTime 500
+@setvar! LogsToBoards 1
 
 @setvar! EnableBoardAutoRecall 1
 @setvar! BoardRecallAmount 3000
 
 @setvar! EnableBoardBag 0
 @setvar! OpenBoardBag 0
-@setvar! LogsToBoards 1
 
 @setvar! EnableWeightWarningMessage 1
 @setvar! GreenWarningWeight 400
 @setvar! YellowWarningWeight 430
-@setvar! RedWeightLimit 448
+@setvar! RedWeightLimit 447
 
 endif
 
@@ -175,7 +175,7 @@ endif
 @setvar! HealPotHP 50
 
 @setvar! EnableCurePotion 1
-@setvar! CurePotHP 90
+@setvar! CurePotHP 95
 
 @setvar! EnableRefreshPotion 1
 @setvar! RefreshPotSP 89
@@ -189,6 +189,7 @@ endif
 @setvar! EnableGoldVacuum 0
 
 @setvar! EnableCheeseTimer 0
+
 @setvar! EnableToolCountdown 1
 @setvar! EnableRecycleTool 0
 
@@ -214,8 +215,6 @@ endif
 @setvar! EnableTreasureChest 0
 
 
-@setvar! EnableWeaponWarning 0
-
 @setvar! AllInventoryMessage 1
 // or
 @setvar! YellowInventoryMessage 1
@@ -226,6 +225,8 @@ endif
 @setvar! BlackInventoryMessage 0
 @setvar! RopeInventoryMessage 0
 
+@setvar! EnableWeaponWarning 0
+
 
 
 ############################################
@@ -234,7 +235,7 @@ endif
 
 if hidden 
     overhead "[ HIDDEN... ]" 6
-    wait 1000
+    wait 500
     sysmsg "You cannot use this script while hidden!  Please unhide and try again..." 0
     stop
 endif
@@ -242,13 +243,13 @@ endif
 
 if insysmsg "You have unlocked a codex upgrade point"
     overhead "[ CODEX POINT UNLOCKED! ]" 2114
-    wait 250
+    wait 500
 endif 
  
 
 if insysmsg "enough experience to upgrade"
     overhead "[ ASPECT TIER UNLOCKED! ]" 2086
-    wait 250
+    wait 500
 endif 
 
 
@@ -262,6 +263,8 @@ endif
 if paralyzed and EnableParalyzePouch = 1
     overhead "[ !!POP!! ]" 2117
     say "[pouch" 
+    @setvar! TimeToGo 1
+    replay
 endif
 
 
@@ -270,7 +273,7 @@ if insysmsg 'world is saving'
         wait 250
         if insysmsg 'world save complete' 
             wait 250
-            overhead '[ WORLD SAVE COMPLETE! ]' 253 
+            overhead '[ SAVE COMPLETE! ]' 253 
             clearsysmsg 
             replay
         endif  
@@ -281,26 +284,27 @@ endif
 
 
 if EnableRedAlertRecall = 1 and TimeToGo = 1
-    overhead "[ RED ALERT!! ]" 37
+    overhead "[[[[ RED ALERT!! ]]]]" 37
     wait 500
     overhead "Looks like trouble coming!" 2086
      
             if paralyzed 
                 overhead "[ !!POP!! ]" 2117
                 say "[pouch"
+                wait 250
             endif
         
             if skill 'Healing' > 50 and not bandaging and hits < maxhits
                     hotkey "Bandage self"
                     overhead '*applying bandages...*' 88
-                    wait 200
+                    wait 250
             endif 
                 
             if hits < 75 and not cooldown "Healing Potion"
                 if findtype "Yellow Potion" self as healpot
                     overhead '*drinking heal potion...*' 253
                     dclick healpot
-                    wait 200
+                    wait 250
                     cooldown "Healing Potion" 10500
                 else 
                     overhead '*Out of heal pots!*' 337
@@ -312,7 +316,7 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
                     overhead '*drinking cure potion...*' 44
                     dclick curepot
                     cooldown "Cure Potion" 10500
-                    wait 200
+                    wait 250
                 else
                     overhead "Out of cure pots!" 337
                 endif
@@ -323,14 +327,13 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
                     overhead '*drinking refresh potion...*' 34
                     dclick refreshpot
                     cooldown "Refresh Potion" 10500
-                    wait 200
+                    wait 250
                 else 
                     overhead 'Out of refresh pots!' 337
                endif
            endif
 
     if skill "Mining" > 50.0
-            while not targetexists 
             dclick mining_runebook
             waitforgump 1551740969 
             gumpresponse 2
@@ -340,7 +343,6 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
                     wait 500
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying that again...' 2086
-                        while not targetexists 
                         dclick mining_runebook
                         waitforgump 1551740969 
                         gumpresponse 2
@@ -351,7 +353,6 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
     endif 
 
     if skill "Lumberjacking" > 50.0
-            while not targetexists 
             dclick lumber_runebook
             waitforgump 1551740969 
             gumpresponse 2
@@ -361,7 +362,6 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
                     wait 500
                     if insysmsg 'Your concentration is disturbed'
                         overhead 'Shit! Trying that again...' 2086
-                        while not targetexists 
                         dclick lumber_runebook
                         waitforgump 1551740969 
                         gumpresponse 2
@@ -369,28 +369,24 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
                         clearsysmsg 
                     endif
                 endfor
-    endif 
-    
+    endif     
    
     @setvar! TimeToGo 0
     wait 2000
 
-
     if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand and findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack as weapon
         dclick weapon      
-        wait 100
     endif 
 
     if skill "Swordsmanship" > 50 and not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" hand and findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" backpack as weapon
         dclick weapon      
-        wait 100
     endif 
 
     if HouseRecall = 1
         wait 500
         dclick MyDoor 
         overhead "*door slams!*" 0 MyDoor
-        wait 1000
+        wait 500
     endif 
 
     if OwnerInnRecall = 1
@@ -414,7 +410,7 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
         overhead "Home Sweet Home!" 2086
         wait 2000
         useskill "Hiding"
-        wait 100
+        wait 250
 
     if OpenIngotBag = 1 
         dclick ingotbag
@@ -616,6 +612,12 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
 endif
 
 
+if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
+    @setvar! TimeToGo 1
+    replay
+endif
+
+
 if EnableGoldVacuum = 1
     if findtype "gold coin" ground -1 -1 15 as droppedmoney and not cooldown "Gold Radar"   
         overhead "[ $ ]" 149 droppedmoney         
@@ -680,7 +682,7 @@ if EnableCurePotion = 1
             overhead '*drinking cure potion...*' 44
             dclick curepot
             cooldown "Cure Potion" 10500
-            wait 200
+            wait 250
         else
             overhead "Out of cure pots!" 337
         endif
@@ -694,7 +696,7 @@ if EnableHealPotion = 1
             overhead '*drinking heal potion...*' 253
             dclick healpot
             cooldown "Healing Potion" 10500
-            wait 200
+            wait 250
         else 
             overhead 'Out of heal pots!' 337
         endif
@@ -708,7 +710,7 @@ if EnableRefreshPotion = 1
             overhead '*drinking refresh potion...*' 34
             dclick refreshpot
             cooldown "Refresh Potion" 10500
-            wait 200
+            wait 250
         else 
             overhead 'Out of refresh pots!' 337
         endif
@@ -805,7 +807,7 @@ endif
 if EnableRedAlertRecall = 1
     if skill 'Tracking' > 50 and not findbuff 'tracking'
         overhead 'I should keep an eye out for trouble...' 2086
-        wait 1500
+        wait 1000
             while not gumpexists 4267467659
                 useskill 'tracking'
                 wait 250
@@ -820,7 +822,7 @@ if EnableRedAlertRecall = 1
                     clearsysmsg 
                 endif
         gumpclose 4267467659
-        overhead "[ AUTO RECALL ACTIVATED! ]" 37
+        overhead "[ AUTO RECALL ACTIVATED! ]" 337
         wait 100
     endif 
 endif
@@ -1030,7 +1032,7 @@ if EnableAutoAttackGreyMOB = 1
                                         overhead '*drinking cure potion...*' 44
                                         dclick curepot
                                         cooldown "Cure Potion" 10500
-                                        wait 200
+                                        wait 250
                                     else
                                         overhead "Out of cure pots!" 337
                                     endif
@@ -1043,7 +1045,7 @@ if EnableAutoAttackGreyMOB = 1
                                         overhead '*drinking heal potion...*' 253
                                         dclick healpot
                                         cooldown "Healing Potion" 10500
-                                        wait 200
+                                        wait 250
                                     else 
                                         overhead 'Out of heal pots!' 337
                                     endif
@@ -1056,7 +1058,7 @@ if EnableAutoAttackGreyMOB = 1
                                         overhead '*drinking refresh potion...*' 34
                                         dclick refreshpot
                                         cooldown "Refresh Potion" 10500
-                                        wait 200
+                                        wait 250
                                     else 
                                         overhead 'Out of refresh pots!' 337
                                     endif
@@ -1066,6 +1068,8 @@ if EnableAutoAttackGreyMOB = 1
                             if paralyzed and EnableParalyzePouch = 1
                                 overhead "[ !!POP!! ]" 2117
                                 say "[pouch" 
+                                @setvar! TimeToGo 1
+                                replay
                             endif
                     endfor
                     
@@ -1088,17 +1092,12 @@ if EnableAutoAttackGreyMOB = 1
 endif
 
 
+
 ////////////////////////////////
 // MINING SCRIPT STARTS HERE: //
 ////////////////////////////////
 
-if not dead and skill "Mining" > 49.9 and EnableMining = 1
-
-if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
-    @setvar! TimeToGo 1
-    replay
-endif
-
+if not dead and skill "Mining" > 49.9 and EnableMining = 1 and not cooldown "Travel"
 
 if not varexist ingotbag and EnableIngotBag = 1
     wait 500
@@ -1173,13 +1172,13 @@ endif
 
 if not findtype 'pickaxe' hand and findtype 'pickaxe' backpack
     dclicktype 'pickaxe' backpack
-    wait 1500
+    wait 500
 endif
 
 
-if Working = 0
-    if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
-   
+
+if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
+    if Working = 0  
         @setvar! ForgeFound 0
     
         if not timerexists AutoSmeltNaturalForgeTimer
@@ -1227,10 +1226,11 @@ if EnableWeightWarningMessage = 1 and not cooldown "Weight Timer"
     endif 
 
     if weight > RedWeightLimit
+        @setvar! Working 0
         overhead "[ WEIGHT LIMIT REACHED!!! ]" 37
         wait 2000
         overhead "Find a forge in order to continue..." 0
-        wait 2500
+        wait 1000
         replay
     endif
 endif 
@@ -1271,8 +1271,8 @@ wait MinerWaitTime
                     replay
 
                 elseif insysmsg "You must wait"
-                    overhead 'You must wait...' 337
-                    wait 100
+                    overhead 'Hang on one sec...' 2086
+                    wait 250
                     clearsysmsg 
                     replay 
 
@@ -1280,7 +1280,7 @@ wait MinerWaitTime
                     overhead "I'm tired from travelling." 2086
                     wait 2000 
                     overhead "Just give me a minute to recover..." 2086
-                    wait 11500
+                    cooldown "Travel" 12000
                     clearsysmsg 
                     replay 
             
@@ -1310,21 +1310,22 @@ wait MinerWaitTime
                         if paralyzed and EnableParalyzePouch = 1
                             overhead "[ !!POP!! ]" 2117
                             say "[pouch" 
-                            wait 100
+                            @setvar! TimeToGo 1
+                            replay
                         endif
                 
                         if insysmsg "As the owner" or insysmsg "Your house and its contents"
                             wait 500
                             overhead "*door slams!*" 0 MyDoor
                             dclick MyDoor 
-                            wait 1000
+                            wait 500
                         endif
                         
                         if findtype 'iron ore|iron ingots' backpack 
                             hotkey 'Organizer Agent-03'
                         endif
                             hotkey 'Organizer Agent-04'
-                            wait 100 
+                            wait 250
                             replay
                     endif
                     
@@ -1347,20 +1348,22 @@ wait MinerWaitTime
                         if paralyzed and EnableParalyzePouch = 1
                             overhead "[ !!POP!! ]" 2117
                             say "[pouch" 
+                            @setvar! TimeToGo 1
+                            replay
                         endif                
  
                         if insysmsg "As the owner" or insysmsg "Your house and its contents"
                             wait 500
                             overhead "*door slams!*" 0 MyDoor
                             dclick MyDoor 
-                            wait 1000
+                            wait 500
                         endif                        
 
                         if findtype 'iron ore|iron ingots' backpack 
                             hotkey 'Organizer Agent-03'
                         endif
                             hotkey 'Organizer Agent-04'
-                            wait 100  
+                            wait 250
                             replay                      
                     endif
 
@@ -1462,17 +1465,12 @@ wait MinerWaitTime
 endif
 
 
+
 ////////////////////////////////
 // LUMBER SCRIPT STARTS HERE: //
 ////////////////////////////////
 
-if not dead and skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1
-
-if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
-    @setvar! TimeToGo 1
-    replay
-endif
-
+if not dead and skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1 and not cooldown "Travel"
 
 if not varexist boardbag and EnableBoardBag = 1
     wait 500
@@ -1508,7 +1506,7 @@ endif
 
 if not findtype 'hatchet' self
     overhead "I can't work with no hatchet!" 2086
-    wait 2500
+    wait 1500
     overhead '[ STOPPING SCRIPT... ]' 37
     stop
 endif
@@ -1516,7 +1514,7 @@ endif
  
 if not findtype 'hatchet' hand and findtype 'hatchet' backpack
     dclicktype 'hatchet' backpack
-    wait 1500
+    wait 500
 endif
 
 
@@ -1570,9 +1568,7 @@ wait LumberWaitTime
                     replay 
             
                 elseif insysmsg 'You broke your axe' 
-                    overhead "My axe broke!" 37
-                    wait 250
-                    overhead "I'll grab a new one..." 2086
+                    overhead "My axe broke!" 2086
                     wait 500 
                     replay 
                     
@@ -1591,11 +1587,11 @@ wait LumberWaitTime
 
                         clearsysmsg  
                         hotkey 'Organizer Agent-02'  
-                        wait 12000
+                        cooldown "Travel" 12000
                         replay
 
                 elseif insysmsg "You must wait"
-                    overhead 'You must wait...' 337
+                    overhead "Hang on one sec..." 2086
                     wait 250
                     clearsysmsg 
                     replay
@@ -1617,26 +1613,27 @@ wait LumberWaitTime
                         if paralyzed and EnableParalyzePouch = 1
                             overhead "[ !!POP!! ]" 2117
                             say "[pouch" 
-                            wait 100
+                            @setvar! TimeToGo 1
+                            replay
                         endif
                 
                         if insysmsg "As the owner" or insysmsg "Your house and its contents"
                             wait 500
                             overhead "*door slams!*" 0 MyDoor
                             dclick MyDoor 
-                            wait 1000
+                            wait 500
                         endif
                         
                         for 10
-                        if findtype 'log%s' backpack and LogsToBoards = 1
-                            overhead '*making boards...*' 0
-                            dclicktype 'log%s' 
-                            wait 500
-                        endif
+                            if findtype 'log%s' backpack and LogsToBoards = 1
+                                overhead '*making boards...*' 0
+                                dclicktype 'log%s' 
+                                wait 500
+                            endif
                         endfor
                         
                         hotkey 'Organizer Agent-01'
-                        wait 200 
+                        wait 250
                         hotkey 'Organizer Agent-02'
                         replay
                     endif 
@@ -1656,26 +1653,27 @@ wait LumberWaitTime
                         if paralyzed and EnableParalyzePouch = 1
                             overhead "[ !!POP!! ]" 2117
                             say "[pouch" 
-                            wait 100
+                            @setvar! TimeToGo 1
+                            replay
                         endif
                 
                         if insysmsg "As the owner" or insysmsg "Your house and its contents"
                             wait 500
                             overhead "*door slams!*" 0 MyDoor
                             dclick MyDoor 
-                            wait 1000
+                            wait 500
                         endif
                         
                         for 10
-                        if findtype 'log%s' backpack and LogsToBoards = 1
-                            overhead '*making boards...*' 0
-                            dclicktype 'log%s' 
-                            wait 500
-                        endif
+                            if findtype 'log%s' backpack and LogsToBoards = 1
+                                overhead '*making boards...*' 0
+                                dclicktype 'log%s' 
+                                wait 500
+                            endif
                         endfor
                         
                         hotkey 'Organizer Agent-01'
-                        wait 200 
+                        wait 250
                         hotkey 'Organizer Agent-02'
                         replay
                     endif 
@@ -1687,7 +1685,6 @@ wait LumberWaitTime
 
 
     overhead '*chopping wood...*' 2128
-    wait 500
 
     
     if insysmsg "Lumberjacking skillgain" 
@@ -1709,7 +1706,7 @@ wait LumberWaitTime
         endif
     endif
 
-    wait 3500
+    wait 3800
 
         if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
             @setvar! TimeToGo 1
@@ -1785,12 +1782,16 @@ if dead
     stop
 endif
 
-    
+
+if not cooldown "Travel"  
     wait 500
     overhead "Train skill to 50.0 at NPC and then restart script!" 0
     wait 2500
     overhead '[ STOPPING SCRIPT... ]' 37
     stop    
-
-    
+else 
+    wait 1500
+    replay
+endif 
+   
 //////// REACH OUT AND LET ME KNOW IF THERE'S ANY ISSUES:  DAN@DANSTOCKMAN.COM ////////

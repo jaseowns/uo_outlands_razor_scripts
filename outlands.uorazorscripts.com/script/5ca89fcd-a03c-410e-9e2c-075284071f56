@@ -14,13 +14,13 @@
     # Hatchet or Pickaxe
     # A blessed escape runebook charged w/ recall scrolls
     # Trapped pouches 
-    # Healing, Cure and Refresh potions (strength and magic resist pots help too *)
+    # Healing, Cure and Refresh potions
     # Harvest Aspected weapon of choice (Swords or Macing) *
+    # Harvest Aspect armour of choice *
     # Bandages *
     # Skinning knife *
     # Adventurers rope *
     # Cheese (or fish steaks) *
-    # Harvest Aspect armour *
 
 
 # Use the following organizer agents (or swap for your own):
@@ -33,7 +33,7 @@
     # Organizer Agent-05 hotbag * (optional - for unloading at HOME or INN ROOM - Turn on EnableOrganizerAgents below)
     // See Shared Variables section below to turn on or off the use of Resource Stockpile, Storage Shelf, Bank Safe and Magic Item Recycler in lieu of Organizer Agent-05!
 
-    // Or use the following optional agents to unload non-stockpile or shelf items (Turn on EnableTreasureChest below):
+    // Use the following optional agents to unload non-stockpile or shelf items (Turn on EnableTreasureChest below):
     # Organizer Agent-06 hotbag * (optional - I use for unloading Tmaps, SS, orbs, RM, etc.)
     # Organizer Agent-07 hotbag * (optional - I use for unloading Runes)
     # Organizer Agent-08 hotbag * (optional - I use for unloading Black Goods, etc.)
@@ -51,6 +51,7 @@
     // Target Timer
     // Move Timer
     // Weight Timer
+    // Inventory Timer
     // Travel 
     // Gold Radar *
     // Gold Vacuum *
@@ -108,7 +109,7 @@
         unsetvar ingotbag
         unsetvar TreasureChest
         overhead "All permanent script variables reset!" 0
-        wait 1000
+        wait 500
         sysmsg "Restart script to prompt for new targets..." 0
         sysmsg "Make sure to set ALLVARIABLERESET back to 0" 84
         overhead "[ STOPPING SCRIPT! ]" 337
@@ -180,14 +181,13 @@ endif
 @setvar! EnableRefreshPotion 1
 @setvar! RefreshPotSP 89
 
-
 @setvar! EnableRedAlertRecall 1
 @setvar! EnableParalyzePouch 1
+
 @setvar! EnableAutoAttackGreyMOB 0
 @setvar! EnableMagicReflection 0
 @setvar! EnableAutoCarving 0
 @setvar! EnableGoldVacuum 0
-
 @setvar! EnableCheeseTimer 0
 
 @setvar! EnableToolCountdown 1
@@ -215,6 +215,7 @@ endif
 @setvar! EnableTreasureChest 0
 
 
+@setvar! EnableWeaponWarning 0
 @setvar! AllInventoryMessage 1
 // or
 @setvar! YellowInventoryMessage 1
@@ -224,8 +225,6 @@ endif
 @setvar! BlueInventoryMessage 0
 @setvar! BlackInventoryMessage 0
 @setvar! RopeInventoryMessage 0
-
-@setvar! EnableWeaponWarning 0
 
 
 
@@ -254,14 +253,14 @@ endif
 
 
 if insysmsg "Captcha successful."
-    overhead "I guess you got the magic numbers right??" 2086
+    overhead "I guess you got the magic numbers correct??" 2086
     wait 1500
     overhead "Alright, let's get to work..." 2086
 endif
 
 
 if paralyzed and EnableParalyzePouch = 1
-    overhead "[ !!POP!! ]" 2117
+    overhead "[[[[ POP!! ]]]]" 2117
     say "[pouch" 
     @setvar! TimeToGo 1
     replay
@@ -285,13 +284,12 @@ endif
 
 if EnableRedAlertRecall = 1 and TimeToGo = 1
     overhead "[[[[ RED ALERT!! ]]]]" 37
-    wait 500
+    wait 250
     overhead "Looks like trouble coming!" 2086
      
             if paralyzed 
-                overhead "[ !!POP!! ]" 2117
+                overhead "[[[[ POP!! ]]]]" 2117
                 say "[pouch"
-                wait 250
             endif
         
             if skill 'Healing' > 50 and not bandaging and hits < maxhits
@@ -645,19 +643,19 @@ endif
 if EnableAutoCarving = 1
     if findtype 'Elven SpellBlade' self 
         if findtype "corpse" ground -1 -1 2 as deadbody
-            wait 500
             dclicktype "Elven Spellblade"
-            waitfortarget 2000
+            waitfortarget 1500
             target 'self'
-            wait 250
             overhead "*skinning corpse...*" 337
             wait 500
             @ignore deadbody
         endif 
     else
-        overhead "[ NO SKINNING KNIFE! ]" 339
-        wait 500
-        sysmsg "Disable EnableAutoCarving in script variables to turn off this overhead message!" 0
+        if not cooldown "Inventory Timer"
+            overhead "[ NO SKINNING KNIFE! ]" 337
+            wait 500
+            sysmsg "Disable EnableAutoCarving in script variables to turn off this overhead message!" 0
+        endif
         wait 500
     endif 
 endif
@@ -669,9 +667,9 @@ if skill 'Healing' > 50
         hotkey "Bandage Self"
     endif
     
-    if counttype 'clean bandage%s%' < 5
+    if counttype 'clean bandage%s%' < 5 and not cooldown "Inventory Timer"
         overhead "[ RESTOCK BANDAGES! ]" 88
-        wait 500
+        cooldown "Inventory Timer" 3000
     endif 
 endif 
             
@@ -749,56 +747,63 @@ endif
 
 if EnableWeaponWarning = 1
     if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack
-        if not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand
-            overhead "[ NO WEAPON! ]" 339
-            wait 500
+        if not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand and not cooldown "Inventory Timer"
+            overhead "[ NO WEAPON! ]" 337
+            cooldown "Inventory Timer" 3000
             sysmsg "Disable 'EnableWeaponWarning' in script variables to turn off this feature!" 0
         endif
     endif 
 
     if skill "Swordsmanship" > 50 and not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" backpack
-        if not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" hand
-            overhead "[ NO WEAPON! ]" 339
-            wait 500
+        if not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" hand and not cooldown "Inventory Timer"
+            overhead "[ NO WEAPON! ]" 337
+            cooldown "Inventory Timer" 3000
             sysmsg "Disable 'EnableWeaponWarning' in script variables to turn off this feature!" 0
         endif
     endif
 endif
 
 
-if AllInventoryMessage = 1
+if AllInventoryMessage = 1 and not cooldown "Inventory Timer"
     if counttype "Yellow Potion" self = 0 and YellowInventoryMessage = 1
         overhead "[ RESTOCK HEAL POTIONS! ]" 253
+        cooldown "Inventory Timer" 3000
         sysmsg "Disable YellowInventoryMessage in script variables to turn off this overhead message!" 0
     endif 
 
     if counttype "Orange Potion" self = 0 and OrangeInventoryMessage = 1
         overhead "[ RESTOCK CURE POTIONS! ]" 44
+        cooldown "Inventory Timer" 3000
         sysmsg "Disable OrangeInventoryMessage in script variables to turn off this overhead message!" 0
     endif 
 
     if counttype "Red Potion" self = 0 and RedInventoryMessage = 1
         overhead "[ RESTOCK REFRESH POTIONS! ]" 37
+        cooldown "Inventory Timer" 3000
         sysmsg "Disable RedInventoryMessage in script variables to turn off this overhead message!" 0
     endif 
 
     if counttype "White Potion" self = 0 and WhiteInventoryMessage = 1 
         overhead "[ RESTOCK STRENGTH POTIONS! ]" 956
+        cooldown "Inventory Timer" 3000
         sysmsg "Disable WhiteInventoryMessage in script variables to turn off this overhead message!" 0
     endif 
 
     if counttype "Blue Potion" self = 0 and BlueInventoryMessage = 1
         overhead "[ RESTOCK AGILITY POTIONS! ]" 93
+        cooldown "Inventory Timer" 3000
         sysmsg "Disable BlueInventoryMessage in script variables to turn off this overhead message!" 0
     endif 
 
     if counttype "Black Potion" self = 0 and BlackInventoryMessage = 1
         overhead "[ RESTOCK MAGIC RESIST POTIONS! ]" 0
+        cooldown "Inventory Timer" 3000
         sysmsg "Disable BlackInventoryMessage in script variables to turn off this overhead message!" 0
     endif 
 
     if counttype "rope" self = 0 and RopeInventoryMessage = 1
         overhead "[ RESTOCK ROPE! ]" 2799
+        cooldown "Inventory Timer" 3000
         sysmsg "Disable RopeInventoryMessage in script variables to turn off this overhead message!" 0
     endif 
 endif
@@ -807,7 +812,7 @@ endif
 if EnableRedAlertRecall = 1
     if skill 'Tracking' > 50 and not findbuff 'tracking'
         overhead 'I should keep an eye out for trouble...' 2086
-        wait 1000
+        wait 500
             while not gumpexists 4267467659
                 useskill 'tracking'
                 wait 250
@@ -823,7 +828,6 @@ if EnableRedAlertRecall = 1
                 endif
         gumpclose 4267467659
         overhead "[ AUTO RECALL ACTIVATED! ]" 337
-        wait 100
     endif 
 endif
 
@@ -895,9 +899,9 @@ if EnableRecycleTool = 1
         endif 
     endif
 
-    if not findtype 'tool kit' self
-        overhead "[ NO TOOL KIT! ]" 339
-        wait 500
+    if not findtype 'tool kit' self and not cooldown "Inventory Timer"
+        overhead "[ NO TOOL KIT! ]" 337
+        cooldown "Inventory Timer" 3000
         sysmsg "Disable 'EnableRecycleTool' in script variables to turn off this overhead message!" 0
     endif
 endif 
@@ -957,11 +961,9 @@ if EnableAutoAttackGreyMOB = 1
                                                             
                             if findtype 'Elven SpellBlade' self and EnableAutoCarving = 1
                                 if findtype "corpse" ground -1 -1 2 as body
-                                    wait 1000
                                     dclicktype "Elven Spellblade"
-                                    wft 1000
+                                    wft 1500
                                     target self
-                                    wait 500
                                     overhead "*skinning corpse...*" 339
                                     wait 500
                                     @ignore body
@@ -987,8 +989,7 @@ if EnableAutoAttackGreyMOB = 1
                             endif   
                         endif       
           
-                        attack CurrentTarget
-                        
+                        attack CurrentTarget                        
                         wait 500
 
                             if insysmsg "You have unlocked a codex upgrade point"
@@ -1003,7 +1004,6 @@ if EnableAutoAttackGreyMOB = 1
                                 overhead "Did you see that?? I just killed {{TargetDesc}}!" 2086
                                 hotkey 'Cancel Current Target'
                                 @setvar CurrentTarget 0
-                                wait 500
                             endif
                             
                             if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
@@ -1014,7 +1014,6 @@ if EnableAutoAttackGreyMOB = 1
                                     dclicktype "Elven Spellblade"
                                     wft 1000
                                     target self
-                                    wait 500
                                     overhead "*skinning {{TargetDesc}}...*" 339
                                     @ignore corpse
                                 endif 
@@ -1066,7 +1065,7 @@ if EnableAutoAttackGreyMOB = 1
                             endif
                             
                             if paralyzed and EnableParalyzePouch = 1
-                                overhead "[ !!POP!! ]" 2117
+                                overhead "[[[[ POP!! ]]]]" 2117
                                 say "[pouch" 
                                 @setvar! TimeToGo 1
                                 replay
@@ -1087,7 +1086,6 @@ if EnableAutoAttackGreyMOB = 1
             @setvar! TimeToGo 1
             replay 
         endif 
-
     endif
 endif
 
@@ -1151,7 +1149,7 @@ if EnableOreVacuum = 1
         wait 250
         if insysmsg "Invalid or inaccessible item"
             overhead "I can't get to that!" 2086
-            wait 500
+            wait 250
             @ignore droppedmetal
         endif
         hotkey 'Organizer Agent-03'  
@@ -1172,9 +1170,8 @@ endif
 
 if not findtype 'pickaxe' hand and findtype 'pickaxe' backpack
     dclicktype 'pickaxe' backpack
-    wait 500
+    wait 250
 endif
-
 
 
 if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
@@ -1227,7 +1224,7 @@ if EnableWeightWarningMessage = 1 and not cooldown "Weight Timer"
 
     if weight > RedWeightLimit
         @setvar! Working 0
-        overhead "[ WEIGHT LIMIT REACHED!!! ]" 37
+        overhead "[ WEIGHT LIMIT REACHED!!! ]" 337
         wait 2000
         overhead "Find a forge in order to continue..." 0
         wait 1000
@@ -1237,7 +1234,7 @@ endif
 
 
 hotkey 'Use item in hand' 
-waitfortarget 500
+waitfortarget 1500
 hotkey 'Target Self' 
 wait MinerWaitTime
 
@@ -1250,7 +1247,7 @@ wait MinerWaitTime
                         for 25
                             wait 250
                             if insysmsg 'world save complete' 
-                                overhead '[ WORLD SAVE COMPLETE! ]' 253 
+                                overhead '[ SAVE COMPLETE! ]' 253 
                                 clearsysmsg 
                                 replay
                             endif 
@@ -1266,8 +1263,8 @@ wait MinerWaitTime
             
                 elseif insysmsg 'You have worn out your tool' 
                     overhead "My pickaxe broke!" 2086
-                    clearsysmsg 
                     wait 500 
+                    clearsysmsg
                     replay
 
                 elseif insysmsg "You must wait"
@@ -1278,7 +1275,7 @@ wait MinerWaitTime
 
                 elseif insysmsg "travel" 
                     overhead "I'm tired from travelling." 2086
-                    wait 2000 
+                    wait 1500 
                     overhead "Just give me a minute to recover..." 2086
                     cooldown "Travel" 12000
                     clearsysmsg 
@@ -1308,7 +1305,7 @@ wait MinerWaitTime
                         endif
 
                         if paralyzed and EnableParalyzePouch = 1
-                            overhead "[ !!POP!! ]" 2117
+                            overhead "[[[[ POP!! ]]]]" 2117
                             say "[pouch" 
                             @setvar! TimeToGo 1
                             replay
@@ -1346,7 +1343,7 @@ wait MinerWaitTime
                         endif
 
                         if paralyzed and EnableParalyzePouch = 1
-                            overhead "[ !!POP!! ]" 2117
+                            overhead "[[[[ POP!! ]]]]" 2117
                             say "[pouch" 
                             @setvar! TimeToGo 1
                             replay
@@ -1403,7 +1400,7 @@ wait MinerWaitTime
                         wait 250
                         if insysmsg 'world save complete' 
                             wait 100
-                            overhead '[ WORLD SAVE COMPLETE! ]' 253 
+                            overhead '[ SAVE COMPLETE! ]' 253 
                             clearsysmsg 
                             replay
                         endif 
@@ -1461,7 +1458,7 @@ wait MinerWaitTime
                 overhead '*you harvest avarite ore!!!*' 1763
                 replay     
         endif    
-    replay    
+replay    
 endif
 
 
@@ -1507,14 +1504,14 @@ endif
 if not findtype 'hatchet' self
     overhead "I can't work with no hatchet!" 2086
     wait 1500
-    overhead '[ STOPPING SCRIPT... ]' 37
+    overhead '[ STOPPING SCRIPT... ]' 337
     stop
 endif
 
  
 if not findtype 'hatchet' hand and findtype 'hatchet' backpack
     dclicktype 'hatchet' backpack
-    wait 500
+    wait 250
 endif
 
 
@@ -1530,7 +1527,7 @@ if EnableWeightWarningMessage = 1 and not cooldown "Weight Timer"
     endif 
 
     if weight > RedWeightLimit
-        overhead "[ WEIGHT LIMIT REACHED!!! ]" 37
+        overhead "[ WEIGHT LIMIT REACHED!!! ]" 337
         wait 2000
         overhead "Please reduce weight in order to continue..." 0
         cooldown  "Weight Timer" 3000
@@ -1554,7 +1551,7 @@ wait LumberWaitTime
                             wait 250
                             if insysmsg 'world save complete' 
                                 wait 100
-                                overhead '[ WORLD SAVE COMPLETE! ]' 253 
+                                overhead '[ SAVE COMPLETE! ]' 253 
                                 clearsysmsg 
                                 replay
                             endif 
@@ -1569,7 +1566,7 @@ wait LumberWaitTime
             
                 elseif insysmsg 'You broke your axe' 
                     overhead "My axe broke!" 2086
-                    wait 500 
+                    wait 250
                     replay 
                     
                 elseif insysmsg "travel" 
@@ -1577,13 +1574,15 @@ wait LumberWaitTime
                     wait 1500
                     overhead "Just give me a minute to recover..." 2086
                         
-                        if findtype 'log%s' backpack and LogsToBoards = 1
-                            overhead '*making boards...*' 0
+                        for 10 
+                            if findtype 'log%s' backpack and LogsToBoards = 1
+                                overhead '*making boards...*' 0
                                 dclicktype 'log%s' 
                                 wait 500
                                 hotkey 'Organizer Agent-01'
                                 wait 500
-                        endif
+                            endif
+                        endfor
 
                         clearsysmsg  
                         hotkey 'Organizer Agent-02'  
@@ -1596,8 +1595,7 @@ wait LumberWaitTime
                     clearsysmsg 
                     replay
 
-                elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any'
-                    
+                elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any'                    
                     if MOVE = 1
                         if not cooldown "Move Timer"
                             overhead "[ KEEP MOVING... ]" 2086
@@ -1606,12 +1604,12 @@ wait LumberWaitTime
                         endif
                 
                         if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
-                            pushlist "mining_alert" "red_alert_recall" 
+                            @setvar! TimeToGo 1
                             replay
                         endif
 
                         if paralyzed and EnableParalyzePouch = 1
-                            overhead "[ !!POP!! ]" 2117
+                            overhead "[[[[ POP!! ]]]]" 2117
                             say "[pouch" 
                             @setvar! TimeToGo 1
                             replay
@@ -1646,12 +1644,12 @@ wait LumberWaitTime
                         endif
                 
                         if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
-                            pushlist "mining_alert" "red_alert_recall" 
+                            @setvar! TimeToGo 1
                             replay
                         endif
 
                         if paralyzed and EnableParalyzePouch = 1
-                            overhead "[ !!POP!! ]" 2117
+                            overhead "[[[[ POP!! ]]]]" 2117
                             say "[pouch" 
                             @setvar! TimeToGo 1
                             replay
@@ -1701,7 +1699,7 @@ wait LumberWaitTime
             overhead "We made it!" 2086
             wait 1500
             clearsysmsg 
-            overhead "[ TIME FOR A BREAK! ]" 337
+            overhead "[ TIME FOR A WELL DESERVED BREAK! ]" 337
             stop
         endif
     endif
@@ -1717,7 +1715,7 @@ wait LumberWaitTime
                     wait 250
                     if insysmsg 'world save complete' 
                         wait 100
-                        overhead '[ WORLD SAVE COMPLETE! ]' 253 
+                        overhead '[ SAVE COMPLETE! ]' 253 
                         clearsysmsg 
                         replay
                     endif  
@@ -1778,7 +1776,7 @@ if dead
     wait 3000
     overhead "Well... shit..." 2086
     wait 2500
-    overhead '[ STOPPING SCRIPT... ]' 37
+    overhead '[ STOPPING SCRIPT... ]' 337
     stop
 endif
 
@@ -1787,11 +1785,12 @@ if not cooldown "Travel"
     wait 500
     overhead "Train skill to 50.0 at NPC and then restart script!" 0
     wait 2500
-    overhead '[ STOPPING SCRIPT... ]' 37
+    overhead '[ STOPPING SCRIPT... ]' 337
     stop    
 else 
     wait 1500
     replay
 endif 
-   
+
+    
 //////// REACH OUT AND LET ME KNOW IF THERE'S ANY ISSUES:  DAN@DANSTOCKMAN.COM ////////

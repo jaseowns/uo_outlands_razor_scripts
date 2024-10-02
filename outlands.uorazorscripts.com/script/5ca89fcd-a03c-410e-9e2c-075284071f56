@@ -219,16 +219,16 @@
     # Use ">info" to ID your own house door:
 @setvar! MyDoor 0x50F70A17
 
-@setvar! HideAtHomeorInn 1
+@setvar! HideAtHomeorInn 0
 
     # Script can use Razor Organizer Agents to organize or you can use Resource Stockpile, Storage Shelf, etc. instead:
-@setvar! EnableOrganizerAgents 1
+@setvar! EnableOrganizerAgents 0
     // or
 @setvar! EnableBankSafe 0
 @setvar! EnableStockpile 0
 @setvar! EnableStorageShelf 0
 @setvar! EnableMagicRecycler 0
-@setvar! EnableRepairBench 0
+@setvar! EnableRepairBench 1
 @setvar! EnableTreasureChest 0
 
 
@@ -376,7 +376,9 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
                 endfor
     endif     
    
+    overhead "Whew. I think we got away!" 2086
     @setvar! TimeToGo 0
+    sysmsg "Auto Recall trigger condition reset!" 0
     wait 2000
 
     if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand and findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack as weapon
@@ -616,10 +618,12 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
 endif
 
 
-if insysmsg "Now tracking" or insysmsg "Distance to destination" and EnableRedAlertRecall = 1
-    @setvar! TimeToGo 1
-    replay
-endif
+if EnableRedAlertRecall = 1
+    if insysmsg "Now tracking" or insysmsg "Distance to destination" and 
+        @setvar! TimeToGo 1
+        replay
+    endif
+endif 
 
 
 if EnableGoldVacuum = 1
@@ -930,11 +934,31 @@ if EnableAutoAttackGreyMOB = 1
         overhead "It's time to fight!" 2086
     
         if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand and findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack as weapon
+            getlabel weapon WeaponLabel
+                for 5
+                    wait 100
+                    if "unidentified" in WeaponLabel
+                        @ignore weapon
+                        if skill "Mace Fighting" > 50 and not findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" hand and findtype "sledgehammer|giant club|flail|cudgel|quarter staff|war mace|maul|war axe|mace|hammer pick" backpack as weapon
+                            getlabel weapon WeaponLabel
+                        endif
+                    endif 
+                endfor
             dclick weapon      
             wait 100
         endif 
 
         if skill "Swordsmanship" > 50 and not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" hand and findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" backpack as weapon
+            getlabel weapon WeaponLabel
+                for 5
+                    wait 100
+                    if "unidentified" in WeaponLabel
+                        @ignore weapon
+                        if skill "Swordsmanship" > 50 and not findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" hand and findtype "double axe|two handed axe|battle axe|halberd|katana|bardiche|cutlass|broadsword|scimitar|viking sword|longsword" backpack as weapon
+                            getlabel weapon WeaponLabel
+                        endif
+                    endif 
+                endfor
             dclick weapon      
             wait 100
         endif 
@@ -1180,8 +1204,8 @@ if not findtype 'pickaxe' hand and findtype 'pickaxe' backpack
 endif
 
 
-if EnableAutoSmeltNaturalForge = 1 and findtype "iron ore" backpack as ore
-    if Working = 0  
+if EnableAutoSmeltNaturalForge = 1 
+    if findtype "iron ore" backpack as ore and Working = 0  
         @setvar! ForgeFound 0
     
         if not timerexists AutoSmeltNaturalForgeTimer

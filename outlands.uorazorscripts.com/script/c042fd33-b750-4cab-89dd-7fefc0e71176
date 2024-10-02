@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-lumber ver.5.25
+#SUPER Auto-lumber ver.5.30
 
 #********** INFORMATION **********# 
 
@@ -69,10 +69,11 @@
 
 @setvar! autoSplitRegs 1
 
-# 0 - will let you target the bag you wish to split your regs into
-# 1 - will automatically select the bag in your backpack on this order : satchel > pouch > backpack bag > round bag > char backpack
+# 0 - will automatically select the bag in your backpack on this order : satchel > pouch > backpack bag > round bag > char backpack
+# 1 - will automatically select character main backpack only (do not work if regs are already splitted in a different bag)
+# 2 - will let you target any bag
     
-@setvar! autoSelectBag 1
+@setvar! autoSelectBag 0
 
 #--- Set potions ---#
 
@@ -97,7 +98,7 @@
 
 #--- Set Cooldowns ---#
 
-@setvar! storeTimerCD 90000
+@setvar! storeTimerCD 100000
 settimer storeTimer storeTimerCD
 
 
@@ -215,7 +216,7 @@ if autoSplitRegs = 1
     @setvar! myBag 0
     @setvar! maxwaittimeinms 650
 
-    if autoSelectBag = 1
+    if autoSelectBag = 0
         if findtype 30765 self as b
             @setvar! myBag b
         elseif findtype 3705 self as b
@@ -227,6 +228,8 @@ if autoSplitRegs = 1
         else 
             @setvar! myBag backpack
         endif
+    elseif autoSelectBag = 1 
+        @setvar! myBag backpack
     else 
         clearsysmsg
         overhead "Select bag:" 68
@@ -1494,7 +1497,9 @@ while not dead
                 hotkey 'Use Item In Hand'
                 waitfortarget maxwaittimeinms
             endwhile
-            target 'self'        
+            target 'self'   
+            
+            settimer beginChopTimer 0
 
             while not insysmsg "you chop" and not insysmsg "you hack" and not insysmsg! "you do not see" and not insysmsg! "you have recently" and diffhits < lowDiff
                 if enemyFound = 0
@@ -1505,7 +1510,12 @@ while not dead
                 
                 if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
                     break
-                endif                         
+                endif            
+                
+                if timer beginChopTimer > 650 and timer beginChopTimer < 10000
+                    overhead "* chopping tree *" 11
+                    settimer beginChopTimer 10000
+                endif
             endwhile
             
             if insysmsg "you do not see any"
@@ -1514,12 +1524,12 @@ while not dead
                 overhead "* travel cooldown *" 901
                 wait 800
             else
-                overhead "* cutting tree *" 11    
+                #overhead "* tree chopped *" 11    
             endif    
 
 #********** CUT LOGS INTO BOARDS AND SECURE BOARDS INSIDE LOCKED WOODEN BOX **********  
 
-            if timer storeTimer > storeTimerCD or counttype 7133 backpack > 100 or counttype 7133 backpack 2207 > 15 or counttype 7133 backpack 2219 > 10 or counttype 7133 backpack 1763 > 5
+            if timer storeTimer > storeTimerCD or counttype 7133 backpack > 120 or counttype 7133 backpack 2207 > 15 or counttype 7133 backpack 2219 > 10 or counttype 7133 backpack 1763 > 5
                 settimer storeTimer 0
                 if targetexists
                     hotkey 'cancel current target'  

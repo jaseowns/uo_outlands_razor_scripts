@@ -4,20 +4,28 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER ID-Recycler-while-farming ver.1.31
+#SUPER ID-Recycler-while-farming ver.2.00
 
 #Made by @dennozz on discord. 
 #Inspired/learned by other scrips in https://outlands.uorazorscripts.com/
 
 #This is a recycling while farming script!
+#It will recycle any item identified or unidentified that is not in your Magical Items List.
+
 #You will need sewing kit, regular/container ID wand or 80 > in ID Skill
 #Optional The script will look for a bag (rounded one) and will move all good items and recycled materials to the bag
 
-# ** Set this to 1 if you want to auto consume arcane essence **
-setvar! eatArcaneEssence 1
+#--- Auto eat arcane essences ---#
+# 0 - disabled
+# 1 - enabled
 
-# ** Set this var to 0 if you want to leave all recycled materials in your main backpack. Set to 1 to move it to a bag (rounded one)
-setvar! materialsIntoBag 1
+@setvar! eatArcaneEssence 1
+
+#--- Move materials and good items into rounded bag ---#
+# 0 - disabled
+# 1 - enable (need to have a rounded bag in backpack)
+
+@setvar! materialsIntoBag 1
 
 removelist "MagicalItems"
 createlist "MagicalItems"
@@ -65,7 +73,7 @@ setvar! deleteAllLists 0
 if deleteAllLists = 1
     removelist identified_items
     removelist display_goods
-    removelist display_bads
+    removelist recycled_items
     removelist good_items
     removelist bad_items
     overhead "All lists cleared" 65
@@ -74,13 +82,8 @@ endif
 
 setvar! craftingToolGumpID 949095101
 
-if not listexists display_goods
-    createlist display_goods
-endif
-
-if not listexists display_bads
-    createlist display_bads
-endif
+removelist display_goods
+createlist display_goods
 
 removelist loot_items
 createlist loot_items
@@ -98,13 +101,12 @@ while findtype 5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|
     
     getlabel itemzy itemDesc
     
-    if "unidentified" in itemDesc
-        if "aspect" in itemDesc
-            sysmsg "aspect item not added : {{itemDesc}}" 44
-        else 
-            pushlist loot_items itemzy
-        endif
-    endif   
+    if "aspect" in itemDesc or "exceptional" in itemDesc
+        #sysmsg "item not added : {{itemDesc}}" 44
+    else 
+        pushlist loot_items itemzy
+    endif
+  
     @ignore itemzy
 endwhile
 
@@ -117,13 +119,12 @@ while findtype 31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037
    
     getlabel itemzy itemDesc
     
-    if "unidentified" in itemDesc
-        if "aspect" in itemDesc
-            sysmsg "aspect item not added : {{itemDesc}}" 44
-        else 
-            pushlist loot_items itemzy
-        endif
-    endif 
+    if "aspect" in itemDesc or "exceptional" in itemDesc
+        #sysmsg "item not added : {{itemDesc}}" 44
+    else 
+        pushlist loot_items itemzy
+    endif
+
     @ignore itemzy
 endwhile
 
@@ -136,13 +137,12 @@ while findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|702
     
     getlabel itemzy itemDesc
     
-    if "unidentified" in itemDesc
-        if "aspect" in itemDesc
-            sysmsg "aspect item not added : {{itemDesc}}" 44
-        else 
-            pushlist loot_items itemzy
-        endif
-    endif 
+    if "aspect" in itemDesc or "exceptional" in itemDesc
+        #sysmsg "item not added : {{itemDesc}}" 44
+    else 
+        pushlist loot_items itemzy
+    endif
+    
     @ignore itemzy
 endwhile
 
@@ -155,13 +155,12 @@ while findtype 3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3922|3938
     
     getlabel itemzy itemDesc
     
-    if "unidentified" in itemDesc
-        if "aspect" in itemDesc
-            sysmsg "aspect item not added : {{itemDesc}}" 44
-        else 
-            pushlist loot_items itemzy
-        endif
-    endif  
+    if "aspect" in itemDesc or "exceptional" in itemDesc
+        #sysmsg "item not added : {{itemDesc}}" 44
+    else 
+        pushlist loot_items itemzy
+    endif
+    
     @ignore itemzy
 endwhile
 
@@ -171,69 +170,78 @@ clearignore
 
 sysmsg "Identiying all items..." 11
 
-if not listexists identified_items
-    createlist identified_items
-endif
-  
+removelist identified_items
+createlist identified_items
+
 foreach loot in loot_items
 
+    if targetexists
+        hotkey 'cancel current target'
+    endif
+    
+    getlabel loot lootLabel
+    
     if skill 'item identification' = 120 or findtype 20495 backpack
         pushlist identified_items loot 
         
     elseif skill 'item identification' >= 80
-        getlabel loot lootDesc
-        
-        while "unidentified" in lootDesc
-            if index != 0
-                poplist identified_items loot
-            endif
-            overhead "Slowly identifying with skill..." 10
-            wait 1200
-            skill 'itemidentification'
-            waitfortarget maxwaittimeinms
-            
-            while not targetexists
+        if "unidentified" in lootLabel
+            while "unidentified" in lootLabel
+                if index != 0
+                    poplist identified_items loot
+                endif
+                overhead "Slowly identifying with skill..." 10
+                wait 1200
                 skill 'itemidentification'
                 waitfortarget maxwaittimeinms
-            endwhile
-            
-            target loot
+                
+                while not targetexists
+                    skill 'itemidentification'
+                    waitfortarget maxwaittimeinms
+                endwhile
+                
+                target loot
+                pushlist identified_items loot 
+                getlabel loot lootLabel
+            endwhile  
+        else 
             pushlist identified_items loot 
-            getlabel loot lootDesc
-        endwhile  
+        endif
         
     elseif findtype 20496 backpack as wandy
         
-        getlabel wandy wandDesc
-    
-        if "(10 uses" in wandDesc
-            overhead "ID wand 10 uses left!!" 34
-        elseif "(5 uses" in wandDesc
-            overhead "ID wand 5 uses left!!" 34
-        elseif "(1 uses" in wandDesc
-            overhead "ID wand 1 use left!!" 34
-        endif
-                          
-        dclicktype 20496 backpack
-        waitfortarget itemusewaittimeinms
+        if "unidentified" in lootLabel
+            getlabel wandy wandDesc
         
-        while not targetexists and findtype 20496 backpack
+            if "(10 uses" in wandDesc
+                overhead "ID wand 10 uses left!!" 34
+            elseif "(5 uses" in wandDesc
+                overhead "ID wand 5 uses left!!" 34
+            elseif "(1 uses" in wandDesc
+                overhead "ID wand 1 use left!!" 34
+            endif
+                              
             dclicktype 20496 backpack
             waitfortarget itemusewaittimeinms
-        endwhile       
-        
-        if targetexists
-            target loot
-            pushlist identified_items loot    
+            
+            while not targetexists and findtype 20496 backpack
+                dclicktype 20496 backpack
+                waitfortarget itemusewaittimeinms
+            endwhile       
+            
+            if targetexists
+                target loot
+                pushlist identified_items loot    
+            endif
+        else 
+            pushlist identified_items loot
         endif
+        
     else         
         overhead "Wand ID not found" 34  
         break
     endif
-    
-    if targetexists
-        hotkey 'cancel current target'
-    endif
+
 endfor
 
 #********** IF FOUND USE 120 ITEM ID OR CONTAINER WAND ID  **********  
@@ -271,13 +279,11 @@ endif
 
 sysmsg "Sorting good/bad items" 11
 
-if not listexists good_items
-    createlist good_items
-endif
+removelist good_items
+createlist good_items
 
-if not listexists bad_items
-    createlist bad_items
-endif
+removelist bad_items
+createlist bad_items
 
 @setvar! alertCD 800
 settimer alertTimer alertCD
@@ -300,7 +306,6 @@ foreach i in identified_items
         
         if 0 = found
             pushlist bad_items i  
-            pushlist display_bads itemDesc
         else 
             pushlist good_items i
             pushlist display_goods itemDesc
@@ -317,9 +322,11 @@ removelist identified_items
 
 #********** RECYCLE BAD ITEMS  **********  
 
-sysmsg "Reciclying bad items..." 11
-
 sysmsg "Opening sewing kit..." 11
+
+if not listexists recycled_items
+    createlist recycled_items
+endif
 
 dclicktype 3997 backpack
 waitforgump craftingToolGumpID maxwaittimeinms
@@ -332,6 +339,11 @@ endwhile
 
 foreach b in bad_items
     if find b backpack
+        getlabel b badLabel
+        if targetexists 
+            hotkey 'cancel current target'
+        endif
+        
         @setvar! itemError 0
                 
         gumpresponse 3 craftingToolGumpID
@@ -358,8 +370,9 @@ foreach b in bad_items
                 @setvar! itemError 1
             endif
         endwhile
-        if targetexists 
-            hotkey 'cancel current target'
+        
+        if itemError = 0 
+            pushlist recycled_items badLabel
         endif
    endif 
 endfor
@@ -373,32 +386,30 @@ gumpclose craftingToolGumpID
 
 #********** MOVE GOOD ITEMS TO BAG  **********  
 
-sysmsg "Moving good items if any..." 11
-
-if weight > maxweight
-    sysmsg "cancelled, overweight" 44 
-else 
-    foreach g in good_items
-
-        if g != 'x'
-
-            if findtype 3702 backpack as myBaggy
-                while not find g myBaggy                            
-                    lift g 1  
-                    drop myBaggy -1 -1 0
-                    wait maxwaittimeinms 
-                endwhile 
-                
-                poplist good_items g
-                pushlist good_items 'x' front 
-                sysmsg "Item saved." 55
-            else 
-                overhead "No bag found to move item!" 34
+if 1 = materialsIntoBag and not findtype 3702 backpack
+    sysmsg "No bag found to move good items!" 34 
+else
+    sysmsg "Moving good items if any..." 11
+    if weight > maxweight
+        sysmsg "overweight! moving items cancelled" 44 
+    else 
+        foreach g in good_items
+    
+            if g != 'x'
+                if findtype 3702 backpack as myBaggy
+                    while not find g myBaggy                            
+                        lift g 1  
+                        drop myBaggy -1 -1 0
+                        wait maxwaittimeinms 
+                    endwhile 
+                    
+                    poplist good_items g
+                    pushlist good_items 'x' front 
+                    sysmsg "Item saved." 55
+                endif
             endif
-
-        endif
-        
-    endfor
+        endfor
+    endif
 endif
 
 removelist good_items
@@ -465,15 +476,15 @@ endif
 
 removelist display_goods
 
-if list display_bads = 0
-    sysmsg "0 Bad items" 33
+if list recycled_items = 0
+    sysmsg "0 recycled items" 33
 else     
-    foreach db in display_bads
-        sysmsg db 33
+    foreach dr in recycled_items
+        sysmsg dr 33
     endfor
 endif
 
-removelist display_bads
+removelist recycled_items
 
 hotkey 'cancel current target'
 gumpclose craftingToolGumpID

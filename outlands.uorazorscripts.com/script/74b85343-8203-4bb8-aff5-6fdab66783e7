@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-healer ver.2.33
+#SUPER Auto-healer ver.2.40
 
 #********** INFORMATION **********# 
 
@@ -38,6 +38,7 @@
 #--- Set potions ---#
 
 @setvar! drinkStr 1
+@setvar! drinkAgility 1
 @setvar! drinkMagicResist 1
 @setvar! drinkHeal 1
 @setvar! drinkCure 1
@@ -84,6 +85,9 @@ settimer aidsMessageTimer aidsMessageCD
 
 @setvar! whiteMessageCD 3000
 settimer whiteMessageTimer whiteMessageCD
+
+@setvar! blueMessageCD 3000
+settimer blueMessageTimer blueMessageCD
 
 @setvar! blackMessageCD 2500
 settimer blackMessageTimer blackMessageCD
@@ -182,6 +186,22 @@ while not dead
                 endif
             endif
         endif
+        
+        #--- Drink agility pot ---#
+        
+        if drinkAgility = 1
+            if not findbuff "Agility" 
+                if findtype "Blue Potion" self
+                    dclicktype "Blue Potion"
+                    wait 200
+                else
+                    if timer blueMessageTimer > blueMessageCD
+                        overhead "Out of agility pots" 34
+                        settimer blueMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
             
         #--- Drink magic resist pot ---#
     
@@ -211,19 +231,20 @@ while not dead
                         overhead "Out of cure pots" 34
                         settimer orangeMessageTimer 0
                     endif
+                    
+                    if diffhits > highDiff or not findtype 3972 self or not findtype 3973 self
+                        break
+                    endif
+                    
                     if skill 'magery' >= 40 and mana >= 6 and 1 = cureSpell
-                        if not findtype 3972 self or not findtype 3973 self
-                            break
-                        endif
-                        if targetexists
-                            hotkey 'cancel current target'  
-                        endif
-                        cast 'cure'           
+                        cast 'cure'
+                        wait 50
                         while not casting                   
-                            cast 'cure'  
                             if targetexists
                                 hotkey 'cancel current target'
                             endif
+                            cast 'cure'  
+                            wait 50
                         endwhile  
                         while not targetexists and casting
                         endwhile
@@ -235,9 +256,6 @@ while not dead
                     endif
                 endif
                 
-                if diffhits > highDiff
-                    break
-                endif
             endwhile
         endif
             
@@ -410,50 +428,55 @@ while not dead
         #--- Cast heals ---#
         
         if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits <= medDiff and mana >= 4 and miniHeal = 1 and timer nobleTimer > nobleCD
-            if targetexists
-                hotkey 'cancel current target'  
-            endif
-            cast 'heal'           
+            cast 'heal'
+            wait 50
             while not casting                   
-                cast 'heal'
                 if targetexists
                     hotkey 'cancel current target'
                 endif
+                cast 'heal'
+                wait 50
             endwhile  
+            
             while not targetexists and casting
             endwhile
+            
             waitfortarget maxwaittimeinms
             target 'self' 
             wait 200  
+            
         elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1 and timer nobleTimer > nobleCD
-            if targetexists
-                hotkey 'cancel current target'  
-            endif
-            cast 'greater heal'           
+            cast 'greater heal'         
+            wait 50
             while not casting                   
-                cast 'greater heal'
                 if targetexists
                     hotkey 'cancel current target'
                 endif
+                cast 'greater heal'
+                wait 50
             endwhile  
+            
             while not targetexists and casting
             endwhile
+            
             waitfortarget maxwaittimeinms
             target 'self' 
             wait 200 
+            
         elseif skill 'magery' >= 40 and diffhits >= medDiff and mana >= 4 and miniHeal = 1 and timer nobleTimer > nobleCD
-            if targetexists
-                hotkey 'cancel current target'  
-            endif
-            cast 'heal'           
+            cast 'heal'     
+            wait 50
             while not casting                   
-                cast 'heal'  
                 if targetexists
                     hotkey 'cancel current target'
                 endif
+                cast 'heal' 
+                wait 50
             endwhile  
+            
             while not targetexists and casting
             endwhile
+            
             waitfortarget maxwaittimeinms
             target 'self' 
             wait 200  
@@ -465,9 +488,6 @@ while not dead
         
         if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= 14
             if timer magicReflectTimer > magicReflectCD
-                if targetexists
-                    hotkey 'cancel current target'
-                endif
                 cast 'Magic Reflection'
                 wait 100
                 while not casting and diffhits < lowDiff                   
@@ -475,15 +495,14 @@ while not dead
                         settimer magicReflectTimer 0
                         break  
                     endif
-                    cast 'Magic Reflection'
                     if targetexists
                         hotkey 'cancel current target'
                     endif
-                    wait 100
-                endwhile  
+                    cast 'Magic Reflection'
+                    wait 50
+                endwhile 
+                
                 while casting and diffhits < lowDiff   
-                    #sysmsg "* applying magic reflect *" 55
-                    wait 200
                 endwhile
                 wait 200  
             endif    
@@ -491,9 +510,6 @@ while not dead
         
         if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= 4
             if timer magicReflectTimer > magicReflectCD
-                if targetexists
-                    hotkey 'cancel current target'
-                endif
                 cast 'Reactive Armor'
                 wait 100
                 while not casting and diffhits < lowDiff                   
@@ -501,35 +517,30 @@ while not dead
                         settimer armorReflectTimer 0
                         break  
                     endif
-                    cast 'Reactive Armor'
                     if targetexists
                         hotkey 'cancel current target'
                     endif
-                    wait 100
+                    cast 'Reactive Armor'
+                    wait 50
                 endwhile  
+                
                 while casting and diffhits < lowDiff   
-                    #sysmsg "* applying armor reflect *" 77
-                    wait 200
                 endwhile
                 wait 200  
             endif    
         endif     
         
         if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= 6
-            if targetexists
-                hotkey 'cancel current target'
-            endif
             cast 'Protection'
             wait 100
-            while not casting and diffhits < lowDiff                   
-                cast 'Protection'
+            while not casting and diffhits < lowDiff 
                 if targetexists
                     hotkey 'cancel current target'
                 endif
+                cast 'Protection'
+                wait 50
             endwhile  
             while casting and diffhits < lowDiff   
-                #sysmsg "* applying protection *" 77
-                wait 200
             endwhile
             wait 200  
         endif 

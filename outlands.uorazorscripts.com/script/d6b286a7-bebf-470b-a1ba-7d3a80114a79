@@ -5,7 +5,7 @@
 #############################################
 
 # "***Bapeths Modern Dungeon Picker***"
-# Updated Oct 5th 2024 (Recycle while at chest now works)
+# Updated Oct 7th 2024 (Improved Wizard Hat Logic)
 #
 # "***READ THIS***READ THIS***READ THIS***READ THIS***"
 #
@@ -63,7 +63,7 @@
 # You must be carrying "scissors" (suggest blessed scissors in an Adventure Satchel so not to incur any extra weight)
 # "Double click scissors" while the script is playing to activate the Auto-Recycler (Blocked while actively picking chest)
 # ID wand will ID your "Main Layer Backpack" and recycle from there only
-# If you want to edit the items that the script keeps - change "line 1425"
+# If you want to edit the items that the script keeps - change "line 1460"
 #
 # "Loot-Sense & Vacuum Mode"
 # This function will overhead display *loot* above items on the ground and pick them up as you pass by (2 tiles)
@@ -145,32 +145,37 @@ if skill "Spirit Speak" >= 80 and findtype "an earth elemental" ground -1 -1 1 a
     endif
 endif
 
-if not varexist "bwiz" and findlayer self head as hat
-    getlabel hat desc
+if findtype 5912 self and not varexist "bwiz" and findlayer self head as regularhat
+    getlabel regularhat desc
     if "magical" in desc
-        overhead "I should keep my wizard hat in my pack..." 36
+        dclick regularhat
+        pause 500
+        getlabel backpack ping
+        replay
+    endif
+endif
+if not find "bwiz" self and findtype 5912 backpack as wizhat
+    getlabel wizhat desc
+    if "restyled" in desc
+        @ignore wizhat
+        replay
+    elseif "armored" in desc
+        @setvar "bwiz" wizhat
+    elseif "magical" in desc
+        @setvar "bwiz" wizhat
+        @setvar "nonaspectedwiz" wizhat
+    endif
+endif
+if varexist "bwiz" and find "bwiz" backpack
+    if not find "bmain" self and findlayer self head as hat
+        @setvar "bmain" hat
+    endif
+    if not varexist "bmain"
+        overhead "I need a primary hat or helm to wear.." 88
+        pause 2000
+        overhead "Anything will do, just not a magical wizard hat..." 88
         stop
     endif
-endif
-
-if not find "bwiz" backpack and findtype 5912 backpack as bwiz
-    @setvar "bwiz" bwiz
-    getlabel bwiz desc
-    if "armored" in desc
-        //donothing
-    else 
-        @setvar "nonaspectedwiz" bwiz
-    endif
-endif
-
-if not find "bmain" self and findlayer self head as hat
-    @setvar "bmain" hat
-endif
-
-if not varexist "bmain"
-    overhead "I will need a hat to wear..." 38
-    overhead "It can not be a magical wizard hat..." 38
-    stop
 endif
 
 if skill "Lockpicking" >= 50 and not findtype "lockpicks" backpack and not timerexists lockpickcheck
@@ -713,35 +718,37 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
             if insysmsg "You have worn out your tool"
                 overhead "This tool is worn out!" 805
             endif
-            if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
-                while not queued
-                    if findlayer self head as hat
-                        getlabel hat desc
-                        if "magical" in desc
-                            dclick "bmain"
-                        else 
-                            dclick "bwiz"
-                            pause 500
-                            getlabel backpack ping
-                            dclick "bmain"
-                        endif
-                    endif
-                    break
-                endwhile
-            endif
-            if not targetexists and not casting and not findlayer self head
-                while not queued
-                    dclick "bmain"
-                    break
-                endwhile
-            endif
-            if not targetexists and not casting and findlayer self head as hat
-                getlabel hat desc
-                if "magical" in desc
-                    while not queued
-                        dclick "bmain"
-                        break
+            if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
+                if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+                    while queued
+                        //donothing
                     endwhile
+                    dclick "bwiz"
+                    while queued
+                        //donothing
+                    endwhile
+                    pause 30
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+                if not targetexists and not casting and not findlayer self head and find "bmain" self
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+            if varexist "bwiz" and find "bmain" self
+                if not targetexists and not casting and not find "bwiz" backpack
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
                 endif
             endif
             if ingump "Shrines"
@@ -1046,35 +1053,37 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
             if insysmsg "You have worn out your tool"
                 overhead "This tool is worn out!" 805
             endif
-            if not targetexists and not casting and not find "nonaspectedwiz" backpack and skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
-                while not queued
-                    if findlayer self head as hat
-                        getlabel hat desc
-                        if "magical" in desc
-                            dclick "bmain"
-                        else 
-                            dclick "bwiz"
-                            pause 500
-                            getlabel backpack ping
-                            dclick "bmain"
-                        endif
-                    endif
-                    break
-                endwhile
-            endif
-            if not targetexists and not casting and not findlayer self head
-                while not queued
-                    dclick "bmain"
-                    break
-                endwhile
-            endif
-            if not targetexists and not casting and findlayer self head as hat
-                getlabel hat desc
-                if "magical" in desc
-                    while not queued
-                        dclick "bmain"
-                        break
+            if varexist "bwiz" and find "bwiz" backpack and find "bmain" self and not find "nonaspectedwiz" backpack 
+                if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+                    while queued
+                        //donothing
                     endwhile
+                    dclick "bwiz"
+                    while queued
+                        //donothing
+                    endwhile
+                    pause 30
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+                if not targetexists and not casting and not findlayer self head and find "bmain" self
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+            if varexist "bwiz" and find "bmain" self
+                if not targetexists and not casting and not find "bwiz" backpack
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
                 endif
             endif
             if ingump "Shrines"
@@ -1373,35 +1382,37 @@ if insysmsg "You have been revealed!"
     endif
 endif
 
-if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam and findtype 5912 self
-    while not queued
-        if findlayer self head as hat
-            getlabel hat desc
-            if "magical" in desc
-                dclick "bmain"
-            else 
-                dclick "bwiz"
-                pause 500
-                getlabel backpack ping
-                dclick "bmain"
-            endif
-        endif
-        break
-    endwhile
-endif
-if not targetexists and not casting and not findlayer self head
-    while not queued
-        dclick "bmain"
-        break
-    endwhile
-endif
-if not targetexists and not casting and findlayer self head as hat
-    getlabel hat desc
-    if "magical" in desc
-        while not queued
-            dclick "bmain"
-            break
+if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
+    if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+        while queued
+            //donothing
         endwhile
+        dclick "bwiz"
+        while queued
+            //donothing
+        endwhile
+        pause 30
+        dclick "bmain"
+        pause 500
+        getlabel backpack ping
+    endif
+    if not targetexists and not casting and not findlayer self head and find "bmain" self
+        while queued
+            //donothing
+        endwhile
+        dclick "bmain"
+        pause 500
+        getlabel backpack ping
+    endif
+endif
+if varexist "bwiz" and find "bmain" self
+    if not targetexists and not casting and not find "bwiz" backpack
+        while queued
+            //donothing
+        endwhile
+        dclick "bmain"
+        pause 500
+        getlabel backpack ping
     endif
 endif
 

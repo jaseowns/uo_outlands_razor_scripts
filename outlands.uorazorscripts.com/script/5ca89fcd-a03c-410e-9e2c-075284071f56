@@ -189,6 +189,8 @@
 @setvar! CastHealHPlowdiff 5
 @setvar! CastHealHPmeddiff 25
 @setvar! CastHealHPhighdiff 50
+@setvar! EnableMagicMushroom 1
+@setvar! MushroomTimerCD 180000
 
     # Offensive:
 @setvar! EnableCastExplosion 0
@@ -250,6 +252,10 @@
 
 @setvar! EnableRefreshPotion 1
 @setvar! RefreshPotSPdiff 11
+
+@setvar! EnableMagicResistPotion 1
+@setvar! EnableStrengthPotion 0
+@setvar! EnableAgilityPotion 0
 
 @setvar! AllInventoryMessage 1
     // or
@@ -373,7 +379,7 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
                     cooldown "Refresh Potion" 10500
                 else 
                     overhead '[ NO REFRESH POTS! ]' 337
-               endif
+                endif
            endif
 
     if skill "Mining" >= 50
@@ -688,6 +694,7 @@ if EnableRedAlertRecall = 1 and TimeToGo = 1
                 sysmsg "Disable 'EnableTreasureChest' in script variables to turn off this feature!" 0
             else 
                 break
+            endif
             endfor            
         else        
             if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map" self
@@ -922,6 +929,45 @@ if EnableRefreshPotion = 1
     endif
 endif
 
+if EnableMagicResistPotion = 1
+    if not findbuff "Magic Resist Potion"
+        if findtype "Black Potion" self as magicresistpot
+            overhead '* drinking magic resist potion... *' 0
+            dclick magicresistpot
+        else 
+            overhead '[ NO MAGIC RESIST POTS! ]' 337
+            wait 500
+        endif
+        wait 1000
+    endif
+endif
+
+if EnableStrengthPotion = 1
+    if not findbuff "Strength"
+        if findtype "White Potion" self as strengthpot
+            overhead '* drinking strength potion... *' 0
+            dclick strengthpot
+        else 
+            overhead '[ NO STRENGTH POTS! ]' 337
+            wait 500
+        endif
+        wait 1000
+    endif
+endif
+
+if EnableAgilityPotion = 1
+    if not findbuff "Agility"
+        if findtype "Blue Potion" self as agilitypot
+            overhead '* drinking agility potion... *' 0
+            dclick agilitypot
+        else 
+            overhead '[ NO AGILITY POTS! ]' 337
+            wait 500
+        endif
+        wait 1000
+    endif
+endif
+
 if EnableMagicReflection = 1 
     if skill 'Magery' >= 60 and not findbuff 'Magic Reflection' and not cooldown "Magic Shield" and mana > 14
         overhead 'I should shield myself...' 2086
@@ -1034,14 +1080,26 @@ if EnableGoldVacuum = 1
     endif
 endif 
 
+if skill "Spirit Speak" >= 80 and not cooldown "Spirit Speak"
+    if findtype "corpse" ground -1 -1 12 as batteries
+        useskill "spiritspeak"
+        @ignore batteries
+        cooldown "Spirit Speak" 11000
+        wait 1000
+    endif 
+endif
+
 if EnableAutoCarving = 1
     if findtype 'Elven SpellBlade' self 
         if findtype "corpse" ground -1 -1 2 as deadbody
             dclicktype "Elven Spellblade"
             waitfortarget 1500
             target 'self'
+            wait 250
             overhead "* skinning corpse... *" 337
-            @ignore deadbody
+            if insysmsg "You don't see anything"
+                @ignore deadbody
+            endif
         endif 
     else
         if not cooldown "Inventory Timer"
@@ -1052,7 +1110,7 @@ if EnableAutoCarving = 1
         wait 500
     endif 
 endif
-
+        
 if skill 'Magery' >= 80 and skill 'Spirit Speak' >= 80 and EnableSummons = 1 
     
     if followers = 0
@@ -1651,6 +1709,45 @@ if EnableAutoAttackGreyMOB = 1
                                 endif
                             endif
                         endif
+                        
+                        if EnableMagicResistPotion = 1
+                            if not findbuff "Magic Resist Potion"
+                                if findtype "Black Potion" self as magicresistpot
+                                    overhead '* drinking magic resist potion... *' 93
+                                    dclick magicresistpot
+                                else 
+                                    overhead '[ NO MAGIC RESIST POTS! ]' 337
+                                    wait 500
+                                endif
+                                wait 1000
+                            endif
+                        endif
+
+                        if EnableStrengthPotion = 1
+                            if not findbuff "Strength"
+                                if findtype "White Potion" self as strengthpot
+                                    overhead '* drinking strength potion... *' 956
+                                    dclick strengthpot
+                                else 
+                                    overhead '[ NO STRENGTH POTS! ]' 337
+                                    wait 500
+                                endif
+                                wait 1000
+                            endif
+                        endif
+
+                        if EnableAgilityPotion = 1
+                            if not findbuff "Agility"
+                                if findtype "Blue Potion" self as agilitypot
+                                    overhead '* drinking agility potion... *' 0
+                                    dclick agilitypot
+                            else 
+                                overhead '[ NO AGILITY POTS! ]' 337
+                                wait 500
+                            endif
+                                wait 1000
+                            endif
+                        endif
                             
                         if paralyzed and EnableParalyzePouch = 1
                             overhead "[[[[ POP!! ]]]]" 2117
@@ -1658,6 +1755,27 @@ if EnableAutoAttackGreyMOB = 1
                             @setvar! TimeToGo 1
                             replay
                         endif
+                        
+                        if EnableProtection = 1
+                            if skill 'Magery' >= 40 and not findbuff 'Protection' and mana >= 6
+                                for 10
+                                cast 'Protection' 
+                                wait 100
+                                    while casting 
+                                        wait 50
+                                    endwhile
+                                wait 100
+                                    if cooldown "Spell Fail"
+                                        overhead "Let me try that again..." 2086
+                                        wait 500
+                                    else
+                                        break
+                                    endif 
+                                endfor 
+                                overhead "[ PROTECTION ACTIVE! ]" 77
+                            endif  
+                        endif 
+
 
                     if skill "Mace Fighting" or skill "Swordsmanship" > 50
                         attack CurrentTarget                        
@@ -1677,6 +1795,23 @@ if EnableAutoAttackGreyMOB = 1
                                 endif
                             endwhile
                         endif  
+                        
+                        if EnableMagicMushroom = 1
+                            if not timerexists MushroomTimer
+                                settimer MushroomTimer MushroomTimerCD
+                            endif
+                        
+                            if timer MushroomTimer >= MushroomTimerCD and findtype "mushroom" backpack as magicmushroom
+                                overhead "* eating shrooms... *" 66
+                                dclick magicmushroom
+                                wait 250
+                                if insysmsg "You consume a magic mushroom and restore some mana."
+                                    settimer MushroomTimer 0    
+                                elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
+                                    settimer MushroomTimer 30000
+                                endif
+                            endif
+                        endif
 
                         if EnableCastHeal = 1
                             if not findtype "spellbook" hand and findtype "spellbook" backpack as myspellbook
@@ -1963,13 +2098,18 @@ if EnableAutoAttackGreyMOB = 1
                                 clearsysmsg
                             endif 
                         
+                            if skill "Spirit Speak" >= 80 and not cooldown "Spirit Speak"
+                                useskill "spiritspeak"
+                                cooldown "Spirit Speak" 11000
+                            endif
+                                
                             if insysmsg "You have gained"
                                 overhead "Did you see that?? I just killed {{TargetDesc}}!" 2086
                                 hotkey 'Cancel Current Target'
                                 @setvar CurrentTarget 0
 
                                 if skill "Spirit Speak" >= 80 and not cooldown "Spirit Speak"
-                                    useskill "Spirit Speak"
+                                    useskill "spiritspeak"
                                     cooldown "Spirit Speak" 11000
                                 endif
                             endif
@@ -2171,7 +2311,7 @@ endif
 hotkey 'Use item in hand' 
 wft 500
 hotkey 'Target Self' 
-wait 475
+wait 150
 
         if insysmsg "Now tracking" or insysmsg "Distance to destination"
             @setvar! TimeToGo 1
@@ -2621,11 +2761,6 @@ wait 475
                         clearsysmsg 
                         replay 
             
-                elseif insysmsg "You loosen some rocks"
-                    overhead '* fail! *' 337
-                    clearsysmsg 
-                    replay
-                    
                 elseif insysmsg 'You do not see any' or insysmsg 'You cannot produce any'
                     @setvar! Working 0
                     if MOVE = 1
@@ -2751,6 +2886,8 @@ wait 475
                     @setvar! MOVE 1
                 replay   
             endif 
+            
+            wait 350
    
     if insysmsg "Mining skillgain" 
         if skill 'Mining' > 100.0 and skill 'Mining' < 119.9
@@ -2785,6 +2922,11 @@ wait 475
                         endif 
                     endfor 
                 clearsysmsg
+                
+            elseif insysmsg "You loosen some rocks"
+                overhead '* fail! *' 337
+                clearsysmsg 
+                replay
               
             elseif insysmsg "You dig some iron ore" 
                 @setvar! Working 1

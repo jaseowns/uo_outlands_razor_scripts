@@ -6,14 +6,14 @@
 
 # Bapeths Peaceful Harvester
 #
-# September 7th 2024
+# October 11th 2024 (Pack animal support, Runebook support, Rune & Recall scroll support, New way to set Boom Box / Container)
 #
 # "Required" - Do not include quotations when entering data
 # Create cooldowns in game called : 
-# If Music/Peace is higher than 50 " Peacemaking " " Barding Reset "
-# If any tracking skill at all " Tracking "
-#
+# If your Music/Peace is higher than 50 add  " Peacemaking " and " Barding Reset "
+# If any tracking skill at all add " Tracking "
 # Barding Reset requires an Overhead Message Trigger : " Your barding skill cooldowns reset "  Cooldown : " 0.5 "
+#    
 # Hold TAB key for combat should be unchecked in UO Options > Combat-Spells > General
 #
 # "Harvest Speed"
@@ -21,7 +21,12 @@
 # Make sure this setting is turned ON in the razor Options tab > Targeting & Queues sub-tab
 # And set "object delay to 503" MINING WILL BE SLOW IF YOU DONT DO THIS
 #
-# Items : Pickaxe or Hatchet, BoomBox (and/or trapped pouch), Musical Instrument (supreme is good), Resource stockpile, Atlas
+# Items : Pickaxe or Hatchet, BoomBox (or any container), Musical Instrument (supreme is good), Resource stockpile, Atlas
+#
+# "Boom Box / Ore Container"
+# Open the party menu while the script is playing to "set your container"
+# Type [party or double click the party scroll in your paperdoll
+# The party menu gump can not be used normally while the script is playing - stop the script if you need the menu
 #
 # "Optional"
 # If you want to install "Bapeths Custom Razor Overheads" for this Build
@@ -29,20 +34,20 @@
 # Paste them into your characters razor profile in the "Overheads" section
 # Default pathway is " C:\Program Files (x86)\Ultima Online Outlands\ClassicUO\Data\Plugins\Assistant\Profiles "
 #
-# Additional Items Script Uses : Cure pot, Heal pot, Refresh pot, Strength pot, Cleansing brew, Scissors (Blessed), Rune Tome
+# Additional Items Script Uses : Cure pot, Heal pot, Refresh pot, Strength pot, Cleansing brew, Scissors (Blessed), Rune Tome/book (or Recall scroll and Rune), Pack Animal
 #
 # "Spam Reduction"
 # Options tab > Targeting & Queues subtab > Uncheck "Attack/Target name overhead"
 # Filters tab > Text & Messages subtab > Check "Filter Repeating Razor Messages" ONLY
 # Filters tab > Text & Messages subtab > Add > "You cannot produce any wood from that." and filter from overhead
 #
-# Yell Emote is used on "line 328 & line 363" - Edit this to any emote you may have
-# Default cooldown is 2mins - Edit "line 327 & line 362" to match your character customization emote unlocks
+# "Yell Emote" is used on "line 394 & line 461" - Edit this to any emote you may have
+# Default cooldown is 2mins - Edit "line 393 & line 460" to match your character customization emote unlocks
 #
 # "**HOW TO USE**" 
 # 1. Gather required items and play script near resource
-# 2. Script will auto sort ore/boards/ingots into Boom Box
-# 3. To get ingots out of trapped box: use "resource stockpile" in your house/inn room to grab ingots without triggering trap    
+# 2. Script will auto sort ore/boards/ingots into Boom Box / Ore Container
+# 3. To get ingots out of trapped box: use "resource stockpile" in your house/inn room to grab ingots without triggering trap (or use a sorting script)
 # 4. Do not carry both a pickaxe and a hatchet at the same time, choose one or the other
 #
 # "In Peace Mode" 
@@ -55,16 +60,20 @@
 # Look for and display nearby forges
 # Auto smelt ingots when near "player forge"
 # Turn logs into boards
-# Auto sort boards/ingots/ore into a Boombox or Trapped Pouch
+# Auto sort boards/ingots/ore into a Boombox / Ore Container
+#
+# "Pack Animals"
+# Simply place your "Boom Box / Ore Container" in your pack animals pack
+# The script will keep your pack animals pack open when it is nearby
 #
 # "Atlas" Required to smelt at non-player "natrual forges" "<------- Important"
 # Open your atlas near a natrual forge to auto smelt
-# Actions in this script are very tight - you may need to attempt to open the atlas a couple times, or, hold down your atlas hoktey
 # Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
 # Reason : Staff changed natrual forges and they cannot be sensed with scripts
 #    
 # "Auto-Escape" Toggled on and off by double clicking the "scissors" while the script is playing
-# This feature requires the user have a "Rune Tome" and your escape rune must be placed in the very "first slot"
+# This feature uses a "Rune Tome/Book" - Your escape rune must be placed in the very "first slot" of your book
+# If you do not have a Rune Tome/Book you can simply use a "Recall Rune & Recall scroll" instead
 # This feature will always be default "Off" and will reset to default if you restart your game completely
 #
 # War mode uses action resources and may slow down active mining slightly
@@ -87,7 +96,7 @@ if not varexist peaceharvfirsttime
     @setvar peaceharvfirsttime backpack
     overhead "Welcome to Bapeths Peaceful Harvester..." 88
     pause 4000
-    overhead "This script requires three cooldowns:" 88
+    overhead "This script may require up to three cooldowns:" 88
     pause 800
     overhead "Tracking" 78
     overhead "Peacemaking" 78
@@ -109,36 +118,93 @@ if not timerexists htoolcheck
     settimer htoolcheck 28000
 endif
 
-if not timerexists rptimer
-    createtimer rptimer
-    settimer rptimer 1200
+if not timerexists boxtransfer
+    createtimer boxtransfer
+    settimer boxtransfer 5000
 endif
 
-if not find "harvboombox" backpack
+if not timerexists instrumcheck
+    createtimer instrumcheck
+    settimer instrumcheck 5000
+endif
+if skill "Peacemaking" >= 50 and not find "harvinstrument" backpack and findtype 3763|20016|20010|10245|20008|20006|20014|20012|3742|3740|3762 backpack as binstrument
+    @setvar "harvinstrument" binstrument
+    while queued
+        //donothing
+    endwhile
+    dclick binstrument
+    pause 500
+    getlabel backpack ping
+endif
+if timer instrumcheck >= 5000 and not find "harvinstrument" backpack and skill "Peacemaking" >= 50
+    overhead "I should get an instrument..." 88
+    settimer instrumcheck 0
+endif
+
+if not find "currentpackanimal"
+    if findtype "291|292" ground as bpackanimal
+        if noto bpackanimal = "friend"
+            @setvar "currentpackanimal" bpackanimal
+        endif
+    endif
+endif
+if not find "currentpackanimal" ground -1 -1 1
+    createtimer openanimalpack
+endif
+if timerexists openanimalpack and find "currentpackanimal" ground -1 -1 2 not targetexists and not casting
+    clearsysmsg 
+    @clearignore 
+    while queued
+        //donothing
+    endwhile
+    dclick "currentpackanimal"
+    getlabel backpack ping
+    if find "harvboombox" "currentpackanimal"
+        overhead "*ore box*" 88 "harvboombox"
+    endif
+    removetimer openanimalpack
+endif
+
+if gumpexists 3527489586
+    gumpclose 3527489586
+    if targetexists 
+        hotkey "Cancel Current Target"
+    endif
     overhead "Select Boom Box" 88
-    pause 750
-    setlasttarget   
+    overhead "-----> OR" 78
+    overhead "Select Trapped Pouch" 88
+    pause 550
+    hotkey "Set Last Target" 
     wft 500
     while targetexists 
-        //do nothing
+        //donothing
     endwhile
     @setvar "harvboombox" lasttarget 
     hotkey "Cancel Current Target"
-    overhead "Boom Box Set" 78
+    overhead "Container Set" 78
+    if find "harvboombox"
+        hotkey "Set Grab Item HotBag"
+        wft 500
+        target "harvboombox"
+    endif
     pause 750
 endif
 
 if not find "escaperune" backpack
-    overhead "Select Escape Runebook" 88
+    overhead "Select Escape Method" 88
+    pause 1500
+    overhead "Select Runetome, or" 78
+    overhead "Select Runebook, or" 78
+    overhead "Select Rune" 78
     pause 750
-    setlasttarget 
+    hotkey "Set Last Target" 
     wft 500
     while targetexists 
         //donothing
     endwhile
     @setvar "escaperune" lasttarget 
     hotkey "Cancel Current Target"
-    overhead "Escape Runebook Set" 78
+    overhead "Escape Method Set" 88
     pause 750
 endif
 
@@ -207,20 +273,20 @@ elseif find "bharvest" backpack and findlayer self righthand as rightdrop
     getlabel backpack ping
     replay
 endif
-if rhandempty and find "bharvest" backpack
+if rhandempty and find "bharvest" backpack and not targetexists
     dclick "bharvest"
     overhead "Harvest Time!" 88
     pause 500
     getlabel backpack ping
 endif
-if lhandempty and find "bharvest" backpack
+if lhandempty and find "bharvest" backpack and not targetexists 
     dclick "bharvest"
     overhead "Harvest Time!" 88
     pause 500
     getlabel backpack ping
 endif
  
-while find "bharvest" self and not hidden 
+while find "bharvest" self and not hidden and not casting
     while queued
         //donothing
     endwhile
@@ -257,7 +323,7 @@ while find "bharvest" self and not hidden
         settimer htoolcheck 0
     endif
     
-    if skill "Peacemaking" >= 10 and not cooldown "Peacemaking"
+    if find "harvinstrument" backpack and skill "Peacemaking" >= 10 and not cooldown "Peacemaking" and not targetexists and not casting
         for 6
             hotkey 'Next Grey Monster Target'
             if insysmsg "No one matching" 
@@ -330,31 +396,63 @@ while find "bharvest" self and not hidden
                 createtimer emotetimer
                 settimer emotetimer 120000
             endif
-            if timer emotetimer >= 60000
+            if timer emotetimer >= 120000
                 say "[Yell" 454
                 settimer emotetimer 0
             endif
             while not dead 
-                dclick "escaperune"
-                waitforgump 167090027 500
-                if skill "Magery" <= 59
-                    gumpresponse 100
-                    while casting 
-                        //donothing
-                    endwhile
-                    pause 800
-                    clearsysmsg 
-                elseif skill "Magery" >= 60
-                    gumpresponse 200
+                getlabel "escaperune" desc
+                if "tome" in desc
+                    dclick "escaperune"
                     waitforgump 167090027 500
-                    gumpresponse 10  
+                    if skill "Magery" <= 59
+                        gumpresponse 100
+                        while casting 
+                            //donothing
+                        endwhile
+                        pause 800
+                        clearsysmsg 
+                    elseif skill "Magery" >= 60
+                        gumpresponse 200
+                        waitforgump 167090027 500
+                        gumpresponse 10  
+                        while casting 
+                            //donothing
+                        endwhile
+                        pause 800
+                        clearsysmsg 
+                    endif
+                    break
+                elseif "runebook" in desc
+                    dclick "escaperune"
+                    waitforgump 167090027 500
+                    if skill "Magery" <= 59
+                        gumpresponse 2
+                        while casting 
+                            //donothing
+                        endwhile
+                        pause 800
+                        clearsysmsg 
+                    elseif skill "Magery" >= 60
+                        gumpresponse 5  
+                        while casting 
+                            //donothing
+                        endwhile
+                        pause 800
+                        clearsysmsg 
+                    endif
+                    break
+                elseif findtype "7956" backpack and findtype "Recall" backpack as recscroll
+                    dclick recscroll
                     while casting 
                         //donothing
                     endwhile
+                    wft 500
+                    target "escaperune"
                     pause 800
                     clearsysmsg 
+                    break
                 endif
-                break
             endwhile
         endif
     endif  
@@ -365,7 +463,7 @@ while find "bharvest" self and not hidden
                 createtimer emotetimer
                 settimer emotetimer 120000
             endif
-            if timer emotetimer >= 60000
+            if timer emotetimer >= 120000
                 say "[Yell" 454
                 settimer emotetimer 0
             endif
@@ -397,7 +495,32 @@ while find "bharvest" self and not hidden
             endfor
         endif
         
+        if timer boxtransfer >= 5000 and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal" and findtype "forge" ground -1 -1 2
+            while queued
+                //donothing
+            endwhile
+            lift "harvboombox"
+            drop self
+            pause 500
+            getlabel backpack ping
+            while queued
+                //donothing
+            endwhile  
+        endif
+        
         if gumpexists 341416395
+            if timer boxtransfer >= 5000 and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
+                while queued
+                    //donothing
+                endwhile
+                lift "harvboombox"
+                drop self
+                pause 500
+                getlabel backpack ping
+                while queued
+                    //donothing
+                endwhile  
+            endif
             @clearignore 
             while findtype "6585" backpack as natore
                 dclick natore
@@ -412,11 +535,7 @@ while find "bharvest" self and not hidden
             gumpclose 341416395
             warmode off
         endif
-        
-        if findtype "6585" backpack 0 as baseore
-            @ignore baseore
-        endif
-                    
+                            
         if findlayer self righthand and findtype "forge" ground -1 -1 2
             @clearignore
             while findtype 7154|7127| backpack as refinedresource
@@ -429,19 +548,7 @@ while find "bharvest" self and not hidden
             endwhile
         endif
         
-        while findtype "6585" backpack as rawore
-            if findtype "6585" backpack 0 as baseore
-                @ignore baseore
-            endif                
-            if find "harvboombox" backpack
-                hotkey "Set Grab Item HotBag"
-                wft 500
-                target "harvboombox"
-            elseif findtype "pouch" backpack 38 as tpouch
-                hotkey "Set Grab Item HotBag"
-                wft 500
-                target tpouch
-            endif
+        while findtype "6585" backpack as rawore   
             while queued
                 //donothing
             endwhile
@@ -458,19 +565,10 @@ while find "bharvest" self and not hidden
                 @ignore rawore
             endif
         endwhile 
-        
-        while findtype 7154|7127| backpack as refinedresource
-            if find "harvboombox" backpack
-                hotkey "Set Grab Item HotBag"
-                wft 500
-                target "harvboombox"
-            elseif findtype "pouch" backpack 38 as tpouch
-                hotkey "Set Grab Item HotBag"
-                wft 500
-                target tpouch
-            endif
+      
+        while findtype 7154|7127 backpack as refinedresource
             while queued
-                //donithing
+                //donothing
             endwhile
             hotkey "Grab Item"
             wft 500
@@ -481,7 +579,22 @@ while find "bharvest" self and not hidden
         endwhile
     endif
     
-    if skill "Peacemaking" >= 10 and not findbuff "Song Of Peacemaking"
+    if find "harvboombox" backpack and find "currentpackanimal" ground -1 -1 2
+        @clearignore 
+        while queued
+            //donothing
+        endwhile
+        lift "harvboombox"
+        drop "currentpackanimal"
+        pause 500
+        getlabel backpack ping
+        while queued
+            //donothing
+        endwhile   
+        settimer boxtransfer 0
+    endif
+    
+    if find "harvinstrument" backpack and skill "Peacemaking" >= 10 and not findbuff "Song Of Peacemaking"
         skill "Peacemaking"
         wft 500
         targetrelloc -1 -1
@@ -495,20 +608,23 @@ while find "bharvest" self and not hidden
     endif
     
     if not hidden and not timerexists brew and findbuff "Bleed" and findtype 50675 backpack as cbrew
-        pause 1200
-        dclick cbrew
-        createtimer brew
-        pause 500
-        getlabel backpack ping
+        if not timerexists bleedmobdelay
+            createtimer bleedmobdelay
+        endif
+        if timer bleedmobdelay >= 1100
+            while queued
+                //donothing
+            endwhile
+            dclick cbrew
+            createtimer brew
+            removetimer bleedmobdelay
+        endif
     elseif not hidden and not timerexists brew and findbuff "Diseased" and findtype 50675 backpack as cbrew
         while queued
             //donothing
         endwhile
-        getlabel backpack ping
         dclick cbrew
         createtimer brew
-        pause 500
-        getlabel backpack ping
     endif
     if timerexists brew
         if timer brew >= 120000
@@ -525,28 +641,12 @@ while find "bharvest" self and not hidden
         pause 500
         getlabel backpack ping
     endif
-
-    if not hidden and insysmsg "You are too fat" and not findbuff "Strength" and findtype "White Potion" backpack as wpot
+    
+    if not hidden and stam <= 4 and findtype "Red Potion" backpack as redpot
         while queued
             //donothing
         endwhile
-        getlabel backpack ping
-        dclick wpot
-        pause 500
-        getlabel backpack ping
-    endif
-
-    if not hidden and stam <= 1 and timer rptimer > 1200 and findbuff "Strength" and findtype "Red Potion" backpack as redpot
-        if counttype "Red Potion" >= 2
-            while queued
-                //donothing
-            endwhile
-            getlabel backpack ping
-            dclick redpot
-            pause 500
-            getlabel backpack ping
-            settimer rptimer 0
-        endif
+        dclick redpot
     endif
     
     if skill "Magery" >= 80 and mana >= 15
@@ -678,6 +778,69 @@ while find "bharvest" self and not hidden
             overhead "--Escape Mode Disabled--" 38
         endif
     endif
+    
+    if not find "currentpackanimal"
+        if findtype "291|292" ground as bpackanimal
+            if noto bpackanimal = "friend"
+                @setvar "currentpackanimal" bpackanimal
+            endif
+        endif
+    endif
+    if not find "currentpackanimal" ground -1 -1 1
+        createtimer openanimalpack
+    endif
+    if timerexists openanimalpack and find "currentpackanimal" ground -1 -1 2 not targetexists and not casting
+        clearsysmsg 
+        @clearignore 
+        while queued
+            //donothing
+        endwhile
+        dclick "currentpackanimal"
+        getlabel backpack ping
+        if find "harvboombox" "currentpackanimal"
+            overhead "*ore box*" 88 "harvboombox"
+        endif
+        removetimer openanimalpack
+    endif
+    
+    if gumpexists 3527489586
+        gumpclose 3527489586
+        if targetexists 
+            hotkey "Cancel Current Target"
+        endif
+        overhead "Select Boom Box" 88
+        overhead "-----> OR" 78
+        overhead "Select Trapped Pouch" 88
+        pause 550
+        hotkey "Set Last Target" 
+        wft 500
+        while targetexists 
+            //donothing
+        endwhile
+        @setvar "harvboombox" lasttarget 
+        hotkey "Cancel Current Target"
+        overhead "Container Set" 78
+        if find "harvboombox"
+            hotkey "Set Grab Item HotBag"
+            wft 500
+            target "harvboombox"
+        endif
+        pause 750
+    endif
+    
+    if skill "Peacemaking" >= 50 and not find "harvinstrument" backpack and findtype 3763|20016|20010|10245|20008|20006|20014|20012|3742|3740|3762 backpack as binstrument
+        @setvar "harvinstrument" binstrument
+        while queued
+            //donothing
+        endwhile
+        dclick binstrument
+        pause 500
+        getlabel backpack ping
+    endif
+    if timer instrumcheck >= 5000 and not find "harvinstrument" backpack and skill "Peacemaking" >= 50
+        overhead "I should get an instrument..." 88
+        settimer instrumcheck 0
+    endif
 endwhile
 
 if not timerexists escapeswitch
@@ -697,7 +860,7 @@ if timerexists escapeswitch
 endif
 
 if not findlayer self righthand and not findlayer self lefthand
-    overhead "I need new tools..." 45
+    overhead "Time for a break..." 45
     stop
 endif
 loop

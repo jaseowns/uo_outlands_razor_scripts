@@ -10,6 +10,7 @@
 ///      
 //       Inspired by many scripts found on https://outlands.uorazorscripts.com/
 
+    
 
 ##########################################################################################################
 ####    PLEASE READ SCRIPT DETAILS BELOW FOR IMPORTANT COOLDOWN, FILTER AND VARIABLE INSTRUCTIONS!    ####
@@ -50,13 +51,18 @@
     // Gold Radar
     // Ore Vacuum
     // Gold Vacuum
+    // HarmCD
+    // WeakenCD
+    // CurseCD
+    // MindblastCD
+    // MagicArrowCD
+    // FireballCD
+    // LightningCD
     // ExplosionCD
     // EnergyBoltCD
-    // LightningCD
-    // MagicArrowCD
-    // HarmCD
-    // FireballCD
     // FlamestrikeCD
+    // MeteorSwarmCD
+    // ChainLightningCD
     // Spirit Speak
     // Mushroom
     // Magic Shield
@@ -107,7 +113,6 @@
 
 
 
-
     ############################################################################################################################
     ##### YOU CAN ENABLE AND/OR DISABLE EACH HALF OF THE SCRIPT HERE (if using both harvest skills on the same character): #####
     ############################################################################################################################
@@ -139,7 +144,6 @@
         overhead "[ STOPPING SCRIPT! ]" 337
         stop    
     endif 
-
 
 
 
@@ -200,23 +204,41 @@
 @setvar! EnableCastRecall 1
 @setvar! EnableMagicReflection 1
 @setvar! EnableReactiveArmour 1
-@setvar! EnableProtection 1
+@setvar! EnableProtection 0
 @setvar! EnableCastHeal 1
 @setvar! EnableCastCure 1
 @setvar! CastHealHPlowdiff 5
 @setvar! CastHealHPmeddiff 25
 @setvar! CastHealHPhighdiff 50
-@setvar! EnableMagicMushroom 0
-@setvar! MushroomTimerCD 60000
 
     # Offensive:
-@setvar! EnableCastExplosion 0
-@setvar! EnableCastEnergyBolt 0
-@setvar! EnableCastLightning 0
-@setvar! EnableCastMagicArrow 0
 @setvar! EnableCastHarm 0
+@setvar! HarmCooldown 15000
+@setvar! EnableCastWeaken 0
+@setvar! WeakenCooldown 15000
+@setvar! EnableCastCurse 0
+@setvar! CurseCooldown 15000
+@setvar! EnableCastMindBlast 0
+@setvar! MindblastCooldown 30000
+@setvar! EnableCastMagicArrow 0
+@setvar! MagicArrowCooldown 15000
 @setvar! EnableCastFireball 0
+@setvar! FireballCooldown 30000
+@setvar! EnableCastLightning 0
+@setvar! LightningCooldown 30000
+@setvar! EnableCastExplosion 0
+@setvar! ExplosionCooldown 10000
+@setvar! EnableCastEnergyBolt 0
+@setvar! EnergyBoltCooldown 10000
 @setvar! EnableCastFlamestrike 0
+@setvar! FlamestrikeCooldown 10000
+@setvar! EnableCastMeteorSwarm 0
+@setvar! MeteorSwarmCooldown 15000
+@setvar! EnableCastChainLightning 0
+@setvar! ChainLightningCooldown 15000
+
+@setvar! EnableMagicMushroom 0
+@setvar! MushroomCooldown 120000
 
     # Summons:
 @setvar! EnableSummons 0
@@ -250,9 +272,8 @@
             endif
         else
             clearlist petNameList
-        endif 
-        
-    endif
+        endif         
+endif
 
 
     ########################################
@@ -272,7 +293,7 @@
 @setvar! EnableRefreshPotion 1
 @setvar! RefreshPotSPdiff 11
 
-    // Enable for auto buff check and consumption:
+    // Enable for auto buff check and consumption during combat:
 @setvar! EnableMagicResistPotion 0
 @setvar! EnableStrengthPotion 0
 @setvar! EnableAgilityPotion 0
@@ -290,7 +311,7 @@
 @setvar! EnableAutoCarving 0
 @setvar! EnableGoldVacuum 0
 @setvar! EnableCheeseTimer 0
-@setvar! EnableToolCountdown 1
+@setvar! EnableToolCountdown 0
 @setvar! EnableRecycleTool 0
 @setvar! EnableSatchels 0
 @setvar! EnableWeaponWarning 0
@@ -311,14 +332,15 @@
 @setvar! EnableStockpile 0
 @setvar! EnableStorageShelf 0
 @setvar! EnableMagicRecycler 0
-@setvar! EnableRepairBench 0
+@setvar! EnableRepairBench 1
 @setvar! EnableTreasureChest 0
 
 
 #  EDIT BELOW THIS LINE AT YOUR OWN RISK!  #
 
 
- 
+
+
     ############################################
     #########    SCRIPT STARTS HERE    #########
     ############################################
@@ -951,45 +973,6 @@ if EnableRefreshPotion = 1
     endif
 endif
 
-if EnableMagicResistPotion = 1
-    if not findbuff "Magic Resist Potion"
-        if findtype "Black Potion" self as magicresistpot
-            overhead '* drinking resist potion... *' 0
-            dclick magicresistpot
-        else 
-            overhead '[ NO RESIST POTS! ]' 337
-            wait 500
-        endif
-        wait 1000
-    endif
-endif
-
-if EnableStrengthPotion = 1
-    if not findbuff "Strength"
-        if findtype "White Potion" self as strengthpot
-            overhead '* drinking strength potion... *' 0
-            dclick strengthpot
-        else 
-            overhead '[ NO STRENGTH POTS! ]' 337
-            wait 500
-        endif
-        wait 1000
-    endif
-endif
-
-if EnableAgilityPotion = 1
-    if not findbuff "Agility"
-        if findtype "Blue Potion" self as agilitypot
-            overhead '* drinking agility potion... *' 0
-            dclick agilitypot
-        else 
-            overhead '[ NO AGILITY POTS! ]' 337
-            wait 500
-        endif
-        wait 1000
-    endif
-endif
-
 if EnableMagicReflection = 1 
     if skill 'Magery' >= 60 and not findbuff 'Magic Reflection' and not cooldown "Magic Shield" and mana > 14
         overhead 'I should shield myself...' 2086
@@ -1172,7 +1155,7 @@ if skill 'Magery' >= 80 and skill 'Spirit Speak' >= 80 and EnableSummons = 1
     
 if NeedtoSummon = 1
     
-    overhead "I need a bodyguard..." 2086
+    overhead "I call forth the power of the elements..." 2086
     
     if not varexist myMainTankPet
         @setvar! myMainTankPet 0
@@ -1313,6 +1296,8 @@ if NeedtoSummon = 1
                         hotkey "Target Self"
                         wait 200
                     endif
+                    
+                    overhead "Send me a worthy protector!" 2086
                     
                     while casting 
                         wait 500
@@ -1820,11 +1805,11 @@ if EnableAutoAttackGreyMOB = 1
                         
                         if EnableMagicMushroom = 1
                             if not timerexists MushroomTimer
-                                settimer MushroomTimer MushroomTimerCD
+                                settimer MushroomTimer MushroomCooldown
                             endif
                         
-                            if timer MushroomTimer >= MushroomTimerCD and findtype "mushroom" backpack as magicmushroom
-                                overhead "* eating shrooms... *" 66
+                            if timer MushroomTimer >= MushroomCooldown and findtype "mushroom" backpack as magicmushroom
+                                overhead "* eating shrooms... *" 31
                                 dclick magicmushroom
                                 wait 250
                                 if insysmsg "You consume a magic mushroom and restore some mana."
@@ -1832,7 +1817,7 @@ if EnableAutoAttackGreyMOB = 1
                                 elseif insysmsg "before you may consume another magic mushroom" or insysmsg "been in combat with another"
                                     settimer MushroomTimer 30000
                                 endif
-                                cooldown "Mushroom" MushroomTimerCD
+                                cooldown "Mushroom" MushroomCooldown
                             endif
                         endif
 
@@ -1950,74 +1935,31 @@ if EnableAutoAttackGreyMOB = 1
                         endif
 
                         wait 500
-                        
-                        if mana >= 12 and EnableCastExplosion = 1 and not cooldown "ExplosionCD"
-                            if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
-                                hotkey '> Interrupt'
-                                break
-                            else
-                                cast 'Explosion'
-                                wait 500
-                                while casting 
-                                    wait 50
-                                endwhile
-                            endif 
-                            wait 500
-                            target CurrentTarget
-                            wait 1000
-                                if insysmsg "cannot be seen" 
-                                    overhead "I can't see that!" 2086
-                                else 
-                                    cooldown ExplosionCD 10000
-                                    wait 500
-                                endif
-                        endif              
 
-                        if mana >= 12 and EnableCastEnergyBolt = 1 and not cooldown "EnergyBoltCD"
+
+                        if mana >= 4 and EnableCastWeaken = 1 and not cooldown "WeakenCD"
                             if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
                                 hotkey '> Interrupt'
                                 break
                             else
-                                cast 'Energy Bolt'
+                                cast 'weaken'
                                 wait 500
                                 while casting 
                                     wait 50
                                 endwhile
                             endif 
-                            wait 500
+                            wft 2500
                             target CurrentTarget
                             wait 500
                                 if insysmsg "cannot be seen" 
                                     overhead "I can't see that!" 2086
                                 else 
-                                    cooldown EnergyBoltCD 10000
+                                    cooldown WeakenCD WeakenCooldown
                                     wait 500
-                                endif
-                        endif       
-         
-                        if mana >= 12 and EnableCastLighting = 1 and not cooldown "LightningCD"
-                           if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
-                                hotkey '> Interrupt'
-                                break
-                            else
-                                cast 'Lightning'
-                                wait 500
-                                while casting 
-                                    wait 50
-                                endwhile
-                            endif 
-                            wait 500
-                            target CurrentTarget
-                            wait 500
-                                if insysmsg "cannot be seen" 
-                                    overhead "I can't see that!" 2086
-                                else 
-                                    cooldown LightningCD 5000
-                                    wait 500
-                                endif
-                        endif      
-        
-                        if mana >= 5 and EnableCastMagicArrow = 1 and not cooldown "MagicArrowCD"
+                                endif                            
+                        endif 
+
+                        if mana >= 4 and EnableCastMagicArrow = 1 and not cooldown "MagicArrowCD"
                             if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
                                 hotkey '> Interrupt'
                                 break
@@ -2034,12 +1976,12 @@ if EnableAutoAttackGreyMOB = 1
                                 if insysmsg "cannot be seen" 
                                     overhead "I can't see that!" 2086
                                 else 
-                                    cooldown MagicArrowCD 15000
+                                    cooldown MagicArrowCD MagicArrowCooldown
                                     wait 500
                                 endif
-                        endif            
-                
-                        if mana >= 9 and EnableCastHarm = 1 and not cooldown "HarmCD"
+                        endif
+                        
+                        if mana >= 6 and EnableCastHarm = 1 and not cooldown "HarmCD"
                             if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
                                 hotkey '> Interrupt'
                                 break
@@ -2056,13 +1998,12 @@ if EnableAutoAttackGreyMOB = 1
                                 if insysmsg "cannot be seen" 
                                     overhead "I can't see that!" 2086
                                 else 
-                                    cooldown HarmCD 15000
+                                    cooldown HarmCD HarmCooldown
                                     wait 500
-                                endif
-                            
-                        endif            
+                                endif                            
+                        endif
                 
-                        if mana >= 12 and EnableCastFireball = 1 and not cooldown "FireballCD"
+                        if mana >= 9 and EnableCastFireball = 1 and not cooldown "FireballCD"
                             if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
                                 hotkey '> Interrupt'
                                 break
@@ -2079,11 +2020,121 @@ if EnableAutoAttackGreyMOB = 1
                                 if insysmsg "cannot be seen" 
                                     overhead "I can't see that!" 2086
                                 else 
-                                    cooldown FireballCD 15000
+                                    cooldown FireballCD FireballCooldown
                                     wait 500
                                 endif
                         endif
+                        
+                        if mana >= 11 and EnableCastCurse = 1 and not cooldown "CurseCD"
+                            if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
+                                hotkey '> Interrupt'
+                                break
+                            else
+                                cast 'curse'
+                                wait 500
+                                while casting 
+                                    wait 50
+                                endwhile
+                            endif 
+                            wft 2500
+                            target CurrentTarget
+                            wait 500
+                                if insysmsg "cannot be seen" 
+                                    overhead "I can't see that!" 2086
+                                else 
+                                    cooldown CurseCD CurseCooldown
+                                    wait 500
+                                endif                            
+                        endif 
 
+                        if mana >= 11 and EnableCastLightning = 1 and not cooldown "LightningCD"
+                           if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
+                                hotkey '> Interrupt'
+                                break
+                            else
+                                cast 'Lightning'
+                                wait 500
+                                while casting 
+                                    wait 50
+                                endwhile
+                            endif 
+                            wait 500
+                            target CurrentTarget
+                            wait 500
+                                if insysmsg "cannot be seen" 
+                                    overhead "I can't see that!" 2086
+                                else 
+                                    cooldown LightningCD LightningCooldown
+                                    wait 500
+                                endif
+                        endif 
+                        
+                        if mana >= 14 and EnableCastMindblast = 1 and not cooldown "MindblastCD"
+                            if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
+                                hotkey '> Interrupt'
+                                break
+                            else
+                                cast 'mindblast'
+                                wait 500
+                                while casting 
+                                    wait 50
+                                endwhile
+                            endif 
+                            wft 2500
+                            target CurrentTarget
+                            wait 500
+                                if insysmsg "cannot be seen" 
+                                    overhead "I can't see that!" 2086
+                                else 
+                                    cooldown MindblastCD MindblastCooldown
+                                    wait 500
+                                endif                            
+                        endif 
+                        
+                        if mana >= 20 and EnableCastExplosion = 1 and not cooldown "ExplosionCD"
+                            if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
+                                hotkey '> Interrupt'
+                                break
+                            else
+                                cast 'Explosion'
+                                wait 500
+                                while casting 
+                                    wait 50
+                                endwhile
+                            endif 
+                            wait 500
+                            target CurrentTarget
+                            wait 1000
+                                if insysmsg "cannot be seen" 
+                                    overhead "I can't see that!" 2086
+                                else 
+                                    cooldown ExplosionCD ExplosionCooldown
+                                    wait 500
+                                endif
+                        endif              
+
+                        if mana >= 20 and EnableCastEnergyBolt = 1 and not cooldown "EnergyBoltCD"
+                            if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
+                                hotkey '> Interrupt'
+                                break
+                            else
+                                cast 'Energy Bolt'
+                                wait 500
+                                while casting 
+                                    wait 50
+                                endwhile
+                            endif 
+                            wait 500
+                            target CurrentTarget
+                            wait 500
+                                if insysmsg "cannot be seen" 
+                                    overhead "I can't see that!" 2086
+                                else 
+                                    cooldown EnergyBoltCD EnergyBoltCooldown
+                                    wait 500
+                                endif
+                        endif            
+        
                         if mana >= 40 and EnableCastFlamestrike = 1 and not cooldown "FlamestrikeCD"
                             if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
                                 hotkey '> Interrupt'
@@ -2101,13 +2152,54 @@ if EnableAutoAttackGreyMOB = 1
                                 if insysmsg "cannot be seen" 
                                     overhead "I can't see that!" 2086
                                 else 
-                                    cooldown FlamestrikeCD 3000
+                                    cooldown FlamestrikeCD FlamestrikeCooldown
                                     wait 500
                                 endif
-                        endif
-                        
-                        
-                        
+                        endif    
+        
+                        if mana >= 40 and EnableCastMeteorSwarm = 1 and not cooldown "MeteorSwarmCD"
+                            if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
+                                hotkey '> Interrupt'
+                                break
+                            else
+                                cast 'meteor swarm'
+                                wait 500
+                                while casting 
+                                    wait 50
+                                endwhile
+                            endif 
+                            wft 2500
+                            target CurrentTarget
+                            wait 1000
+                                if insysmsg "cannot be seen" 
+                                    overhead "I can't see that!" 2086
+                                else 
+                                    cooldown MeteorSwarmCD MeteorSwarmCooldown
+                                    wait 500
+                                endif
+                        endif               
+        
+                        if mana >= 40 and EnableCastChainLightning = 1 and not cooldown "ChainLightningCD"
+                            if not find CurrentTarget ground -1 -1 15 or diffhits >= 30
+                                hotkey '> Interrupt'
+                                break
+                            else
+                                cast 'chain lightning'
+                                wait 500
+                                while casting 
+                                    wait 50
+                                endwhile
+                            endif 
+                            wft 2500
+                            target CurrentTarget
+                            wait 1000
+                                if insysmsg "cannot be seen" 
+                                    overhead "I can't see that!" 2086
+                                else 
+                                    cooldown ChainLightningCD ChainLightningCooldown
+                                    wait 500
+                                endif
+                        endif                                   
                     endif
                 endwhile
                 
@@ -2792,7 +2884,7 @@ wait 150
                         if not cooldown "Move Timer"
                             @setvar! MOVE 0
                             overhead "[ KEEP MOVING... ]" 2128
-                            cooldown "Move Timer" 3500
+                            cooldown "Move Timer" 2500
                         endif
 
                         if EnableSatchels = 1
@@ -2851,7 +2943,7 @@ wait 150
                     if MOVE = 0
                         if not cooldown "Move Timer"
                             overhead "[ KEEP MOVING... ]" 69
-                            cooldown "Move Timer" 3500
+                            cooldown "Move Timer" 2500
                             @setvar! MOVE 1
                         endif
 
@@ -3540,7 +3632,7 @@ wait 550
                         if MOVE = 1
                             if not cooldown "Move Timer"
                                 overhead "[ KEEP MOVING... ]" 2128
-                                cooldown "Move Timer" 3500
+                                cooldown "Move Timer" 2500
                                 @setvar! MOVE 0
                             endif
                 
@@ -3598,7 +3690,7 @@ wait 550
                         if MOVE = 0
                             if not cooldown "Move Timer"
                                 overhead "[ KEEP MOVING... ]" 69
-                                cooldown "Move Timer" 3500
+                                cooldown "Move Timer" 2500
                                 @setvar! MOVE 1
                             endif
                 
@@ -3815,14 +3907,17 @@ else
         dclicktype 'log%s' 
         wait 500
     endif
-    endfor                        
-        hotkey 'Organizer Agent-01'
-        wait 250
-        hotkey 'Organizer Agent-02'
-        wait 250
-        hotkey 'Organizer Agent-03'
-        wait 250
-        hotkey 'Organizer Agent-04'
+    endfor 
+        if skill "Lumberjacking" >= 50                        
+            hotkey 'Organizer Agent-01'
+            wait 250
+            hotkey 'Organizer Agent-02'
+            wait 250
+        elseif skill "Mining" >= 50
+            hotkey 'Organizer Agent-03'
+            wait 250
+            hotkey 'Organizer Agent-04'
+        endif
     replay
 endif 
 replay

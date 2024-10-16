@@ -24,8 +24,8 @@
 # Items : Pickaxe or Hatchet, BoomBox (or any container), Musical Instrument (supreme is good), Resource stockpile, Atlas
 #
 # "Boom Box / Ore Container"
-# Open the party menu while the script is playing to "set your container"
-# Type [party or double click the party scroll in your paperdoll
+# Open the "Atlas" menu while the script is playing to "set your container"
+# Type [atlas or double click the party scroll in your paperdoll
 # The party menu gump can not be used normally while the script is playing - stop the script if you need the menu
 #
 # "Optional"
@@ -41,8 +41,8 @@
 # Filters tab > Text & Messages subtab > Check "Filter Repeating Razor Messages" ONLY
 # Filters tab > Text & Messages subtab > Add > "You cannot produce any wood from that." and filter from overhead
 #
-# "Yell Emote" is used on "line 394 & line 461" - Edit this to any emote you may have
-# Default cooldown is 2mins - Edit "line 393 & line 460" to match your character customization emote unlocks
+# "Yell Emote" is used on "line 497 & line 564" - Edit this to any emote you may have
+# Default cooldown is 2mins - Edit "line 496 & line 563" to match your character customization emote unlocks
 #
 # "**HOW TO USE**" 
 # 1. Gather required items and play script near resource
@@ -51,25 +51,21 @@
 # 4. Do not carry both a pickaxe and a hatchet at the same time, choose one or the other
 #
 # "In Peace Mode" 
-# This script will auto harvest
+# The script will auto harvest very quickly
 # Auto heal/cure
 # Auto peacemake hostile
-# Auto track (set hunting mode manually)
+# Auto track (set hunting mode manually) <---- "Important for auto escape"
 #
 # "In War Mode" In addition to everything peace mode does...
-# Look for and display nearby forges
-# Auto smelt ingots when near "player forge"
+# Mining speed is halved while ore is sorted into the Ore Container
+# Look for and display nearby player forges (Natural non-player will not display)
+# Auto smelt ingots when near any forge
 # Turn logs into boards
 # Auto sort boards/ingots/ore into a Boombox / Ore Container
 #
 # "Pack Animals"
 # Simply place your "Boom Box / Ore Container" in your pack animals pack
 # The script will keep your pack animals pack open when it is nearby
-#
-# "Atlas" Required to smelt at non-player "natrual forges" "<------- Important"
-# Open your atlas near a natrual forge to auto smelt
-# Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
-# Reason : Staff changed natrual forges and they cannot be sensed with scripts
 #    
 # "Auto-Escape" Toggled on and off by double clicking the "scissors" while the script is playing
 # This feature uses a "Rune Tome/Book" - Your escape rune must be placed in the very "first slot" of your book
@@ -89,6 +85,9 @@
 # Camping ------- 60  (Use 80 here if your magery is 80)
 #
 # Use "Effective Harvest Skill" links if you can
+#
+# Note on "Natural Forge Smelting" :
+# Using these to smelt requires the player to have some amount of ore in their main layer backpack
 #
 # Script starts here
 
@@ -121,6 +120,18 @@ endif
 if not timerexists boxtransfer
     createtimer boxtransfer
     settimer boxtransfer 5000
+endif
+
+if not hidden and not findtype "atlas" backpack
+    pause 500
+    say "[Atlas"
+    getlabel backpack ping
+    overhead "Double click the Atlas anytime you wish to reset your Ore Container..." 88
+    pause 500
+endif
+
+if gumpexists 341416395
+    gumpclose 341416395
 endif
 
 if not timerexists instrumcheck
@@ -165,8 +176,8 @@ if timerexists openanimalpack and find "currentpackanimal" ground -1 -1 2 not ta
     removetimer openanimalpack
 endif
 
-if gumpexists 3527489586
-    gumpclose 3527489586
+if gumpexists 341416395
+    gumpclose 341416395
     if targetexists 
         hotkey "Cancel Current Target"
     endif
@@ -218,15 +229,6 @@ if not timerexists freshlogin
     if findtype "alchemists satchel" backpack as satch
         dclick satch
     endif
-endif
-
-if not findtype "atlas" backpack
-    say "[Atlas"
-    getlabel backpack ping
-endif
-
-if gumpexists 341416395
-    gumpclose 341416395
 endif
 
 if not timerexists escapeswitch
@@ -305,6 +307,15 @@ while find "bharvest" self and not hidden and not casting
         getlabel backpack ping
     endif
     
+    if warmode and find "currentpackanimal" ground -1 -1 2
+        while queued
+            //donothing
+        endwhile
+        dclick "currentpackanimal"
+        pause 500
+        getlabel backpack ping
+    endif
+    
     if insysmsg "You do not see any harvestable resources nearby."
         if timerexists rescheck
             overhead "Resource Depleted..." 78
@@ -312,6 +323,93 @@ while find "bharvest" self and not hidden and not casting
         endif
         pause 500
         getlabel backpack ping
+        if warmode and not findtype "forge" ground -1 -1 2 and findtype "6585" backpack
+            if findtype "6585" backpack as natsmelt
+                clearsysmsg 
+                while queued
+                    //donothing
+                endwhile
+                dclick natsmelt
+                getlabel backpack ping
+            elseif timer boxtransfer >= 5000 and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
+                while queued
+                    //donothing
+                endwhile            
+                dclick "currentpackanimal"
+                while queued
+                    //donothing
+                endwhile
+                drop backpack
+                lift "harvboombox"
+                drop backpack
+                pause 500
+                getlabel backpack ping
+                while queued
+                    //donothing
+                endwhile  
+                if findtype "6585" backpack as natsmelt
+                    clearsysmsg 
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick natsmelt
+                    getlabel backpack ping
+                endif
+            endif
+            if insysmsg "You smelt the ore"
+                while findtype 7154|7127 backpack as refinedresource
+                    while queued
+                        //donothing
+                    endwhile
+                    hotkey "Grab Item"
+                    wft 500
+                    target refinedresource
+                    pause 500
+                    getlabel backpack ping
+                    @ignore refinedresource
+                endwhile
+                if timer boxtransfer >= 5000 and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
+                    while queued
+                        //donothing
+                    endwhile
+                    drop backpack
+                    lift "harvboombox"
+                    drop backpack
+                    pause 500
+                    getlabel backpack ping
+                    while queued
+                        //donothing
+                    endwhile  
+                endif
+                
+                @clearignore 
+                while findtype 7154|7127| backpack as refinedresource
+                    @ignore refinedresource
+                endwhile
+                while findtype "6585" backpack as natore
+                    dclick natore
+                    pause 500
+                    getlabel backpack ping
+                    if insysmsg "You do not see any nearby forges"
+                        gumpclose 341416395
+                        getlabel backpack ping
+                        break
+                    endif
+                endwhile
+
+                while findtype 7154|7127 backpack as refinedresource
+                    while queued
+                        //donothing
+                    endwhile
+                    hotkey "Grab Item"
+                    wft 500
+                    target refinedresource
+                    pause 500
+                    getlabel backpack ping
+                    @ignore refinedresource
+                endwhile
+            endif
+        endif
     endif
     
     if warmode
@@ -483,11 +581,6 @@ while find "bharvest" self and not hidden and not casting
         endif
     endif
     
-    if gumpexists 341416395 and not warmode
-        warmode on
-        getlabel backpack ping
-    endif
-    
     if warmode
         if findlayer self lefthand
             //donothing
@@ -503,53 +596,32 @@ while find "bharvest" self and not hidden and not casting
         if timer boxtransfer >= 5000 and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal" and findtype "forge" ground -1 -1 2
             while queued
                 //donothing
+            endwhile            
+            dclick "currentpackanimal"
+            while queued
+                //donothing
             endwhile
             drop backpack
             lift "harvboombox"
-            drop self
+            drop backpack
             pause 500
             getlabel backpack ping
             while queued
                 //donothing
             endwhile  
+            @clearignore 
+            while findtype 7154|7127| backpack as refinedresource
+                @ignore refinedresource
+            endwhile
         endif
         
-        if gumpexists 341416395
-            if timer boxtransfer >= 5000 and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
-                while queued
-                    //donothing
-                endwhile
-                drop backpack
-                lift "harvboombox"
-                drop self
-                pause 500
-                getlabel backpack ping
-                while queued
-                    //donothing
-                endwhile  
-            endif
-            @clearignore 
-            while findtype "6585" backpack as natore
-                dclick natore
-                pause 500
-                getlabel backpack ping
-                if insysmsg "You do not see any nearby forges"
-                    gumpclose 341416395
-                    getlabel backpack ping
-                    break
-                endif
-            endwhile
-            gumpclose 341416395
-            warmode off
-        endif
-                            
-        if findlayer self righthand and findtype "forge" ground -1 -1 2
+        if findtype "forge" ground -1 -1 2
             @clearignore
             while findtype 7154|7127| backpack as refinedresource
                 @ignore refinedresource
             endwhile
-            while findtype "6585" backpack as ore
-                dclick ore
+            while findtype "6585" backpack as Bapore
+                dclick Bapore
                 pause 500
                 getlabel backpack ping
             endwhile
@@ -565,14 +637,9 @@ while find "bharvest" self and not hidden and not casting
             target rawore
             pause 500
             getlabel backpack ping
-            if insysmsg "That container cannot hold"
-                break
-            endif
-            if not insysmsg "That container cannot hold"
-                @ignore rawore
-            endif
+            @ignore rawore
         endwhile 
-      
+
         while findtype 7154|7127 backpack as refinedresource
             while queued
                 //donothing
@@ -811,8 +878,8 @@ while find "bharvest" self and not hidden and not casting
         removetimer openanimalpack
     endif
     
-    if gumpexists 3527489586
-        gumpclose 3527489586
+    if gumpexists 341416395
+        gumpclose 341416395
         if targetexists 
             hotkey "Cancel Current Target"
         endif

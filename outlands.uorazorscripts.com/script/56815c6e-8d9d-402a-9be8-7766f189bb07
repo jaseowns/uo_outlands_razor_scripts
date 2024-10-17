@@ -6,7 +6,7 @@
 
 # Bapeths Peaceful Harvester
 #
-# October 15th 2024 (Pack animal support, Runebook support, Rune & Recall scroll support, New way to set Boom Box / Container) + lift fix
+# October 17th 2024 (Pack animal support container bug fix)  TODO : Logic for overweight container during Pack Animal Container Bug Fix Routine
 #
 # "Required" - Do not include quotations when entering data
 # Create cooldowns in game called : 
@@ -117,11 +117,6 @@ if not timerexists htoolcheck
     settimer htoolcheck 28000
 endif
 
-if not timerexists boxtransfer
-    createtimer boxtransfer
-    settimer boxtransfer 5000
-endif
-
 if not hidden and not findtype "atlas" backpack
     pause 500
     say "[Atlas"
@@ -159,12 +154,11 @@ if not find "currentpackanimal"
         endif
     endif
 endif
-if not find "currentpackanimal" ground -1 -1 1
+if not timerexists openanimalpack and not find "currentpackanimal" ground
     createtimer openanimalpack
+    overhead "My pack animal is too far!" 78
 endif
-if timerexists openanimalpack and find "currentpackanimal" ground -1 -1 2 not targetexists and not casting
-    clearsysmsg 
-    @clearignore 
+if timerexists openanimalpack and find "currentpackanimal" ground -1 -1 1 not targetexists and not casting
     while queued
         //donothing
     endwhile
@@ -174,6 +168,35 @@ if timerexists openanimalpack and find "currentpackanimal" ground -1 -1 2 not ta
         overhead "*ore box*" 88 "harvboombox"
     endif
     removetimer openanimalpack
+    if find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
+        while queued
+        //donothing
+        endwhile
+        drop backpack
+        lift "harvboombox"
+        drop backpack
+        pause 500
+        getlabel backpack ping
+        while queued
+        //donothing
+        endwhile
+    endif
+    overhead "The animal is agitated, I should back away..." 87
+    say "all stay" 45
+    while not dead 
+        if find "currentpackanimal" ground -1 -1 1
+            //donothing
+        elseif find "currentpackanimal" ground -1 -1 2
+            //donothing
+        elseif find "currentpackanimal" ground -1 -1 3
+            //donothing
+        else 
+            break
+        endif
+    endwhile
+    overhead "The animal seems fine..." 87
+    pause 500
+    say "all follow me" 45
 endif
 
 if gumpexists 341416395
@@ -292,6 +315,46 @@ if lhandempty and find "bharvest" backpack and not targetexists
     pause 500
     getlabel backpack ping
 endif
+
+if not find "harvboombox" "currentpackanimal" and not find "harvboombox" backpack and find "currentpackanimal" ground -1 -1 1 not targetexists and not casting
+    while queued
+        //donothing
+    endwhile
+    dclick "currentpackanimal"
+    getlabel backpack ping
+    if find "harvboombox" "currentpackanimal"
+        overhead "*ore box*" 88 "harvboombox"
+    endif
+    if find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
+        while queued
+        //donothing
+        endwhile
+        drop backpack
+        lift "harvboombox"
+        drop backpack
+        pause 500
+        getlabel backpack ping
+        while queued
+        //donothing
+        endwhile
+    endif
+    overhead "The animal is agitated, I should back away..." 87
+    say "all stay" 45
+    while not dead 
+        if find "currentpackanimal" ground -1 -1 1
+            //donothing
+        elseif find "currentpackanimal" ground -1 -1 2
+            //donothing
+        elseif find "currentpackanimal" ground -1 -1 3
+            //donothing
+        else 
+            break
+        endif
+    endwhile
+    overhead "The animal seems fine..." 87
+    pause 500
+    say "all follow me" 45
+endif
  
 while find "bharvest" self and not hidden and not casting
     while queued
@@ -307,23 +370,95 @@ while find "bharvest" self and not hidden and not casting
         getlabel backpack ping
     endif
     
-    if warmode and find "currentpackanimal" ground -1 -1 2
+    if not find "currentpackanimal"
+        if findtype "291|292" ground as bpackanimal
+            if noto bpackanimal = "friend"
+                @setvar "currentpackanimal" bpackanimal
+            endif
+        endif
+    endif
+    if not timerexists openanimalpack and not find "currentpackanimal" ground
+        createtimer openanimalpack
+        overhead "My pack animal is too far!" 78
+    endif
+    if timerexists openanimalpack and find "currentpackanimal" ground -1 -1 1 not targetexists and not casting
         while queued
             //donothing
         endwhile
         dclick "currentpackanimal"
-        pause 500
         getlabel backpack ping
+        if find "harvboombox" "currentpackanimal"
+            overhead "*ore box*" 88 "harvboombox"
+        endif
+        removetimer openanimalpack
+        if timer and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
+            while queued
+            //donothing
+            endwhile
+            drop backpack
+            lift "harvboombox"
+            drop backpack
+            pause 500
+            getlabel backpack ping
+            while queued
+            //donothing
+            endwhile
+        endif
+        overhead "The animal is agitated, I should back away..." 87
+        say "all stay" 45
+        while not dead 
+            if find "currentpackanimal" ground -1 -1 1
+                //donothing
+            elseif find "currentpackanimal" ground -1 -1 2
+                //donothing
+            elseif find "currentpackanimal" ground -1 -1 3
+                //donothing
+            else 
+                break
+            endif
+        endwhile
+        overhead "The animal seems fine..." 87
+        pause 500
+        say "all follow me" 45
     endif
-    
+        
     if insysmsg "You do not see any harvestable resources nearby."
         if timerexists rescheck
             overhead "Resource Depleted..." 78
             removetimer rescheck
         endif
-        pause 500
-        getlabel backpack ping
-        if warmode and not findtype "forge" ground -1 -1 2 and findtype "6585" backpack
+        if warmode and not findtype "forge" ground -1 -1 2
+            if find "currentpackanimal" ground
+                if find "currentpackanimal" ground -1 -1 2 and findtype "6585" backpack as rawore   
+                    while queued
+                        //donothing
+                    endwhile
+                    getlabel backpack ping
+                    hotkey "Grab Item"
+                    wft 500
+                    target rawore
+                    pause 500
+                    getlabel backpack ping
+                endif
+            elseif findtype "6585" backpack as rawore   
+                while queued
+                    //donothing
+                endwhile
+                hotkey "Grab Item"
+                wft 500
+                target rawore
+                pause 500
+                getlabel backpack ping
+                if not find "currentpackanimal"
+                    @ignore rawore
+                endif
+            endif 
+            if find "harvboombox" backpack
+                @clearignore 
+                while findtype 7154|7127| backpack as refinedresource
+                    @ignore refinedresource
+                endwhile
+            endif
             if findtype "6585" backpack as natsmelt
                 clearsysmsg 
                 while queued
@@ -331,30 +466,12 @@ while find "bharvest" self and not hidden and not casting
                 endwhile
                 dclick natsmelt
                 getlabel backpack ping
-            elseif timer boxtransfer >= 5000 and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
-                while queued
-                    //donothing
-                endwhile            
-                dclick "currentpackanimal"
+            elseif find "currentpackanimal" ground -1 -1 1 and findtype "6585" "currentpackanimal" as natsmelt
                 while queued
                     //donothing
                 endwhile
-                drop backpack
-                lift "harvboombox"
-                drop backpack
-                pause 500
+                dclick natsmelt
                 getlabel backpack ping
-                while queued
-                    //donothing
-                endwhile  
-                if findtype "6585" backpack as natsmelt
-                    clearsysmsg 
-                    while queued
-                        //donothing
-                    endwhile
-                    dclick natsmelt
-                    getlabel backpack ping
-                endif
             endif
             if insysmsg "You smelt the ore"
                 while findtype 7154|7127 backpack as refinedresource
@@ -368,24 +485,12 @@ while find "bharvest" self and not hidden and not casting
                     getlabel backpack ping
                     @ignore refinedresource
                 endwhile
-                if timer boxtransfer >= 5000 and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
-                    while queued
-                        //donothing
+                if find "harvboombox" backpack
+                    @clearignore 
+                    while findtype 7154|7127| backpack as refinedresource
+                        @ignore refinedresource
                     endwhile
-                    drop backpack
-                    lift "harvboombox"
-                    drop backpack
-                    pause 500
-                    getlabel backpack ping
-                    while queued
-                        //donothing
-                    endwhile  
                 endif
-                
-                @clearignore 
-                while findtype 7154|7127| backpack as refinedresource
-                    @ignore refinedresource
-                endwhile
                 while findtype "6585" backpack as natore
                     dclick natore
                     pause 500
@@ -396,7 +501,16 @@ while find "bharvest" self and not hidden and not casting
                         break
                     endif
                 endwhile
-
+                while findtype "6585" "currentpackanimal" as natore
+                    dclick natore
+                    pause 500
+                    getlabel backpack ping
+                    if insysmsg "You do not see any nearby forges"
+                        gumpclose 341416395
+                        getlabel backpack ping
+                        break
+                    endif
+                endwhile
                 while findtype 7154|7127 backpack as refinedresource
                     while queued
                         //donothing
@@ -407,6 +521,11 @@ while find "bharvest" self and not hidden and not casting
                     pause 500
                     getlabel backpack ping
                     @ignore refinedresource
+                endwhile
+            endif
+            if not find "currentpackanimal" 
+                while findtype 6585 backpack as ore
+                    @ignore ore
                 endwhile
             endif
         endif
@@ -593,53 +712,25 @@ while find "bharvest" self and not hidden and not casting
             endfor
         endif
         
-        if timer boxtransfer >= 5000 and find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal" and findtype "forge" ground -1 -1 2
-            while queued
-                //donothing
-            endwhile            
-            dclick "currentpackanimal"
-            while queued
-                //donothing
-            endwhile
-            drop backpack
-            lift "harvboombox"
-            drop backpack
-            pause 500
-            getlabel backpack ping
-            while queued
-                //donothing
-            endwhile  
-            @clearignore 
-            while findtype 7154|7127| backpack as refinedresource
-                @ignore refinedresource
-            endwhile
-        endif
-        
         if findtype "forge" ground -1 -1 2
-            @clearignore
-            while findtype 7154|7127| backpack as refinedresource
-                @ignore refinedresource
+            if find "harvboombox" backpack
+                @clearignore 
+                while findtype 7154|7127| backpack as refinedresource
+                    @ignore refinedresource
+                endwhile
+            endif
+            while findtype 6585 backpack as Bapore
+                dclick Bapore
+                pause 500
+                getlabel backpack ping
             endwhile
-            while findtype "6585" backpack as Bapore
+            while findtype 6585 "currentpackanimal" as Bapore
                 dclick Bapore
                 pause 500
                 getlabel backpack ping
             endwhile
         endif
         
-        while findtype "6585" backpack as rawore   
-            while queued
-                //donothing
-            endwhile
-            getlabel backpack ping
-            hotkey "Grab Item"
-            wft 500
-            target rawore
-            pause 500
-            getlabel backpack ping
-            @ignore rawore
-        endwhile 
-
         while findtype 7154|7127 backpack as refinedresource
             while queued
                 //donothing
@@ -651,10 +742,78 @@ while find "bharvest" self and not hidden and not casting
             getlabel backpack ping
             @ignore refinedresource
         endwhile
+        
+        if find "harvboombox" backpack and find "currentpackanimal" ground -1 -1 2
+            while queued
+                //donothing
+            endwhile
+            drop backpack
+            lift "harvboombox"
+            drop "currentpackanimal"
+            pause 500
+            getlabel backpack ping
+            while queued
+                //donothing
+            endwhile   
+        endif
+        
+        if find "currentpackanimal" ground
+            if find "currentpackanimal" ground -1 -1 2
+                while findtype 7154|7127 backpack as refinedresource
+                    while queued
+                        //donothing
+                    endwhile
+                    hotkey "Grab Item"
+                    wft 500
+                    target refinedresource
+                    pause 500
+                    getlabel backpack ping
+                endwhile
+            endif
+        else
+            while findtype 7154|7127 backpack as refinedresource
+                while queued
+                    //donothing
+                endwhile
+                hotkey "Grab Item"
+                wft 500
+                target refinedresource
+                pause 500
+                getlabel backpack ping
+                if not find "currentpackanimal"
+                    @ignore refinedresource
+                endif
+            endwhile
+        endif
+        
+        if find "currentpackanimal" ground
+            if find "currentpackanimal" ground -1 -1 2 and findtype "6585" backpack as rawore   
+                while queued
+                    //donothing
+                endwhile
+                getlabel backpack ping
+                hotkey "Grab Item"
+                wft 500
+                target rawore
+                pause 500
+                getlabel backpack ping
+            endif
+        elseif findtype "6585" backpack as rawore   
+            while queued
+                //donothing
+            endwhile
+            hotkey "Grab Item"
+            wft 500
+            target rawore
+            pause 500
+            getlabel backpack ping
+            if not find "currentpackanimal"
+                @ignore rawore
+            endif
+        endif 
     endif
     
     if find "harvboombox" backpack and find "currentpackanimal" ground -1 -1 2
-        @clearignore 
         while queued
             //donothing
         endwhile
@@ -666,7 +825,6 @@ while find "bharvest" self and not hidden and not casting
         while queued
             //donothing
         endwhile   
-        settimer boxtransfer 0
     endif
     
     if find "harvinstrument" backpack and skill "Peacemaking" >= 10 and not findbuff "Song Of Peacemaking"
@@ -861,12 +1019,11 @@ while find "bharvest" self and not hidden and not casting
             endif
         endif
     endif
-    if not find "currentpackanimal" ground -1 -1 1
+    if not timerexists openanimalpack and not find "currentpackanimal" ground
         createtimer openanimalpack
+        overhead "My pack animal is too far!" 78
     endif
-    if timerexists openanimalpack and find "currentpackanimal" ground -1 -1 2 not targetexists and not casting
-        clearsysmsg 
-        @clearignore 
+    if timerexists openanimalpack and find "currentpackanimal" ground -1 -1 1 not targetexists and not casting
         while queued
             //donothing
         endwhile
@@ -876,6 +1033,35 @@ while find "bharvest" self and not hidden and not casting
             overhead "*ore box*" 88 "harvboombox"
         endif
         removetimer openanimalpack
+        if find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
+            while queued
+            //donothing
+            endwhile
+            drop backpack
+            lift "harvboombox"
+            drop backpack
+            pause 500
+            getlabel backpack ping
+            while queued
+            //donothing
+            endwhile
+        endif
+        overhead "The animal is agitated, I should back away..." 87
+        say "all stay" 45
+        while not dead 
+            if find "currentpackanimal" ground -1 -1 1
+                //donothing
+            elseif find "currentpackanimal" ground -1 -1 2
+                //donothing
+            elseif find "currentpackanimal" ground -1 -1 3
+                //donothing
+            else 
+                break
+            endif
+        endwhile
+        overhead "The animal seems fine..." 87
+        pause 500
+        say "all follow me" 45
     endif
     
     if gumpexists 341416395
@@ -915,6 +1101,51 @@ while find "bharvest" self and not hidden and not casting
     if timer instrumcheck >= 5000 and not find "harvinstrument" backpack and skill "Peacemaking" >= 50
         overhead "I should get an instrument..." 88
         settimer instrumcheck 0
+    endif
+    
+    if not find "harvboombox" "currentpackanimal" and not find "harvboombox" backpack and find "currentpackanimal" ground -1 -1 1 not targetexists and not casting
+        while queued
+            //donothing
+        endwhile
+        dclick "currentpackanimal"
+        getlabel backpack ping
+        if find "harvboombox" "currentpackanimal"
+            overhead "*ore box*" 88 "harvboombox"
+        endif
+        if find "currentpackanimal" ground -1 -1 2 and find "harvboombox" "currentpackanimal"
+            while queued
+            //donothing
+            endwhile
+            drop backpack
+            lift "harvboombox"
+            drop backpack
+            pause 500
+            getlabel backpack ping
+            while queued
+            //donothing
+            endwhile
+        endif
+        overhead "The animal is agitated, I should back away..." 87
+        say "all stay" 45
+        while not dead 
+            if find "currentpackanimal" ground -1 -1 1
+                //donothing
+            elseif find "currentpackanimal" ground -1 -1 2
+                //donothing
+            elseif find "currentpackanimal" ground -1 -1 3
+                //donothing
+            else 
+                break
+            endif
+        endwhile
+        overhead "The animal seems fine..." 87
+        pause 500
+        say "all follow me" 45
+    endif
+    
+    if not timerexists openanimalpack and not find "currentpackanimal" ground
+        createtimer openanimalpack
+        overhead "My pack animal is too far!" 78
     endif
 endwhile
 

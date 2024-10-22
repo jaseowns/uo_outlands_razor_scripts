@@ -5,7 +5,7 @@
 #############################################
 
 # "***Bapeths Modern Dungeon Picker***"
-# Updated Oct 19th 2024 (Movement Cooldown to prevent Hide blinking while running past chest + Removed tab after pilfer)
+# Updated Oct 22nd 2024 (Integrated auto-recycle into chest picing routine)
 #
 # "***READ THIS***READ THIS***READ THIS***READ THIS***"
 #
@@ -60,11 +60,9 @@
 #
 # "Auto-Recycler"
 # This feature will auto recycle bad items and keep the good ones - To use this feature:
-# You must be carrying at least one "Container ID wand" and at least one "recycler tool" type (Tinker Tools, Sewing Kit, Saw, Tongs, or Scribes Pen)
-# You must be carrying "scissors" (suggest blessed scissors in an Adventure Satchel so not to incur any extra weight)
-# "Double click scissors" while the script is playing to activate the Auto-Recycler (Blocked while actively picking chest)
-# ID wand will ID your "Main Layer Backpack" and recycle from there only
-# If you want to edit the items that the script keeps - change "line 1494"
+# You must be carrying at least one "item identification wand" and at least one "recycler tool" type (Tinker Tools, Sewing Kit, Saw, Tongs, or Scribes Pen)
+# The recycle will happen when the player begins picking a fresh chest
+# If you want to edit the items that the script keeps - change "line 883"
 #
 # "Loot-Sense & Vacuum Mode"
 # This function will overhead display *loot* above items on the ground and pick them up as you pass by (2 tiles)
@@ -89,11 +87,11 @@
 # Filters tab > Text & Messages subtab > Check "Filter Repeating Razor Messages" ONLY
 # 
 # "Summoners Name Your Elemental"                                                         
-# See "line 126 & 136" if you would like to custom name your earth elemental(s)
+# See "line 124 & 134" if you would like to custom name your earth elemental(s)
 # Default is "LootGolem"
 #
 # -------------------------------"Recommended Builds"-------------------------------
-# --"Pilfer Ninja"-------"Chest Ninja"-------"Summoner Picker"----"Pilfer Skinner"--
+# --"Pilfer Ninja"--------"Chest Ninja"------"Summoner Picker"----"Pilfer Skinner"--
 # Detect Hidden - 120  Detect Hidden - 120  Detect Hidden - 120  Forensic Eval-- 120
 # Lockpicking ----120  Lockpicking ----120  Lockpicking ----120  Stealth ------- 120
 # Stealth ------- 120  Stealth ------- 100  Stealth ------- 120  Hiding -------- 100
@@ -184,7 +182,7 @@ if skill "Lockpicking" >= 50 and not findtype "lockpicks" backpack and not timer
     createtimer lockpickcheck
 endif
 if timerexists lockpickcheck
-    if timer lockpickcheck > 7000
+    if timer lockpickcheck > 21000
         overhead "I have no Lockpicks..." 38
         settimer lockpickcheck 0
     endif
@@ -198,7 +196,7 @@ if skill "Detect" >= 50 and not findtype "drill" backpack and not timerexists dr
     createtimer drillcheck
 endif
 if timerexists drillcheck
-    if timer drillcheck > 7000
+    if timer drillcheck > 21000
         overhead "I have no Removal Tool..." 38
         settimer drillcheck 0
     endif
@@ -319,7 +317,7 @@ endif
 if timer chestsensetimer >= 200
     if not gumpexists 736038070 and skill "Lockpicking" >= 50 
         for 18
-            if index > 0 and findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 index as chest
+        if index > 0 and findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 index as chest
                 getlabel chest desc
                 if "lock" in desc
                     overhead "{{desc}}" 2085 chest
@@ -572,8 +570,12 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
     endwhile
     dclick bchest
     @setvar "bchest" lastobject
+    getlabel bchest desc
+    if "(locked and trapped)" in desc
+        createtimer activaterecycle
+    endif
     waitforgump 736038070 1000
-    if gumpexists 736038070 and not ingump "Cleared Of Traps"
+    if gumpexists 736038070 and not ingump "Cleared Of Traps" 736038070
         while gumpexists 736038070
             gumpresponse 7
             waitforgump 736038070 1000
@@ -583,6 +585,10 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
             endif
             if insysmsg "That appears to be devoid"
                 clearsysmsg
+                break
+            endif
+            if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
+                removetimer activaterecycle
                 break
             endif
             if not cooldown "Move" and not hidden and not cooldown "Hiding" and not cooldown "Stealth" and not cooldown "Stealing" and not warmode and skill "Hiding" >= 80
@@ -677,6 +683,7 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                 break
             endif
             if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
+                removetimer activaterecycle
                 break
             endif
             if find "bchest" ground -1 -1 2
@@ -697,7 +704,7 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                     break
                 endif
             endif
-            if ingump "Cleared Of Traps"
+            if ingump "Cleared Of Traps" 736038070
                 overhead "*tick*" 2091 bchest
                 break
             endif
@@ -714,40 +721,7 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
             if insysmsg "You have worn out your tool"
                 overhead "This tool is worn out!" 805
             endif
-            if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
-                if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
-                    while queued
-                        //donothing
-                    endwhile
-                    dclick "bwiz"
-                    while queued
-                        //donothing
-                    endwhile
-                    pause 30
-                    dclick "bmain"
-                    pause 500
-                    getlabel backpack ping
-                endif
-                if not targetexists and not casting and not findlayer self head and find "bmain" self
-                    while queued
-                        //donothing
-                    endwhile
-                    dclick "bmain"
-                    pause 500
-                    getlabel backpack ping
-                endif
-            endif
-            if varexist "bwiz" and find "bmain" self
-                if not targetexists and not casting and not find "bwiz" backpack
-                    while queued
-                        //donothing
-                    endwhile
-                    dclick "bmain"
-                    pause 500
-                    getlabel backpack ping
-                endif
-            endif
-            if ingump "Shrines"
+            if ingump "Shrines" 341416395
                 if not timerexists "Wacp" and skill "Magery" >= 50
                     gumpclose 341416395
                     overhead "Wall of Stone ACP ------Enabled------" 2031
@@ -874,9 +848,11 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                 settimer ACPcheck 0
             endif
             if insysmsg "Another player"
-                while gumpexists 736038070
-                    replay
-                endwhile
+                gumpclose 736038070
+                dclick bchest
+                waitforgump 736038070 1000
+                gumpresponse 7
+                waitforgump 736038070 1000
             endif
             if timerexists lootvacuumswitch
                 if not timerexists lootsensetimer
@@ -897,23 +873,113 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                     settimer lootsensetimer 0
                 endif
             endif
-            if insysmsg "What should I use these scissors on?"
-                pause 500
-                getlabel backpack ping
-                hotkey "Cancel Current Target"
-                if findtype 3999 backpack as scisss
-                    clearsysmsg 
-                    gumpclose 736038070
-                    dclick scisss
+            if hidden and timerexists activaterecycle and findtype "sewing kit|saw|pen and ink|tongs|tool kit" backpack as breakdowntool
+                if findtype 20496 backpack as IDwand
+                    if findtype 3834 backpack 0 as bbook
+                        @ignore bbook
+                    endif
+                    while findtype 5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|5101|5103|5105|5106|5129|5131|5132|5135|5138|5139|5142|5143|5144|5146|5201|5203|5204|5205|5207|7169|7170|7173|7175|7177|7179|7181|7610|7947|31003|31004|31005|31006|31007|31008|31009|31010|31011|31012|31015|31191|31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037|31038|31041|31043|31045|31047|31049|31051|31053|31055|3834|3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130|3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|30999|31000|31001|31014|31178|31180|31182|3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|5187|30988|31128|31190|22187|31141|31142|31169|31172 backpack as IDitem
+                        getlabel IDitem desc
+                        if "unidentified" in desc
+                            dclick IDwand
+                            wft 1000
+                            target IDitem
+                            waitforsysmsg "You identify the item." 1000
+                            getlabel IDitem desc
+                            if "aspect" in desc or "training" in desc or "vanquishing" in desc or "supremely" in desc or "slaying" in desc or "enticement" in desc or "invulnerability" in desc or "exceedingly accurate power" in desc or "eminently accurate power" in desc or "exceedingly accurate force" in desc or "exceedingly potent" in desc or "valorite" in desc or "avarite" in desc or "verite" in desc or "agapite" in desc
+                                @ignore IDitem
+                                overhead "This one is worth keeping..." 2091
+                                say "[surprise" 2091
+                            elseif "durable" in desc or "substantial" in desc or "massive" in desc or "fortified" in desc or "indestructible" in desc or "exceptional" in desc or "accurate" in desc or "surpassingly" in desc or "eminently" in desc or "exceedingly" in desc or "ruin" in desc or "might" in desc or "force" in desc or "power" in desc or "mastercrafted" in desc or "defense" in desc or "guarding" in desc or "hardening" in desc or "fortification" in desc or "potent" in desc or "melodious" in desc
+                                while not gumpexists 949095101
+                                    while queued
+                                        //donothing
+                                    endwhile
+                                    dclick breakdowntool
+                                    waitforgump 949095101 1000
+                                endwhile
+                                while not ingump "Recycle Single Item" 949095101
+                                    gumpresponse 2
+                                    waitforgump 949095101 1000
+                                endwhile                                
+                                gumpresponse 3
+                                waitforgump 949095101 1000
+                                target IDitem
+                                getlabel backpack ping
+                                pause 300
+                                gumpclose 949095101
+                            else
+                                @ignore IDitem
+                            endif
+                        elseif "durable" in desc or "substantial" in desc or "massive" in desc or "fortified" in desc or "indestructible" in desc or "exceptional" in desc or "accurate" in desc or "surpassingly" in desc or "eminently" in desc or "exceedingly" in desc or "ruin" in desc or "might" in desc or "force" in desc or "power" in desc or "mastercrafted" in desc or "defense" in desc or "guarding" in desc or "hardening" in desc or "fortification" in desc or "potent" in desc or "melodious" in desc
+                            while not gumpexists 949095101
+                                while queued
+                                    //donothing
+                                endwhile
+                                dclick breakdowntool
+                                waitforgump 949095101 1000
+                            endwhile
+                            while not ingump "Recycle Single Item" 949095101
+                                gumpresponse 2
+                                waitforgump 949095101 1000
+                            endwhile                                
+                            gumpresponse 3
+                            waitforgump 949095101 1000
+                            target IDitem
+                            getlabel backpack ping
+                            pause 300
+                            gumpclose 949095101
+                        else
+                            @ignore IDitem
+                        endif
+                    endwhile
+                    if gumpexists 949095101
+                        gumpclose 949095101
+                    endif
+                endif
+                if targetexists 
+                    hotkey "Cancel Current Target"
+                endif
+            endif
+            if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
+                if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bwiz"
+                    while queued
+                        //donothing
+                    endwhile
+                    pause 30
+                    dclick "bmain"
+                    pause 500
                     getlabel backpack ping
-                    break
+                endif
+                if not targetexists and not casting and not findlayer self head and find "bmain" self
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+            if varexist "bwiz" and find "bmain" self
+                if not targetexists and not casting and not find "bwiz" backpack
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
                 endif
             endif
         endwhile
         waitforgump 736038070 1000
     endif
-    if gumpexists 736038070 and ingump "Cleared Of Traps"
+    if gumpexists 736038070 and ingump "Cleared Of Traps" 736038070
         while gumpexists 736038070
+            dclick bchest
             gumpresponse 4
             waitforgump 736038070 1000
             if insysmsg "You attempt to pick the lock"
@@ -1016,6 +1082,7 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                 break
             endif
             if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
+                removetimer activaterecycle
                 break
             endif
             if find "bchest" ground -1 -1 2
@@ -1082,7 +1149,7 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                     getlabel backpack ping
                 endif
             endif
-            if ingump "Shrines"
+            if ingump "Shrines" 341416395
                 if not timerexists "Wacp" and skill "Magery" >= 50
                     gumpclose 341416395
                     overhead "Wall of Stone ACP ------Enabled------" 2031
@@ -1209,9 +1276,11 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                 settimer ACPcheck 0
             endif
             if insysmsg "Another player"
-                while gumpexists 736038070
-                    replay
-                endwhile
+                gumpclose 736038070
+                dclick bchest
+                waitforgump 736038070 1000
+                gumpresponse 4
+                waitforgump 736038070 1000
             endif
             if timerexists lootvacuumswitch
                 if not timerexists lootsensetimer
@@ -1232,20 +1301,12 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                     settimer lootsensetimer 0
                 endif
             endif
-            if insysmsg "What should I use these scissors on?"
-                pause 500
-                getlabel backpack ping
-                hotkey "Cancel Current Target"
-                if findtype 3999 backpack as scisss
-                    clearsysmsg 
-                    gumpclose 736038070
-                    dclick scisss
-                    getlabel backpack ping
-                    break
-                endif
-            endif
         endwhile
     endif
+endif
+
+if gumpexists 949095101
+    gumpclose 949095101
 endif
 
 if find "bchest" ground -1 -1 2 as bchest and not targetexists 
@@ -1299,7 +1360,7 @@ if find "bchest" ground -1 -1 2 as bchest and not targetexists
     endif
 endif
 
-if ingump "Shrines"
+if ingump "Shrines" 341416395
     if not timerexists "Wacp" and skill "Magery" >= 50
         gumpclose 341416395
         overhead "Wall of Stone ACP ------Enabled------" 2031
@@ -1412,6 +1473,7 @@ if insysmsg "You have been revealed!"
 endif
 
 if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
+    removetimer activaterecycle
     if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
         if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
             while queued
@@ -1462,85 +1524,7 @@ if timer ACPcheck > 42000
     endif
     settimer ACPcheck 0
 endif
-if insysmsg "What should I use these scissors on?"
-    gumpclose 949095101
-    wft 500
-    clearall
-    pause 503
-    getlabel backpack ping
-    if findtype "sewing kit|saw|pen and ink|tongs|tool kit" backpack as breakdowntool
-        if findtype 20495 backpack as IDwand
-            overhead "Time to cut some weight..." 88
-            dclick IDwand
-            wft 500
-            target backpack
-            getlabel backpack ping
-            if insysmsg "No unidentified items found"
-                overhead "No items to ID" 88
-            endif
-            if findtype 3834 backpack 0 as bbook
-                @ignore bbook
-            endif
-        else 
-            overhead "I need a Container ID Wand..." 38
-        endif  
-        while not gumpexists 949095101
-            while queued
-                //donothing
-            endwhile
-            dclick breakdowntool
-            waitforgump 949095101 500
-        endwhile
-        while not ingump "Recycle Single Item" 949095101
-            gumpresponse 2
-            waitforgump 949095101 500
-        endwhile
-        while findtype 5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|5101|5103|5105|5106|5129|5131|5132|5135|5138|5139|5142|5143|5144|5146|5201|5203|5204|5205|5207|7169|7170|7173|7175|7177|7179|7181|7610|7947|31003|31004|31005|31006|31007|31008|31009|31010|31011|31012|31015|31191|31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037|31038|31041|31043|31045|31047|31049|31051|31053|31055|3834|3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130|3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|30999|31000|31001|31014|31178|31180|31182|3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|5187|30988|31128|31190|22187|31141|31142|31169|31172 backpack as IDitem
-            getlabel IDitem desc
-            if "aspect" in desc or "training" in desc or "vanquishing" in desc or "supremely" in desc or "slaying" in desc or "enticement" in desc or "invulnerability" in desc or "exceedingly accurate power" in desc or "eminently accurate power" in desc or "exceedingly accurate force" in desc or "exceedingly potent" in desc or "valorite" in desc or "avarite" in desc or "verite" in desc or "agapite" in desc
-                @ignore IDitem
-            elseif "durable" in desc or "substantial" in desc or "massive" in desc or "fortified" in desc or "indestructible" in desc or "exceptional" in desc or "accurate" in desc or "surpassingly" in desc or "eminently" in desc or "exceedingly" in desc or "ruin" in desc or "might" in desc or "force" in desc or "power" in desc or "mastercrafted" in desc or "defense" in desc or "guarding" in desc or "hardening" in desc or "fortification" in desc or "potent" in desc or "melodious" in desc
-                while find IDitem backpack
-                    gumpresponse 3
-                    waitforgump 949095101 500
-                    target IDitem
-                endwhile
-            else
-                @ignore IDitem
-            endif
-        endwhile
-        getlabel backpack ping
-        if gumpexists 949095101
-            gumpclose 949095101
-        endif
-        if targetexists 
-            hotkey "Cancel Current Target"
-        endif
-        while findtype 4225|7127|7154 backpack 0 as trash
-            while queued
-                //do nothing
-            endwhile
-            drop backpack
-            lift trash 60000
-            drop 0
-            pause 500
-            getlabel backpack ping
-        endwhile
-        while findtype 3827 backpack 0 as scroll
-            while queued
-                //do nothing
-            endwhile
-            drop backpack
-            lift scroll 60000
-            drop 0
-            pause 500
-            getlabel backpack ping
-        endwhile
-        overhead "Useless items are discarded..." 78
-    else 
-        overhead "I need a crafting tool to recycle..." 1779
-    endif
-endif
+
 if not timerexists lootvacuumswitch
     if insysmsg "What do you want to use this item on?"
         hotkey "Cancel Current Target"

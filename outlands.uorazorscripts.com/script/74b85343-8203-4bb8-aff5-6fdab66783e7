@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-healer ver.2.45
+#SUPER Auto-healer ver.3.00
 
 #********** INFORMATION **********# 
 
@@ -26,6 +26,7 @@
 #--- Set Mage Buffs ---#
 
 @setvar! magicReflect 1
+@setvar! bless 1
 @setvar! armorReflect 1
 @setvar! protectionSpell 1
 @setvar! miniumManaToBuff 50
@@ -38,14 +39,14 @@
 #--- Set potions ---#
 
 @setvar! drinkStr 1
-@setvar! drinkAgility 1
+@setvar! drinkAgility 0
 @setvar! drinkMagicResist 1
 @setvar! drinkHeal 1
 @setvar! drinkCure 1
 @setvar! drinkRefresh 1
 
 @setvar! strengthLowerThan 100
-@setvar! staminaLowerThan 80
+@setvar! staminaLowerThan 10
 
 #--- Auto healing hp diffs ---#
 
@@ -62,7 +63,6 @@
 
 #********** DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING  **********   
 
-
 @setvar! holyPoints 0
 
 @setvar nobleCD 5000
@@ -72,8 +72,8 @@ settimer nobleTimer nobleCD
 
 #--- Script msgs timers ---#
 
-@setvar! scriptMessageCD 6500
-settimer scriptMessageTimer 0
+@setvar! autoHealMessageCD 5500
+settimer autoHealMessageTimer 0
 
 @setvar! guardMessageCD 5500
 settimer guardMessageTimer guardMessageCD
@@ -129,15 +129,15 @@ endif
     
 while not dead
 
-    if timer scriptMessageTimer > scriptMessageCD
+    if timer autoHealMessageTimer > autoHealMessageCD
         overhead "* auto-healing *" 11
-        settimer scriptMessageTimer 0
+        settimer autoHealMessageTimer 0
     endif
 
 #********** AUTO-HEALING IF NEEDED **********   
 
-    if diffhits >= lowDiff or paralyzed or poisoned
-            
+    while diffhits >= lowDiff or paralyzed or poisoned
+        sysmsg "auto-healing activated" 11      
         #--- Trapped ---#
         
         if paralyzed 
@@ -239,7 +239,7 @@ while not dead
                         break
                     endif
                     
-                    if skill 'magery' >= 40 and mana >= 6 and 1 = cureSpell
+                    if skill 'magery' >= 40 and mana >= 6 and 1 = cureSpell and not casting
                         cast 'cure'
                         wait 50
                         while not casting                   
@@ -262,9 +262,9 @@ while not dead
             endwhile
         endif
             
-        #--- Heal Pot ---#
+        #--- Drink Heal Pot ---#
         
-        if diffhits >= highDiff and 1 = drinkHeal and timer nobleTimer > nobleCD
+        if diffhits >= highDiff and 1 = drinkHeal
             if findtype "Yellow Potion" self as hPot
                 getlabel hPot potLabel
                 if "next" in potLabel
@@ -278,6 +278,7 @@ while not dead
                     clearsysmsg  
                     
                     dclicktype 3852
+                    getlabel backpack xxx
                     wait 200
                                 
                     if ch != counttype 3852 self or insysmsg "potion satchel used"
@@ -430,15 +431,13 @@ while not dead
             
         #--- Cast heals ---#
         
-        if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits <= medDiff and mana >= 4 and miniHeal = 1 and timer nobleTimer > nobleCD
+        if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits < medDiff and mana >= 4 and miniHeal = 1 and not casting
             cast 'heal'
-            wait 50
             while not casting                   
                 if targetexists
                     hotkey 'cancel current target'
                 endif
                 cast 'heal'
-                wait 50
             endwhile  
             
             while not targetexists and casting
@@ -448,33 +447,79 @@ while not dead
             target 'self' 
             wait 200  
             
-        elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1 and timer nobleTimer > nobleCD
+        elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1 and not casting
             cast 'greater heal'         
-            wait 50
             while not casting                   
                 if targetexists
                     hotkey 'cancel current target'
                 endif
                 cast 'greater heal'
-                wait 50
             endwhile  
             
             while not targetexists and casting
+                
+                #--- Poisoned ---#
+                
+                if 1 = drinkCure
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            wait 200
+                        else
+                            if timer orangeMessageTimer > orangeMessageCD
+                                overhead "Out of cure pots" 34
+                                settimer orangeMessageTimer 0
+                                break
+                            endif
+            
+                        endif
+                    endwhile
+                endif            
+            
+                #--- Drink Heal Pot ---#
+                
+                if diffhits >= highDiff and 1 = drinkHeal
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+                            
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            clearsysmsg  
+                            
+                            dclicktype 3852
+                            getlabel backpack xxx
+                            wait 200
+                                        
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                cooldown "Heal Pot" healingPotCD
+                            endif
+                        endif
+                    else
+                        if timer yellowMessageTimer > yellowMessageCD
+                            overhead "Out of heals pots" 34
+                            settimer yellowMessageTimer 0
+                        endif
+                    endif
+                endif
+        
             endwhile
             
             waitfortarget maxwaittimeinms
             target 'self' 
             wait 200 
             
-        elseif skill 'magery' >= 40 and diffhits >= medDiff and mana >= 4 and miniHeal = 1 and timer nobleTimer > nobleCD
+        elseif skill 'magery' >= 40 and diffhits > highDiff and mana >= 4 and miniHeal = 1 and not casting
             cast 'heal'     
-            wait 50
             while not casting                   
                 if targetexists
                     hotkey 'cancel current target'
                 endif
                 cast 'heal' 
-                wait 50
             endwhile  
             
             while not targetexists and casting
@@ -486,68 +531,134 @@ while not dead
         
         endif 
         
+    endwhile
+        
 #********** AUTO-MAGERY BUFFS IF NEEDED **********          
-    else 
-        
-        if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= 14
-            if timer magicReflectTimer > magicReflectCD
-                cast 'Magic Reflection'
-                wait 100
-                while not casting and diffhits < lowDiff                   
-                    if insysmsg "that spell will not"
-                        settimer magicReflectTimer 0
-                        break  
-                    endif
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    cast 'Magic Reflection'
-                    wait 50
-                endwhile 
-                
-                while casting and diffhits < lowDiff   
-                endwhile
-                wait 200  
-            endif    
-        endif
-        
-        if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= 4
-            if timer magicReflectTimer > magicReflectCD
-                cast 'Reactive Armor'
-                wait 100
-                while not casting and diffhits < lowDiff                   
-                    if insysmsg "that spell will not"
-                        settimer armorReflectTimer 0
-                        break  
-                    endif
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    cast 'Reactive Armor'
-                    wait 50
-                endwhile  
-                
-                while casting and diffhits < lowDiff   
-                endwhile
-                wait 200  
-            endif    
-        endif     
-        
-        if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= 6
-            cast 'Protection'
-            wait 100
-            while not casting and diffhits < lowDiff 
+ 
+    if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < lowDiff
+        if timer magicReflectTimer > magicReflectCD
+            cast 'Magic Reflection'
+            while not casting and diffhits < lowDiff    
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "that spell will not" or insysmsg "that spell is already"
+                    settimer magicReflectTimer 0
+                    break  
+                endif
                 if targetexists
                     hotkey 'cancel current target'
                 endif
-                cast 'Protection'
-                wait 50
+                cast 'Magic Reflection'
+            endwhile 
+            
+            while casting and diffhits < highDiff   
+            
+                #--- Poisoned ---#
+                
+                if 1 = drinkCure
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            wait 200
+                        else
+                            if timer orangeMessageTimer > orangeMessageCD
+                                overhead "Out of cure pots" 34
+                                settimer orangeMessageTimer 0
+                                break
+                            endif
+            
+                        endif
+                    endwhile
+                endif            
+            
+                #--- Drink Heal Pot ---#
+                
+                if diffhits >= highDiff and 1 = drinkHeal
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+                            
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            clearsysmsg  
+                            
+                            dclicktype 3852
+                            getlabel backpack xxx
+                            wait 200
+                                        
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                cooldown "Heal Pot" healingPotCD
+                            endif
+                        endif
+                    else
+                        if timer yellowMessageTimer > yellowMessageCD
+                            overhead "Out of heals pots" 34
+                            settimer yellowMessageTimer 0
+                        endif
+                    endif
+                endif
+                
+            endwhile
+            wait 200  
+        endif    
+    endif
+    
+    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < lowDiff
+        if timer magicReflectTimer > magicReflectCD
+            cast 'Reactive Armor'
+            while not casting and diffhits < highDiff       
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "that spell will not" or insysmsg "that spell is already"
+                    settimer armorReflectTimer 0
+                    break  
+                endif
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Reactive Armor'
             endwhile  
+            
             while casting and diffhits < lowDiff   
             endwhile
             wait 200  
-        endif 
+        endif    
+    endif     
     
-    endif
+    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < lowDiff
+        cast 'Protection'
+        while not casting and diffhits < highDiff 
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            cast 'Protection'
+        endwhile  
+        while casting and diffhits < lowDiff   
+        endwhile
+        wait 200  
+    endif 
+    
+    if bless = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < lowDiff
+        sysmsg 'blessing..'
+        cast 'Bless'         
+        while not casting and diffhits < highDiff                   
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            cast 'Bless'
+            wait 50
+        endwhile  
+        
+        while not targetexists and casting
+        endwhile
+        
+        waitfortarget maxwaittimeinms
+        target 'self' 
+        wait 200  
+    endif  
             
 endwhile

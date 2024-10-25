@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-summoner ver.2.57
+#Auto-summoner ver.3.00
 
 #********** INFORMATION **********# 
 
@@ -49,6 +49,7 @@ settimer mushroomTimer mushroomTimerCD
 #--- Set Mage Buffs ---#
 
 @setvar! magicReflect 1
+@setvar! bless 1
 @setvar! armorReflect 1
 @setvar! protectionSpell 1
 @setvar! miniumManaToBuff 50
@@ -56,16 +57,19 @@ settimer mushroomTimer mushroomTimerCD
 #--- Set potions ---#
 
 @setvar! drinkStr 1
-@setvar! drinkAgility 1
-@setvar! drinkMagicResist 1
+@setvar! drinkAgility 0
+@setvar! drinkMagicResist 0
 @setvar! drinkHeal 1
 @setvar! drinkCure 1
 @setvar! drinkRefresh 1
 
+@setvar! strengthLowerThan 100
+@setvar! staminaLowerThan 10
+
 #--- Auto healing hp diffs ---#
 
-@setvar! lowDiff 15 
-@setvar! medDiff 30
+@setvar! lowDiff 12 
+@setvar! medDiff 25
 @setvar! highDiff 40
 @setvar! extremeDiff 60
 @setvar! criticalDiff 75
@@ -341,10 +345,12 @@ while not dead
         wait 200
     endif
         
-#********** AUTO-HEALING IF NEEDED **********   
+#********** AUTO HEALING START  **********#         
 
     while diffhits >= lowDiff or paralyzed or poisoned
-            
+    
+        #sysmsg "auto-healing activated" 11   
+        
         #--- Trapped ---#
         
         if paralyzed 
@@ -383,7 +389,7 @@ while not dead
         
         #--- Drink str pot ---#
         
-        if drinkStr = 1
+        if drinkStr = 1 and str < strengthLowerThan
             if not findbuff "Strength" 
                 if findtype "White Potion" self
                     dclicktype "White Potion"
@@ -446,7 +452,7 @@ while not dead
                         break
                     endif
                     
-                    if skill 'magery' >= 40 and mana >= 6 and 1 = cureSpell
+                    if skill 'magery' >= 40 and mana >= 6 and 1 = cureSpell and not casting
                         cast 'cure'
                         wait 50
                         while not casting                   
@@ -469,7 +475,7 @@ while not dead
             endwhile
         endif
             
-        #--- Heal Pot ---#
+        #--- Drink Heal Pot ---#
         
         if diffhits >= highDiff and 1 = drinkHeal
             if findtype "Yellow Potion" self as hPot
@@ -485,6 +491,7 @@ while not dead
                     clearsysmsg  
                     
                     dclicktype 3852
+                    getlabel backpack xxx
                     wait 200
                                 
                     if ch != counttype 3852 self or insysmsg "potion satchel used"
@@ -501,12 +508,12 @@ while not dead
                 
         #--- Drink red pot ---#
         
-        if stam <= 1 and 1 = drinkRefresh
+        if stam < staminaLowerThan and 1 = drinkRefresh
             if findtype "Red Potion" self
                 dclicktype "Red Potion"
                 wait 200
             else
-                if tiemr redMessageTimer > redMessageCD
+                if timer redMessageTimer > redMessageCD
                     overhead "Out of refresh pots" 34
                     settimer redMessageTimer 0 
                 endif
@@ -515,15 +522,13 @@ while not dead
             
         #--- Cast heals ---#
         
-        if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits <= medDiff and mana >= 4 and miniHeal = 1
+        if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits < medDiff and mana >= 4 and miniHeal = 1 and not casting
             cast 'heal'
-            wait 50
             while not casting                   
                 if targetexists
                     hotkey 'cancel current target'
                 endif
                 cast 'heal'
-                wait 50
             endwhile  
             
             while not targetexists and casting
@@ -533,33 +538,79 @@ while not dead
             target 'self' 
             wait 200  
             
-        elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1
+        elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1 and not casting
             cast 'greater heal'         
-            wait 50
             while not casting                   
                 if targetexists
                     hotkey 'cancel current target'
                 endif
                 cast 'greater heal'
-                wait 50
             endwhile  
             
             while not targetexists and casting
+                
+                #--- Poisoned ---#
+                
+                if 1 = drinkCure
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            wait 200
+                        else
+                            if timer orangeMessageTimer > orangeMessageCD
+                                overhead "Out of cure pots" 34
+                                settimer orangeMessageTimer 0
+                                break
+                            endif
+            
+                        endif
+                    endwhile
+                endif            
+            
+                #--- Drink Heal Pot ---#
+                
+                if diffhits >= highDiff and 1 = drinkHeal
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+                            
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            clearsysmsg  
+                            
+                            dclicktype 3852
+                            getlabel backpack xxx
+                            wait 200
+                                        
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                cooldown "Heal Pot" healingPotCD
+                            endif
+                        endif
+                    else
+                        if timer yellowMessageTimer > yellowMessageCD
+                            overhead "Out of heals pots" 34
+                            settimer yellowMessageTimer 0
+                        endif
+                    endif
+                endif
+        
             endwhile
             
             waitfortarget maxwaittimeinms
             target 'self' 
             wait 200 
             
-        elseif skill 'magery' >= 40 and diffhits >= medDiff and mana >= 4 and miniHeal = 1
+        elseif skill 'magery' >= 40 and diffhits > highDiff and mana >= 4 and miniHeal = 1 and not casting
             cast 'heal'     
-            wait 50
             while not casting                   
                 if targetexists
                     hotkey 'cancel current target'
                 endif
                 cast 'heal' 
-                wait 50
             endwhile  
             
             while not targetexists and casting
@@ -569,67 +620,6 @@ while not dead
             target 'self' 
             wait 200  
         
-        endif 
-        
-#********** AUTO-MAGERY BUFFS IF NEEDED **********          
-
-        if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= 14 and diffhits < lowDiff
-            if timer magicReflectTimer > magicReflectCD
-                cast 'Magic Reflection'
-                wait 100
-                while not casting and diffhits < lowDiff                   
-                    if insysmsg "that spell will not"
-                        settimer magicReflectTimer 0
-                        break  
-                    endif
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    cast 'Magic Reflection'
-                    wait 50
-                endwhile 
-                
-                while casting and diffhits < lowDiff   
-                endwhile
-                wait 200  
-            endif    
-        endif
-        
-        if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= 4 and diffhits < lowDiff
-            if timer magicReflectTimer > magicReflectCD
-                cast 'Reactive Armor'
-                wait 100
-                while not casting and diffhits < lowDiff                   
-                    if insysmsg "that spell will not"
-                        settimer armorReflectTimer 0
-                        break  
-                    endif
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    cast 'Reactive Armor'
-                    wait 50
-                endwhile  
-                
-                while casting and diffhits < lowDiff   
-                endwhile
-                wait 200  
-            endif    
-        endif     
-        
-        if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= 6 and diffhits < lowDiff
-            cast 'Protection'
-            wait 100
-            while not casting and diffhits < lowDiff 
-                if targetexists
-                    hotkey 'cancel current target'
-                endif
-                cast 'Protection'
-                wait 50
-            endwhile  
-            while casting and diffhits < lowDiff   
-            endwhile
-            wait 200  
         endif 
     
     endwhile
@@ -775,21 +765,22 @@ while not dead
                 else 
                     overhead "No mushrooms found!" 34
                 endif
-            endif
-            
-            if mana < meditateManaReach and 1 = useMeditation
-                skill 'meditation'
-                wait 200
-                if findbuff 'meditating'
-                    while mana < meditateUntilManaReach and diffhits < medDiff
-                        #interrupt here if hp is low
-                        if not findbuff 'meditating'
-                            break
-                        endif
-                    endwhile
-                endif
-            endif                
+            endif            
         endif
+        
+        if mana < meditateManaReach and 1 = useMeditation
+            skill 'meditation'
+            getlabel backpack xxx
+            wait 200
+            if findbuff 'meditating'
+                while mana < meditateUntilManaReach and diffhits < medDiff
+                    #interrupt here if hp is low
+                    if not findbuff 'meditating'
+                        break
+                    endif
+                endwhile
+            endif
+        endif    
     
         if mana < 50
             if timer manaMsgTimer > manaMsgCD
@@ -1057,11 +1048,26 @@ while not dead
                 endif
             endwhile  
             
-            while casting
+            while not dead
+                
                 if diffhits >= medDiff
                     @setvar! wasInterrupted 1 
                     sysmsg "interrupted low health" 33
                     interrupt
+                    break
+                endif
+                
+                if not casting
+                    getlabel backpack xxx
+                    wait 200
+                    
+                    if insysmsg "Your concentration"
+                        @setvar! wasInterrupted 1 
+                        sysmsg "interrupted concentration" 33   
+                    else 
+                        sysmsg "casting finished" 11
+                    endif
+                    
                     break
                 endif
                 
@@ -1071,42 +1077,39 @@ while not dead
                     settimer summonMsgTimer 0
                     settimer globalMessageTimer 0
                 endif
+                
             endwhile
-            
+
+        
             if 0 = wasInterrupted
-                wait 200
-            endif
-            
-            if insysmsg "Your concentration"
-                @setvar! wasInterrupted 1
-                sysmsg "interrupted casting" 44
-            endif
-            
-            if 0 = wasInterrupted
-                sysmsg "cast successful" 
+                sysmsg "Summon Earth Successful" 
                 pushlist earthListy 'x' 'front'
-                while findtype 158|14 ground -1 -1 12 as ele 
-                    menu ele 1
-                    waitfortarget maxwaittimeinms
-                    if targetexists 
-                        if ele != earthFirsty and ele != earthSecondly
-                            hotkey 'cancel current target'
-                            
-                            if earthFirsty = 0 
-                                @setvar! earthFirsty ele
-                                sysmsg "add earth 1" 11
-                                overhead "add earth 1" 11 ele
-                            else 
-                                @setvar! earthSecondly ele
-                                sysmsg "add earth 2" 11
-                                overhead "add earth 2" 11 ele
+                
+                while not dead
+                    if findtype 158|14 ground -1 -1 12 as ele 
+                        menu ele 1
+                        waitfortarget maxwaittimeinms
+                        if targetexists 
+                            if ele != earthFirsty and ele != earthSecondly
+                                hotkey 'cancel current target'
+                                
+                                if earthFirsty = 0 
+                                    @setvar! earthFirsty ele
+                                    sysmsg "add earth 1" 11
+                                    overhead "Earth 1" 634 ele
+                                else 
+                                    @setvar! earthSecondly ele
+                                    sysmsg "add earth 2" 11
+                                    overhead "Earth 2" 634 ele
+                                endif
+                                
+                                break
                             endif
-                            
-                            break
                         endif
+                        @ignore ele
                     endif
-                    @ignore ele
                 endwhile
+                
                 @clearignore
             endif
             
@@ -1120,14 +1123,28 @@ while not dead
                 if targetexists
                     hotkey 'cancel current target'
                 endif
-            endwhile  
+            endwhile 
             
-            while casting
+            while not dead
                 
                 if diffhits >= medDiff
                     @setvar! wasInterrupted 1 
                     sysmsg "interrupted low health" 33
                     interrupt
+                    break
+                endif
+                
+                if not casting
+                    getlabel backpack xxx
+                    wait 200
+                    
+                    if insysmsg "Your concentration"
+                        @setvar! wasInterrupted 1 
+                        sysmsg "interrupted concentration" 33   
+                    else 
+                        sysmsg "casting finished" 11
+                    endif
+                    
                     break
                 endif
                 
@@ -1139,39 +1156,37 @@ while not dead
                 endif
                 
             endwhile
+
             
             if 0 = wasInterrupted
-                wait 200
-            endif
-            
-            if insysmsg "Your concentration"
-                @setvar! wasInterrupted 1
-                sysmsg "interrupted casting" 44
-            endif
-            
-            if 0 = wasInterrupted
-                sysmsg "cast successful" 
+                sysmsg "Summon Water Successful" 
                 pushlist waterListy 'x' 'front'
-                while findtype 740|16 ground -1 -1 12 as ele 
-                    menu ele 1
-                    waitfortarget maxwaittimeinms
-                    if targetexists 
-                        if ele != waterFirsty and ele != waterSecondly
-                            hotkey 'cancel current target'
-                            
-                            if waterFirsty = 0 
-                                @setvar! waterFirsty ele
-                                sysmsg "add water 1" 11
-                            else 
-                                @setvar! waterSecondly ele
-                                sysmsg "add water 2" 11
+                
+                while not dead
+                    if findtype 740|16 ground -1 -1 12 as ele 
+                        menu ele 1
+                        waitfortarget maxwaittimeinms
+                        if targetexists 
+                            if ele != waterFirsty and ele != waterSecondly
+                                hotkey 'cancel current target'
+                                
+                                if waterFirsty = 0 
+                                    @setvar! waterFirsty ele
+                                    sysmsg "add water 1" 11
+                                    overhead "Water 1" 399 ele
+                                else 
+                                    @setvar! waterSecondly ele
+                                    sysmsg "add water 2" 11
+                                    overhead "Water 2" 399 ele
+                                endif
+                                
+                                break
                             endif
-                            
-                            break
                         endif
+                        @ignore ele
                     endif
-                    @ignore ele
                 endwhile
+                
                 @clearignore
             endif
         
@@ -1187,11 +1202,26 @@ while not dead
                 endif
             endwhile  
             
-            while casting
+            while not dead
+                
                 if diffhits >= medDiff
                     @setvar! wasInterrupted 1 
                     sysmsg "interrupted low health" 33
                     interrupt
+                    break
+                endif
+                
+                if not casting
+                    getlabel backpack xxx
+                    wait 200
+                    
+                    if insysmsg "Your concentration"
+                        @setvar! wasInterrupted 1 
+                        sysmsg "interrupted concentration" 33   
+                    else 
+                        sysmsg "casting finished" 11
+                    endif
+                    
                     break
                 endif
                 
@@ -1201,41 +1231,36 @@ while not dead
                     settimer summonMsgTimer 0
                     settimer globalMessageTimer 0
                 endif
+                
             endwhile
             
             if 0 = wasInterrupted
-                wait 200
-            endif
-            
-            if insysmsg "Your concentration"
-                @setvar! wasInterrupted 1
-                sysmsg "interrupted casting" 44
-            endif
-            
-            if 0 = wasInterrupted
-                sysmsg "cast successful" 
+                sysmsg "Summon Air Successful" 
                 pushlist airListy 'x' 'front'
-                while findtype 306|13 ground -1 -1 12 as ele 
-                    menu ele 1
-                    waitfortarget maxwaittimeinms
-                    if targetexists 
-                        if ele != airFirsty and ele != airSecondly
-                            hotkey 'cancel current target'
-                            
-                            if airFirsty = 0 
-                                @setvar! airFirsty ele
-                                sysmsg "add air 1" 11
-                                overhead "add air 1" 11 ele
-                            else 
-                                @setvar! airSecondly ele
-                                sysmsg "add air 2" 11
-                                overhead "add air 2" 11 ele
+                
+                while not dead
+                    if findtype 306|13 ground -1 -1 12 as ele 
+                        menu ele 1
+                        waitfortarget maxwaittimeinms
+                        if targetexists 
+                            if ele != airFirsty and ele != airSecondly
+                                hotkey 'cancel current target'
+                                
+                                if airFirsty = 0 
+                                    @setvar! airFirsty ele
+                                    sysmsg "add air 1" 11
+                                    overhead "Air 1" 933 ele
+                                else 
+                                    @setvar! airSecondly ele
+                                    sysmsg "add air 2" 11
+                                    overhead "Air 2" 933 ele
+                                endif
+                                
+                                break
                             endif
-                            
-                            break
                         endif
+                        @ignore ele
                     endif
-                    @ignore ele
                 endwhile
                 @clearignore
             endif
@@ -1252,11 +1277,26 @@ while not dead
                 endif
             endwhile  
             
-            while casting
+            while not dead
+                
                 if diffhits >= medDiff
                     @setvar! wasInterrupted 1 
                     sysmsg "interrupted low health" 33
                     interrupt
+                    break
+                endif
+                
+                if not casting
+                    getlabel backpack xxx
+                    wait 200
+                    
+                    if insysmsg "Your concentration"
+                        @setvar! wasInterrupted 1 
+                        sysmsg "interrupted concentration" 33   
+                    else 
+                        sysmsg "casting finished" 11
+                    endif
+                    
                     break
                 endif
                 
@@ -1266,41 +1306,36 @@ while not dead
                     settimer summonMsgTimer 0
                     settimer globalMessageTimer 0
                 endif
+                
             endwhile
             
             if 0 = wasInterrupted
-                wait 200
-            endif
-
-            if insysmsg "Your concentration"
-                @setvar! wasInterrupted 1
-                sysmsg "interrupted casting" 44
-            endif
-            
-            if 0 = wasInterrupted
-                sysmsg "cast successful" 
+                sysmsg "Summon Fire Successful" 
                 pushlist fireListy 'x' 'front'
-                while findtype 24|15 ground -1 -1 12 as ele 
-                    menu ele 1
-                    waitfortarget maxwaittimeinms
-                    if targetexists 
-                        if ele != fireFirsty and ele != fireSecondly
-                            hotkey 'cancel current target'
-                            
-                            if fireFirsty = 0 
-                                @setvar! fireFirsty ele
-                                sysmsg "add fire 1" 11
-                                overhead "add fire 1" 11 ele
-                            else 
-                                @setvar! fireSecondly ele
-                                sysmsg "add fire 2" 11
-                                overhead "add fire 2" 11 ele
+                
+                while not dead
+                    if findtype 24|15 ground -1 -1 12 as ele 
+                        menu ele 1
+                        waitfortarget maxwaittimeinms
+                        if targetexists 
+                            if ele != fireFirsty and ele != fireSecondly
+                                hotkey 'cancel current target'
+                                
+                                if fireFirsty = 0 
+                                    @setvar! fireFirsty ele
+                                    sysmsg "add fire 1" 11
+                                    overhead "Fire 1" 353 ele
+                                else 
+                                    @setvar! fireSecondly ele
+                                    sysmsg "add fire 2" 11
+                                    overhead "Fire 2" 353 ele
+                                endif
+                                
+                                break
                             endif
-                            
-                            break
                         endif
+                        @ignore ele
                     endif
-                    @ignore ele
                 endwhile
                 @clearignore
             endif
@@ -1317,11 +1352,26 @@ while not dead
                 endif
             endwhile  
             
-            while casting
+            while not dead
+                
                 if diffhits >= medDiff
                     @setvar! wasInterrupted 1 
                     sysmsg "interrupted low health" 33
                     interrupt
+                    break
+                endif
+                
+                if not casting
+                    getlabel backpack xxx
+                    wait 200
+                    
+                    if insysmsg "Your concentration"
+                        @setvar! wasInterrupted 1 
+                        sysmsg "interrupted concentration" 33   
+                    else 
+                        sysmsg "casting finished" 11
+                    endif
+                    
                     break
                 endif
                 
@@ -1331,41 +1381,36 @@ while not dead
                     settimer summonMsgTimer 0
                     settimer globalMessageTimer 0
                 endif
+                
             endwhile
             
             if 0 = wasInterrupted
-                wait 200
-            endif
-
-            if insysmsg "Your concentration"
-                @setvar! wasInterrupted 1
-                sysmsg "interrupted casting" 44
-            endif
-            
-            if 0 = wasInterrupted
-                sysmsg "cast successful" 
+                sysmsg "Summon Daemon Successful" 
                 pushlist daemonListy 'x' 'front'
-                while findtype 9|722 ground -1 -1 12 as ele 
-                    menu ele 1
-                    waitfortarget maxwaittimeinms
-                    if targetexists 
-                        if ele != daemonFirsty and ele != daemonSecondly
-                            hotkey 'cancel current target'
-                            
-                            if daemonFirsty = 0 
-                                @setvar! daemonFirsty ele
-                                sysmsg "add daemon 1" 11
-                                overhead "add daemon 1" 11 ele
-                            else 
-                                @setvar! daemonSecondly ele
-                                sysmsg "add daemon 2" 11
-                                overhead "add daemon 2" 11 ele
+                
+                while not dead
+                    if findtype 9|722 ground -1 -1 12 as ele 
+                        menu ele 1
+                        waitfortarget maxwaittimeinms
+                        if targetexists 
+                            if ele != daemonFirsty and ele != daemonSecondly
+                                hotkey 'cancel current target'
+                                
+                                if daemonFirsty = 0 
+                                    @setvar! daemonFirsty ele
+                                    sysmsg "add daemon 1" 11
+                                    overhead "Daemon 1" 11 ele
+                                else 
+                                    @setvar! daemonSecondly ele
+                                    sysmsg "add daemon 2" 235
+                                    overhead "Daemon 2" 235 ele
+                                endif
+                                
+                                break
                             endif
-                            
-                            break
                         endif
+                        @ignore ele
                     endif
-                    @ignore ele
                 endwhile
                 @clearignore
             endif
@@ -1382,7 +1427,8 @@ while not dead
                 endif
             endwhile  
             
-            while casting
+            while not dead
+                
                 if diffhits >= medDiff
                     @setvar! wasInterrupted 1 
                     sysmsg "interrupted low health" 33
@@ -1390,61 +1436,69 @@ while not dead
                     break
                 endif
                 
+                if not casting
+                    getlabel backpack xxx
+                    wait 200
+                    
+                    if insysmsg "Your concentration"
+                        @setvar! wasInterrupted 1 
+                        sysmsg "interrupted concentration" 33   
+                    else 
+                        sysmsg "casting finished" 11
+                    endif
+                    
+                    break
+                endif
+                
                 if timer summonMsgTimer > summonMsgCD
-                    overhead "* summon creature... *" 11
-                    sysmsg "* summoning creature... *" 11
+                    overhead "* summon creature... *" 881
+                    sysmsg "* summon creature... *" 881
                     settimer summonMsgTimer 0
                     settimer globalMessageTimer 0
                 endif
                 
             endwhile
-            
-            if 0 = wasInterrupted
-                wait 200
-            endif
-            
-            if insysmsg "Your concentration"
-                @setvar! wasInterrupted 1
-                sysmsg "interrupted casting" 44
-            endif
 
             if 0 = wasInterrupted
-                sysmsg "cast successful" 
+                sysmsg "Summon Creature Successful" 
                 pushlist creatureListy 'x' 'front'
-                while findtype 215|211|302|317|225|212|202|213|716|729|51|74|214|206|776|737|718|739|718|29|776|317|302|39|56|26|3|57|50|382 ground -1 -1 12 as ele 
-                    menu ele 1
-                    waitfortarget maxwaittimeinms
-                    if targetexists 
-                        if ele != creatureFirsty and ele != creatureSecondly and ele != creatureThirdy and ele != creatureFourthy and ele != creatureFithy
-                            hotkey 'cancel current target'
-                            
-                            if creatureFirsty = 0 
-                                @setvar! creatureFirsty ele
-                                sysmsg "add creature 1" 11
-                                overhead "add creature 1" 11
-                            elseif creatureSecondly = 0 
-                                @setvar! creatureSecondly ele
-                                sysmsg "add creature 2" 11
-                                overhead "add creature 2" 11
-                            elseif creatureThirdy = 0 
-                                @setvar! creatureThirdy ele
-                                sysmsg "add creature 3" 11
-                                overhead "add creature 3" 11
-                            elseif creatureFourthy = 0 
-                                @setvar! creatureFourthy ele
-                                sysmsg "add creature 4" 11
-                                overhead "add creature 4" 11
-                            elseif creatureFithy = 0 
-                                @setvar! creatureFithy ele
-                                sysmsg "add creature 5" 11
-                                overhead "add creature 5" 11
+                while not dead
+                    if findtype 215|211|302|317|225|212|202|213|716|729|51|74|214|206|776|737|718|739|718|29|776|317|302|39|56|26|3|57|50|382 ground -1 -1 12 as ele 
+                        menu ele 1
+                        waitfortarget maxwaittimeinms
+                        if targetexists 
+                            if ele != creatureFirsty and ele != creatureSecondly and ele != creatureThirdy and ele != creatureFourthy and ele != creatureFithy
+                                hotkey 'cancel current target'
+                                
+                                if creatureFirsty = 0 
+                                    @setvar! creatureFirsty ele
+                                    sysmsg "add creature 1" 11
+                                    overhead "add creature 1" 11
+                                elseif creatureSecondly = 0 
+                                    @setvar! creatureSecondly ele
+                                    sysmsg "add creature 2" 11
+                                    overhead "add creature 2" 11
+                                elseif creatureThirdy = 0 
+                                    @setvar! creatureThirdy ele
+                                    sysmsg "add creature 3" 11
+                                    overhead "add creature 3" 11
+                                elseif creatureFourthy = 0 
+                                    @setvar! creatureFourthy ele
+                                    sysmsg "add creature 4" 11
+                                    overhead "add creature 4" 11
+                                elseif creatureFithy = 0 
+                                    @setvar! creatureFithy ele
+                                    sysmsg "add creature 5" 11
+                                    overhead "add creature 5" 11
+                                endif
+                                
+                                break
                             endif
-                            
-                            break
                         endif
+                        @ignore ele
                     endif
-                    @ignore ele
                 endwhile
+                
                 @clearignore
             endif
             
@@ -1455,5 +1509,133 @@ while not dead
         endif
     
     endwhile
+    
+#********** AUTO-MAGERY BUFFS IF NEEDED **********          
+
+    if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < lowDiff
+        if timer magicReflectTimer > magicReflectCD
+            cast 'Magic Reflection'
+            while not casting and diffhits < lowDiff    
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "that spell will not" or insysmsg "that spell is already"
+                    settimer magicReflectTimer 0
+                    break  
+                endif
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Magic Reflection'
+            endwhile 
+            
+            while casting and diffhits < highDiff   
+            
+                #--- Poisoned ---#
+                
+                if 1 = drinkCure
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            wait 200
+                        else
+                            if timer orangeMessageTimer > orangeMessageCD
+                                overhead "Out of cure pots" 34
+                                settimer orangeMessageTimer 0
+                                break
+                            endif
+            
+                        endif
+                    endwhile
+                endif            
+            
+                #--- Drink Heal Pot ---#
+                
+                if diffhits >= highDiff and 1 = drinkHeal
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+                            
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            clearsysmsg  
+                            
+                            dclicktype 3852
+                            getlabel backpack xxx
+                            wait 200
+                                        
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                cooldown "Heal Pot" healingPotCD
+                            endif
+                        endif
+                    else
+                        if timer yellowMessageTimer > yellowMessageCD
+                            overhead "Out of heals pots" 34
+                            settimer yellowMessageTimer 0
+                        endif
+                    endif
+                endif
+                
+            endwhile
+            wait 200  
+        endif    
+    endif
+    
+    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < lowDiff
+        if timer magicReflectTimer > magicReflectCD
+            cast 'Reactive Armor'
+            while not casting and diffhits < highDiff       
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "that spell will not" or insysmsg "that spell is already"
+                    settimer armorReflectTimer 0
+                    break  
+                endif
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Reactive Armor'
+            endwhile  
+            
+            while casting and diffhits < lowDiff   
+            endwhile
+            wait 200  
+        endif    
+    endif     
+    
+    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < lowDiff
+        cast 'Protection'
+        while not casting and diffhits < highDiff 
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            cast 'Protection'
+        endwhile  
+        while casting and diffhits < lowDiff   
+        endwhile
+        wait 200  
+    endif 
+    
+    if bless = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < lowDiff
+        sysmsg 'blessing..'
+        cast 'Bless'         
+        while not casting and diffhits < highDiff                   
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            cast 'Bless'
+            wait 50
+        endwhile  
+        
+        while not targetexists and casting
+        endwhile
+        
+        waitfortarget maxwaittimeinms
+        target 'self' 
+        wait 200  
+    endif  
     
 endwhile

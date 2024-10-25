@@ -16,32 +16,52 @@
 # 1.3 Once reaching 80 they turn off assuming your in shelter
 # 1.4 1) Fixed hiding to actually always hide.
 #     2) removed other checks allows to work after wait expires.
+# 1.5 1) added caps that will overwrite variables and stop once reached.
+
+## !!! DETECT HIDDEN, HIDING, STEALTH REQUIRE being around someone DO NOT TRAIN THESE IN YOUR ROOM!!!!!!!
+
+
+
+
 
 #Stealth can be turned on but if you dont have good hiding it wont work. 
 #Stealth needs to be 80 hiding to work.
-@setvar! isStealth          1
-#need kindling for camping to work
+
 @setvar! isCamping          1
 @setvar! isSpiritSpeak      1
 @setvar! isHiding           1
+@setvar! isStealth          1
 @setvar! isDetectHidden     1    
+
+#set maximum values for stats
+#this will overwrite values above.
+@setvar! stealthMax 100
+@setvar! campingMax 80
+@setvar! spiritSpeakMax 80
+@setvar! hidingMax 100
+@setvar! detectHiddenMax 120
 
 
 
 while not dead   
     if isCamping = 1
-        if skill "Camping" < 100 and findtype "kindling" backpack
+        if skill "Camping" < campingMax and findtype "kindling" backpack
            if not findtype "campfire" ground -1 1 2
                 dclicktype "kindling" backpack
                 wait 1000
 
            endif
+        else
+            @setvar! isCamping 0
         endif
     endif
 
     if isSpiritSpeak = 1    
-    if skill "Spirit Speak" < 100
-        useskill 'spiritspeak'
+        if skill "Spirit Speak" < spiritSpeakMax
+            useskill 'spiritspeak'
+        else
+            @setvar! isSpiritSpeak 0
+        endif
     endif
         
         for 5
@@ -54,28 +74,34 @@ while not dead
  
     endif
     if isHiding = 1
-        if skill 'hiding' < 100
+        if skill 'hiding' < hidingMax
             useskill "hiding"
             wait 11000
+        else
+            @setvar! isHiding 0
         endif
     endif
     
-    if isStealth = 1 and skill 'hiding' < 100
+    if isStealth = 1 and skill 'hiding' > 80 
+        if skill 'stealth' < stealthMax
         while hidden
             useskill "stealth"
-            wft 10500
+            wft 
+            wait 11000
         endwhile
-        wait 11000
+        else
+            @setvar! isStealth 0
+        endif
     endif
     
-    if isDetectHidden = 1 and skill "Detect Hidden" < 100
+    if isDetectHidden = 1 and skill "Detect Hidden" < detectHiddenMax
             useskill 'detectinghidden'
             wft
             target 'self'
             wait 11000
             overhead "here"
     else
-        overhead "no detect"
+        @setvar! isDetectHidden 0
     endif
    
 endwhile

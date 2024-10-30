@@ -5,7 +5,7 @@
 #############################################
 
 # "***Bapeths Modern Dungeon Picker***"
-# Updated Oct 26th 2024 (Integrated auto-recycle into chest picing routine + automated for non pickers)
+# Updated Oct 29th 2024 (Frost Shell Routine & Auto Strength/Resist Potion)
 #
 # "***READ THIS***READ THIS***READ THIS***READ THIS***"
 #
@@ -39,7 +39,7 @@
 # Possible timers for smoke bomb are "60000", "80000", "100000", or "120000" (this is milliseconds)
 #
 # "Wizard Hat Stealth Trick" - prevents you from stumbling over a player/mob while moving in stealth
-# It is recommended to have in your pack a "Blessed and Aspected Armored Magical Wizard Hat" (Purchaseable at prev vendor)
+# It is recommended to have in your pack a "Blessed and Aspected Armored Magical Wizard Hat" (Purchasable at prev vendor)
 # Alternatively you can buy a cheap "Magical Wizards Hat" from the Mage NPC in town (non-aspectable)
 # This is for the stealth part of the script
 # It will quick swap your hat and reduce your stamina
@@ -58,6 +58,13 @@
 # Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
 # Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
 #
+# "Auto Frost Shell Protection"
+# Frost shell is a powerful 5 second "cheat death" effect that can be instantly enabled for the cost of 5 essence through "activating the Frost Aspect"
+# The script will automatically hot swap to "Frost Aspect" when you are Detected by another player (skill not spell), or, if you fall to 50 or less HP
+# It is highly reccomended that you make a manual hotkey for "say [AspectArmor Frost"
+# You may want to activate "Frost Armor" on your own terms outside of the scope of the script
+# To toggle Auto Frost Shell Protection feature on/off "open the party menu" while the script is playing - the party menu acts like a switch (if you require the party menu for normal means, stop the script first before using)
+#
 # "Auto-Recycler"
 # This feature will auto recycle bad items and keep the good ones - To use this feature:
 # You must be carrying at least one "item identification wand" and at least one "recycler tool" type (Tinker Tools, Sewing Kit, Saw, Tongs, or Scribes Pen)
@@ -73,9 +80,13 @@
 # While in Peace Mode the script will show corpses and auto skin them when in range
 # To toggle this feature on/off double click your skinning knife while the script is playing
 #
+# "Extra Features"
+# If you have any of the following items, the script will auto-use them when convenient and necessary;
+# Cure Potion, Cleansing Brew, Trapped Pouch, Resist Potion, Strength Potion, Refresh Potion
+# If you are "over weight" the script will now "auto-dump" leather and piles of 444 gold until you are unburdened
+#
 # "Lootbag"
 # Set by using the razor hotkey "Set Grab Item Hotbag"
-# Note : All items not in your "Main Backpack Layer" are ignored by the "Auto-Recycler"
 #
 # "Auto Stealth"
 # This is an in game setting that is reccomended to be turned ON
@@ -86,11 +97,11 @@
 # Filters tab > Text & Messages subtab > Check "Filter Repeating Razor Messages" ONLY
 # 
 # "Summoners Name Your Elemental"                                                         
-# See "line 123 & 133" if you would like to custom name your earth elemental(s)
+# See "line 140 & 150" if you would like to custom name your earth elemental(s)
 # Default is "LootGolem"
 #
 # -------------------------------"Recommended Builds"-------------------------------
-# --"Pilfer Ninja"--------"Chest Ninja"------"Summoner Picker"----"Pilfer Skinner"--
+# --"Pilfer Ninja"------"Chest Ninja**"------"Summoner Picker"----"Pilfer Skinner"--
 # Detect Hidden - 120  Detect Hidden - 120  Detect Hidden - 120  Forensic Eval-- 120
 # Lockpicking ----120  Lockpicking ----120  Lockpicking ----120  Stealth ------- 120
 # Stealth ------- 120  Stealth ------- 100  Stealth ------- 120  Hiding -------- 100
@@ -103,9 +114,9 @@
 # Harvest or Fortune Aspect (high end tools needed for Fortune and or low level aspect)
 # Special/Rare loot Chance Links (Max 20) & Chest Success Chances/Progress Links (Max 10)
 # If you Summon "Spirit Pact" and "Earthpull" upgrades are recommended (Summoner Tome)
-# If you Steal and are going for chests only:  3pts "Overlooked" and 3pts "Without a Trace" is recommended (Thieves Codex)
-# If you Steal and are Pilfering: 3pts "Camouflage" 3pts "Shadow Hands" and 3pts "Extortion" is recommended (Thieves Codex)
-# Lockpicking/Detect can be lowered slightly to raise Camping if high end tools are used
+# If you Lockpick "Overlooked" and "Without a Trace" is recommended (Thieves Codex)
+# If you Pilfer "Extortion" is recommended (Thieves Codex)
+# "** Bapeths current main build"
 #
 # "Notes on Rares"
 # Not all "Rares" are on the auto loot list
@@ -117,6 +128,12 @@
 # This is a bug in razor, simply play the script again if this happens
 # It helps to make a habit of replaying the script often to ensure its always playing
 # I recommend, if you know how to, loop this script into your other commonly used scripts
+#
+# "Notes on loop-in"
+# You will likley want to use other scripts while playing, and, it is advised to keep this script running at all times
+# In order to achieve this you can "loop-in" this script on the back end of any other script you are using
+# To learn more about this ask about it in the scripts=and-macros discord channel for Outlands discord
+# You can also seach for scripts Bapeth has made that are pre-looped, such as "Bapeths Dungeon Rope + Tele" 
 #
 # "Script Starts Here"
 
@@ -204,6 +221,31 @@ if findtype "drill" backpack
     removetimer drillcheck
 endif
 
+if not timerexists frostshelltimer
+    createtimer frostshelltimer
+    settimer frostshelltimer 5000
+endif
+if timerexists frostshellswitch and timer frostshelltimer > 5000 and not cooldown "Aspect" and hp <= 50
+    say "[AspectArmor Frost"
+    overhead "--Frost Shell Primed--" 2234
+    settimer frostshelltimer 0
+endif
+
+if not timerexists frostshellswitch
+    if gumpexists 3527489586
+        gumpclose 3527489586
+        createtimer frostshellswitch
+        overhead "--Auto Shell Enabled--" 2085
+    endif
+endif
+if timerexists frostshellswitch
+    if gumpexists 3527489586
+        gumpclose 3527489586
+        removetimer frostshellswitch
+        overhead "--Auto Shell Disabled--" 1779
+    endif
+endif
+
 if timerexists ots
     removetimer ots
 endif
@@ -284,14 +326,28 @@ if timerexists brew
     endif
 endif
 
-if not hidden and findbuff "Weaken" and not targetexists and findtype "White Potion" backpack as stpot
+if not hidden and not casting and findbuff "Weaken" and not targetexists and findtype "White Potion" backpack as stpot
     while queued
         //donothing
     endwhile
     dclick stpot
 endif
 
-if not hidden and stam <= 4 and findtype "Red Potion" backpack as redpot
+if not hidden and not casting and str = 100 and not targetexists and findtype "White Potion" backpack as stpot
+    while queued
+        //donothing
+    endwhile
+    dclick stpot
+endif
+
+if not hidden and not casting and not findbuff "Magic Resist Potion" and not targetexists and findtype "Black Potion" backpack as respot
+    while queued
+        //donothing
+    endwhile
+    dclick respot
+endif
+
+if not hidden and not casting and stam <= 4 and findtype "Red Potion" backpack as redpot
     while queued
         //donothing
     endwhile
@@ -302,7 +358,7 @@ if not hidden and paralyzed and not targetexists and findtype "pouch" backpack 3
     say "[Pouch"
 endif
 
-if not hidden and poisoned and not targetexists and findtype "Orange Potion" backpack as curepot
+if not hidden and not casting and poisoned and not targetexists and findtype "Orange Potion" backpack as curepot
     while queued
         //donothing
     endwhile
@@ -636,6 +692,11 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
         endif
         overhead "*disarming*" 1060 bchest
         while not dead
+            if timerexists frostshellswitch and timer frostshelltimer > 5000 and not cooldown "Aspect" and hp <= 50
+                say "[AspectArmor Frost"
+                overhead "--Frost Shell Primed--" 2234
+                settimer frostshelltimer 0
+            endif
             if not cooldown "Move" and not hidden and not cooldown "Hiding" and not cooldown "Stealth" and not cooldown "Stealing" and not warmode and skill "Hiding" >= 80
                 warmode on
                 warmode off
@@ -781,6 +842,10 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                 endif
             endif
             if insysmsg "You have been revealed!" 
+                if timerexists frostshellswitch and not cooldown "Aspect"
+                    say "[AspectArmor Frost" 88
+                    overhead "--Frost Shell Primed--" 2234
+                endif
                 if timerexists "Tele" and mana >= 9
                     say "[Anger"
                     cast 'Teleport'
@@ -1043,6 +1108,11 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
         endif
         overhead "*picking*" 1060 bchest
         while not dead
+            if timerexists frostshellswitch and timer frostshelltimer > 5000 and not cooldown "Aspect" and hp <= 50
+                say "[AspectArmor Frost"
+                overhead "--Frost Shell Primed--" 2234
+                settimer frostshelltimer 0
+            endif
             if not cooldown "Move" and not hidden and not cooldown "Hiding" and not cooldown "Stealth" and not cooldown "Stealing" and not warmode and skill "Hiding" >= 80
                 warmode on
                 warmode off
@@ -1217,6 +1287,10 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                 endif
             endif
             if insysmsg "You have been revealed!" 
+                if timerexists frostshellswitch and not cooldown "Aspect"
+                    say "[AspectArmor Frost" 88
+                    overhead "--Frost Shell Primed--" 2234
+                endif
                 if timerexists "Tele" and mana >= 9
                     say "[Anger"
                     cast 'Teleport'
@@ -1298,7 +1372,7 @@ if skill "Lockpicking" >= 50 and findtype 3651|3649|3648|3650|3708|2475 ground -
                         if findtype "3827" ground 0 as regularscroll
                             @ignore regularscroll
                         endif
-                        if index > 0 and findtype "44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|3861|3821" ground -1 -1 index as lootlocation
+                        if index > 0 and findtype "44987|49730|47107|18653|45127|20103|47103|29363|47105|58325|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|3861|3821" ground -1 -1 index as lootlocation
                             overhead "*loot*" 2091 lootlocation
                             @ignore lootlocation
                         endif
@@ -1317,7 +1391,7 @@ endif
 
 if find "bchest" ground -1 -1 2 as bchest and not targetexists 
     clearsysmsg 
-    while findtype "cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|hieroglyph|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|3861|3821" bchest as bitem
+    while findtype "cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|hieroglyph|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|3861|3821" bchest as bitem
         if not timerexists bchestopen
             createtimer bchestopen
             overhead "The treasure is mine!" 2091
@@ -1427,6 +1501,10 @@ if ingump "Shrines" 341416395
     endif
 endif
 if insysmsg "You have been revealed!" 
+    if timerexists frostshellswitch and not cooldown "Aspect"
+        say "[AspectArmor Frost" 88
+        overhead "--Frost Shell Primed--" 2234
+    endif
     if timerexists "Tele" and mana >= 9
         say "[Anger"
         cast 'Teleport'
@@ -1555,7 +1633,7 @@ while diffweight <= 0 and findtype "gold coin" backpack as dropgold
     overhead "My cup runneth over..." 1194
     if findtype 4225 backpack 0 as garbleather
         drop backpack
-        lift garbleather 60000
+        lift garbleather 59999
         drop 0
         while queued
             //donothing
@@ -1580,7 +1658,7 @@ if timerexists lootvacuumswitch
                 if findtype "3827" ground 0 as regularscroll
                     @ignore regularscroll
                 endif
-                if index > 0 and findtype "24343|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|3861|3821" ground -1 -1 index as lootlocation
+                if index > 0 and findtype "24343|44987|49730|47107|18653|45127|20103|47103|58325|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|3861|3821" ground -1 -1 index as lootlocation
                     overhead "*loot*" 2091 lootlocation
                     @ignore lootlocation
                 endif
@@ -1591,7 +1669,7 @@ if timerexists lootvacuumswitch
         if findtype "3827" ground 0 as regularscroll
             @ignore regularscroll
         endif
-        while not casting and not targetexists and findtype "large painting|landscape painting|portrait painting||figurine|statue|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|24343|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|3827|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|3861|3821" ground -1 -1 2 as eatloot
+        while not casting and not targetexists and findtype "large painting|landscape painting|portrait painting||figurine|statue|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|24343|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|58325|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|3827|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|3861|3821" ground -1 -1 2 as eatloot
             hotkey 'Grab Item' 
             target eatloot
             while queued
@@ -1661,6 +1739,7 @@ if not hidden and not casting and findtype "Elven Spellblade" backpack
     endif
 endif
 if insysmsg "What should I use these scissors on?" and findtype "sewing kit|saw|pen and ink|tongs|tool kit" backpack as breakdowntool
+    hotkey "Cancel Current Target"
     if findtype 20496 backpack as IDwand
         clearsysmsg 
         if findtype 3834 backpack 0 as bbook

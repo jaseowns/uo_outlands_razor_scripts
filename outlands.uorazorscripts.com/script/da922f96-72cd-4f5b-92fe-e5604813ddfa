@@ -1,0 +1,2096 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/da922f96-72cd-4f5b-92fe-e5604813ddfa for latest
+# Automation by Jaseowns
+## Script: SUPER Auto Mage Attacker
+## Created by: dennozz#0
+#############################################
+
+#Auto-mage attack 2.00
+
+#********** INFORMATION **********# 
+
+#Made by @dennozz on discord. 
+#Inspired/learned by other scrips in https://outlands.uorazorscripts.com/
+
+#This script will auto attacking using magery/necromancy spells. Script will auto heal and auto summon pets if needed.
+#This script will work with full Mage Arcanes, Necro Mages, Mage Summoners.
+
+# !!! SOON TO BE ADDED: Auto Summoning !!! #
+
+
+#********** SET YOUR SETTINGS **********#   
+
+#--- Set Mage attack spells ---#
+
+@setvar! castMagicArrow 1
+@setvar! castHarm 1
+@setvar! castFireball 1
+@setvar! castLightning 1
+
+@setvar! castMindblast 0
+@setvar! castExplosion 0
+@setvar! castEnergyBolt 0
+@setvar! castFlamestrike 1
+
+@setvar! castPoison 1
+
+#- Poison Level
+# 0 - Greater or lesser 
+# 1 - Deadly 
+# 2 - Lethal
+@setvar! poisonLevel 0
+
+@setvar! castCurse 1
+@setvar! castManaDrain 0
+
+#--- Set Mage attack cooldowns ---#
+
+@setvar! magicArrowCD 20000
+@setvar! harmCD 20000
+@setvar! fireballCD 20000
+@setvar! lightningCD 20000
+
+@setvar! miniSpellsWithoutWizardGrimoreCD 10000
+
+#--- Set Necromancy Spells ---#
+
+@setvar! NecroEvilOmen 1
+@setvar! NecroCorpseSkin 1
+@setvar! NecroStrangle 0
+@setvar! minManaToUseDamageBuffNecroSpells 40
+
+@setvar! NecroMindRot 1
+@setvar! NecroPoisonStrike 1
+
+#--- Set Mage auto heals ---#
+
+@setvar! miniHeal 1
+@setvar! greaterHeal 1
+@setvar! cureSpell 1
+
+#--- Set Mage Buffs ---#
+
+@setvar! magicReflect 1
+@setvar! bless 1
+@setvar! armorReflect 1
+@setvar! protectionSpell 1
+@setvar! miniumManaToBuff 50
+
+#--- Set mushrooms ---#
+
+@setvar! mushroomCount 3
+@setvar! eatMushWhenManaLowerThan 50
+
+@setvar! mushroomTimerCD 60000
+if not timerexists mushroomTimer
+    settimer mushroomTimer mushroomTimerCD
+endif
+
+#--- Set potions ---#
+
+@setvar! drinkStr 1
+@setvar! drinkAgility 0
+@setvar! drinkMagicResist 0
+@setvar! drinkHeal 1
+@setvar! drinkCure 1
+@setvar! drinkRefresh 1
+
+@setvar! strengthLowerThan 100
+@setvar! staminaLowerThan 15
+
+#--- Auto healing hp diffs ---#
+
+@setvar! lowDiff 20 
+@setvar! medDiff 30
+@setvar! highDiff 50
+@setvar! extremeDiff 60
+@setvar! criticalDiff 75
+
+#--- Arcane Weapon Ability ---#
+
+@setvar! useWeaponAbility 2
+@setvar useAbilityWhenManaLowerThan 65
+
+#--- Meditation ---#
+
+@setvar! useMeditationSkill 1
+@setvar! meditateWhenManaBelow 40
+@setvar! meditateUntilManaReach 65
+
+#--- Optional : Have a cooldown named `Heal Pot` ---#
+
+@setvar! healingPotCD 11000
+
+#********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
+
+@setvar! necroGump 622436516
+@setvar! unholyPoints 0
+
+if castExplosion = 1
+    @setvar! bigSpellCounter 0
+elseif castFlamestrike = 1 
+    @setvar! bigSpellCounter 1
+elseif castEnergyBolt = 1 
+    @setvar! bigSpellCounter 2
+elseif castMindblast = 1 
+    @setvar! bigSpellCounter 3
+endif
+
+if not varexist previousTarget
+    @setvar! previousTarget 0
+endif
+
+@setvar! maxwaittimeinms 650
+
+@setvar! curseCD 60000
+@setvar! manaDrainCD 60000
+
+if not timerexists curseTimer
+    settimer curseTimer curseCD
+endif
+
+if not timerexists manaDrainTimer
+    settimer manaDrainTimer manaDrainCD
+endif
+
+#--- Necro spells timers ---#
+
+@setvar! evilOmenCD 30000
+
+if not timerexists evilOmenTimer
+    settimer evilOmenTimer evilOmenCD
+endif
+
+@setvar! corpseSkinCD 30000
+
+if not timerexists corpseSkinTimer
+    settimer corpseSkinTimer corpseSkinCD
+endif
+
+@setvar! strangleCD 30000
+
+if not timerexists strangleTimer
+    settimer strangleTimer strangleCD
+endif
+
+@setvar! mindRotCD 30000
+
+if not timerexists mindRotTimer
+    settimer mindRotTimer mindRotCD
+endif
+
+@setvar! poisonStrikeCD 30000
+
+if not timerexists poisonStrikeTimer
+    settimer poisonStrikeTimer poisonStrikeCD
+endif
+
+#--- Script msgs timers ---#
+
+@setvar! scriptMessageCD 3000
+settimer scriptMessageTimer scriptMessageCD
+
+@setvar! poisonLabelCD 5000
+settimer poisonLabelTimer poisonLabelCD
+
+#--- Resources timers ---#
+
+@setvar! pouchMessageCD 5000
+settimer pouchMessageTimer pouchMessageCD
+
+@setvar! aidsMessageCD 4000
+settimer aidsMessageTimer aidsMessageCD
+
+@setvar! whiteMessageCD 3000
+settimer whiteMessageTimer whiteMessageCD
+
+@setvar! blackMessageCD 2500
+settimer blackMessageTimer blackMessageCD
+
+@setvar! orangeMessageCD 2000
+settimer orangeMessageTimer orangeMessageCD
+
+@setvar! yellowMessageCD 1500
+settimer yellowMessageTimer yellowMessageCD
+
+@setvar! redMessageCD 1000
+settimer redMessageTimer redMessageCD
+
+#--- Magery buffs timers ---#
+
+@setvar! magicReflectCD 15000
+settimer magicReflectTimer magicReflectCD
+
+@setvar! armorReflectCD 15000
+settimer armorReflectTimer armorReflectCD
+
+@setvar! protectionCD 15000
+settimer protectionTimer protectionCD
+
+@setvar! manaMessageCD 2222
+settimer manaMessageTimer manaMessageCD
+
+#--- Magery attack spells timers ---#
+
+if not timerexists magicArrowTimer 
+    settimer magicArrowTimer magicArrowCD
+endif
+
+if not timerexists harmTimer 
+    settimer harmTimer harmCD
+endif
+
+if not timerexists fireballTimer 
+    settimer fireballTimer fireballCD
+endif
+
+if not timerexists lightningTimer 
+    settimer lightningTimer lightningCD
+endif
+
+if skill "Arcane" >= 80
+    @setvar! weaponAbilityCD 5000
+    settimer weaponAbilityTimer weaponAbilityCD
+
+    if not gumpexists 3954121934
+        yell '[abilitieshotbar'
+    endif 
+endif
+
+#********** ACTIVATE NECROMANCER BAR IF USING ANY NECRO SPELLS **********# 
+        
+    if skill 'necromancy' >= 50
+        if findtype 'necromancer book' backpack
+            yell '[necromancyhotbar'
+            while not gumpexists 622436516
+                yell '[necromancyhotbar'
+                waitforgump 622436516 maxwaittimeinms
+            endwhile
+        endif
+    endif
+    
+while not dead
+    
+    @setvar! currentlyAttacking 0 
+
+#********** AUTO HEALING START  **********#         
+
+    while diffhits >= lowDiff or paralyzed or poisoned
+        sysmsg "auto-healing activated" 11      
+        #--- Trapped ---#
+        
+        if paralyzed 
+            if findtype "pouch" backpack 38 
+                yell "[pouch"            
+                wait 200
+            else
+                if timer pouchMessageTimer > pouchMessageCD
+                    overhead "Out of Pouches!" 34
+                    settimer pouchMessageTimer 0
+                endif
+            endif
+        endif
+            
+        #--- Self bandage ---#
+        
+        if diffhits >= 1 and not bandaging
+            if skill 'healing' >= 50 or skill "veterinary" >= 50
+                if findtype 'clean bandage%s%' backpack
+                
+                    if targetexists
+                        hotkey 'cancel current target'  
+                    endif
+                    dclicktype 'clean bandage%s%'
+                    waitfortarget maxwaittimeinms
+                    target 'self'
+                    wait 200            
+                else
+                    if timer aidsMessageTimer > aidsMessageCD
+                        overhead "Out of bandages" 34
+                        settimer aidsMessageTimer 0
+                    endif
+                endif
+            endif
+        endif
+        
+        #--- Drink str pot ---#
+        
+        if drinkStr = 1 and str < strengthLowerThan
+            if not findbuff "Strength" 
+                if findtype "White Potion" self
+                    dclicktype "White Potion"
+                    wait 200
+                else
+                    if timer whiteMessageTimer > whiteMessageCD
+                        overhead "Out of str pots" 34
+                        settimer whiteMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+        
+        #--- Drink agility pot ---#
+        
+        if drinkAgility = 1
+            if not findbuff "Agility" 
+                if findtype "Blue Potion" self
+                    dclicktype "Blue Potion"
+                    wait 200
+                else
+                    if timer blueMessageTimer > blueMessageCD
+                        overhead "Out of agility pots" 34
+                        settimer blueMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+            
+        #--- Drink magic resist pot ---#
+    
+        if drinkMagicResist = 1
+            if not findbuff "Magic Resist" 
+                if findtype "Black Potion" self
+                    dclicktype "Black Potion"
+                    wait 200
+                else
+                    if timer blackMessageTimer > blackMessageCD
+                        overhead "Out of resist pots" 34
+                        settimer blackMessageTimer 0
+                    endif
+                endif
+            endif
+        endif
+            
+        #--- Poisoned ---#
+        
+        if 1 = drinkCure or 1 = cureSpell
+            while poisoned
+                if findtype "Orange Potion" self
+                    dclicktype "Orange Potion"
+                    wait 200
+                else
+                    if timer orangeMessageTimer > orangeMessageCD
+                        overhead "Out of cure pots" 34
+                        settimer orangeMessageTimer 0
+                    endif
+                    
+                    if diffhits > highDiff or not findtype 3972 self or not findtype 3973 self
+                        break
+                    endif
+                    
+                    if skill 'magery' >= 40 and mana >= 6 and 1 = cureSpell and not casting
+                        cast 'cure'
+                        wait 50
+                        while not casting                   
+                            if targetexists
+                                hotkey 'cancel current target'
+                            endif
+                            cast 'cure'  
+                            wait 50
+                        endwhile  
+                        while not targetexists and casting
+                        endwhile
+                        waitfortarget maxwaittimeinms
+                        target 'self' 
+                        wait 200
+                    else 
+                        break
+                    endif
+                endif
+                
+            endwhile
+        endif
+            
+        #--- Drink Heal Pot ---#
+        
+        if diffhits >= highDiff and 1 = drinkHeal
+            if findtype "Yellow Potion" self as hPot
+                getlabel hPot potLabel
+                if "next" in potLabel
+                    #do nothing
+                else
+                    @setvar! ch 0
+                    
+                    if counttype 3852 self as c
+                        @setvar! ch c
+                    endif
+                    clearsysmsg  
+                    
+                    dclicktype 3852
+                    getlabel backpack xxx
+                    wait 200
+                                
+                    if ch != counttype 3852 self or insysmsg "potion satchel used"
+                        cooldown "Heal Pot" healingPotCD
+                    endif
+                endif
+            else
+                if timer yellowMessageTimer > yellowMessageCD
+                    overhead "Out of heals pots" 34
+                    settimer yellowMessageTimer 0
+                endif
+            endif
+        endif
+                
+        #--- Drink red pot ---#
+        
+        if stam < staminaLowerThan and 1 = drinkRefresh
+            if findtype "Red Potion" self
+                dclicktype "Red Potion"
+                wait 200
+            else
+                if timer redMessageTimer > redMessageCD
+                    overhead "Out of refresh pots" 34
+                    settimer redMessageTimer 0 
+                endif
+            endif
+        endif
+            
+        #--- Cast heals ---#
+        
+        if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits < medDiff and mana >= 4 and miniHeal = 1 and not casting
+            cast 'heal'
+            while not casting                   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'heal'
+            endwhile  
+            
+            while not targetexists and casting
+            endwhile
+            
+            waitfortarget maxwaittimeinms
+            target 'self' 
+            wait 200  
+            
+        elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1 and not casting
+            cast 'greater heal'         
+            while not casting                   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'greater heal'
+            endwhile  
+            
+            while not targetexists and casting
+                
+                #--- Poisoned ---#
+                
+                if 1 = drinkCure
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            wait 200
+                        else
+                            if timer orangeMessageTimer > orangeMessageCD
+                                overhead "Out of cure pots" 34
+                                settimer orangeMessageTimer 0
+                                break
+                            endif
+            
+                        endif
+                    endwhile
+                endif            
+            
+                #--- Drink Heal Pot ---#
+                
+                if diffhits >= highDiff and 1 = drinkHeal
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+                            
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            clearsysmsg  
+                            
+                            dclicktype 3852
+                            getlabel backpack xxx
+                            wait 200
+                                        
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                cooldown "Heal Pot" healingPotCD
+                            endif
+                        endif
+                    else
+                        if timer yellowMessageTimer > yellowMessageCD
+                            overhead "Out of heals pots" 34
+                            settimer yellowMessageTimer 0
+                        endif
+                    endif
+                endif
+        
+            endwhile
+            
+            waitfortarget maxwaittimeinms
+            target 'self' 
+            wait 200 
+            
+        elseif skill 'magery' >= 40 and diffhits > highDiff and mana >= 4 and miniHeal = 1 and not casting
+            cast 'heal'     
+            while not casting                   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'heal' 
+            endwhile  
+            
+            while not targetexists and casting
+            endwhile
+            
+            waitfortarget maxwaittimeinms
+            target 'self' 
+            wait 200  
+        
+        endif 
+    
+    endwhile
+
+#********* EAT TRAY FOOD *********
+    
+    if not findbuff "food" and findtype "tray" backpack as fody    
+        dclick fody
+        wait 200
+    endif
+    
+#********* CREATE MUSHROOMS *********
+    
+    if counttype 29012 backpack = 0
+        while counttype 29012 backpack < mushroomCount
+            cast 'create food'
+            wait 100
+        endwhile
+    endif  
+    
+#********* AUTO-SELECT NEW TARGET *********
+    
+    if not find currentTarget ground -1 -1 12
+        @setvar! currentTarget 0
+        @setvar! foundTarget 0
+        
+        hotkey 'target closest grey monster'
+        wait 25
+        
+        if not find lasttarget ground -1 -1 12
+            if timer scriptMessageTimer > scriptMessageCD
+                overhead 'No target nearby' 33
+                settimer scriptMessageTimer 0
+            endif
+        else
+            @setvar! tempTarget lasttarget
+            while index != 20
+                @setvar! tempTarget lasttarget 
+                if index != 0 
+                    hotkey "next non-friendly monster target"
+                    @setvar! tempTarget lasttarget 
+                    #overhead "*{{index}}*" 34 tempTarget
+                    
+                    if index = 1
+                        @setvar! firstTarget lasttarget
+                    elseif firstTarget = tempTarget
+                        @setvar! foundTarget 2
+                        break
+                    endif
+                endif
+                
+                if find tempTarget ground -1 -1 12
+                    clearsysmsg
+                    
+                    skill 'begging'
+                    waitfortarget maxwaittimeinms
+                    target tempTarget
+                    getlabel backpack xxx
+                    wait 200
+                    
+                    if insysmsg "Target cannot be seen"
+                        sysmsg "*Not visible* [{{index}}]" 44
+                        overhead  "*Not visible* [{{index}}]" 44 tempTarget
+                    elseif insysmsg "That is too far away."
+                        overhead "*Too far* [{{index}}]" 44 tempTarget
+                    #elseif insysmsg "You must wait"
+                        #overhead "*Skill cooldown*" 11
+                        #sysmsg "*Skill cooldown*" 11
+                        #break
+                    elseif insysmsg "Perhaps" or insysmsg "You are too far away from them." or insysmsg "They do not appear to have anything to offer you." or insysmsg! "You must wait"
+                        
+                        if insysmsg "You must wait"
+                            overhead "* target skill cooldown targetting closest mob *" 34
+                            hotkey 'target closest grey monster'   
+                            @setvar! tempTarget lasttarget 
+                        endif
+                        
+                        if previousTarget != tempTarget
+                            sysmsg "Resetting timers" 15
+                            settimer curseTimer curseCD
+                            settimer manaDrainTimer manaDrainCD
+                        endif
+                    
+                        @setvar! foundTarget 1 
+                        @setvar! currentTarget tempTarget
+                        @setvar! previousTarget currentTarget
+                        attack currentTarget
+                        getlabel currentTarget myLabel
+                        sysmsg "Target: {{myLabel}}" 55
+                        
+                        break
+                    endif
+                endif
+                wait 50
+            endwhile
+        endif
+        
+        if targetexists
+            hotkey 'cancel current target'
+        endif
+    endif
+    
+    while 1 = foundTarget and not dead currentTarget and find currentTarget ground -1 -1 12
+
+        if followers > 0 and 0 = currentlyAttacking
+            clearsysmsg
+            while not dead 
+                say 'ALL Guard ME' 11
+                getlabel backpack xxx
+                wait 200   
+                if insysmsg "Ignoring speech request"
+                else 
+                    break
+                endif
+#                if 1 = followerMode 
+#                    say 'ALL Kill' 11
+#                    waitfortarget 200
+#                    while not targetexists
+#                        say 'ALL Kill' 11
+#                        sysmsg 'ALL Kill x2' 44
+#                        waitfortarget 200
+#                    endwhile
+#                    waitfortarget 650
+#                    if targetexists
+#                        wait 100 
+#                        sysmsg "holding target..." 55
+#                    endif
+#                    target currentTarget
+#                    getlabel backpack xxx
+#                    wait 200 
+#                    if insysmsg "Target cannot be seen."
+#                        if index = 1 
+#                            @setvar! currentTarget 0
+#                            @setvar! foundTarget 0                                           
+#                            break
+#                        endif
+#                    else 
+#                        sysmsg "breaking out 1"
+#                        break   
+#                    endif
+#                elseif 2 = followerMode
+#                    say 'ALL Patrol' 11
+#                    sysmsg 'ALL Kill [{{index}}]' 44
+#                    waitfortarget 200
+#                    while not targetexists
+#                        say 'ALL Patrol' 11
+#                        waitfortarget 200
+#                    endwhile
+#                    waitfortarget 650
+#                    if targetexists
+#                        wait 100 
+#                    endif
+#                    target currentTarget
+#                    getlabel backpack xxx
+#                    wait 200 
+#                    if insysmsg "Target cannot be seen."
+#                        if index = 1 
+#                            @setvar! currentTarget 0
+#                            @setvar! foundTarget 0                                           
+#                            break
+#                        endif
+#                    else 
+
+#                        break   
+#                    endif
+#                endif
+            endwhile
+        endif
+        
+        @setvar! currentlyAttacking 1
+        
+#********** CAST POISONING  **********#
+
+        if castPoison = 1 and diffhits < lowDiff and mana >= 9
+            getlabel currentTarget targetLabel
+            @setvar! recast 0
+            if "Ticks" in targetLabel or "-" in targetLabel or "Poison" in targetLabel or "resists" in targetLabel
+                if poisonLevel = 1 and "Greater" in targetLabel
+                    @setvar! recast 1
+                elseif poisonLevel = 2 
+                    if "Greater" in targetLabel or "Deadly" in targetLabel
+                        @setvar! recast 1
+                    endif
+                endif
+
+                if timer poisonLabelTimer > poisonLabelCD
+                    if "Ticks" in targetLabel
+                        overhead targetLabel 44
+                        overhead targetLabel  44 currentTarget
+                        settimer poisonLabelTimer 0
+                    endif
+                endif
+
+                if "[7" in targetLabel or "[6" in targetLabel or "[5" in targetLabel or "[4" in targetLabel
+                    if ingump "20/" 622436516
+                        @setvar! unholyPoints 20
+                    elseif ingump "19/" 622436516
+                        @setvar! unholyPoints 19
+                    elseif ingump "18/" 622436516
+                        @setvar! unholyPoints 18
+                    elseif ingump "17/" 622436516
+                        @setvar! unholyPoints 17
+                    elseif ingump "16/" 622436516
+                        @setvar! unholyPoints 16
+                    elseif ingump "15/" 622436516
+                        @setvar! unholyPoints 15
+                    elseif ingump "14/" 622436516
+                        @setvar! unholyPoints 14
+                    elseif ingump "13/" 622436516
+                        @setvar! unholyPoints 13
+                    elseif ingump "12/" 622436516
+                        @setvar! unholyPoints 12
+                    elseif ingump "11/" 622436516
+                        @setvar! unholyPoints 11
+                    elseif ingump "10/" 622436516
+                        @setvar! unholyPoints 10
+                    elseif ingump "9/" 622436516
+                        @setvar! unholyPoints 9
+                    elseif ingump "8/" 622436516
+                        @setvar! unholyPoints 8
+                    elseif ingump "7/" 622436516
+                        @setvar! unholyPoints 7
+                    elseif ingump "6/" 622436516
+                        @setvar! unholyPoints 6
+                    elseif ingump "5/" 622436516
+                        @setvar! unholyPoints 5
+                    elseif ingump "4/" 622436516
+                        @setvar! unholyPoints 4
+                    elseif ingump "3/" 622436516
+                        @setvar! unholyPoints 3
+                    elseif ingump "2/" 622436516
+                        @setvar! unholyPoints 2
+                    elseif ingump "1/" 622436516
+                        @setvar! unholyPoints 1
+                    else 
+                        @setvar unholyPoints 0
+                    endif     
+                    
+                    if 1 = NecroPoisonStrike and 0 < unholyPoints and timer poisonStrikeTimer > poisonStrikeCD and skill 'necromancy' >= 55
+                        clearsysmsg
+                        yell '[poisonstrike'
+                        getlabel backpack xxx
+                        wait 200 
+                        
+                        while not targetexists
+                            yell '[poisonstrike'
+                            getlabel backpack xxx
+                            wait 200
+                        endwhile
+                        
+                        waitfortarget 650
+                        target currentTarget
+                        getlabel backpack xxx
+                        wait 200 
+                        
+                        if insysmsg "unholy symbols"
+                            say '[>Poison Strike<]' 44
+                            settimer poisonStrikeTimer 0
+                        endif
+                    endif
+                endif
+
+                
+            else
+                @setvar! recast 1
+            endif 
+
+            if 1 = recast
+                cast 'Poison'           
+                while not casting   
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    cast 'Poison'             
+                endwhile  
+                
+                while not targetexists and casting
+                    if dead currentTarget and not find currentTarget ground -1 -1 12
+                        interrupt
+                    endif
+                endwhile
+                
+                waitfortarget 650
+    
+                if not dead currentTarget and find currentTarget ground -1 -1 12
+                    
+                    if ingump "20/" 622436516
+                        @setvar! unholyPoints 20
+                    elseif ingump "19/" 622436516
+                        @setvar! unholyPoints 19
+                    elseif ingump "18/" 622436516
+                        @setvar! unholyPoints 18
+                    elseif ingump "17/" 622436516
+                        @setvar! unholyPoints 17
+                    elseif ingump "16/" 622436516
+                        @setvar! unholyPoints 16
+                    elseif ingump "15/" 622436516
+                        @setvar! unholyPoints 15
+                    elseif ingump "14/" 622436516
+                        @setvar! unholyPoints 14
+                    elseif ingump "13/" 622436516
+                        @setvar! unholyPoints 13
+                    elseif ingump "12/" 622436516
+                        @setvar! unholyPoints 12
+                    elseif ingump "11/" 622436516
+                        @setvar! unholyPoints 11
+                    elseif ingump "10/" 622436516
+                        @setvar! unholyPoints 10
+                    elseif ingump "9/" 622436516
+                        @setvar! unholyPoints 9
+                    elseif ingump "8/" 622436516
+                        @setvar! unholyPoints 8
+                    elseif ingump "7/" 622436516
+                        @setvar! unholyPoints 7
+                    elseif ingump "6/" 622436516
+                        @setvar! unholyPoints 6
+                    elseif ingump "5/" 622436516
+                        @setvar! unholyPoints 5
+                    elseif ingump "4/" 622436516
+                        @setvar! unholyPoints 4
+                    elseif ingump "3/" 622436516
+                        @setvar! unholyPoints 3
+                    elseif ingump "2/" 622436516
+                        @setvar! unholyPoints 2
+                    elseif ingump "1/" 622436516
+                        @setvar! unholyPoints 1
+                    else 
+                        @setvar unholyPoints 0
+                    endif   
+                    
+                    if 1 = NecroMindRot and 2 < unholyPoints and timer mindRotTimer > mindRotCD and skill 'necromancy' >= 75
+                        clearsysmsg
+                        yell '[mindrot'
+                        getlabel backpack xxx
+                        wait 200 
+                        
+                        while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+                            yell '[mindrot'
+                            getlabel backpack xxx
+                            wait 200
+                        endwhile
+                        
+                        if insysmsg "unholy symbols"
+                            say '[>Mind rot<]' 44
+                            settimer mindRotTimer 0
+                        endif
+                    endif
+                    
+                    target currentTarget
+                    getlabel backpack xxx
+                    wait 200 
+                    
+                    if insysmsg "target cannot be seen"
+                        @setvar! foundTarget 0
+                        @setvar! currentTarget 0
+                        break
+                    endif
+                else
+                    hotkey 'cancel current target'
+                    break
+                endif 
+            endif
+                    
+        endif
+        
+        if castCurse = 1 or castManaDrain = 1 
+        
+            @setvar! castNecroSpells 1
+        
+            if castCurse = 1 and timer curseTimer > curseCD 
+                @setvar! castNecroSpells 0 
+            endif
+            
+            if castManaDrain = 1 and timer manaDrainTimer > manaDrainCD
+                @setvar! castNecroSpells 0 
+            endif
+            
+            if castNecroSpells = 1 
+            
+                if ingump "20/" 622436516
+                    @setvar! unholyPoints 20
+                elseif ingump "19/" 622436516
+                    @setvar! unholyPoints 19
+                elseif ingump "18/" 622436516
+                    @setvar! unholyPoints 18
+                elseif ingump "17/" 622436516
+                    @setvar! unholyPoints 17
+                elseif ingump "16/" 622436516
+                    @setvar! unholyPoints 16
+                elseif ingump "15/" 622436516
+                    @setvar! unholyPoints 15
+                elseif ingump "14/" 622436516
+                    @setvar! unholyPoints 14
+                elseif ingump "13/" 622436516
+                    @setvar! unholyPoints 13
+                elseif ingump "12/" 622436516
+                    @setvar! unholyPoints 12
+                elseif ingump "11/" 622436516
+                    @setvar! unholyPoints 11
+                elseif ingump "10/" 622436516
+                    @setvar! unholyPoints 10
+                elseif ingump "9/" 622436516
+                    @setvar! unholyPoints 9
+                elseif ingump "8/" 622436516
+                    @setvar! unholyPoints 8
+                elseif ingump "7/" 622436516
+                    @setvar! unholyPoints 7
+                elseif ingump "6/" 622436516
+                    @setvar! unholyPoints 6
+                elseif ingump "5/" 622436516
+                    @setvar! unholyPoints 5
+                elseif ingump "4/" 622436516
+                    @setvar! unholyPoints 4
+                elseif ingump "3/" 622436516
+                    @setvar! unholyPoints 3
+                elseif ingump "2/" 622436516
+                    @setvar! unholyPoints 2
+                elseif ingump "1/" 622436516
+                    @setvar! unholyPoints 1
+                else 
+                    @setvar unholyPoints 0
+                endif       
+                
+                if 1 = NecroEvilOmen and 1 < unholyPoints and timer evilOmenTimer > evilOmenCD and skill 'necromancy' >= 60 and mana >= minManaToUseDamageBuffNecroSpells
+                    clearsysmsg
+                    yell '[evilomen'
+                    getlabel backpack xxx
+                    wait 200 
+                    
+                    while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+                        yell '[evilomen'
+                        getlabel backpack xxx
+                        wait 200
+                    endwhile
+                    
+                    if insysmsg "unholy symbols"
+                        say '[>Evil Omen<]' 44
+                        settimer evilOmenTimer 0
+                    endif
+                endif
+                    
+                if 1 = NecroCorpseSkin and 1 < unholyPoints and timer corpseSkinTimer > corpseSkinCD and skill 'necromancy' >= 65 and mana >= minManaToUseDamageBuffNecroSpells
+                    clearsysmsg
+                    yell '[corpseskin'
+                    getlabel backpack xxx
+                    wait 200 
+                    
+                    while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+                        yell '[corpseskin'
+                        getlabel backpack xxx
+                        wait 200
+                    endwhile
+                    
+                    if insysmsg "unholy symbols"
+                        say '[>Corpse Skin<]' 44
+                        settimer corpseSkinTimer 0
+                    endif
+                endif
+                
+                if 1 = NecroStrangle and 3 < unholyPoints and timer strangleTimer > strangleCD and skill 'necromancy' >= 85 and mana >= minManaToUseDamageBuffNecroSpells
+                    clearsysmsg
+                    yell '[strangle'
+                    getlabel backpack xxx
+                    wait 200 
+                    
+                    while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+                        yell '[strangle'
+                        getlabel backpack xxx
+                        wait 200
+                    endwhile
+                    
+                    if insysmsg "unholy symbols"
+                        say '[>Strangle<]' 44
+                        settimer corpseSkinTimer 0
+                    endif
+                endif 
+                
+            endif
+        endif
+        
+#********** CAST CURSE  **********#    
+
+        if 1 = castCurse and timer curseTimer > curseCD and mana >= 11
+            @setvar! wasInterrupted 0 
+            cast 'Curse'           
+            while not casting   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Curse'             
+            endwhile  
+            
+            while not targetexists and casting
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    interrupt
+                    @setvar! wasInterrupted 1
+                endif
+                
+                #--- Poisoned ---#
+                
+                if 1 = drinkCure
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            wait 200
+                        else
+                            if timer orangeMessageTimer > orangeMessageCD
+                                overhead "Out of cure pots" 34
+                                settimer orangeMessageTimer 0
+                                break
+                            endif
+            
+                        endif
+                    endwhile
+                endif            
+            
+                #--- Drink Heal Pot ---#
+                
+                if diffhits >= highDiff and 1 = drinkHeal
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+                            
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            clearsysmsg  
+                            
+                            dclicktype 3852
+                            getlabel backpack xxx
+                            wait 200
+                                        
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                cooldown "Heal Pot" healingPotCD
+                            endif
+                        endif
+                    else
+                        if timer yellowMessageTimer > yellowMessageCD
+                            overhead "Out of heals pots" 34
+                            settimer yellowMessageTimer 0
+                        endif
+                    endif
+                endif
+                
+            endwhile
+            
+            waitfortarget 650  
+
+            if not targetexists
+                @setvar! wasInterrupted 1
+            endif    
+            
+            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+                settimer curseTimer 0
+                target currentTarget
+                getlabel backpack xxx
+                wait 200
+                
+                if insysmsg "target cannot be seen"
+                    @setvar! foundTarget 0
+                    @setvar! currentTarget 0
+                    break
+                endif
+            else
+                hotkey 'cancel current target'
+                break
+            endif      
+            
+#********** CAST MANA DRAIN  **********#
+
+        elseif 1 = castManaDrain and timer manaDrainTimer > manaDrainCD and mana >= 11
+            @setvar! wasInterrupted 0 
+            cast 'Mana Drain'           
+            while not casting   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Mana Drain'            
+            endwhile  
+            
+            while not targetexists and casting
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    interrupt
+                    @setvar! wasInterrupted 1
+                endif
+                
+                #--- Poisoned ---#
+                
+                if 1 = drinkCure
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            wait 200
+                        else
+                            if timer orangeMessageTimer > orangeMessageCD
+                                overhead "Out of cure pots" 34
+                                settimer orangeMessageTimer 0
+                                break
+                            endif
+            
+                        endif
+                    endwhile
+                endif            
+            
+                #--- Drink Heal Pot ---#
+                
+                if diffhits >= highDiff and 1 = drinkHeal
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+                            
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            clearsysmsg  
+                            
+                            dclicktype 3852
+                            getlabel backpack xxx
+                            wait 200
+                                        
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                cooldown "Heal Pot" healingPotCD
+                            endif
+                        endif
+                    else
+                        if timer yellowMessageTimer > yellowMessageCD
+                            overhead "Out of heals pots" 34
+                            settimer yellowMessageTimer 0
+                        endif
+                    endif
+                endif
+                
+            endwhile
+            
+            waitfortarget 650  
+
+            if not targetexists
+                @setvar! wasInterrupted 1
+                sysmsg "interrupted curse" 44
+            endif   
+            
+            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+                settimer manaDrainTimer 0
+                target currentTarget
+                getlabel backpack xxx
+                wait 200
+                
+                if insysmsg "target cannot be seen"
+                    @setvar! foundTarget 0
+                    @setvar! currentTarget 0
+                    break
+                endif
+            else
+                hotkey 'cancel current target'
+                break
+            endif  
+
+#********** CAST MAGIC ARROW  **********#
+
+        elseif castMagicArrow = 1 and timer magicArrowTimer > magicArrowCD and diffhits < lowDiff and mana >= 4
+            cast 'magic arrow'           
+            while not casting   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'magic arrow'             
+            endwhile  
+            
+            while not targetexists and casting
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    interrupt
+                endif
+            endwhile
+            
+            waitfortarget 650
+
+            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+                target currentTarget
+                getlabel backpack xxx
+                wait 200
+                
+                if insysmsg "wizardry"
+                    settimer magicArrowTimer 0 
+                elseif insysmsg "target cannot be seen"
+                    @setvar! foundTarget 0
+                    @setvar! currentTarget 0
+                    break
+                else
+                    settimer magicArrowTimer miniSpellsWithoutWizardGrimoreCD
+                endif
+            else
+                hotkey 'cancel current target'
+                break
+            endif    
+            
+#********** CAST HARM  **********#        
+
+        elseif castHarm = 1 and timer harmTimer > harmCD and diffhits < lowDiff and mana >= 6
+            cast 'harm'           
+            while not casting    
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'harm'             
+            endwhile  
+            
+            while not targetexists and casting 
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    interrupt
+                endif
+            endwhile
+            
+            waitfortarget 650
+
+            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+                target currentTarget
+                getlabel backpack xxx
+                wait 200 
+                
+                if insysmsg "wizardry"
+                    settimer harmTimer 0 
+                elseif insysmsg "target cannot be seen"
+                    @setvar! foundTarget 0
+                    @setvar! currentTarget 0
+                    break
+                else 
+                    settimer harmTimer miniSpellsWithoutWizardGrimoreCD
+                endif
+            else
+                hotkey 'cancel current target'
+                break
+            endif   
+ 
+#********** CAST FIREBALL  **********#   
+
+        elseif castFireball = 1 and timer fireballTimer > fireballCD and diffhits < lowDiff and mana >= 9
+            cast 'fireball'           
+            while not casting    
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'fireball'             
+            endwhile  
+            
+            while not targetexists and casting 
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    interrupt
+                endif
+            endwhile
+            
+            waitfortarget 650
+
+            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+                target currentTarget
+                getlabel backpack xxx
+                wait 200
+                
+                if insysmsg "wizardry"
+                    settimer fireballTimer 0 
+                elseif insysmsg "target cannot be seen"
+                    @setvar! foundTarget 0
+                    @setvar! currentTarget 0
+                    break
+                else
+                    settimer fireballTimer miniSpellsWithoutWizardGrimoreCD
+                endif
+            else
+                hotkey 'cancel current target'
+                break
+            endif  
+
+#********** CAST LIGHTNING  **********#   
+
+        elseif castLightning = 1 and timer lightningTimer > lightningCD and diffhits < lowDiff and mana >= 11
+            cast 'lightning'           
+            while not casting   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'lightning'             
+            endwhile  
+            
+            while not targetexists and casting
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    interrupt
+                endif
+                
+                #--- Poisoned ---#
+                
+                if 1 = drinkCure
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            wait 200
+                        else
+                            if timer orangeMessageTimer > orangeMessageCD
+                                overhead "Out of cure pots" 34
+                                settimer orangeMessageTimer 0
+                                break
+                            endif
+            
+                        endif
+                    endwhile
+                endif            
+            
+                #--- Drink Heal Pot ---#
+                
+                if diffhits >= highDiff and 1 = drinkHeal
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+                            
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            clearsysmsg  
+                            
+                            dclicktype 3852
+                            getlabel backpack xxx
+                            wait 200
+                                        
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                cooldown "Heal Pot" healingPotCD
+                            endif
+                        endif
+                    else
+                        if timer yellowMessageTimer > yellowMessageCD
+                            overhead "Out of heals pots" 34
+                            settimer yellowMessageTimer 0
+                        endif
+                    endif
+                endif
+                
+            endwhile
+            
+            waitfortarget 650
+
+            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+                target currentTarget
+                getlabel backpack xxx
+                wait 200 
+                
+                if insysmsg "wizardry"
+                    settimer lightningTimer 0 
+                elseif insysmsg "target cannot be seen"
+                    @setvar! foundTarget 0
+                    @setvar! currentTarget 0
+                    break
+                else 
+                    settimer lightningTimer miniSpellsWithoutWizardGrimoreCD
+                endif
+            else
+                hotkey 'cancel current target'
+                break
+            endif 
+
+#********** CAST BIG SPELLS  **********# 
+
+        elseif castExplosion = 1 or castFlamestrike = 1 or castEnergyBolt = 1 or castMindblast = 1
+            if diffhits < lowDiff and mana >= 40
+                if castExplosion = 1 and bigSpellCounter = 0
+                
+                    cast 'Explosion'           
+                    while not casting    
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                        cast 'Explosion'             
+                    endwhile
+                    
+                elseif castFlamestrike = 1 and bigSpellCounter = 1
+                
+                    cast 'flamestrike'           
+                    while not casting    
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                        cast 'flamestrike'             
+                    endwhile
+                
+                elseif castEnergyBolt = 1 and bigSpellCounter = 2
+                
+                    cast 'energy bolt'           
+                    while not casting    
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                        cast 'energy bolt'             
+                    endwhile
+                
+                elseif castMindblast = 1 and bigSpellCounter = 3
+                
+                    cast 'mind blast'           
+                    while not casting    
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                        cast 'mind blast'             
+                    endwhile
+                
+                endif
+                
+                getlabel backpack xxx
+                wait 100
+                
+                while casting
+                    if dead currentTarget and not find currentTarget ground -1 -1 12
+                        interrupt
+                    endif
+                    
+                    if targetexists 'harmful'
+                        target currentTarget
+                    endif
+                    
+                    #--- Poisoned ---#
+                    
+                    if 1 = drinkCure
+                        while poisoned
+                            if findtype "Orange Potion" self
+                                dclicktype "Orange Potion"
+                                wait 200
+                            else
+                                if timer orangeMessageTimer > orangeMessageCD
+                                    overhead "Out of cure pots" 34
+                                    settimer orangeMessageTimer 0
+                                    break
+                                endif
+                
+                            endif
+                        endwhile
+                    endif            
+                
+                    #--- Drink Heal Pot ---#
+                    
+                    if diffhits >= highDiff and 1 = drinkHeal
+                        if findtype "Yellow Potion" self as hPot
+                            getlabel hPot potLabel
+                            if "next" in potLabel
+                                #do nothing
+                            else
+                                @setvar! ch 0
+                                
+                                if counttype 3852 self as c
+                                    @setvar! ch c
+                                endif
+                                clearsysmsg  
+                                
+                                dclicktype 3852
+                                getlabel backpack xxx
+                                wait 200
+                                            
+                                if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                    cooldown "Heal Pot" healingPotCD
+                                endif
+                            endif
+                        else
+                            if timer yellowMessageTimer > yellowMessageCD
+                                overhead "Out of heals pots" 34
+                                settimer yellowMessageTimer 0
+                            endif
+                        endif
+                    endif
+                    
+                endwhile
+                
+                waitfortarget 650
+    
+                if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+                    target currentTarget
+                    getlabel backpack xxx
+                    wait 200
+                    
+                    if insysmsg "target cannot be seen"
+                        @setvar! foundTarget 0
+                        @setvar! currentTarget 0
+                        break
+                    endif
+                    
+                    if bigSpellCounter = 0
+                    
+                        if castFlamestrike = 1 
+                            @setvar! bigSpellCounter 1 
+                        elseif castEnergyBolt = 1 
+                            @setvar! bigSpellCounter 2 
+                        elseif castMindblast = 1 
+                            @setvar! bigSpellCounter 3 
+                        endif
+                        
+                    elseif bigSpellCounter = 1 
+                    
+                        if castEnergyBolt = 1 
+                            @setvar! bigSpellCounter 2 
+                        elseif castMindblast = 1 
+                            @setvar! bigSpellCounter 3 
+                        elseif castExplosion = 1 
+                            @setvar! bigSpellCounter 0 
+                        endif
+                    
+                    elseif bigSpellCounter = 2 
+                        
+                        if castMindblast = 1 
+                            @setvar! bigSpellCounter 3 
+                        elseif castExplosion = 1 
+                            @setvar! bigSpellCounter 0 
+                        elseif castFlamestrike = 1 
+                            @setvar! bigSpellCounter 1 
+                        endif
+                    
+                    elseif bigSpellCounter = 3 
+                        if castExplosion = 1 
+                            @setvar! bigSpellCounter 0 
+                        elseif castFlamestrike = 1 
+                            @setvar! bigSpellCounter 1 
+                        elseif castEnergyBolt = 1 
+                            @setvar! bigSpellCounter 2 
+                        endif
+                    endif
+                    
+                else
+                    hotkey 'cancel current target'
+                    break
+                endif 
+                
+            endif
+        endif
+        
+        if mana < 40 and timer manaMessageTimer > manaMessageCD
+            overhead "Low mana warning" 34
+            settimer manaMessageTimer 0
+        endif
+        
+#********** AUTO HEALING START  **********#         
+
+        while diffhits >= lowDiff or paralyzed or poisoned
+            sysmsg "auto-healing activated" 11      
+            #--- Trapped ---#
+            
+            if paralyzed 
+                if findtype "pouch" backpack 38 
+                    yell "[pouch"            
+                    wait 200
+                else
+                    if timer pouchMessageTimer > pouchMessageCD
+                        overhead "Out of Pouches!" 34
+                        settimer pouchMessageTimer 0
+                    endif
+                endif
+            endif
+                
+            #--- Self bandage ---#
+            
+            if diffhits >= 1 and not bandaging
+                if skill 'healing' >= 50 or skill "veterinary" >= 50
+                    if findtype 'clean bandage%s%' backpack
+                    
+                        if targetexists
+                            hotkey 'cancel current target'  
+                        endif
+                        dclicktype 'clean bandage%s%'
+                        waitfortarget maxwaittimeinms
+                        target 'self'
+                        wait 200            
+                    else
+                        if timer aidsMessageTimer > aidsMessageCD
+                            overhead "Out of bandages" 34
+                            settimer aidsMessageTimer 0
+                        endif
+                    endif
+                endif
+            endif
+            
+            #--- Drink str pot ---#
+            
+            if drinkStr = 1 and str < strengthLowerThan
+                if not findbuff "Strength" 
+                    if findtype "White Potion" self
+                        dclicktype "White Potion"
+                        wait 200
+                    else
+                        if timer whiteMessageTimer > whiteMessageCD
+                            overhead "Out of str pots" 34
+                            settimer whiteMessageTimer 0 
+                        endif
+                    endif
+                endif
+            endif
+            
+            #--- Drink agility pot ---#
+            
+            if drinkAgility = 1
+                if not findbuff "Agility" 
+                    if findtype "Blue Potion" self
+                        dclicktype "Blue Potion"
+                        wait 200
+                    else
+                        if timer blueMessageTimer > blueMessageCD
+                            overhead "Out of agility pots" 34
+                            settimer blueMessageTimer 0 
+                        endif
+                    endif
+                endif
+            endif
+                
+            #--- Drink magic resist pot ---#
+        
+            if drinkMagicResist = 1
+                if not findbuff "Magic Resist" 
+                    if findtype "Black Potion" self
+                        dclicktype "Black Potion"
+                        wait 200
+                    else
+                        if timer blackMessageTimer > blackMessageCD
+                            overhead "Out of resist pots" 34
+                            settimer blackMessageTimer 0
+                        endif
+                    endif
+                endif
+            endif
+                
+            #--- Poisoned ---#
+            
+            if 1 = drinkCure or 1 = cureSpell
+                while poisoned
+                    if findtype "Orange Potion" self
+                        dclicktype "Orange Potion"
+                        wait 200
+                    else
+                        if timer orangeMessageTimer > orangeMessageCD
+                            overhead "Out of cure pots" 34
+                            settimer orangeMessageTimer 0
+                        endif
+                        
+                        if diffhits > highDiff or not findtype 3972 self or not findtype 3973 self
+                            break
+                        endif
+                        
+                        if skill 'magery' >= 40 and mana >= 6 and 1 = cureSpell and not casting
+                            cast 'cure'
+                            wait 50
+                            while not casting                   
+                                if targetexists
+                                    hotkey 'cancel current target'
+                                endif
+                                cast 'cure'  
+                                wait 50
+                            endwhile  
+                            while not targetexists and casting
+                            endwhile
+                            waitfortarget maxwaittimeinms
+                            target 'self' 
+                            wait 200
+                        else 
+                            break
+                        endif
+                    endif
+                    
+                endwhile
+            endif
+                
+            #--- Heal Pot ---#
+            
+            if diffhits >= highDiff and 1 = drinkHeal
+                if findtype "Yellow Potion" self as hPot
+                    getlabel hPot potLabel
+                    if "next" in potLabel
+                        #do nothing
+                    else
+                        @setvar! ch 0
+                        
+                        if counttype 3852 self as c
+                            @setvar! ch c
+                        endif
+                        clearsysmsg  
+                        
+                        dclicktype 3852
+                        getlabel backpack xxx
+                        wait 200
+                                    
+                        if ch != counttype 3852 self or insysmsg "potion satchel used"
+                            cooldown "Heal Pot" healingPotCD
+                        endif
+                    endif
+                else
+                    if timer yellowMessageTimer > yellowMessageCD
+                        overhead "Out of heals pots" 34
+                        settimer yellowMessageTimer 0
+                    endif
+                endif
+            endif
+                    
+            #--- Drink red pot ---#
+            
+            if stam < staminaLowerThan and 1 = drinkRefresh
+                if findtype "Red Potion" self
+                    dclicktype "Red Potion"
+                    wait 200
+                else
+                    if timer redMessageTimer > redMessageCD
+                        overhead "Out of refresh pots" 34
+                        settimer redMessageTimer 0 
+                    endif
+                endif
+            endif
+                
+            #--- Cast heals ---#
+            
+            if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits <= medDiff and mana >= 4 and miniHeal = 1 and not casting
+                cast 'heal'
+                while not casting                   
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    cast 'heal'
+                endwhile  
+                
+                while not targetexists and casting
+                endwhile
+                
+                waitfortarget maxwaittimeinms
+                target 'self' 
+                wait 200  
+                
+            elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1 and not casting
+                cast 'greater heal'         
+                while not casting                   
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    cast 'greater heal'
+                endwhile  
+                
+                while not targetexists and casting
+                
+                    #--- Poisoned ---#
+                    
+                    if 1 = drinkCure
+                        while poisoned
+                            if findtype "Orange Potion" self
+                                dclicktype "Orange Potion"
+                                wait 200
+                            else
+                                if timer orangeMessageTimer > orangeMessageCD
+                                    overhead "Out of cure pots" 34
+                                    settimer orangeMessageTimer 0
+                                    break
+                                endif
+                
+                            endif
+                        endwhile
+                    endif            
+                
+                    #--- Drink Heal Pot ---#
+                    
+                    if diffhits >= highDiff and 1 = drinkHeal
+                        if findtype "Yellow Potion" self as hPot
+                            getlabel hPot potLabel
+                            if "next" in potLabel
+                                #do nothing
+                            else
+                                @setvar! ch 0
+                                
+                                if counttype 3852 self as c
+                                    @setvar! ch c
+                                endif
+                                clearsysmsg  
+                                
+                                dclicktype 3852
+                                getlabel backpack xxx
+                                wait 200
+                                            
+                                if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                    cooldown "Heal Pot" healingPotCD
+                                endif
+                            endif
+                        else
+                            if timer yellowMessageTimer > yellowMessageCD
+                                overhead "Out of heals pots" 34
+                                settimer yellowMessageTimer 0
+                            endif
+                        endif
+                    endif
+            
+                endwhile
+                
+                waitfortarget maxwaittimeinms
+                target 'self' 
+                wait 200 
+                
+            elseif skill 'magery' >= 40 and diffhits >= medDiff and mana >= 4 and miniHeal = 1 and not casting
+                cast 'heal'     
+                while not casting                   
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    cast 'heal' 
+                endwhile  
+                
+                while not targetexists and casting
+                endwhile
+                
+                waitfortarget maxwaittimeinms
+                target 'self' 
+                wait 200  
+            
+            endif 
+        
+        endwhile
+        
+#********* USE MEDITATION *********
+
+        if 1 = useMeditationSkill and mana < meditateWhenManaBelow and not findbuff "meditating"
+            skill 'meditation'
+            getlabel backpack xxx
+            wait 200
+            if findbuff 'meditating'
+                overhead '* meditating *' 88
+                while mana < meditateUntilManaReach and diffhits < medDiff
+                    #interrupt here if hp is low
+                    if not findbuff 'meditating'
+                        break
+                    endif
+                endwhile
+            endif
+        endif  
+        
+#********* CREATE MUSHROOMS *********
+    
+        if counttype 29012 backpack = 0
+            while counttype 29012 backpack < mushroomCount
+                cast 'create food'
+                wait 100
+            endwhile
+        endif   
+    
+ #********** EAT MUSHROOM  **********# 
+ 
+        if mana < eatMushWhenManaLowerThan and mushroomCount > 0
+            if timer mushroomTimer > mushroomTimerCD
+                if counttype 29012 backpack as c
+                    @setvar! cm c
+                
+                    dclicktype 29012 backpack
+                    wait 200
+                    
+                    if cm != counttype 29012 backpack
+                        settimer mushroomTimer 0
+                    endif
+                else 
+                    overhead "No mushrooms found!" 34
+                endif
+            endif
+        endif
+
+ #********** USE WEAPON ABILITY **********# 
+        if skill "Arcane" >= 80
+            if timer weaponAbilityTimer > weaponAbilityCD
+                if useWeaponAbility = 1
+                    if mana < useAbilityWhenManaLowerThan
+                        yell '[weaponAbility2'
+                        wait 50
+                        yell '[weaponAbility1'
+                        settimer weaponAbilityTimer 0
+                    endif
+                elseif useWeaponAbility = 2 
+                    if mana < useAbilityWhenManaLowerThan
+                        yell '[weaponAbility1'
+                        wait 50
+                        yell '[weaponAbility2'
+                        settimer weaponAbilityTimer 0
+                    endif        
+                elseif useWeaponAbility = 3 
+                    if mana < useAbilityWhenManaLowerThan
+                        yell '[weaponAbility2'
+                        wait 50
+                        yell '[weaponAbility3'
+                        settimer weaponAbilityTimer 0
+                    endif        
+                endif
+            endif
+        endif    
+    endwhile
+    
+    if followers > 0 and 1 = currentlyAttacking
+        clearsysmsg
+        while not dead 
+            say 'ALL Guard ME' 11
+            getlabel backpack xxx
+            wait 200   
+            if insysmsg "Ignoring speech request"
+            else 
+                break
+            endif  
+        endwhile
+    endif
+    
+#********** AUTO-MAGERY BUFFS IF NEEDED **********          
+
+    if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < lowDiff
+        if timer magicReflectTimer > magicReflectCD
+            cast 'Magic Reflection'
+            while not casting and diffhits < lowDiff    
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "that spell will not" or insysmsg "that spell is already"
+                    settimer magicReflectTimer 0
+                    break  
+                endif
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Magic Reflection'
+            endwhile 
+            
+            while casting and diffhits < highDiff   
+            
+                #--- Poisoned ---#
+                
+                if 1 = drinkCure
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            wait 200
+                        else
+                            if timer orangeMessageTimer > orangeMessageCD
+                                overhead "Out of cure pots" 34
+                                settimer orangeMessageTimer 0
+                                break
+                            endif
+            
+                        endif
+                    endwhile
+                endif            
+            
+                #--- Drink Heal Pot ---#
+                
+                if diffhits >= highDiff and 1 = drinkHeal
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+                            
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            clearsysmsg  
+                            
+                            dclicktype 3852
+                            getlabel backpack xxx
+                            wait 200
+                                        
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                cooldown "Heal Pot" healingPotCD
+                            endif
+                        endif
+                    else
+                        if timer yellowMessageTimer > yellowMessageCD
+                            overhead "Out of heals pots" 34
+                            settimer yellowMessageTimer 0
+                        endif
+                    endif
+                endif
+                
+            endwhile
+            wait 200  
+        endif    
+    endif
+    
+    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < lowDiff
+        if timer magicReflectTimer > magicReflectCD
+            cast 'Reactive Armor'
+            while not casting and diffhits < highDiff       
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "that spell will not" or insysmsg "that spell is already"
+                    settimer armorReflectTimer 0
+                    break  
+                endif
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Reactive Armor'
+            endwhile  
+            
+            while casting and diffhits < lowDiff   
+            endwhile
+            wait 200  
+        endif    
+    endif     
+    
+    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < lowDiff
+        cast 'Protection'
+        while not casting and diffhits < highDiff 
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            cast 'Protection'
+        endwhile  
+        while casting and diffhits < lowDiff   
+        endwhile
+        wait 200  
+    endif 
+    
+    if bless = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < lowDiff
+        cast 'Bless'         
+        while not casting and diffhits < highDiff                   
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            cast 'Bless'
+            wait 50
+        endwhile  
+        
+        while not targetexists and casting
+        endwhile
+        
+        waitfortarget maxwaittimeinms
+        target 'self' 
+        wait 200  
+    endif  
+    
+#********* USE MEDITATION *********
+
+    if 1 = useMeditationSkill and mana < meditateWhenManaBelow and not findbuff "meditating"
+        skill 'meditation'
+        getlabel backpack xxx
+        wait 200
+        if findbuff 'meditating'
+            overhead '* meditating *' 88
+            while mana < meditateUntilManaReach and diffhits < medDiff
+                #interrupt here if hp is low
+                if not findbuff 'meditating'
+                    break
+                endif
+            endwhile
+        endif
+    endif 
+    
+endwhile

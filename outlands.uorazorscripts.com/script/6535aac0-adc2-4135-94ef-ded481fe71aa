@@ -4,9 +4,19 @@
 ## Created by: danstock._98439#0
 #############################################
 
-//////  UO Outlands Razor script - Last updated Oct 1, 2024 (email any bug reports/tips to dan@danstockman.com) 
+//////  UO Outlands Razor script - Last updated Oct 31, 2024 (email any bug reports/tips to dan@danstockman.com) 
 /////   Created by DanStock.
 ////    ULTIMATE TRI-BARD/CHIVARLY/ARCHER AUTO PILOT SCRIPT
+
+ 
+# Recommended skill template:
+// 120 Peacemaking
+// 120 Discordance 
+// 120 Provocation
+// 120 Chivalry 
+// 95  Tactics
+// 80  Archery 
+// 65  Focus (or skill of choice *)
 
 
 # TIPS:
@@ -14,7 +24,7 @@
 // BARD CODEX: Must have 6 pts in "Self Taught" to drop musicianship skill
 // If using 1H archery weapon, add a shield for extra AR
 // Manually toggle WAR MODE to clear cooldown timers if barding break isn't detected!
-// This script depends heavily on COOLDOWNS. Please make sure to add them (see below).
+// This script depends heavily on COOLDOWNS. Please make sure to add them (see below)
 
 
 // IMPT:  MUST add the following COOLDOWNS (case sensitive) in UO client under Options -> Cooldowns:
@@ -61,30 +71,35 @@
 #######        USER VARIABLES:        #######
 #############################################
 
-
+@setvar! EnableDiscordance 1
 @setvar! EnableProvocation 1
 @setvar! EnablePeacemaking 1
-@setvar! EnableDiscordance 1
 
 
 @setvar! EnableHealPotion 1
-@setvar! HealPotHP 35
+@setvar! HealPotHP 50
 
 @setvar! EnableCurePotion 1
-@setvar! CurePotHP 90
+@setvar! CurePotHP 100
 
 @setvar! EnableRefreshPotion 1
-@setvar! RefreshPotSP 89
+@setvar! RefreshPotSPdiff 10
+
+@setvar! EnableStrengthPotion 1
+
+@setvar! EnableAgilityPotion 1
+
+@setvar! EnableMagicResistPotion 1
 
 
 @setvar! EnableHolyLight 1
-@setvar! HolyLightHP 75
+@setvar! HolyLightHP 85
 
 @setvar! EnableNobleSacrifice 1
 @setvar! NobleSacrificeHP 50
 
 @setvar! EnableCleanseByFire 1
-@setvar! CleanseByFireHP 95
+@setvar! CleanseByFireHP 100
 
 @setvar! EnableCloseWounds 1
 
@@ -93,10 +108,10 @@
 
 @setvar! EnableShield 0
 
-
 @setvar! EnableDivineFury 1
 
 @setvar! EnableEnemyOfOne 1
+
 
 @setvar! EnableWeaponAbility 1 
 @setvar! EnableSkirmish 0
@@ -132,10 +147,10 @@
 
 
 
+
 #############################################
 #########    SCRIPT STARTS HERE:    #########
 #############################################
-
 
 if not dead 
 
@@ -150,12 +165,21 @@ if not dead
 
 
     if insysmsg "Captcha successful"
-        overhead "[ CAPTCHA SUCCESSFUL ]" 93
+        overhead "[ CAPTCHA SUCCESSFUL! ]" 93
         wait 500
     endif
 
-
     clearsysmsg
+
+    if paralyzed and EnableParalyzePouch = 1
+        if findtype "pouch" backpack 
+            yell "[pouch"
+            overhead '[[[[ POP!! ]]]]' 2114   
+            script "Home Recall (Acct 2)"     
+        else 
+            overhead "[ NO TRAPPED POUCHES! ]" 337          
+        endif           
+    endif
 
 
     if not findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp" self
@@ -166,7 +190,7 @@ if not dead
     endif 
 
 
-    if not findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow|bow' self
+    if not findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' self
         overhead "[ NO WEAPON! ]" 337
         wait 2500
         sysmsg "Please acquire a weapon before you start this script!" 0
@@ -174,16 +198,40 @@ if not dead
     endif
 
 
-    if not findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow|bow' hand 
-        if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow|bow' backpack as weapon
+    if not findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand 
+        if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+            getlabel weapon WeaponLabel
+                for 5
+                    wait 100
+                    if "unidentified" in WeaponLabel
+                        @ignore weapon
+                        if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                            getlabel weapon WeaponLabel
+                        endif
+                    endif 
+                endfor            
             dclick weapon
+            wait 100
         endif 
     endif
 
 
     if EnableShield = 1
-        if not findtype 'metal shield|Chaos shield' lefthand and findtype 'metal shield|Chaos shield' backpack as shield
-            dclick shield
+        if not findtype 'metal shield|Chaos shield|heater shield' lefthand
+            if findtype 'metal shield|Chaos shield|heater shield' backpack as shield
+                getlabel shield ShieldLabel
+                    for 5
+                        wait 100
+                        if "unidentified" in ShieldLabel
+                            @ignore shield
+                            if findtype 'metal shield|Chaos shield|heater shield' backpack as shield
+                                getlabel shield ShieldLabel
+                            endif
+                        endif 
+                    endfor            
+                dclick shield
+                wait 100
+            endif 
         endif
     endif
 
@@ -193,19 +241,19 @@ if not dead
             # BOLTS
             @setvar! AMMO 1
 
-        elseif findtype 'bow' hand
+        elseif findtype 'long bow|bow|recurve bow|composite bow' hand
             # ARROWS
             @setvar AMMO 2
         endif
 
         if counttype "crossbow bolt" self < 25 and not cooldown "Ammunition" and AMMO = 1
             overhead "[ AMMO LOW! ]" 37
-            cooldown "Ammunition" 3000
+            cooldown "Ammunition" 3500
         endif 
 
         if counttype "arrow" self < 25 and not cooldown "Ammunition" and AMMO = 2
             overhead "[ AMMO LOW! ]" 37
-            cooldown "Ammunition" 3000    
+            cooldown "Ammunition" 3500    
         endif
     endif 
 
@@ -224,7 +272,7 @@ if not dead
         if weight > RedWeightLimit
             overhead "[ WEIGHT LIMIT REACHED!! ]" 37
             wait 2500
-            stop
+            script "Home Recall (Acct 2)"
         endif
     endif
 
@@ -233,40 +281,42 @@ if not dead
     wait 500
 
 
-    if insysmsg "No one matching that was found on your screen"      
-        
-        if not cooldown "No Target Timer"
-            overhead "[ NOTHING TO TARGET... ]" 6
-            hotkey 'Organizer Agent-01'  
-            cooldown "No Target Timer" 3500
-            clearsysmsg 
-        endif
-    
-        if findtype "Ginseng|Garlic|Blood Moss|Sulfurous Ash|Mandrake Root%s%|Nightshade|Black Pearl%s%|Spider's Silk" backpack
-            if not cooldown "Satchel Timer" and findtype "reagent satchel" self as MyWizardBag
-                menu MyWizardBag 0
-                cooldown "Satchel Timer" 10000
-            endif
-        endif
-    
-        if findtype "arrow|crossbow bolt" backpack
-            if not cooldown "Satchel Timer" and findtype 12215 self as MyQuiver
-                menu MyQuiver 0
-                cooldown "Satchel Timer" 10000
-            endif
-        endif 
-
-        if findtype "Yellow Potion|Orange Potion|Red Potion|White Potion|Blue Potion|Black Potion|" backpack
-            if not cooldown "Satchel Timer" and findtype 31262 self as MyPotBag
-                menu MyPotBag 0
-                cooldown "Satchel Timer" 10000
-            endif
-        endif 
-
-    
         #######################
         ### NO TARGET LOOP: ###
         #######################
+
+        if insysmsg "No one matching that was found on your screen"      
+        
+            if not cooldown "No Target Timer"
+                overhead "[ NOTHING TO TARGET... ]" 6
+                hotkey 'Organizer Agent-01'
+                cooldown "No Target Timer" 3500
+                clearsysmsg 
+            endif     
+
+            if findtype "Ginseng|Garlic|Blood Moss|Sulfurous Ash|Mandrake Root%s%|Nightshade|Black Pearl%s%|Spider's Silk" backpack
+                if not cooldown "Satchel Timer" and findtype "reagent satchel" self as MyWizardBag
+                    menu MyWizardBag 0
+                    cooldown "Satchel Timer" 30000
+                    wait 150
+                endif
+            endif
+     
+            if findtype "arrow|crossbow bolt" backpack
+                if not cooldown "Satchel Timer" and findtype "quiver" self as MyQuiver
+                    menu MyQuiver 0
+                    cooldown "Satchel Timer" 10000
+                    wait 150
+                endif
+            endif 
+
+            if findtype "Yellow Potion|Orange Potion|Red Potion|White Potion|Blue Potion|Black Potion|" backpack
+                if not cooldown "Satchel Timer" and findtype 31262 self as MyPotBag
+                    menu MyPotBag 0
+                    cooldown "Satchel Timer" 30000
+                    wait 150
+                endif
+            endif 
 
             if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
                 if findtype "corpse" ground -1 -1 2 as body
@@ -282,8 +332,7 @@ if not dead
                 overhead "[ NO SKINNING KNIFE! ]" 337
                 wait 500
             endif
-            
-            
+                        
             if not findbuff 'food satisfaction' and findtype "tray" self
                 overhead "Hold on, I shouldn't fight on an empty stomach..." 6
                 wait 500
@@ -295,7 +344,6 @@ if not dead
                         wait 1000
                     endif
             endif 
-
         
             if warmode
                 cooldown "Pacified" 0
@@ -304,17 +352,18 @@ if not dead
                 overhead "[ BREAK... ]" 333
                 hotkey 'Toggle Peace Only'
                 replay
-            endif
-            
+            endif            
             
             if paralyzed and EnableParalyzePouch = 1
                 if findtype "pouch" backpack 
                     yell "[pouch"
-                    overhead '[[[[ POP!! ]]]]' 2114                   
+                    overhead '[[[[ POP!! ]]]]' 2114   
+                    script "Home Recall (Acct 2)"     
+                else 
+                    overhead "[ NO MORE TRAPPED POUCHES! ]" 337          
                 endif           
             endif
-        
-            
+                    
             if EnableArrowCleanup = 1
                 if findtype 7163|3903 ground -1 -1 2 as item and not cooldown "Cleanup"
                     overhead '[ CLEANUP... ]' 93
@@ -337,7 +386,6 @@ if not dead
                 endif
             endif 
 
-
             if insysmsg "world is saving"
                 overhead "[ WORLD SAVE... ]" 253        
                 if not timerexists "WorldSaveTimer"
@@ -351,8 +399,7 @@ if not dead
                 endwhile            
                     overhead "[ SAVE COMPLETE! ]" 253
             endif 
-            
-        
+                    
             if EnableNobleSacrifice = 1            
                 if hits < NobleSacrificeHP and skill "Chivalry" >= 80 and not cooldown "Noble Sacrifice" and not cooldown "Prevented" and not cooldown "Chivalry" 
                     clearsysmsg 
@@ -370,8 +417,7 @@ if not dead
                         cooldown "Chivalry" 500
                     endif
                 endif            
-            endif
-    
+            endif    
         
             if EnableHolyLight = 1            
                 if hits < HolyLightHP and skill "Chivalry" >= 95 and not cooldown "Holy Light" and not cooldown "Prevented" and not cooldown "Chivalry"
@@ -389,8 +435,7 @@ if not dead
                     endif 
                 endif
             endif
-      
-      
+            
             if EnableCleanseByFire = 1
                 if hits < CleanseByFireHP and poisoned and not cooldown "Cleanse By Fire" and not cooldown "Chivalry" and not cooldown "Prevented"
                     clearsysmsg 
@@ -405,8 +450,7 @@ if not dead
                         clearsysmsg                    
                     endif
                 endif            
-            endif
-        
+            endif        
         
             if EnableCloseWounds = 1            
                 if findbuff "bleed" or findbuff "disease"
@@ -427,7 +471,6 @@ if not dead
                 endif            
             endif
 
-
             if EnableHealPotion = 1
                 if hits < HealPotHP and not cooldown "Healing Potion"
                     if findtype "Yellow Potion" self as healpot
@@ -440,7 +483,6 @@ if not dead
                     endif
                 endif
             endif 
-
 
             if EnableCurePotion = 1
                 if poisoned and not cooldown "Cure Potion" and hits <= CurePotHP
@@ -455,9 +497,8 @@ if not dead
                 endif
             endif 
 
-
             if EnableRefreshPotion = 1
-                if stam < RefreshPotSP and not cooldown "Refresh Potion"
+                if diffstam =< RefreshPotSPdiff and not cooldown "Refresh Potion"
                     if findtype "Red Potion" self as refreshpot
                         overhead '[ REFRESH POTION... ]' 34
                         dclick refreshpot
@@ -469,9 +510,43 @@ if not dead
                 endif
             endif
 
+            if EnableStrengthPotion = 1
+                if not findbuff 'Strength' 
+                    if findtype "White Potion" self as strengthpot
+                        overhead '[ STRENGTH POTION... ]' 956
+                        dclick strengthpot
+                        wait 200
+                    else 
+                        overhead '[ NO STRENGTH POTS! ]' 337
+                    endif
+                endif
+            endif
+
+            if EnableAgilityPotion = 1
+                if not findbuff 'Agility' 
+                    if findtype "Blue Potion" self as agilitypot
+                        overhead '[ AGILITY POTION... ]' 93
+                        dclick agilitypot
+                        wait 200
+                    else 
+                        overhead '[ NO AGILITY POTS! ]' 337
+                    endif
+                endif
+            endif
+
+            if EnableMagicResistPotion = 1
+                if not findbuff 'Magic Resist Potion' 
+                    if findtype "Black Potion" self as resistpot
+                        overhead '[ MAGIC RESIST POTION... ]' 12
+                        dclick resistpot
+                        wait 200
+                    else 
+                        overhead '[ NO RESIST POTS! ]' 337
+                    endif
+                endif
+            endif
 
     else
- 
 
         ########################
         ####  TARGET LOOP:  ####
@@ -497,7 +572,6 @@ if not dead
             cooldown "Discorded" 0
             cooldown "Provoked" 0
         endif
-
     
         while not dead ClosestTarget
         
@@ -645,7 +719,7 @@ if not dead
 
 
             if EnableRefreshPotion = 1
-                if stam < RefreshPotSP and not cooldown "Refresh Potion"
+                if diffstam =< RefreshPotSPdiff and not cooldown "Refresh Potion"
                     if findtype "Red Potion" backpack as refreshpot
                         overhead '[ DRINKING REFRESH POTION... ]' 34
                         dclick refreshpot
@@ -657,11 +731,52 @@ if not dead
                 endif
             endif
 
+            if EnableStrengthPotion = 1
+                if not findbuff 'Strength' 
+                    if findtype "White Potion" self as strengthpot
+                        overhead '[ STRENGTH POTION... ]' 956
+                        dclick strengthpot
+                        wait 200
+                    else 
+                        overhead '[ NO STRENGTH POTS! ]' 337
+                    endif
+                endif
+            endif
+
+
+            if EnableAgilityPotion = 1
+                if not findbuff 'Agility' 
+                    if findtype "Blue Potion" self as agilitypot
+                        overhead '[ AGILITY POTION... ]' 93
+                        dclick agilitypot
+                        wait 200
+                    else 
+                        overhead '[ NO AGILITY POTS! ]' 337
+                    endif
+                endif
+            endif
+
+
+            if EnableMagicResistPotion = 1
+                if not findbuff 'Magic Resist Potion' 
+                    if findtype "Black Potion" self as resistpot
+                        overhead '[ MAGIC RESIST POTION... ]' 12
+                        dclick resistpot
+                        wait 200
+                    else 
+                        overhead '[ NO RESIST POTS! ]' 337
+                    endif
+                endif
+            endif
+
 
             if paralyzed and EnableParalyzePouch = 1
                 if findtype "pouch" backpack 38
                     yell "[pouch"
                     overhead '[[[[ POP!! ]]]]' 2114
+                    script "Home Recall (Acct 2)"
+                else
+                    overhead "[ NO TRAPPED POUCHES! ]" 337
                 endif           
             endif
 
@@ -714,7 +829,7 @@ if not dead
                 if weight > RedWeightLimit
                     overhead "[ WEIGHT LIMIT REACHED!! ]" 37
                     wait 2500
-                    stop
+                    script "Home Recall (Acct 2)"                   
                 endif
             endif        
 
@@ -754,49 +869,61 @@ if not dead
                 endif
             endif 
 
-
-            if findtype "Ginseng|Garlic|Blood Moss|Sulfurous Ash|Mandrake Root%s%|Nightshade|Black Pearl%s%|Spider's Silk" backpack
-                if not cooldown "Satchel Timer" and findtype "reagent satchel" self as MyWizardBag
-                    menu MyWizardBag 0
-                    cooldown "Satchel Timer" 10000
-                endif
-            endif
     
             if findtype "arrow|crossbow bolt" backpack
                 if not cooldown "Satchel Timer" and findtype 12215 self as MyQuiver
                     menu MyQuiver 0
-                    cooldown "Satchel Timer" 10000
+                    cooldown "Satchel Timer" 15000
                 endif
             endif 
 
-            if findtype "Yellow Potion|Orange Potion|Red Potion|White Potion|Blue Potion|Black Potion|" backpack
-                if not cooldown "Satchel Timer" and findtype 31262 self as MyPotBag
-                    menu MyPotBag 0
-                    cooldown "Satchel Timer" 10000
-                endif
-            endif 
-       
-    
-            if not findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow|bow' hand 
-                if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow|bow' backpack as weapon
-                    dclick weapon
+
+            if not findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand 
+                if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                    getlabel weapon WeaponLabel
+                    for 5
+                    wait 100
+                        if "unidentified" in WeaponLabel
+                            @ignore weapon
+                            if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                                getlabel weapon WeaponLabel
+                            endif
+                        endif 
+                    endfor            
+                dclick weapon
+                wait 100
                 endif 
             endif
-        
-        
-            if not findtype 'metal shield|Chaos shield|Heater shield' lefthand and findtype 'metal shield|Chaos shield|Heater shield' backpack as shield and EnableSheild = 1
-                dclick shield
+
+
+            if EnableShield = 1
+                if not findtype 'metal shield|Chaos shield|heater shield' lefthand
+                    if findtype 'metal shield|Chaos shield|heater shield' backpack as shield
+                        getlabel shield ShieldLabel
+                        for 5
+                        wait 100
+                            if "unidentified" in ShieldLabel
+                                @ignore shield
+                                if findtype 'metal shield|Chaos shield|heater shield' backpack as shield
+                                    getlabel shield ShieldLabel
+                                endif
+                            endif 
+                        endfor            
+                    dclick shield
+                    wait 100
+                    endif 
+                endif
             endif
 
 
             if insysmsg "Your shot hinders"
-                overhead "[ HINDERED... ]" 333 ClosestTarget
+                overhead "[ HINDERED... ]" 253 ClosestTarget
                 clearsysmsg 
             endif 
         
 
             if insysmsg "Your target overpowers"
-                overhead "[ VICIOUS WOUND! ]" 33 ClosestTarget
+                overhead "[ VICIOUS WOUND! ]" 337 ClosestTarget
                 clearsysmsg 
             endif 
 
@@ -808,7 +935,7 @@ if not dead
 
         
             if not findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp" self
-                overhead "[ NO INSTRUMENT! ]" 37
+                overhead "[ NO INSTRUMENT! ]" 333
                 wait 2500
                 replay
             endif    
@@ -816,6 +943,7 @@ if not dead
 
             if insysmsg "You have unlocked a codex upgrade point"
                 overhead "[ CODEX POINT UNLOCKED! ]" 2114
+                wait 500
             endif             
 
                 
@@ -891,7 +1019,7 @@ if not dead
                                 overhead "[ WAITING... ]" 2117
                                 cooldown "Peacemaking" 2500
                                 cooldown "Discordance" 2500
-                                wait 500
+                                wait 1000
 
                             elseif insysmsg 'That is too far away.'
                                 overhead '[ TOO FAR AWAY! ]' 339 NextClosestTarget
@@ -989,7 +1117,7 @@ if not dead
                                 replay
                             elseif insysmsg "You must wait" 
                                 overhead "[ WAITING... ]" 84
-                                wait 500
+                                wait 1000
                             endif 
       
                         if insysmsg "You play successfully, pacifying your target"
@@ -1023,8 +1151,7 @@ if not dead
                     wait 500
                 endif
             endif
-        
-       
+              
             
             if EnableDiscordance = 1 and not cooldown "Discordance" and not cooldown "Musicianship" and not dead ClosestTarget
 
@@ -1066,7 +1193,7 @@ if not dead
                                 
                                 elseif insysmsg "You must wait" 
                                     overhead "[ WAITING... ]" 69
-                                    wait 500
+                                    wait 1000
                                 endif
                 
                                 if insysmsg "You play successfully, disrupting your opponent"
@@ -1211,6 +1338,7 @@ if not dead
 
         if insysmsg "You have unlocked a codex upgrade point"
             overhead "[ CODEX POINT UNLOCKED! ]" 2114
+            wait 500
         endif 
 
 
@@ -1249,7 +1377,11 @@ if not dead
             if findtype "pouch" backpack
                 yell "[pouch"
                 overhead '[[[[ POP!! ]]]]' 149
-               endif           
+                script "Home Recall (Acct 2)"
+            else
+                overhead "[ NO TRAPPED POUCHES! ]" 337
+                wait 500
+            endif           
         endif
             
             
@@ -1283,7 +1415,7 @@ if not dead
                 createtimer "WorldSaveTimer"
             endif
              
-            settimer "WorldSaveTimer" 0
+                settimer "WorldSaveTimer" 0
 
             while timer "WorldSaveTimer" < 3000
                 if insysmsg "save complete"
@@ -1296,10 +1428,7 @@ if not dead
     
     replay
     
-
-
 else
-
 
     wait 2000
     overhead "Well... shit..." 6
@@ -1307,7 +1436,7 @@ else
     overhead '[ STOPPING SCRIPT... ]' 37
     stop
 
-
 endif
+
 
 //////// REACH OUT AND LET ME KNOW IF THERE'S ANY ISSUES:  DAN@DANSTOCKMAN.COM /////

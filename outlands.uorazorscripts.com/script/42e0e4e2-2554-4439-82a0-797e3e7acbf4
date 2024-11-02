@@ -12,6 +12,7 @@
 // - Make sure to carry all items you want to be used in your backpack, the ground will not be checked for items (except for flower pots and water tiles)
 // - WARNING: server system messages are needed to determine necessary actions, make sure they are not filtered for scripts: 
 //      Razor -> Filters -> Text&Messages ->
+//      - Uncheck "Filter repeating system messages" 
 //      - "Enable text filter" and "Filter system messages" (list entry sub-menu) can be checked, however "Ignore filtered messages in overhead and scripts" (list entry sub-menu) has to be unchecked
 //
 //////////////////////////////
@@ -135,6 +136,7 @@
 // - Update 28-Apr-2024: Added option to ignore brain fungi infested pots
 // - Update 29-May-2024: Added short wait periods between actions to fix issues mainly related to object delay (making the script run slower but more stable for people with low ping)
 // - Update 05-Jul-2024: Addes rustic planters and rustic window planters
+// - Update 02-Nov-2024: Fixed a bug planting rare seeds to low quality planters when gardeningAutoPlantNewSeed set to 3
 //
 //////////////////////////////
 
@@ -162,8 +164,6 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                 sysmsg "The world has been saved!"
                 settimer gardeningMinWaitTimer 0
                 getlabel backpack waitForPing
-                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
-                endwhile
                 while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
                 endwhile
                 break
@@ -410,7 +410,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                             getlabel backpack waitForPing
                             while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
                             endwhile
-                        elseif not inlist gardeningSpecialSeedList "mushroom spore" and findtype 58196|55139|53611 backpack as myNewSeed 
+                        elseif not inlist gardeningSpecialSeedList "mushroom spore" and findtype 58196|55139|53611 backpack as myNewSeed
                             //Plant mushroom spore
                             gumpresponse 2 3224608375
                             wft gardeningMaxWaitForServerResponse
@@ -455,7 +455,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                             getlabel backpack waitForPing
                             while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
                             endwhile
-                       elseif not inlist gardeningSpecialSeedList "extremely rare seed" and findtype 22326 backpack 2465 as myNewSeed
+                        elseif not inlist gardeningSpecialSeedList "extremely rare seed" and findtype 22326 backpack 2465 as myNewSeed
                             //Plant extremely rare seed
                             gumpresponse 2 3224608375
                             wft gardeningMaxWaitForServerResponse
@@ -523,10 +523,12 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                             sysmsg "[Gardening] Non listed seed planted to non listed planter (gardeningAutoPlantNewSeed: {{gardeningAutoPlantNewSeed}}, Timer: {{gardeningRunTimer}} ms)" 100
                         endif
                     endif
+                else
+                    setvar! gardeningSpecialPlanter 0
                 endif
             endif
             if insysmsg! "You plant a seed."
-            elseif gardeningAutoPlantNewSeed = 1 or gardeningAutoPlantNewSeed = 3
+            elseif gardeningAutoPlantNewSeed = 3 and gardeningSpecialPlanter = 1 or gardeningAutoPlantNewSeed = 1
                 //plant all types of seeds
                 if findtype 51098 backpack as myNewSeed
                     //Plant dungeon seed

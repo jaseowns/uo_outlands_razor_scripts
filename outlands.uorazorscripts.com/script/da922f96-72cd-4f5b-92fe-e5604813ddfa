@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 2.00
+#Auto-mage attack 2.01
 
 #********** INFORMATION **********# 
 
@@ -13,12 +13,17 @@
 
 #This script will auto attacking using magery/necromancy spells. Script will auto heal and auto summon pets if needed.
 #This script will work with full Mage Arcanes, Necro Mages, Mage Summoners.
-#I recommend to add text filters for sysmsgs like "already casting spell" or "you have not yet recovered from casting"
 
 # !!! SOON TO BE ADDED: Auto Summoning !!! #
 
 
 #********** SET YOUR SETTINGS **********#   
+
+#--- Set Target Mode ---#
+# 0 - Auto Target Selection 
+# 1 - Manual selection using hotkey `set last target`
+
+@setvar! targetSelectionMode 0
 
 #--- Set Mage attack spells ---#
 
@@ -32,13 +37,13 @@
 @setvar! castEnergyBolt 0
 @setvar! castFlamestrike 1
 
-@setvar! castPoison 1
+@setvar! castPoison 0
 
 #- Poison Level
 # 0 - Greater or lesser 
 # 1 - Deadly 
 # 2 - Lethal
-@setvar! poisonLevel 0
+@setvar! poisonLevel 1
 
 @setvar! castCurse 1
 @setvar! castManaDrain 0
@@ -47,7 +52,7 @@
 
 @setvar! magicArrowCD 20000
 @setvar! harmCD 20000
-@setvar! fireballCD 20000
+@setvar! fireballCD 60000
 @setvar! lightningCD 20000
 
 @setvar! miniSpellsWithoutWizardGrimoreCD 10000
@@ -59,8 +64,8 @@
 @setvar! NecroStrangle 0
 @setvar! minManaToUseDamageBuffNecroSpells 40
 
-@setvar! NecroMindRot 1
-@setvar! NecroPoisonStrike 1
+@setvar! NecroMindRot 0
+@setvar! NecroPoisonStrike 0
 
 #--- Set Mage auto heals ---#
 
@@ -113,7 +118,7 @@ endif
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 1
+@setvar! useMeditationSkill 0
 @setvar! meditateWhenManaBelow 40
 @setvar! meditateUntilManaReach 65
 
@@ -122,6 +127,12 @@ endif
 @setvar! healingPotCD 11000
 
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
+
+if 1 = targetSelectionMode
+    @setvar! currentTarget 0 
+    @setvar! foundTarget 0 
+    @setvar! tempTarget 0 
+endif
 
 @setvar! necroGump 622436516
 @setvar! unholyPoints 0
@@ -192,6 +203,9 @@ settimer scriptMessageTimer scriptMessageCD
 
 @setvar! poisonLabelCD 5000
 settimer poisonLabelTimer poisonLabelCD
+
+@setvar! targetSelectCD 5000
+settimer targetSelectTimer targetSelectCD
 
 #--- Resources timers ---#
 
@@ -566,85 +580,125 @@ while not dead
         endwhile
     endif  
     
+    if 1 = targetSelectionMode
+        if insysmsg "target a new"
+            @clearsysmsg 
+            if targetexists
+                hotkey 'cancel current target'            
+                overhead "Select Target: " 55
+                @setvar! tempTarget   
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "Select" and not targetexists 
+                else     
+                    sysmsg "Re-target creature:" 34
+                    @setvar! tempTarget       
+                endif    
+            endif
+        endif    
+
+        if find tempTarget ground -1 -1 12 and not dead tempTarget
+            if previousTarget != tempTarget
+                sysmsg "Resetting timers" 15
+                settimer curseTimer curseCD
+                settimer manaDrainTimer manaDrainCD
+            endif
+        
+            @setvar! foundTarget 1 
+            @setvar! currentTarget tempTarget
+            @setvar! previousTarget currentTarget
+            attack currentTarget
+            getlabel currentTarget myLabel
+            sysmsg "Target: {{myLabel}}" 55          
+        else 
+            if timer targetSelectTimer > targetSelectCD
+                overhead "* Waiting for Target *" 11
+                settimer targetSelectTimer 0    
+            endif
+        endif
+        wait 200    
+    else 
+    
 #********* AUTO-SELECT NEW TARGET *********
     
-    if not find currentTarget ground -1 -1 12
-        @setvar! currentTarget 0
-        @setvar! foundTarget 0
-        
-        hotkey 'target closest grey monster'
-        wait 25
-        
-        if not find lasttarget ground -1 -1 12
-            if timer scriptMessageTimer > scriptMessageCD
-                overhead 'No target nearby' 33
-                settimer scriptMessageTimer 0
-            endif
-        else
-            @setvar! tempTarget lasttarget
-            while index != 20
-                @setvar! tempTarget lasttarget 
-                if index != 0 
-                    hotkey "next non-friendly monster target"
+        if not find currentTarget ground -1 -1 12
+            @setvar! currentTarget 0
+            @setvar! foundTarget 0
+            
+            hotkey 'target closest grey monster'
+            wait 25
+            
+            if not find lasttarget ground -1 -1 12
+                if timer scriptMessageTimer > scriptMessageCD
+                    overhead 'No target nearby' 33
+                    settimer scriptMessageTimer 0
+                endif
+            else
+                @setvar! tempTarget lasttarget
+                while index != 20
                     @setvar! tempTarget lasttarget 
-                    #overhead "*{{index}}*" 34 tempTarget
-                    
-                    if index = 1
-                        @setvar! firstTarget lasttarget
-                    elseif firstTarget = tempTarget
-                        @setvar! foundTarget 2
-                        break
-                    endif
-                endif
-                
-                if find tempTarget ground -1 -1 12
-                    clearsysmsg
-                    
-                    skill 'begging'
-                    waitfortarget maxwaittimeinms
-                    target tempTarget
-                    getlabel backpack xxx
-                    wait 200
-                    
-                    if insysmsg "Target cannot be seen"
-                        sysmsg "*Not visible* [{{index}}]" 44
-                        overhead  "*Not visible* [{{index}}]" 44 tempTarget
-                    elseif insysmsg "That is too far away."
-                        overhead "*Too far* [{{index}}]" 44 tempTarget
-                    #elseif insysmsg "You must wait"
-                        #overhead "*Skill cooldown*" 11
-                        #sysmsg "*Skill cooldown*" 11
-                        #break
-                    elseif insysmsg "Perhaps" or insysmsg "You are too far away from them." or insysmsg "They do not appear to have anything to offer you." or insysmsg! "You must wait"
+                    if index != 0 
+                        hotkey "next non-friendly monster target"
+                        @setvar! tempTarget lasttarget 
+                        #overhead "*{{index}}*" 34 tempTarget
                         
-                        if insysmsg "You must wait"
-                            overhead "* target skill cooldown targetting closest mob *" 34
-                            hotkey 'target closest grey monster'   
-                            @setvar! tempTarget lasttarget 
+                        if index = 1
+                            @setvar! firstTarget lasttarget
+                        elseif firstTarget = tempTarget
+                            @setvar! foundTarget 2
+                            break
                         endif
-                        
-                        if previousTarget != tempTarget
-                            sysmsg "Resetting timers" 15
-                            settimer curseTimer curseCD
-                            settimer manaDrainTimer manaDrainCD
-                        endif
-                    
-                        @setvar! foundTarget 1 
-                        @setvar! currentTarget tempTarget
-                        @setvar! previousTarget currentTarget
-                        attack currentTarget
-                        getlabel currentTarget myLabel
-                        sysmsg "Target: {{myLabel}}" 55
-                        
-                        break
                     endif
-                endif
-                wait 50
-            endwhile
-        endif
-        
-        if targetexists
-            hotkey 'cancel current target'
+                    
+                    if find tempTarget ground -1 -1 12
+                        clearsysmsg
+                        
+                        skill 'begging'
+                        waitfortarget maxwaittimeinms
+                        target tempTarget
+                        getlabel backpack xxx
+                        wait 200
+                        
+                        if insysmsg "Target cannot be seen"
+                            sysmsg "*Not visible* [{{index}}]" 44
+                            overhead  "*Not visible* [{{index}}]" 44 tempTarget
+                        elseif insysmsg "That is too far away."
+                            overhead "*Too far* [{{index}}]" 44 tempTarget
+                        #elseif insysmsg "You must wait"
+                            #overhead "*Skill cooldown*" 11
+                            #sysmsg "*Skill cooldown*" 11
+                            #break
+                        elseif insysmsg "Perhaps" or insysmsg "You are too far away from them." or insysmsg "They do not appear to have anything to offer you." or insysmsg! "You must wait"
+                            
+                            if insysmsg "You must wait"
+                                overhead "* target skill cooldown targetting closest mob *" 34
+                                hotkey 'target closest grey monster'   
+                                @setvar! tempTarget lasttarget 
+                            endif
+                            
+                            if previousTarget != tempTarget
+                                sysmsg "Resetting timers" 15
+                                settimer curseTimer curseCD
+                                settimer manaDrainTimer manaDrainCD
+                            endif
+                        
+                            @setvar! foundTarget 1 
+                            @setvar! currentTarget tempTarget
+                            @setvar! previousTarget currentTarget
+                            attack currentTarget
+                            getlabel currentTarget myLabel
+                            sysmsg "Target: {{myLabel}}" 55
+                            
+                            break
+                        endif
+                    endif
+                    wait 50
+                endwhile
+            endif
+            
+            if targetexists
+                hotkey 'cancel current target'
+            endif
         endif
     endif
     
@@ -660,58 +714,6 @@ while not dead
                 else 
                     break
                 endif
-#                if 1 = followerMode 
-#                    say 'ALL Kill' 11
-#                    waitfortarget 200
-#                    while not targetexists
-#                        say 'ALL Kill' 11
-#                        sysmsg 'ALL Kill x2' 44
-#                        waitfortarget 200
-#                    endwhile
-#                    waitfortarget 650
-#                    if targetexists
-#                        wait 100 
-#                        sysmsg "holding target..." 55
-#                    endif
-#                    target currentTarget
-#                    getlabel backpack xxx
-#                    wait 200 
-#                    if insysmsg "Target cannot be seen."
-#                        if index = 1 
-#                            @setvar! currentTarget 0
-#                            @setvar! foundTarget 0                                           
-#                            break
-#                        endif
-#                    else 
-#                        sysmsg "breaking out 1"
-#                        break   
-#                    endif
-#                elseif 2 = followerMode
-#                    say 'ALL Patrol' 11
-#                    sysmsg 'ALL Kill [{{index}}]' 44
-#                    waitfortarget 200
-#                    while not targetexists
-#                        say 'ALL Patrol' 11
-#                        waitfortarget 200
-#                    endwhile
-#                    waitfortarget 650
-#                    if targetexists
-#                        wait 100 
-#                    endif
-#                    target currentTarget
-#                    getlabel backpack xxx
-#                    wait 200 
-#                    if insysmsg "Target cannot be seen."
-#                        if index = 1 
-#                            @setvar! currentTarget 0
-#                            @setvar! foundTarget 0                                           
-#                            break
-#                        endif
-#                    else 
-
-#                        break   
-#                    endif
-#                endif
             endwhile
         endif
         

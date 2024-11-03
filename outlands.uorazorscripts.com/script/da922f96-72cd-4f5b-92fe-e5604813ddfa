@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 2.05
+#Auto-mage attack 2.12
 
 #********** INFORMATION **********# 
 
@@ -23,7 +23,7 @@
 # 0 - Auto Target Selection 
 # 1 - Manual selection using hotkey `set last target`
 
-@setvar! targetSelectionMode 0
+@setvar! targetSelectionMode 1
 
 #--- Set Mage attack spells ---#
 
@@ -43,10 +43,10 @@
 # 0 - Greater or lesser 
 # 1 - Deadly 
 # 2 - Lethal
-@setvar! poisonLevel 1
+@setvar! poisonLevel 0
 
-@setvar! castCurse 0
-@setvar! castManaDrain 0
+@setvar! castCurse 1
+@setvar! castManaDrain 1
 
 #--- Set Mage attack cooldowns ---#
 
@@ -65,7 +65,20 @@
 @setvar! minManaToUseDamageBuffNecroSpells 40
 
 @setvar! NecroMindRot 1
-@setvar! NecroPoisonStrike 1
+
+# 0 - Disabled
+# 1 - Apply in 1 ticks left or less
+# 2 - Apply in 2 ticks left or less
+# 3 - Apply in 3 ticks left or less
+# 4 - Apply in 4 ticks left or less
+# 5 - Apply in 5 ticks left or less
+# 6 - Apply in 6 ticks left or less
+# 7 - Apply in 7 ticks left or less
+# 8 - Apply in 8 ticks left or less
+# 9 - Apply in 9 ticks left or less
+# 10 - Apply in 10 ticks left or less
+
+@setvar! NecroPoisonStrike 6
 
 #--- Set Mage auto heals ---#
 
@@ -127,6 +140,8 @@ endif
 @setvar! healingPotCD 11000
 
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
+
+@setvar! repeatCastingPoison 0 
 
 if 1 = targetSelectionMode
     @setvar! currentTarget 0 
@@ -703,7 +718,18 @@ while not dead
     endif
     
     while 1 = foundTarget and not dead currentTarget and find currentTarget ground -1 -1 12
-
+        
+        while not dead
+            getlabel currentTarget targetLabel
+            if "-" in targetLabel or "*" in targetLabel
+                getlabel currentTarget targetLabel
+                sysmsg targetLabel 34
+            else 
+                sysmsg targetLabel 65
+                break
+            endif
+        endwhile
+        
         if followers > 0 and 0 = currentlyAttacking
             clearsysmsg
             while not dead 
@@ -719,29 +745,30 @@ while not dead
         
         @setvar! currentlyAttacking 1
         
-#********** CAST POISONING  **********#
-
-        if castPoison = 1 and diffhits < lowDiff and mana >= 9
-            getlabel currentTarget targetLabel
-            @setvar! recast 0
-            if "Ticks" in targetLabel or "-" in targetLabel or "Poison" in targetLabel or "resists" in targetLabel
-                if poisonLevel = 1 and "Greater" in targetLabel
-                    @setvar! recast 1
-                elseif poisonLevel = 2 
-                    if "Greater" in targetLabel or "Deadly" in targetLabel
-                        @setvar! recast 1
-                    endif
-                endif
-
+#********** CHECK POISONING STATUS **********#
+        
+        if castPoison = 1
+            if "Ticks" in targetLabel or "resists" in targetLabel
+            
                 if timer poisonLabelTimer > poisonLabelCD
-                    if "Ticks" in targetLabel
-                        overhead targetLabel 44
-                        overhead targetLabel  44 currentTarget
-                        settimer poisonLabelTimer 0
+                    overhead targetLabel 44
+                    overhead targetLabel  44 currentTarget
+                    settimer poisonLabelTimer 0
+                endif     
+                
+                if poisonLevel = 2 and "Lethal" in targetLabel
+                    @setvar! repeatCastingPoison 0
+                elseif poisonLevel = 1
+                    if "Lethal" in targetLabel or "Deadly" in targetLabel
+                        @setvar! repeatCastingPoison 0
                     endif
+                else 
+                    @setvar! repeatCastingPoison 1
                 endif
-
-                if "[7" in targetLabel or "[6" in targetLabel or "[5" in targetLabel or "[4" in targetLabel
+                
+                if 0 = repeatCastingPoison and 0 != NecroPoisonStrike
+                    @setvar! castStrike 0 
+                    
                     if ingump "20/" 622436516
                         @setvar! unholyPoints 20
                     elseif ingump "19/" 622436516
@@ -784,9 +811,51 @@ while not dead
                         @setvar! unholyPoints 1
                     else 
                         @setvar unholyPoints 0
-                    endif     
+                    endif  
                     
-                    if 1 = NecroPoisonStrike and 0 < unholyPoints and timer poisonStrikeTimer > poisonStrikeCD and skill 'necromancy' >= 55
+                    if 1 = NecroPoisonStrike 
+                        if "[1" in targetLabel
+                            @setvar! castStrike 1
+                        endif
+                    elseif 2 = NecroPoisonStrike 
+                        if "[1" in targetLabel or "[2" in targetLabel
+                            @setvar! castStrike 1
+                        endif
+                    elseif 3 = NecroPoisonStrike 
+                        if "[1" in targetLabel or "[2" in targetLabel or "[3" in targetLabel
+                            @setvar! castStrike 1 
+                        endif                    
+                    elseif 4 = NecroPoisonStrike 
+                        if "[1" in targetLabel or "[2" in targetLabel or "[3" in targetLabel or "[4" in targetLabel
+                            @setvar! castStrike 1 
+                        endif                      
+                    elseif 5 = NecroPoisonStrike 
+                        if "[1" in targetLabel or "[2" in targetLabel or "[3" in targetLabel or "[4" in targetLabel or "[5" in targetLabel
+                            @setvar! castStrike 1 
+                        endif                      
+                    elseif 6 = NecroPoisonStrike 
+                        if "[1" in targetLabel or "[2" in targetLabel or "[3" in targetLabel or "[4" in targetLabel or "[5" in targetLabel or "[6" in targetLabel
+                            @setvar! castStrike 1 
+                        endif                         
+                    elseif 7 = NecroPoisonStrike 
+                        if "[1" in targetLabel or "[2" in targetLabel or "[3" in targetLabel or "[4" in targetLabel or "[5" in targetLabel or "[6" in targetLabel or "[7" in targetLabel
+                            @setvar! castStrike 1 
+                        endif                    
+                    elseif 8 = NecroPoisonStrike 
+                        if "[1" in targetLabel or "[2" in targetLabel or "[3" in targetLabel or "[4" in targetLabel or "[5" in targetLabel or "[6" in targetLabel or "[7" in targetLabel or "[8" in targetLabel
+                            @setvar! castStrike 1 
+                        endif                      
+                    elseif 9 = NecroPoisonStrike 
+                        if "[1" in targetLabel or "[2" in targetLabel or "[3" in targetLabel or "[4" in targetLabel or "[5" in targetLabel or "[6" in targetLabel or "[7" in targetLabel or "[8" in targetLabel or "[9" in targetLabel
+                            @setvar! castStrike 1 
+                        endif                      
+                    elseif 10 = NecroPoisonStrike 
+                        if "[1" in targetLabel or "[2" in targetLabel or "[3" in targetLabel or "[4" in targetLabel or "[5" in targetLabel or "[6" in targetLabel or "[7" in targetLabel or "[8" in targetLabel or "[9" in targetLabel or "[10" in targetLabel
+                            @setvar! castStrike 1 
+                        endif                       
+                    endif
+                    
+                    if 1 = castStrike and 0 < unholyPoints and timer poisonStrikeTimer > poisonStrikeCD and skill 'necromancy' >= 55
                         clearsysmsg
                         yell '[poisonstrike'
                         getlabel backpack xxx
@@ -808,301 +877,159 @@ while not dead
                             settimer poisonStrikeTimer 0
                         endif
                     endif
+                    
                 endif
+                
+            else 
+                @setvar! repeatCastingPoison 1
+            endif
+        endif
+        
+        if ingump "20/" 622436516
+            @setvar! unholyPoints 20
+        elseif ingump "19/" 622436516
+            @setvar! unholyPoints 19
+        elseif ingump "18/" 622436516
+            @setvar! unholyPoints 18
+        elseif ingump "17/" 622436516
+            @setvar! unholyPoints 17
+        elseif ingump "16/" 622436516
+            @setvar! unholyPoints 16
+        elseif ingump "15/" 622436516
+            @setvar! unholyPoints 15
+        elseif ingump "14/" 622436516
+            @setvar! unholyPoints 14
+        elseif ingump "13/" 622436516
+            @setvar! unholyPoints 13
+        elseif ingump "12/" 622436516
+            @setvar! unholyPoints 12
+        elseif ingump "11/" 622436516
+            @setvar! unholyPoints 11
+        elseif ingump "10/" 622436516
+            @setvar! unholyPoints 10
+        elseif ingump "9/" 622436516
+            @setvar! unholyPoints 9
+        elseif ingump "8/" 622436516
+            @setvar! unholyPoints 8
+        elseif ingump "7/" 622436516
+            @setvar! unholyPoints 7
+        elseif ingump "6/" 622436516
+            @setvar! unholyPoints 6
+        elseif ingump "5/" 622436516
+            @setvar! unholyPoints 5
+        elseif ingump "4/" 622436516
+            @setvar! unholyPoints 4
+        elseif ingump "3/" 622436516
+            @setvar! unholyPoints 3
+        elseif ingump "2/" 622436516
+            @setvar! unholyPoints 2
+        elseif ingump "1/" 622436516
+            @setvar! unholyPoints 1
+        else 
+            @setvar unholyPoints 0
+        endif 
 
-                
-            else
-                @setvar! recast 1
-            endif 
+#********** CAST POISON  **********#          
+         
+        if repeatCastingPoison = 1 and diffhits < lowDiff and mana >= 9
 
-            if 1 = recast
-                cast 'Poison'           
-                while not casting   
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    cast 'Poison'             
-                endwhile  
+            cast 'Poison'           
+            while not casting   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'Poison'             
+            endwhile  
+            
+            while not targetexists and casting
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    interrupt
+                endif
+            endwhile
+            
+            waitfortarget 650
+
+            if not dead currentTarget and find currentTarget ground -1 -1 12
                 
-                while not targetexists and casting
-                    if dead currentTarget and not find currentTarget ground -1 -1 12
-                        interrupt
-                    endif
-                endwhile
+                if ingump "20/" 622436516
+                    @setvar! unholyPoints 20
+                elseif ingump "19/" 622436516
+                    @setvar! unholyPoints 19
+                elseif ingump "18/" 622436516
+                    @setvar! unholyPoints 18
+                elseif ingump "17/" 622436516
+                    @setvar! unholyPoints 17
+                elseif ingump "16/" 622436516
+                    @setvar! unholyPoints 16
+                elseif ingump "15/" 622436516
+                    @setvar! unholyPoints 15
+                elseif ingump "14/" 622436516
+                    @setvar! unholyPoints 14
+                elseif ingump "13/" 622436516
+                    @setvar! unholyPoints 13
+                elseif ingump "12/" 622436516
+                    @setvar! unholyPoints 12
+                elseif ingump "11/" 622436516
+                    @setvar! unholyPoints 11
+                elseif ingump "10/" 622436516
+                    @setvar! unholyPoints 10
+                elseif ingump "9/" 622436516
+                    @setvar! unholyPoints 9
+                elseif ingump "8/" 622436516
+                    @setvar! unholyPoints 8
+                elseif ingump "7/" 622436516
+                    @setvar! unholyPoints 7
+                elseif ingump "6/" 622436516
+                    @setvar! unholyPoints 6
+                elseif ingump "5/" 622436516
+                    @setvar! unholyPoints 5
+                elseif ingump "4/" 622436516
+                    @setvar! unholyPoints 4
+                elseif ingump "3/" 622436516
+                    @setvar! unholyPoints 3
+                elseif ingump "2/" 622436516
+                    @setvar! unholyPoints 2
+                elseif ingump "1/" 622436516
+                    @setvar! unholyPoints 1
+                else 
+                    @setvar unholyPoints 0
+                endif   
                 
-                waitfortarget 650
-    
-                if not dead currentTarget and find currentTarget ground -1 -1 12
-                    
-                    if ingump "20/" 622436516
-                        @setvar! unholyPoints 20
-                    elseif ingump "19/" 622436516
-                        @setvar! unholyPoints 19
-                    elseif ingump "18/" 622436516
-                        @setvar! unholyPoints 18
-                    elseif ingump "17/" 622436516
-                        @setvar! unholyPoints 17
-                    elseif ingump "16/" 622436516
-                        @setvar! unholyPoints 16
-                    elseif ingump "15/" 622436516
-                        @setvar! unholyPoints 15
-                    elseif ingump "14/" 622436516
-                        @setvar! unholyPoints 14
-                    elseif ingump "13/" 622436516
-                        @setvar! unholyPoints 13
-                    elseif ingump "12/" 622436516
-                        @setvar! unholyPoints 12
-                    elseif ingump "11/" 622436516
-                        @setvar! unholyPoints 11
-                    elseif ingump "10/" 622436516
-                        @setvar! unholyPoints 10
-                    elseif ingump "9/" 622436516
-                        @setvar! unholyPoints 9
-                    elseif ingump "8/" 622436516
-                        @setvar! unholyPoints 8
-                    elseif ingump "7/" 622436516
-                        @setvar! unholyPoints 7
-                    elseif ingump "6/" 622436516
-                        @setvar! unholyPoints 6
-                    elseif ingump "5/" 622436516
-                        @setvar! unholyPoints 5
-                    elseif ingump "4/" 622436516
-                        @setvar! unholyPoints 4
-                    elseif ingump "3/" 622436516
-                        @setvar! unholyPoints 3
-                    elseif ingump "2/" 622436516
-                        @setvar! unholyPoints 2
-                    elseif ingump "1/" 622436516
-                        @setvar! unholyPoints 1
-                    else 
-                        @setvar unholyPoints 0
-                    endif   
-                    
-                    if 1 = NecroMindRot and 2 < unholyPoints and timer mindRotTimer > mindRotCD and skill 'necromancy' >= 75
-                        clearsysmsg
-                        yell '[mindrot'
-                        getlabel backpack xxx
-                        wait 200 
-                        
-                        while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
-                            yell '[mindrot'
-                            getlabel backpack xxx
-                            wait 200
-                        endwhile
-                        
-                        if insysmsg "unholy symbols"
-                            overhead '[>Mind rot<]' 44
-                            settimer mindRotTimer 0
-                        endif
-                    endif
-                    
-                    target currentTarget
+                if 1 = NecroMindRot and 2 < unholyPoints and timer mindRotTimer > mindRotCD and skill 'necromancy' >= 75
+                    clearsysmsg
+                    yell '[mindrot'
                     getlabel backpack xxx
                     wait 200 
                     
-                    if insysmsg "target cannot be seen"
-                        @setvar! foundTarget 0
-                        @setvar! currentTarget 0
-                        break
-                    endif
-                else
-                    hotkey 'cancel current target'
-                    break
-                endif 
-            endif
+                    while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+                        yell '[mindrot'
+                        getlabel backpack xxx
+                        wait 200
+                    endwhile
                     
-        endif
-            
-        if ingump "20/" 622436516
-            @setvar! unholyPoints 20
-        elseif ingump "19/" 622436516
-            @setvar! unholyPoints 19
-        elseif ingump "18/" 622436516
-            @setvar! unholyPoints 18
-        elseif ingump "17/" 622436516
-            @setvar! unholyPoints 17
-        elseif ingump "16/" 622436516
-            @setvar! unholyPoints 16
-        elseif ingump "15/" 622436516
-            @setvar! unholyPoints 15
-        elseif ingump "14/" 622436516
-            @setvar! unholyPoints 14
-        elseif ingump "13/" 622436516
-            @setvar! unholyPoints 13
-        elseif ingump "12/" 622436516
-            @setvar! unholyPoints 12
-        elseif ingump "11/" 622436516
-            @setvar! unholyPoints 11
-        elseif ingump "10/" 622436516
-            @setvar! unholyPoints 10
-        elseif ingump "9/" 622436516
-            @setvar! unholyPoints 9
-        elseif ingump "8/" 622436516
-            @setvar! unholyPoints 8
-        elseif ingump "7/" 622436516
-            @setvar! unholyPoints 7
-        elseif ingump "6/" 622436516
-            @setvar! unholyPoints 6
-        elseif ingump "5/" 622436516
-            @setvar! unholyPoints 5
-        elseif ingump "4/" 622436516
-            @setvar! unholyPoints 4
-        elseif ingump "3/" 622436516
-            @setvar! unholyPoints 3
-        elseif ingump "2/" 622436516
-            @setvar! unholyPoints 2
-        elseif ingump "1/" 622436516
-            @setvar! unholyPoints 1
-        else 
-            @setvar unholyPoints 0
-        endif       
-        
-        if 1 = NecroEvilOmen and 1 < unholyPoints and timer evilOmenTimer > evilOmenCD and skill 'necromancy' >= 60 and mana >= minManaToUseDamageBuffNecroSpells
-            clearsysmsg
-            yell '[evilomen'
-            getlabel backpack xxx
-            wait 200 
-            
-            while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
-                yell '[evilomen'
+                    if insysmsg "unholy symbols"
+                        overhead '[>Mind rot<]' 44
+                        settimer mindRotTimer 0
+                    endif
+                endif
+                
+                target currentTarget
                 getlabel backpack xxx
-                wait 200
-            endwhile
-            
-            if insysmsg "unholy symbols"
-                overhead '[>Evil Omen<]' 44
-                settimer evilOmenTimer 0
-            endif
-        endif
-        
-        if ingump "20/" 622436516
-            @setvar! unholyPoints 20
-        elseif ingump "19/" 622436516
-            @setvar! unholyPoints 19
-        elseif ingump "18/" 622436516
-            @setvar! unholyPoints 18
-        elseif ingump "17/" 622436516
-            @setvar! unholyPoints 17
-        elseif ingump "16/" 622436516
-            @setvar! unholyPoints 16
-        elseif ingump "15/" 622436516
-            @setvar! unholyPoints 15
-        elseif ingump "14/" 622436516
-            @setvar! unholyPoints 14
-        elseif ingump "13/" 622436516
-            @setvar! unholyPoints 13
-        elseif ingump "12/" 622436516
-            @setvar! unholyPoints 12
-        elseif ingump "11/" 622436516
-            @setvar! unholyPoints 11
-        elseif ingump "10/" 622436516
-            @setvar! unholyPoints 10
-        elseif ingump "9/" 622436516
-            @setvar! unholyPoints 9
-        elseif ingump "8/" 622436516
-            @setvar! unholyPoints 8
-        elseif ingump "7/" 622436516
-            @setvar! unholyPoints 7
-        elseif ingump "6/" 622436516
-            @setvar! unholyPoints 6
-        elseif ingump "5/" 622436516
-            @setvar! unholyPoints 5
-        elseif ingump "4/" 622436516
-            @setvar! unholyPoints 4
-        elseif ingump "3/" 622436516
-            @setvar! unholyPoints 3
-        elseif ingump "2/" 622436516
-            @setvar! unholyPoints 2
-        elseif ingump "1/" 622436516
-            @setvar! unholyPoints 1
-        else 
-            @setvar unholyPoints 0
-        endif      
-            
-        if 1 = NecroCorpseSkin and 1 < unholyPoints and timer corpseSkinTimer > corpseSkinCD and skill 'necromancy' >= 65 and mana >= minManaToUseDamageBuffNecroSpells
-            clearsysmsg
-            yell '[corpseskin'
-            getlabel backpack xxx
-            wait 200 
-            
-            while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
-                yell '[corpseskin'
-                getlabel backpack xxx
-                wait 200
-            endwhile
-            
-            if insysmsg "unholy symbols"
-                say '[>Corpse Skin<]' 44
-                settimer corpseSkinTimer 0
-            endif
-        endif
-        
-        if ingump "20/" 622436516
-            @setvar! unholyPoints 20
-        elseif ingump "19/" 622436516
-            @setvar! unholyPoints 19
-        elseif ingump "18/" 622436516
-            @setvar! unholyPoints 18
-        elseif ingump "17/" 622436516
-            @setvar! unholyPoints 17
-        elseif ingump "16/" 622436516
-            @setvar! unholyPoints 16
-        elseif ingump "15/" 622436516
-            @setvar! unholyPoints 15
-        elseif ingump "14/" 622436516
-            @setvar! unholyPoints 14
-        elseif ingump "13/" 622436516
-            @setvar! unholyPoints 13
-        elseif ingump "12/" 622436516
-            @setvar! unholyPoints 12
-        elseif ingump "11/" 622436516
-            @setvar! unholyPoints 11
-        elseif ingump "10/" 622436516
-            @setvar! unholyPoints 10
-        elseif ingump "9/" 622436516
-            @setvar! unholyPoints 9
-        elseif ingump "8/" 622436516
-            @setvar! unholyPoints 8
-        elseif ingump "7/" 622436516
-            @setvar! unholyPoints 7
-        elseif ingump "6/" 622436516
-            @setvar! unholyPoints 6
-        elseif ingump "5/" 622436516
-            @setvar! unholyPoints 5
-        elseif ingump "4/" 622436516
-            @setvar! unholyPoints 4
-        elseif ingump "3/" 622436516
-            @setvar! unholyPoints 3
-        elseif ingump "2/" 622436516
-            @setvar! unholyPoints 2
-        elseif ingump "1/" 622436516
-            @setvar! unholyPoints 1
-        else 
-            @setvar unholyPoints 0
-        endif      
-        
-        if 1 = NecroStrangle and 3 < unholyPoints and timer strangleTimer > strangleCD and skill 'necromancy' >= 85 and mana >= minManaToUseDamageBuffNecroSpells
-            clearsysmsg
-            yell '[strangle'
-            getlabel backpack xxx
-            wait 200 
-            
-            while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
-                yell '[strangle'
-                getlabel backpack xxx
-                wait 200
-            endwhile
-            
-            if insysmsg "unholy symbols"
-                say '[>Strangle<]' 44
-                settimer corpseSkinTimer 0
-            endif
-        endif 
-            
+                wait 200 
+                
+                if insysmsg "target cannot be seen"
+                    @setvar! foundTarget 0
+                    @setvar! currentTarget 0
+                    break
+                endif
+            else
+                hotkey 'cancel current target'
+                break
+            endif 
         
 #********** CAST CURSE  **********#    
 
-        if 1 = castCurse and timer curseTimer > curseCD and mana >= 11
+        elseif 1 = castCurse and timer curseTimer > curseCD and mana >= 11 and diffhits < lowDiff
             @setvar! wasInterrupted 0 
             cast 'Curse'           
             while not casting   
@@ -1193,7 +1120,7 @@ while not dead
             
 #********** CAST MANA DRAIN  **********#
 
-        elseif 1 = castManaDrain and timer manaDrainTimer > manaDrainCD and mana >= 11
+        elseif 1 = castManaDrain and timer manaDrainTimer > manaDrainCD and mana >= 11 and diffhits < lowDiff
             @setvar! wasInterrupted 0 
             cast 'Mana Drain'           
             while not casting   
@@ -1281,7 +1208,64 @@ while not dead
             else
                 hotkey 'cancel current target'
                 break
-            endif  
+            endif 
+            
+#********* CAST NECRO STRANGLE *********            
+            
+        elseif 1 = NecroStrangle and 3 < unholyPoints and timer strangleTimer > strangleCD and skill 'necromancy' >= 85 and mana >= minManaToUseDamageBuffNecroSpells
+            clearsysmsg
+            yell '[strangle'
+            getlabel backpack xxx
+            wait 200 
+            
+            while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+                yell '[strangle'
+                getlabel backpack xxx
+                wait 200
+            endwhile
+            
+            if insysmsg "unholy symbols"
+                say '[>Strangle<]' 44
+                settimer corpseSkinTimer 0
+            endif
+            
+#********* CAST NECRO CORPSE SKIN *********
+            
+        elseif 1 = NecroCorpseSkin and 1 < unholyPoints and timer corpseSkinTimer > corpseSkinCD and skill 'necromancy' >= 65 and mana >= minManaToUseDamageBuffNecroSpells
+            clearsysmsg
+            yell '[corpseskin'
+            getlabel backpack xxx
+            wait 200 
+            
+            while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+                yell '[corpseskin'
+                getlabel backpack xxx
+                wait 200
+            endwhile
+            
+            if insysmsg "unholy symbols"
+                say '[>Corpse Skin<]' 44
+                settimer corpseSkinTimer 0
+            endif
+        
+#********* CAST NECRO EVIL OMEN *********
+
+        elseif 1 = NecroEvilOmen and 1 < unholyPoints and timer evilOmenTimer > evilOmenCD and skill 'necromancy' >= 60 and mana >= minManaToUseDamageBuffNecroSpells
+            clearsysmsg
+            yell '[evilomen'
+            getlabel backpack xxx
+            wait 200 
+            
+            while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+                yell '[evilomen'
+                getlabel backpack xxx
+                wait 200
+            endwhile
+            
+            if insysmsg "unholy symbols"
+                overhead '[>Evil Omen<]' 44
+                settimer evilOmenTimer 0
+            endif
 
 #********** CAST MAGIC ARROW  **********#
 

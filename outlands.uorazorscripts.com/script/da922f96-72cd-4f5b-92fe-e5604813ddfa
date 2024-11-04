@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 2.13 
+#Auto-mage attack 2.20
 
 #********** INFORMATION **********# 
 
@@ -23,7 +23,7 @@
 # 0 - Auto Target Selection 
 # 1 - Manual selection using hotkey `set last target`
 
-@setvar! targetSelectionMode 1
+@setvar! targetSelectionMode 0
 
 #--- Set Mage attack spells ---#
 
@@ -32,10 +32,13 @@
 @setvar! castFireball 1
 @setvar! castLightning 1
 
-@setvar! castMindblast 0
-@setvar! castExplosion 0
-@setvar! castEnergyBolt 0
+#- Big spells prioritize order -#
+
 @setvar! castFlamestrike 1
+@setvar! castEnergyBolt 0
+@setvar! castExplosion 0
+@setvar! castMindblast 1
+
 
 @setvar! castPoison 1
 
@@ -43,7 +46,7 @@
 # 0 - Greater or lesser 
 # 1 - Deadly 
 # 2 - Lethal
-@setvar! poisonLevel 0
+@setvar! poisonLevel 1
 
 @setvar! castCurse 1
 @setvar! castManaDrain 1
@@ -59,13 +62,14 @@
 
 #--- Set Necromancy Spells ---#
 
+@setvar! NecroMindRot 1
+
 @setvar! NecroEvilOmen 1
 @setvar! NecroCorpseSkin 1
 @setvar! NecroStrangle 0
 @setvar! minManaToUseDamageBuffNecroSpells 40
 
-@setvar! NecroMindRot 1
-
+#- Poison Strike -#
 # 0 - Disabled
 # 1 - Apply in 1 ticks left or less
 # 2 - Apply in 2 ticks left or less
@@ -78,7 +82,7 @@
 # 9 - Apply in 9 ticks left or less
 # 10 - Apply in 10 ticks left or less
 
-@setvar! NecroPoisonStrike 6
+@setvar! NecroPoisonStrike 8
 
 #--- Set Mage auto heals ---#
 
@@ -107,13 +111,14 @@ endif
 #--- Set potions ---#
 
 @setvar! drinkStr 1
-@setvar! drinkAgility 0
-@setvar! drinkMagicResist 0
+@setvar! strengthLowerThan 100
+
+@setvar! drinkAgility 1
+@setvar! drinkMagicResist 1
 @setvar! drinkHeal 1
 @setvar! drinkCure 1
-@setvar! drinkRefresh 1
 
-@setvar! strengthLowerThan 100
+@setvar! drinkRefresh 1
 @setvar! staminaLowerThan 15
 
 #--- Auto healing hp diffs ---#
@@ -132,7 +137,7 @@ endif
 #--- Meditation ---#
 
 @setvar! useMeditationSkill 1
-@setvar! meditateWhenManaBelow 40
+@setvar! meditateWhenManaBelow 14
 @setvar! meditateUntilManaReach 65
 
 #--- Optional : Have a cooldown named `Heal Pot` ---#
@@ -153,13 +158,9 @@ endif
 @setvar! unholyPoints 0
 
 if castExplosion = 1
-    @setvar! bigSpellCounter 0
-elseif castFlamestrike = 1 
-    @setvar! bigSpellCounter 1
-elseif castEnergyBolt = 1 
     @setvar! bigSpellCounter 2
-elseif castMindblast = 1 
-    @setvar! bigSpellCounter 3
+elseif castEnergyBolt = 1 
+    @setvar! bigSpellCounter 1
 endif
 
 if not varexist previousTarget
@@ -224,25 +225,28 @@ settimer targetSelectTimer targetSelectCD
 
 #--- Resources timers ---#
 
-@setvar! pouchMessageCD 5000
+@setvar! pouchMessageCD 2000
 settimer pouchMessageTimer pouchMessageCD
 
-@setvar! aidsMessageCD 4000
+@setvar! aidsMessageCD 2500
 settimer aidsMessageTimer aidsMessageCD
 
 @setvar! whiteMessageCD 3000
 settimer whiteMessageTimer whiteMessageCD
 
-@setvar! blackMessageCD 2500
+@setvar! blueMessageCD 3500
+settimer blueMessageTimer blueMessageCD
+
+@setvar! blackMessageCD 4000
 settimer blackMessageTimer blackMessageCD
 
-@setvar! orangeMessageCD 2000
+@setvar! orangeMessageCD 4500
 settimer orangeMessageTimer orangeMessageCD
 
-@setvar! yellowMessageCD 1500
+@setvar! yellowMessageCD 5000
 settimer yellowMessageTimer yellowMessageCD
 
-@setvar! redMessageCD 1000
+@setvar! redMessageCD 5500
 settimer redMessageTimer redMessageCD
 
 #--- Magery buffs timers ---#
@@ -341,54 +345,6 @@ while not dead
                 endif
             endif
         endif
-        
-        #--- Drink str pot ---#
-        
-        if drinkStr = 1 and str < strengthLowerThan
-            if not findbuff "Strength" 
-                if findtype "White Potion" self
-                    dclicktype "White Potion"
-                    wait 200
-                else
-                    if timer whiteMessageTimer > whiteMessageCD
-                        overhead "Out of str pots" 34
-                        settimer whiteMessageTimer 0 
-                    endif
-                endif
-            endif
-        endif
-        
-        #--- Drink agility pot ---#
-        
-        if drinkAgility = 1
-            if not findbuff "Agility" 
-                if findtype "Blue Potion" self
-                    dclicktype "Blue Potion"
-                    wait 200
-                else
-                    if timer blueMessageTimer > blueMessageCD
-                        overhead "Out of agility pots" 34
-                        settimer blueMessageTimer 0 
-                    endif
-                endif
-            endif
-        endif
-            
-        #--- Drink magic resist pot ---#
-    
-        if drinkMagicResist = 1
-            if not findbuff "Magic Resist" 
-                if findtype "Black Potion" self
-                    dclicktype "Black Potion"
-                    wait 200
-                else
-                    if timer blackMessageTimer > blackMessageCD
-                        overhead "Out of resist pots" 34
-                        settimer blackMessageTimer 0
-                    endif
-                endif
-            endif
-        endif
             
         #--- Poisoned ---#
         
@@ -457,20 +413,6 @@ while not dead
                 if timer yellowMessageTimer > yellowMessageCD
                     overhead "Out of heals pots" 34
                     settimer yellowMessageTimer 0
-                endif
-            endif
-        endif
-                
-        #--- Drink red pot ---#
-        
-        if stam < staminaLowerThan and 1 = drinkRefresh
-            if findtype "Red Potion" self
-                dclicktype "Red Potion"
-                wait 200
-            else
-                if timer redMessageTimer > redMessageCD
-                    overhead "Out of refresh pots" 34
-                    settimer redMessageTimer 0 
                 endif
             endif
         endif
@@ -719,17 +661,6 @@ while not dead
     
     while 1 = foundTarget and not dead currentTarget and find currentTarget ground -1 -1 12
         
-        while not dead
-            getlabel currentTarget targetLabel
-            if "-" in targetLabel or "*" in targetLabel
-                getlabel currentTarget targetLabel
-                sysmsg targetLabel 34
-            else 
-                sysmsg targetLabel 65
-                break
-            endif
-        endwhile
-        
         if followers > 0 and 0 = currentlyAttacking
             clearsysmsg
             while not dead 
@@ -745,11 +676,88 @@ while not dead
         
         @setvar! currentlyAttacking 1
         
+#********** DRINK POTION IF NEEDED **********#
+        
+        #--- Drink str pot ---#
+        
+        if drinkStr = 1 and str < strengthLowerThan
+            if not findbuff "Strength" 
+                if findtype "White Potion" self
+                    dclicktype "White Potion"
+                    wait 200
+                else
+                    if timer whiteMessageTimer > whiteMessageCD
+                        overhead "Out of str pots" 34
+                        settimer whiteMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+        
+        #--- Drink agility pot ---#
+        
+        if drinkAgility = 1
+            if not findbuff "Agility" 
+                if findtype "Blue Potion" self
+                    dclicktype "Blue Potion"
+                    wait 200
+                else
+                    if timer blueMessageTimer > blueMessageCD
+                        overhead "Out of agility pots" 34
+                        settimer blueMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+            
+        #--- Drink magic resist pot ---#
+    
+        if drinkMagicResist = 1
+            if not findbuff "Magic Resist" 
+                if findtype "Black Potion" self
+                    dclicktype "Black Potion"
+                    wait 200
+                else
+                    if timer blackMessageTimer > blackMessageCD
+                        overhead "Out of resist pots" 34
+                        settimer blackMessageTimer 0
+                    endif
+                endif
+            endif
+        endif
+        
+        #--- Drink red pot ---#
+        
+        if stam < staminaLowerThan and 1 = drinkRefresh
+            if findtype "Red Potion" self
+                dclicktype "Red Potion"
+                wait 200
+            else
+                if timer redMessageTimer > redMessageCD
+                    overhead "Out of refresh pots" 34
+                    settimer redMessageTimer 0 
+                endif
+            endif
+        endif
+        
 #********** CHECK POISONING STATUS **********#
         
         if castPoison = 1
-            if "Ticks" in targetLabel or "resists" in targetLabel
+            @setvar! repeatCastingPoison 1
             
+            while not dead
+                getlabel currentTarget targetLabel
+                if "-" in targetLabel
+                    getlabel currentTarget targetLabel
+                    #sysmsg targetLabel 34
+                else 
+                    #sysmsg targetLabel 65
+                    break
+                endif
+            endwhile
+            
+            if "Ticks" in targetLabel or "resists" in targetLabel
+                
                 if timer poisonLabelTimer > poisonLabelCD
                     overhead targetLabel 44
                     overhead targetLabel  44 currentTarget
@@ -763,7 +771,7 @@ while not dead
                         @setvar! repeatCastingPoison 0
                     endif
                 else 
-                    @setvar! repeatCastingPoison 1
+                    @setvar! repeatCastingPoison 0
                 endif
                 
                 if 0 = repeatCastingPoison and 0 != NecroPoisonStrike
@@ -879,9 +887,6 @@ while not dead
                     endif
                     
                 endif
-                
-            else 
-                @setvar! repeatCastingPoison 1
             endif
         endif
         
@@ -1472,51 +1477,53 @@ while not dead
 #********** CAST BIG SPELLS  **********# 
 
         elseif castExplosion = 1 or castFlamestrike = 1 or castEnergyBolt = 1 or castMindblast = 1
-            if diffhits < lowDiff and mana >= 40
-                if castExplosion = 1 and bigSpellCounter = 0
+            
+            if castFlamestrike = 1 and mana >= 40 and diffhits < lowDiff
+            
+                cast 'flamestrike'           
+                while not casting    
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    cast 'flamestrike'             
+                endwhile
+            
+            elseif castEnergyBolt = 1 and bigSpellCounter = 1 and mana >= 20 and diffhits < lowDiff
+            
+                cast 'energy bolt'           
+                while not casting    
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    cast 'energy bolt'             
+                endwhile
                 
-                    cast 'Explosion'           
-                    while not casting    
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                        cast 'Explosion'             
-                    endwhile
-                    
-                elseif castFlamestrike = 1 and bigSpellCounter = 1
+            elseif castExplosion = 1 and bigSpellCounter = 2 and mana >= 20 and diffhits < lowDiff
+            
+                cast 'Explosion'           
+                while not casting    
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    cast 'Explosion'             
+                endwhile
+            
+            elseif castMindblast = 1 and mana >= 14 and diffhits < lowDiff
+            
+                cast 'mind blast'           
+                while not casting    
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    cast 'mind blast'             
+                endwhile
+            
+            endif
+            
+            getlabel backpack xxx
+            wait 100
                 
-                    cast 'flamestrike'           
-                    while not casting    
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                        cast 'flamestrike'             
-                    endwhile
-                
-                elseif castEnergyBolt = 1 and bigSpellCounter = 2
-                
-                    cast 'energy bolt'           
-                    while not casting    
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                        cast 'energy bolt'             
-                    endwhile
-                
-                elseif castMindblast = 1 and bigSpellCounter = 3
-                
-                    cast 'mind blast'           
-                    while not casting    
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                        cast 'mind blast'             
-                    endwhile
-                
-                endif
-                
-                getlabel backpack xxx
-                wait 100
+            if casting
                 
                 while casting
                     if dead currentTarget and not find currentTarget ground -1 -1 12
@@ -1591,43 +1598,13 @@ while not dead
                         break
                     endif
                     
-                    if bigSpellCounter = 0
-                    
-                        if castFlamestrike = 1 
-                            @setvar! bigSpellCounter 1 
-                        elseif castEnergyBolt = 1 
-                            @setvar! bigSpellCounter 2 
-                        elseif castMindblast = 1 
-                            @setvar! bigSpellCounter 3 
-                        endif
-                        
-                    elseif bigSpellCounter = 1 
-                    
-                        if castEnergyBolt = 1 
-                            @setvar! bigSpellCounter 2 
-                        elseif castMindblast = 1 
-                            @setvar! bigSpellCounter 3 
-                        elseif castExplosion = 1 
-                            @setvar! bigSpellCounter 0 
-                        endif
-                    
-                    elseif bigSpellCounter = 2 
-                        
-                        if castMindblast = 1 
-                            @setvar! bigSpellCounter 3 
-                        elseif castExplosion = 1 
-                            @setvar! bigSpellCounter 0 
-                        elseif castFlamestrike = 1 
-                            @setvar! bigSpellCounter 1 
-                        endif
-                    
-                    elseif bigSpellCounter = 3 
+                    if bigSpellCounter = 1 
                         if castExplosion = 1 
-                            @setvar! bigSpellCounter 0 
-                        elseif castFlamestrike = 1 
-                            @setvar! bigSpellCounter 1 
-                        elseif castEnergyBolt = 1 
-                            @setvar! bigSpellCounter 2 
+                            @setvar! bigSpellCounter 2
+                        endif
+                    elseif bigSpellCounter = 2
+                        if castEnergyBolt = 1 
+                            @setvar! bigSpellCounter 1
                         endif
                     endif
                     
@@ -1679,54 +1656,6 @@ while not dead
                         if timer aidsMessageTimer > aidsMessageCD
                             overhead "Out of bandages" 34
                             settimer aidsMessageTimer 0
-                        endif
-                    endif
-                endif
-            endif
-            
-            #--- Drink str pot ---#
-            
-            if drinkStr = 1 and str < strengthLowerThan
-                if not findbuff "Strength" 
-                    if findtype "White Potion" self
-                        dclicktype "White Potion"
-                        wait 200
-                    else
-                        if timer whiteMessageTimer > whiteMessageCD
-                            overhead "Out of str pots" 34
-                            settimer whiteMessageTimer 0 
-                        endif
-                    endif
-                endif
-            endif
-            
-            #--- Drink agility pot ---#
-            
-            if drinkAgility = 1
-                if not findbuff "Agility" 
-                    if findtype "Blue Potion" self
-                        dclicktype "Blue Potion"
-                        wait 200
-                    else
-                        if timer blueMessageTimer > blueMessageCD
-                            overhead "Out of agility pots" 34
-                            settimer blueMessageTimer 0 
-                        endif
-                    endif
-                endif
-            endif
-                
-            #--- Drink magic resist pot ---#
-        
-            if drinkMagicResist = 1
-                if not findbuff "Magic Resist" 
-                    if findtype "Black Potion" self
-                        dclicktype "Black Potion"
-                        wait 200
-                    else
-                        if timer blackMessageTimer > blackMessageCD
-                            overhead "Out of resist pots" 34
-                            settimer blackMessageTimer 0
                         endif
                     endif
                 endif
@@ -1799,20 +1728,6 @@ while not dead
                     if timer yellowMessageTimer > yellowMessageCD
                         overhead "Out of heals pots" 34
                         settimer yellowMessageTimer 0
-                    endif
-                endif
-            endif
-                    
-            #--- Drink red pot ---#
-            
-            if stam < staminaLowerThan and 1 = drinkRefresh
-                if findtype "Red Potion" self
-                    dclicktype "Red Potion"
-                    wait 200
-                else
-                    if timer redMessageTimer > redMessageCD
-                        overhead "Out of refresh pots" 34
-                        settimer redMessageTimer 0 
                     endif
                 endif
             endif
@@ -1967,6 +1882,7 @@ while not dead
         endif
 
  #********** USE WEAPON ABILITY **********# 
+ 
         if skill "Arcane" >= 80
             if timer weaponAbilityTimer > weaponAbilityCD
                 if useWeaponAbility = 1
@@ -2006,6 +1922,74 @@ while not dead
                 break
             endif  
         endwhile
+    endif
+    
+#********** DRINK POTION IF NEEDED **********#
+    
+    #--- Drink str pot ---#
+    
+    if drinkStr = 1 and str < strengthLowerThan
+        if not findbuff "Strength" 
+            if findtype "White Potion" self
+                dclicktype "White Potion"
+                getlabel backpack xxx
+                wait 200
+            else
+                if timer whiteMessageTimer > whiteMessageCD
+                    overhead "Out of str pots" 34
+                    settimer whiteMessageTimer 0 
+                endif
+            endif
+        endif
+    endif
+    
+    #--- Drink agility pot ---#
+    
+    if drinkAgility = 1
+        if not findbuff "Agility" 
+            if findtype "Blue Potion" self
+                dclicktype "Blue Potion"
+                getlabel backpack xxx
+                wait 200
+            else
+                if timer blueMessageTimer > blueMessageCD
+                    overhead "Out of agility pots" 34
+                    settimer blueMessageTimer 0 
+                endif
+            endif
+        endif
+    endif
+        
+    #--- Drink magic resist pot ---#
+
+    if drinkMagicResist = 1
+        if not findbuff "Magic Resist" 
+            if findtype "Black Potion" self
+                dclicktype "Black Potion"
+                getlabel backpack xxx
+                wait 200
+            else
+                if timer blackMessageTimer > blackMessageCD
+                    overhead "Out of resist pots" 34
+                    settimer blackMessageTimer 0
+                endif
+            endif
+        endif
+    endif
+    
+    #--- Drink red pot ---#
+    
+    if stam < staminaLowerThan and 1 = drinkRefresh
+        if findtype "Red Potion" self
+            dclicktype "Red Potion"
+            getlabel backpack xxx
+            wait 200
+        else
+            if timer redMessageTimer > redMessageCD
+                overhead "Out of refresh pots" 34
+                settimer redMessageTimer 0 
+            endif
+        endif
     endif
     
 #********** AUTO-MAGERY BUFFS IF NEEDED **********          

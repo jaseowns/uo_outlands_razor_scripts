@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 2.48
+#Auto-mage attack 2.55
 
 #********** INFORMATION **********# 
 
@@ -15,6 +15,8 @@
 #This script will work with full Mage Arcanes, Necro Mages, Mage Summoners.
 
 #--- *!*!* SCRIPT IS UNDER DEVELOPMENT. *!*!*!* ---#
+
+#Version 2.55 fixes the necromacy spells getting spammed. (this issue occured while world saving most likely and timers for necro spells)
 
 # !!! SOON TO BE ADDED: Auto Summoning !!! #
 
@@ -42,7 +44,7 @@
 
 #--- Poison ---#
 
-@setvar! castPoison 1
+@setvar! castPoison 0
 
 #- Poison Level
 # 0 - Greater or lesser 
@@ -51,7 +53,7 @@
 @setvar! poisonLevel 1
 
 @setvar! castCurse 1
-@setvar! castManaDrain 1
+@setvar! castManaDrain 0
 
 #--- Set Mage attack cooldowns ---#
 
@@ -84,7 +86,7 @@
 # 9 - Apply in 9 ticks left or less
 # 10 - Apply in 10 ticks left or less
 
-@setvar! NecroPoisonStrike 7
+@setvar! NecroPoisonStrike 0
 
 #--- Set Mage auto heals ---#
 
@@ -138,7 +140,7 @@ endif
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 1
+@setvar! useMeditationSkill 0
 @setvar! meditateWhenManaBelow 14
 @setvar! meditateUntilManaReach 65
 
@@ -188,6 +190,8 @@ if not timerexists manaDrainTimer
 endif
 
 #--- Necro spells timers ---#
+
+@setvar! necroMarginErrorCD 28000
 
 @setvar! evilOmenCD 30000
 
@@ -730,6 +734,9 @@ while not dead
                         endif
                         wait maxwaittimeinms
                         overhead "* Gold Dropped *" 55
+                    else 
+                        overhead "* No Gold found to drop *" 44
+                        break
                     endif
                 endwhile            
             endif
@@ -1028,28 +1035,40 @@ while not dead
 
         elseif 1 = castStrike and 0 < unholyPoints and timer poisonStrikeTimer > poisonStrikeCD and skill 'necromancy' >= 55 and diffhits < lowDiff and not dead currentTarget and find currentTarget ground -1 -1 12
             clearsysmsg
+            
+            @setvar! strikeInterrupted 0 
+            
             yell '[poisonstrike'
             getlabel backpack xxx
             wait 100 
             
             while not targetexists
+                sysmsg "#3"
+                if insysmsg "you must wait"
+                    @setvar! strikeInterrupted 1
+                    sysmsg "necro margin error 0" 44
+                    settimer poisonStrikeTimer necroMarginErrorCD
+                    break
+                endif
                 yell '[poisonstrike'
                 getlabel backpack xxx
                 wait 100
             endwhile
             
-            waitfortarget 650
-            target currentTarget
-            
-            getlabel backpack xxx
-            wait 200 
-
-            if insysmsg "unholy symbols remaining"
-                overhead '[>Poison Strike<]' 44
-                settimer poisonStrikeTimer 0
-            else
-                if targetexists
-                    hotkey 'cancel current target'
+            if 0 = strikeInterrupted
+                waitfortarget 650
+                target currentTarget
+                
+                getlabel backpack xxx
+                wait 200 
+    
+                if insysmsg "unholy symbols remaining"
+                    overhead '[>Poison Strike<]' 44
+                    settimer poisonStrikeTimer 0
+                else
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
                 endif
             endif
 
@@ -1249,6 +1268,10 @@ while not dead
                     say '[>Strangle<]' 44
                     settimer strangleTimer 0
                     break
+                elseif insysmsg "you must wait"
+                    settimer strangleTimer necroMarginErrorCD
+                    sysmsg "necro margin error 1" 44
+                    break    
                 endif
                 yell '[strangle'
                 getlabel backpack xxx
@@ -1268,6 +1291,10 @@ while not dead
                     say '[>Corpse Skin<]' 44
                     settimer corpseSkinTimer 0
                     break
+                elseif insysmsg "you must wait"
+                    sysmsg "necro margin error 2" 44
+                    settimer corpseSkinTimer necroMarginErrorCD
+                    break    
                 endif
                 yell '[corpseskin'
                 getlabel backpack xxx
@@ -1287,6 +1314,10 @@ while not dead
                     say '[>Evil Omen<]' 44
                     settimer evilOmenTimer 0
                     break
+                elseif insysmsg "you must wait"
+                    sysmsg "necro margin error 3" 44
+                    settimer evilOmenTimer necroMarginErrorCD
+                    break    
                 endif
                 yell '[evilomen'
                 getlabel backpack xxx

@@ -6,7 +6,7 @@
 
 # Bapeths Time Dungeon Sense
 #
-# Nov 13th 2024
+# Nov 14th 2024
 #
 # This script will sense and loot containers in Time Dungeon (Some quest items may still need to be added)
 #
@@ -20,6 +20,10 @@
 # Be aware that this may make you overweight from large gold piles from time to time
 # To toggle this feature on/off (default is off) "Double click a dagger" (suggest a blessed newbied dagger)
 #
+# "Auto Door Lockpick"
+# Go into "Warmode" near a pickable door and the scirpt will ask you which door you wish to pick
+# The script will then pick the door lock untill it opens
+#
 # Script starts here...
 
 if not targetexists and not casting
@@ -29,10 +33,13 @@ if not targetexists and not casting
     endif
     if timer timesensecontainer >= 1000
         for 18
-        if index > 0 and findtype "wooden shelf|dead|chest of drawers|3712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 index as timecontainers
+            if index > 0 and findtype "wooden shelf|dead|chest of drawers|3712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 index as timecontainers
                 getlabel timecontainers desc
                 overhead "*search*" 88 timecontainers
                 @ignore timecontainers
+            endif
+            if findtype "wooden shelf|dead|chest of drawers|3712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 2
+                break
             endif
         endfor
         @clearignore
@@ -44,16 +51,20 @@ if not targetexists and not casting
     endif
     if timer switchandstufftimer >= 1000
         for 18
-        if index > 0 and findtype 4239|4240  ground -1 -1 index as switchandstuff
+            if index > 0 and findtype 4239|4240  ground -1 -1 index as switchandstuff
                 getlabel switchandstuff desc
                 overhead "*switch*" 78 switchandstuff
                 @ignore switchandstuff
+            endif
+            if findtype "wooden shelf|dead|chest of drawers|3712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 2
+                break
             endif
         endfor
         @clearignore
         settimer switchandstufftimer 0
     endif
     while findtype "wooden shelf|dead|chest of drawers|3712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 2 as timecontainer
+        @setvar "baptimecontainer" timecontainer
         while queued
             //donothing
         endwhile
@@ -111,17 +122,82 @@ if not targetexists and not casting
             while queued
                 //donothing
             endwhile
-            if not findtype "wooden shelf|dead|chest of drawers|3712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 2
-                @clearignore 
+        endwhile
+        @ignore timecontainer
+    endwhile
+endif
+if skill "Lockpicking" >= 50 and warmode and findtype "barred metal door|metal door" ground -1 -1 2
+    if findtype 5373 backpack as picks
+        clearsysmsg 
+        overhead "Which door shall I pick?" 88
+        hotkey "Set Last Target"
+        wft 1000
+        while targetexists 
+            if not findtype "barred metal door|metal door" ground -1 -1 2
                 break
             endif
         endwhile
-        @ignore timecontainer
-        if not findtype "wooden shelf|dead|chest of drawers|3712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 2
-            break
-            @clearignore 
-        endif
-    endwhile
+        @setvar "bapdoorpick" lasttarget 
+        overhead "Time is of the essence..." 88
+        overhead "*picking*" 1060 doorlock
+        for 2000
+            dclick picks
+            wft 1000
+            target bapdoorpick
+            getlabel backpack ping
+            if insysmsg "That is not locked"
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            if insysmsg "Target cannot be seen"
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            pause 3150
+            if insysmsg "You pick the lock!"
+                overhead "What lay beyond this door..." 87
+                dclick bapdoorpick
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            if not findtype 5373 backpack
+                overhead "Argh, it was my last pick..." 38
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            if not findtype "barred metal door" ground -1 -1 2
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            if not warmode 
+                break
+            endif
+            if insysmsg "You have worn out your tool"
+                overhead "This tool is worn out!" 805
+            endif
+            if insysmsg "fail"
+                //do nothing
+            elseif insysmsg "You pick the lock!"
+                overhead "*pop*" 2091 bchest
+                //do nothing
+            elseif insysmsg  "You must remain stationary"
+                //do nothing
+            else
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+        endfor
+     else 
+         overhead "I am out of lockpicks!" 38
+         warmode "off"
+         getlabel backpack ping
+     endif
 endif
 
 if not timerexists lootvacuumswitch

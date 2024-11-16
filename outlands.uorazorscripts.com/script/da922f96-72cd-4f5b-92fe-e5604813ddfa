@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 2.61
+#Auto-mage attack 2.77
 
 #********** INFORMATION **********# 
 
@@ -20,6 +20,7 @@
     
 ### Changes Log ###
 
+# Ver2.77 fixes and changes to casting and targetting spells
 # Ver2.61 added spirit speak skill use
 # Ver2.60 fixes to manual targetting
 # Ver2.59 Set last target can be activated while fighting a mob to change targets 
@@ -103,20 +104,17 @@
 #--- Set Mage Buffs ---#
 
 @setvar! magicReflect 1
-@setvar! bless 1
+@setvar! bless 0
 @setvar! armorReflect 1
-@setvar! protectionSpell 1
+@setvar! protectionSpell 0
 @setvar! miniumManaToBuff 50
 
 #--- Set mushrooms ---#
 
 @setvar! mushroomCount 3
 @setvar! eatMushWhenManaLowerThan 50
-
+l
 @setvar! mushroomTimerCD 60000
-if not timerexists mushroomTimer
-    settimer mushroomTimer mushroomTimerCD
-endif
 
 #--- Set potions ---#
 
@@ -133,6 +131,11 @@ endif
 
 #--- Auto healing hp diffs ---#
 
+@setvar! activateAutoHealDiff 20
+
+@setvar! allowCastingDiff 30
+@setvar! interruptCastingDiff 40
+
 @setvar! lowDiff 20 
 @setvar! medDiff 30
 @setvar! highDiff 50
@@ -141,7 +144,7 @@ endif
 
 #--- Arcane Weapon Ability ---#
 
-@setvar! useWeaponAbility 0
+@setvar! useWeaponAbility 2
 @setvar useAbilityWhenManaLowerThan 65
 
 #--- Meditation ---#
@@ -149,6 +152,8 @@ endif
 @setvar! useMeditationSkill 1
 @setvar! meditateWhenManaBelow 14
 @setvar! meditateUntilManaReach 65
+
+@setvar! lowManaWarningMessageWhenBelow 40
 
 #--- Drop Gold When Overweight ---#
 
@@ -185,6 +190,10 @@ if not varexist previousTarget
 endif
 
 @setvar! maxwaittimeinms 650
+
+if not timerexists mushroomTimer
+    settimer mushroomTimer mushroomTimerCD
+endif
 
 @setvar! curseCD 60000
 @setvar! manaDrainCD 60000
@@ -363,7 +372,7 @@ while not dead
 
 #********** AUTO HEALING START  **********#         
 
-    while diffhits >= lowDiff or paralyzed or poisoned
+    while diffhits >= activateAutoHealDiff or paralyzed or poisoned
         sysmsg "auto-healing activated" 11      
         #--- Trapped ---#
         
@@ -725,9 +734,16 @@ while not dead
     endif
     
     while 1 = foundTarget and not dead currentTarget and find currentTarget ground -1 -1 12
-
+        @setvar! castingInterrupted 0
+        sysmsg 'found target' 55
+        
+        if targetexists
+            hotkey 'cancel current target'
+        endif
+        
         if followers > 0 and 0 = currentlyAttacking
-            clearsysmsg
+            if insysmsg "Ignoring speech request"
+            endif
             while not dead 
                 say 'ALL Guard ME' 11
                 getlabel backpack xxx
@@ -1008,8 +1024,13 @@ while not dead
 
 #********** CAST POISON  **********#          
          
-        if repeatCastingPoison = 1 and diffhits < lowDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12
-
+        if repeatCastingPoison = 1 and diffhits < allowCastingDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12
+            
+            if insysmsg "Your concentration is disturbed"
+            endif       
+            if insysmsg "target cannot be seen"
+            endif  
+            sysmsg "poison" 11
             cast 'Poison'           
             while not casting   
                 if targetexists
@@ -1018,91 +1039,94 @@ while not dead
                 cast 'Poison'             
             endwhile  
             
-            while not targetexists and casting
+            while not targetexists
                 if dead currentTarget and not find currentTarget ground -1 -1 12
                     interrupt
-                endif
-            endwhile
-            
-            waitfortarget 650
-
-            if targetexists and not dead currentTarget and find currentTarget ground -1 -1 12
-                
-                if 1 = NecroMindRot and 2 < unholyPoints and timer mindRotTimer > mindRotCD and skill 'necromancy' >= 75 
-                    clearsysmsg
-                    yell '[mindrot'
-                    getlabel backpack xxx
-                    wait 100 
-                    
-                    while not dead currentTarget and find currentTarget ground -1 -1 12
-                        #sysmsg "#2"
-                        if insysmsg "unholy symbols remaining"
-                            say '[>Mind Rot<]' 44
-                            settimer mindRotTimer 0
-                            break
-                        endif
-                        yell '[mindrot'
-                        getlabel backpack xxx
-                        wait 100
-                    endwhile
-                endif
-                
-                target currentTarget
-                getlabel backpack xxx
-                wait 200 
-                
-                if insysmsg "target cannot be seen"
-                    @setvar! foundTarget 0
-                    @setvar! currentTarget 0
+                    @setvar! castingInterrupted 1
                     break
                 endif
-            endif 
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
+                endif
+            endwhile
+                
+            if 0 = castingInterrupted and 1 = NecroMindRot and 2 < unholyPoints and timer mindRotTimer > mindRotCD and skill 'necromancy' >= 75 
+                if insysmsg "unholy symbols remaining"
+                endif
+                if insysmsg "seconds before you may use that ability again."
+                endif
+                
+                while not insysmsg "unholy symbols remaining"
+                    sysmsg "mindrot" 66
+                    yell '[mindrot'
+                    getlabel backpack xxx
+                    wait 200
+                    if insysmsg "seconds before you may use that ability again."
+                        @setvar! castingInterrupted 1
+                        settimer mindRotTimer necroMarginErrorCD
+                        sysmsg "necro margin error 1" 44
+                        break    
+                    endif
+                endwhile
+                
+                if 0 = castingInterrupted
+                    overhead '[>Mind Rot<]' 44
+                    settimer mindRotTimer 0
+                endif
+            endif
+            
+            target currentTarget
+            getlabel backpack xxx
+            wait 200 
+            
+            if insysmsg "target cannot be seen"
+                @setvar! foundTarget 0
+                @setvar! currentTarget 0
+                break
+            endif
 
 #********* CAST NECRO POISON STRIKE *********   
 
-        elseif 1 = castStrike and 0 < unholyPoints and timer poisonStrikeTimer > poisonStrikeCD and skill 'necromancy' >= 55 and diffhits < lowDiff and not dead currentTarget and find currentTarget ground -1 -1 12
-            clearsysmsg
+        elseif 1 = castStrike and 0 < unholyPoints and timer poisonStrikeTimer > poisonStrikeCD and skill 'necromancy' >= 55 and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+            if insysmsg "unholy symbols remaining"
+            endif
+            if insysmsg "seconds before you may use that ability again."
+            endif
             
-            @setvar! strikeInterrupted 0 
-            
-            yell '[poisonstrike'
-            getlabel backpack xxx
-            wait 100 
-            
-            while not targetexists
-                #sysmsg "#3"
+            while not insysmsg! "unholy symbols remaining"
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    break
+                endif 
+                
+                sysmsg "strike" 66
+                yell '[poisonstrike'
+                waitfortarget maxwaittimeinms
+                target currentTarget
+                getlabel backpack xxx
+                wait 200                
+                
                 if insysmsg "seconds before you may use that ability again."
-                    @setvar! strikeInterrupted 1
                     sysmsg "necro margin error 0" 44
                     settimer poisonStrikeTimer necroMarginErrorCD
                     break
-                endif
-                yell '[poisonstrike'
-                getlabel backpack xxx
-                wait 100
+                endif             
             endwhile
             
-            if 0 = strikeInterrupted
-                waitfortarget 650
-                target currentTarget
-                
-                getlabel backpack xxx
-                wait 200 
-    
-                if insysmsg "unholy symbols remaining"
-                    overhead '[>Poison Strike<]' 44
-                    settimer poisonStrikeTimer 0
-                else
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                endif
+            if insysmsg "unholy symbols remaining"
+                overhead '[>Poison Strike<]' 44
+                settimer poisonStrikeTimer 0
             endif
 
 #********** CAST CURSE  **********#    
 
-        elseif 1 = castCurse and timer curseTimer > curseCD and mana >= 11 and diffhits < lowDiff and not dead currentTarget and find currentTarget ground -1 -1 12
-            @setvar! wasInterrupted 0 
+        elseif 1 = castCurse and timer curseTimer > curseCD and mana >= 11 and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+            if insysmsg "Your concentration is disturbed"
+            endif       
+            if insysmsg "target cannot be seen"
+            endif           
+            sysmsg "Curse" 11
             cast 'Curse'           
             while not casting   
                 if targetexists
@@ -1111,12 +1135,22 @@ while not dead
                 cast 'Curse'             
             endwhile  
             
-            while not targetexists and casting
+            while not targetexists
+                if diffhits >= interruptCastingDiff
+                    interrupt
+                    @setvar! castingInterrupted 1 
+                    break
+                endif
                 if dead currentTarget and not find currentTarget ground -1 -1 12
                     interrupt
-                    @setvar! wasInterrupted 1
+                    @setvar! castingInterrupted 1
+                    break
                 endif
-                
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
+                endif                
                 #--- Poisoned ---#
                 
                 if 1 = drinkCure
@@ -1168,13 +1202,7 @@ while not dead
                 
             endwhile
             
-            waitfortarget 650  
-
-            if not targetexists
-                @setvar! wasInterrupted 1
-            endif    
-            
-            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+            if 0 = castingInterrupted
                 settimer curseTimer 0
                 target currentTarget
                 getlabel backpack xxx
@@ -1185,15 +1213,16 @@ while not dead
                     @setvar! currentTarget 0
                     break
                 endif
-            else
-                hotkey 'cancel current target'
-                break
             endif      
             
 #********** CAST MANA DRAIN  **********#
 
-        elseif 1 = castManaDrain and timer manaDrainTimer > manaDrainCD and mana >= 11 and diffhits < lowDiff and not dead currentTarget and find currentTarget ground -1 -1 12
-            @setvar! wasInterrupted 0 
+        elseif 1 = castManaDrain and timer manaDrainTimer > manaDrainCD and mana >= 11 and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+            if insysmsg "Your concentration is disturbed"
+            endif       
+            if insysmsg "target cannot be seen"
+            endif              
+            sysmsg "Drain" 11 
             cast 'Mana Drain'           
             while not casting   
                 if targetexists
@@ -1202,10 +1231,21 @@ while not dead
                 cast 'Mana Drain'            
             endwhile  
             
-            while not targetexists and casting
+            while not targetexists
+                if diffhits >= interruptCastingDiff
+                    interrupt
+                    @setvar! castingInterrupted 1 
+                    break
+                endif
                 if dead currentTarget and not find currentTarget ground -1 -1 12
                     interrupt
-                    @setvar! wasInterrupted 1
+                    @setvar! castingInterrupted 1
+                    break
+                endif
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
                 endif
                 
                 #--- Poisoned ---#
@@ -1258,15 +1298,8 @@ while not dead
                 endif
                 
             endwhile
-            
-            waitfortarget 650  
 
-            if not targetexists
-                @setvar! wasInterrupted 1
-                sysmsg "interrupted curse" 44
-            endif   
-            
-            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+            if 0 = castingInterrupted
                 settimer manaDrainTimer 0
                 target currentTarget
                 getlabel backpack xxx
@@ -1277,83 +1310,94 @@ while not dead
                     @setvar! currentTarget 0
                     break
                 endif
-            else
-                hotkey 'cancel current target'
-                break
             endif 
             
 #********* CAST NECRO STRANGLE *********            
             
-        elseif 1 = NecroStrangle and 3 < unholyPoints and timer strangleTimer > strangleCD and skill 'necromancy' >= 85 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < lowDiff and not dead currentTarget and find currentTarget ground -1 -1 12
-            clearsysmsg
-            yell '[strangle'
-            getlabel backpack xxx
-            wait 100 
-            while not dead currentTarget and find currentTarget ground -1 -1 12
-                #sysmsg "#4"
-                if insysmsg "unholy symbols remaining"
-                    say '[>Strangle<]' 44
-                    settimer strangleTimer 0
-                    break
-                elseif insysmsg "seconds before you may use that ability again."
-                    settimer strangleTimer necroMarginErrorCD
-                    sysmsg "necro margin error 1" 44
-                    break    
-                endif
+        elseif 1 = NecroStrangle and 3 < unholyPoints and timer strangleTimer > strangleCD and skill 'necromancy' >= 85 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+            if insysmsg "unholy symbols remaining"
+            endif
+            if insysmsg "seconds before you may use that ability again."
+            endif
+
+            while not insysmsg "unholy symbols remaining"
+                sysmsg "strangle" 66
                 yell '[strangle'
                 getlabel backpack xxx
-                wait 100
+                wait 200
+                if insysmsg "seconds before you may use that ability again."
+                    sysmsg "necro margin error 1" 44
+                    @setvar! castingInterrupted 1
+                    settimer strangleTimer necroMarginErrorCD
+                    break    
+                endif
             endwhile
+            
+            if 0 = castingInterrupted
+                overhead '[>Strangle<]' 44
+                settimer strangleTimer 0
+            endif
             
 #********* CAST NECRO CORPSE SKIN *********
             
-        elseif 1 = NecroCorpseSkin and 1 < unholyPoints and timer corpseSkinTimer > corpseSkinCD and skill 'necromancy' >= 65 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < lowDiff and not dead currentTarget and find currentTarget ground -1 -1 12
-            clearsysmsg
-            yell '[corpseskin'
-            getlabel backpack xxx
-            wait 100
-            while not dead currentTarget and find currentTarget ground -1 -1 12
-                #sysmsg "#5"
-                if insysmsg "unholy symbols remaining"
-                    say '[>Corpse Skin<]' 44
-                    settimer corpseSkinTimer 0
-                    break
-                elseif insysmsg "seconds before you may use that ability again."
+        elseif 1 = NecroCorpseSkin and 1 < unholyPoints and timer corpseSkinTimer > corpseSkinCD and skill 'necromancy' >= 65 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+            if insysmsg "unholy symbols remaining"
+            endif
+            if insysmsg "seconds before you may use that ability again."
+            endif
+
+            while not insysmsg "unholy symbols remaining"
+                sysmsg "corpseskin" 66
+                yell '[corpseskin'
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "seconds before you may use that ability again."
                     sysmsg "necro margin error 2" 44
+                    @setvar! castingInterrupted 1
                     settimer corpseSkinTimer necroMarginErrorCD
                     break    
                 endif
-                yell '[corpseskin'
-                getlabel backpack xxx
-                wait 100
             endwhile
+            
+            if 0 = castingInterrupted
+                overhead '[>Corpse Skin<]' 44
+                settimer corpseSkinTimer 0
+            endif
             
 #********* CAST NECRO EVIL OMEN *********
 
-        elseif 1 = NecroEvilOmen and 1 < unholyPoints and timer evilOmenTimer > evilOmenCD and skill 'necromancy' >= 60 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < lowDiff and not dead currentTarget and find currentTarget ground -1 -1 12
-            clearsysmsg
-            yell '[evilomen'
-            getlabel backpack xxx
-            wait 100 
-            while not dead currentTarget and find currentTarget ground -1 -1 12
-                #sysmsg "#6"
-                if insysmsg "unholy symbols remaining"
-                    say '[>Evil Omen<]' 44
-                    settimer evilOmenTimer 0
-                    break
-                elseif insysmsg "seconds before you may use that ability again."
+        elseif 1 = NecroEvilOmen and 1 < unholyPoints and timer evilOmenTimer > evilOmenCD and skill 'necromancy' >= 60 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+            if insysmsg "unholy symbols remaining"
+            endif
+            if insysmsg "seconds before you may use that ability again."
+            endif
+
+            while not insysmsg "unholy symbols remaining"
+                sysmsg "evilomen" 66
+                yell '[evilomen'
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "seconds before you may use that ability again."
                     sysmsg "necro margin error 3" 44
+                    @setvar! castingInterrupted 1
                     settimer evilOmenTimer necroMarginErrorCD
                     break    
                 endif
-                yell '[evilomen'
-                getlabel backpack xxx
-                wait 100
             endwhile
+            
+            if 0 = castingInterrupted
+                overhead '[>Evil Omen<]' 44
+                settimer evilOmenTimer 0
+            endif
             
 #********** CAST MAGIC ARROW  **********#
 
-        elseif castMagicArrow = 1 and timer magicArrowTimer > magicArrowCD and diffhits < lowDiff and mana >= 4 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castMagicArrow = 1 and timer magicArrowTimer > magicArrowCD and diffhits < allowCastingDiff and mana >= 4 and not dead currentTarget and find currentTarget ground -1 -1 12
+            if insysmsg "Your concentration is disturbed"
+            endif       
+            if insysmsg "target cannot be seen"
+            endif             
+            sysmsg "arrow" 11
             cast 'magic arrow'           
             while not casting   
                 if targetexists
@@ -1362,15 +1406,20 @@ while not dead
                 cast 'magic arrow'             
             endwhile  
             
-            while not targetexists and casting
+            while not targetexists
                 if dead currentTarget and not find currentTarget ground -1 -1 12
                     interrupt
+                    @setvar! castingInterrupted 1
+                    break
+                endif
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
                 endif
             endwhile
-            
-            waitfortarget 650
 
-            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+            if 0 = castingInterrupted
                 target currentTarget
                 getlabel backpack xxx
                 wait 200
@@ -1384,14 +1433,16 @@ while not dead
                 else
                     settimer magicArrowTimer miniSpellsWithoutWizardGrimoreCD
                 endif
-            else
-                hotkey 'cancel current target'
-                break
             endif    
             
 #********** CAST HARM  **********#        
 
-        elseif castHarm = 1 and timer harmTimer > harmCD and diffhits < lowDiff and mana >= 6 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castHarm = 1 and timer harmTimer > harmCD and diffhits < allowCastingDiff and mana >= 6 and not dead currentTarget and find currentTarget ground -1 -1 12
+            if insysmsg "Your concentration is disturbed"
+            endif       
+            if insysmsg "target cannot be seen"
+            endif  
+            sysmsg "harm" 11
             cast 'harm'           
             while not casting    
                 if targetexists
@@ -1400,15 +1451,20 @@ while not dead
                 cast 'harm'             
             endwhile  
             
-            while not targetexists and casting 
+            while not targetexists
                 if dead currentTarget and not find currentTarget ground -1 -1 12
                     interrupt
+                    @setvar! castingInterrupted 1
+                    break
+                endif
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
                 endif
             endwhile
-            
-            waitfortarget 650
 
-            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+            if 0 = castingInterrupted
                 target currentTarget
                 getlabel backpack xxx
                 wait 200 
@@ -1422,14 +1478,16 @@ while not dead
                 else 
                     settimer harmTimer miniSpellsWithoutWizardGrimoreCD
                 endif
-            else
-                hotkey 'cancel current target'
-                break
             endif   
  
 #********** CAST FIREBALL  **********#   
 
-        elseif castFireball = 1 and timer fireballTimer > fireballCD and diffhits < lowDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castFireball = 1 and timer fireballTimer > fireballCD and diffhits < allowCastingDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12
+            sysmsg "fireball" 11
+            if insysmsg "Your concentration is disturbed"
+            endif       
+            if insysmsg "target cannot be seen"
+            endif  
             cast 'fireball'           
             while not casting    
                 if targetexists
@@ -1438,15 +1496,20 @@ while not dead
                 cast 'fireball'             
             endwhile  
             
-            while not targetexists and casting 
+            while not targetexists
                 if dead currentTarget and not find currentTarget ground -1 -1 12
                     interrupt
+                    @setvar! castingInterrupted 1
+                    break
+                endif
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
                 endif
             endwhile
-            
-            waitfortarget 650
 
-            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+            if 0 = castingInterrupted
                 target currentTarget
                 getlabel backpack xxx
                 wait 200
@@ -1460,14 +1523,16 @@ while not dead
                 else
                     settimer fireballTimer miniSpellsWithoutWizardGrimoreCD
                 endif
-            else
-                hotkey 'cancel current target'
-                break
             endif  
 
 #********** CAST LIGHTNING  **********#   
 
-        elseif castLightning = 1 and timer lightningTimer > lightningCD and diffhits < lowDiff and mana >= 11 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castLightning = 1 and timer lightningTimer > lightningCD and diffhits < allowCastingDiff and mana >= 11 and not dead currentTarget and find currentTarget ground -1 -1 12
+            sysmsg "lightning" 11
+            if insysmsg "Your concentration is disturbed"
+            endif       
+            if insysmsg "target cannot be seen"
+            endif  
             cast 'lightning'           
             while not casting   
                 if targetexists
@@ -1476,9 +1541,21 @@ while not dead
                 cast 'lightning'             
             endwhile  
             
-            while not targetexists and casting
+            while not targetexists
+                if diffhits >= interruptCastingDiff
+                    interrupt
+                    @setvar! castingInterrupted 1 
+                    break
+                endif
                 if dead currentTarget and not find currentTarget ground -1 -1 12
                     interrupt
+                    @setvar! castingInterrupted 1
+                    break
+                endif
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
                 endif
                 
                 #--- Poisoned ---#
@@ -1531,10 +1608,8 @@ while not dead
                 endif
                 
             endwhile
-            
-            waitfortarget 650
 
-            if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+            if 0 = castingInterrupted
                 target currentTarget
                 getlabel backpack xxx
                 wait 200 
@@ -1548,69 +1623,73 @@ while not dead
                 else 
                     settimer lightningTimer miniSpellsWithoutWizardGrimoreCD
                 endif
-            else
-                hotkey 'cancel current target'
-                break
             endif 
 
 #********** CAST BIG SPELLS  **********# 
 
-        elseif castExplosion = 1 or castFlamestrike = 1 or castEnergyBolt = 1 or castMindblast = 1 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castExplosion = 1 or castFlamestrike = 1 or castEnergyBolt = 1 or castMindblast = 1
             
-            if castFlamestrike = 1 and mana >= 40 and diffhits < lowDiff
-            
-                cast 'flamestrike'           
-                while not casting    
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    cast 'flamestrike'             
-                endwhile
-            
-            elseif castEnergyBolt = 1 and bigSpellCounter = 1 and mana >= 20 and diffhits < lowDiff
-            
-                cast 'energy bolt'           
-                while not casting    
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    cast 'energy bolt'             
-                endwhile
+            if diffhits < allowCastingDiff
+                if insysmsg "Your concentration is disturbed"
+                endif       
+                if insysmsg "target cannot be seen"
+                endif                              
+                if castFlamestrike = 1 and mana >= 40
+                    sysmsg "flamestrike" 11
+                    cast 'flamestrike'           
+                    while not casting    
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                        cast 'flamestrike'             
+                    endwhile
+                    
+                elseif castEnergyBolt = 1 and bigSpellCounter = 1 and mana >= 20
+                    sysmsg "energy" 11
+                    cast 'energy bolt'           
+                    while not casting    
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                        cast 'energy bolt'             
+                    endwhile
+                    
+                elseif castExplosion = 1 and bigSpellCounter = 2 and mana >= 20
+                    sysmsg "explo" 11
+                    cast 'Explosion'           
+                    while not casting    
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                        cast 'Explosion'             
+                    endwhile
                 
-            elseif castExplosion = 1 and bigSpellCounter = 2 and mana >= 20 and diffhits < lowDiff
-            
-                cast 'Explosion'           
-                while not casting    
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    cast 'Explosion'             
-                endwhile
-            
-            elseif castMindblast = 1 and mana >= 14 and diffhits < lowDiff
-            
-                cast 'mind blast'           
-                while not casting    
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    cast 'mind blast'             
-                endwhile
-            
-            endif
-            
-            getlabel backpack xxx
-            wait 100
+                elseif castMindblast = 1 and mana >= 14
+                    sysmsg "mind" 11
+                    cast 'mind blast'           
+                    while not casting    
+                        if targetexists
+                            hotkey 'cancel current target'
+                        endif
+                        cast 'mind blast'             
+                    endwhile
+                endif
                 
-            if casting
-                
-                while casting
+                while not targetexists
+                    if diffhits >= interruptCastingDiff
+                        interrupt
+                        @setvar! castingInterrupted 1 
+                        break
+                    endif
                     if dead currentTarget and not find currentTarget ground -1 -1 12
                         interrupt
+                        @setvar! castingInterrupted 1
+                        break
                     endif
-                    
-                    if targetexists 'harmful'
-                        target currentTarget
+                    if insysmsg "Your concentration is disturbed"
+                        interrupt
+                        @setvar! castingInterrupted 1
+                        break                
                     endif
                     
                     #--- Poisoned ---#
@@ -1663,10 +1742,8 @@ while not dead
                     endif
                     
                 endwhile
-                
-                waitfortarget 650
     
-                if not dead currentTarget and find currentTarget ground -1 -1 12 and targetexists
+                if 0 = castingInterrupted
                     target currentTarget
                     getlabel backpack xxx
                     wait 200
@@ -1686,23 +1763,19 @@ while not dead
                             @setvar! bigSpellCounter 1
                         endif
                     endif
-                    
-                else
-                    hotkey 'cancel current target'
-                    break
-                endif 
-                
+                endif
             endif
+                
         endif
         
-        if mana < 40 and timer manaMessageTimer > manaMessageCD
+        if mana < lowManaWarningMessageWhenBelow and timer manaMessageTimer > manaMessageCD
             overhead "Low mana warning" 34
             settimer manaMessageTimer 0
         endif
         
 #********** AUTO HEALING START  **********#         
 
-        while diffhits >= lowDiff or paralyzed or poisoned
+        while diffhits >= activateAutoHealDiff or paralyzed or poisoned
             sysmsg "auto-healing activated" 11      
             #--- Trapped ---#
             
@@ -1930,7 +2003,7 @@ while not dead
             if timer mushroomTimer > mushroomTimerCD
                 if counttype 29012 backpack as c
                     @setvar! cm c
-                
+                    sysmsg "Eating mush." 44
                     dclicktype 29012 backpack
                     getlabel backpack xxx
                     wait 200
@@ -2011,7 +2084,7 @@ while not dead
             endif  
         endwhile
 
-        if skill 'spirit' >= 50 and timer spiritSpeakTimer > spiritSpeakCD
+        if skill 'spirit' >= 50 and timer spiritSpeakTimer > spiritSpeakCD and findtype 'corpse' ground -1 -1 18
 
             if insysmsg "you establish contact"
             endif
@@ -2099,7 +2172,7 @@ while not dead
     
 #********** AUTO-MAGERY BUFFS IF NEEDED **********          
 
-    if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < lowDiff
+    if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < allowCastingDiff
         if timer magicReflectTimer > magicReflectCD
             cast 'Magic Reflection'
             while not casting and diffhits < lowDiff    
@@ -2171,7 +2244,7 @@ while not dead
         endif    
     endif
     
-    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < lowDiff
+    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < allowCastingDiff
         if timer magicReflectTimer > magicReflectCD
             cast 'Reactive Armor'
             while not casting and diffhits < highDiff       
@@ -2193,7 +2266,7 @@ while not dead
         endif    
     endif     
     
-    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < lowDiff
+    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < allowCastingDiff
         cast 'Protection'
         while not casting and diffhits < highDiff 
             if targetexists
@@ -2206,7 +2279,7 @@ while not dead
         wait 200  
     endif 
     
-    if bless = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < lowDiff
+    if bless = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < allowCastingDiff
         cast 'Bless'         
         while not casting and diffhits < highDiff                   
             if targetexists
@@ -2239,7 +2312,7 @@ while not dead
         if timer mushroomTimer > mushroomTimerCD
             if counttype 29012 backpack as c
                 @setvar! cm c
-            
+                sysmsg "Eating mush." 55
                 dclicktype 29012 backpack
                 getlabel backpack xxx
                 wait 200

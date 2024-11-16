@@ -1,0 +1,457 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/0c5c62c3-c05e-4ede-a64d-4322d9ffb52b for latest
+# Automation by Jaseowns
+## Script: Brewing-Bro
+## Created by: nev0r#0
+#############################################
+
+//////////////////////////////
+//
+// Brewing-Bot for UO Outlands
+// - Automatically processes all brewing items found within the range specified below, as soon as you move close enough to use them (2 tiles)
+// - This script will work without any change. There is an optional setup section below where you can adjust certain parameters according to your own preference
+// - Make sure to carry all items you want to be added to your kettles and casks in your backpack
+// - WARNING: server system messages are needed to determine necessary actions, make sure they are not filtered for scripts: 
+//      Razor -> Filters -> Text&Messages ->
+//      - "Enable text filter" and "Filter system messages" (list entry sub-menu) can be checked, however "Ignore filtered messages in overhead and scripts" (list entry sub-menu) has to be unchecked
+//
+//////////////////////////////
+
+######## MANUAL SETUP ########
+
+# brewingRange: 1 - 18
+    # Amout of tiles around character that will be searched for brewing equipment. If there are no unprocessed items left within this range the script will terminate.
+    # Note: to actually work the kettle and cask you need to be in a range of 2 tiles, maximal visual range is 18 tiles
+setvar! brewingRange 2
+
+# brewingDebugMode: 0 ... Off, 1 ... On
+    # Display additional status information in our journal for easier debugging
+setvar! brewingDebugMode 0
+
+###### END MANUAL SETUP ######
+
+//////////////////////////////
+// 
+// Changelog
+//
+//////////////////////////////
+
+@clearignore
+clearsysmsg
+
+setvar! brewingMinWaitForServerResponse 200
+setvar! brewingMaxWaitForServerResponse 1000
+setvar! brewingWaitForObjectDelay 600
+if not timerexists brewingObjectDelayTimer
+    settimer brewingObjectDelayTimer brewingWaitForObjectDelay
+endif
+
+setvar! brewingKettleGumpID 2803256377
+setvar! brewingCaskGumpID 2874981722
+
+removelist brewingEmptyCaskList
+createlist brewingEmptyCaskList
+
+while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
+
+    //World save
+    if insysmsg "world is saving"
+        sysmsg "Waiting for world save ..."
+        settimer globalWorldSaveTimer 0
+        while timer globalWorldSaveTimer < 10000
+            if insysmsg "save complete"
+                sysmsg "The world has been saved!"
+                settimer brewingWaitTimer 0
+                getlabel backpack pingCheck
+                while timer brewingWaitTimer < brewingMinWaitForServerResponse
+                endwhile
+                break
+            endif
+        endwhile
+    endif
+
+    if targetexists
+        target cancel
+    endif
+
+    if brewingDebugMode > 0
+        settimer brewingDebugTimer 0
+    endif
+
+    if not timerexists brewingOverheadTimer
+        overhead "|* Brewing *|" 1720
+        settimer brewingOverheadTimer 0
+    elseif not findtype "brewing kettle|brewing barrel" ground -1 -1 2 and timer brewingOverheadTimer > 2000
+        overhead "|* Searching equipment *|" 1720
+        settimer brewingOverheadTimer 0
+        continue
+    elseif timer brewingOverheadTimer > 2000
+        overhead "|* Brewing *|" 1720
+        settimer brewingOverheadTimer 0
+    endif
+    
+    //Refill water containers in proximity if we are next to a water tile (currently once per script execution)
+    if findtype "water" ground -1 -1 2
+        while findtype "water" ground -1 -1 2 and findtype 3703|3707|3715|4090|5344|5453 ground -1 -1 2 as localWaterContainer
+            while timer brewingObjectDelayTimer < brewingWaitForObjectDelay
+            endwhile
+            dclick localWaterContainer
+            if brewingDebugMode > 0
+                sysmsg "[Brewing] Trying to refill water containers (Timer: {{brewingDebugTimer}} ms)" 100 
+            endif
+            settimer brewingObjectDelayTimer 0
+            @ignore localWaterContainer
+        endwhile
+        while findtype "water" ground -1 -1 2 and findtype 3703|3707|3715|4090|5344|5453 backpack as localWaterContainer
+            while timer brewingObjectDelayTimer < brewingWaitForObjectDelay
+            endwhile
+            dclick localWaterContainer
+            if brewingDebugMode > 0
+                sysmsg "[Brewing] Trying to refill water containers (Timer: {{brewingDebugTimer}} ms)" 100
+            endif
+            settimer brewingObjectDelayTimer 0
+            @ignore localWaterContainer
+        endwhile
+    endif
+
+    //Casks
+    if findtype "brewing barrel" ground -1 -1 2 as localCask and not inlist brewingEmptyCaskList localCask
+
+        getlabel localCask localCaskLabel
+        
+        if "%)" in localCaskLabel 
+            @ignore localCask
+        
+        elseif "(needs mixture)" in localCaskLabel
+            pushlist brewingEmptyCaskList localCask
+        
+        else
+            gumpclose brewingCaskGumpID
+            while timer brewingObjectDelayTimer < brewingWaitForObjectDelay
+            endwhile
+            dclick localCask        
+            settimer brewingObjectDelayTimer 0
+            waitforgump brewingCaskGumpID brewingMaxWaitForServerResponse
+
+            if not gumpexists brewingCaskGumpID
+                wait brewingMaxWaitForServerResponse
+                if not gumpexists brewingCaskGumpID
+                    continue
+                endif
+            endif        
+        
+            if gumpexists brewingCaskGumpID and "complete)" in localCaskLabel 
+                if insysmsg "You collect 10 cleansing brew from the brewing cask."
+                endif
+                gumpresponse 13 brewingCaskGumpID
+                settimer brewingWaitTimer 0
+                waitforgump brewingCaskGumpID brewingMaxWaitForServerResponse
+                getlabel backpack pingCheck
+                pushlist brewingEmptyCaskList localCask
+                while timer brewingWaitTimer < brewingMinWaitForServerResponse
+                endwhile
+                if brewingDebugMode > 0
+                    if insysmsg "You collect 10 cleansing brew from the brewing cask."
+                        sysmsg "[Brewing] Cleansing brew collected (Cask: {{localCask}}, Timer: {{brewingDebugTimer}} ms)" 100
+                    else
+                        sysmsg "[Brewing] Cleansing brew pickup failed (Cask: {{localCask}}, Timer: {{brewingDebugTimer}} ms)" 100
+                    endif
+                endif
+            
+            //Refill cask
+            else
+
+                //Hops
+                if gumpexists brewingCaskGumpID and ingump "Add Hops (0/1)" 2874981722 and not ingump "Add Kettle Mixture (0/1)" 2874981722
+                    if findtype 6818 backpack as localHops
+                        if insysmsg "This cask does not currently require hops." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                        endif
+                        while not targetexists
+                            gumpresponse 11 brewingCaskGumpID
+                            waitforgump brewingCaskGumpID brewingMaxWaitForServerResponse
+                            if insysmsg "This cask does not currently require hops." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                                break
+                            endif
+                        endwhile
+                        if targetexists
+                            target localHops
+                            settimer brewingWaitTimer 0
+                            waitforgump brewingCaskGumpID brewingMaxWaitForServerResponse
+                            getlabel backpack pingCheck
+                            while timer brewingWaitTimer < brewingMinWaitForServerResponse
+                            endwhile
+                            if brewingDebugMode > 0
+                                overhead "Hops" 68 localCask
+                                sysmsg "[Brewing] Adding hops" 100
+                            endif
+                        endif
+                    else
+                        overhead "|* Not enough hops *|" 33
+                    endif
+                endif
+
+                //Jar of Honey
+                if gumpexists brewingCaskGumpID and counttype 2540 backpack >= 10 and not ingump "Add Jar of Honey (10/10)" 2874981722 and not ingump "Add Hops (0/1)" 2874981722
+                    while not ingump "Add Jar of Honey (10/10)" 2874981722 and findtype 2540 backpack as localJarOfHoney
+                        if insysmsg "This cask does not currently require jars of honey." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                        endif
+                        while not targetexists
+                            gumpresponse 12 brewingCaskGumpID
+                            waitforgump brewingCaskGumpID brewingMaxWaitForServerResponse
+                            if insysmsg "This cask does not currently require jars of honey." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                                break
+                            endif
+                        endwhile
+                        if targetexists
+                            target localJarOfHoney
+                            settimer brewingWaitTimer 0
+                            waitforgump brewingCaskGumpID brewingMaxWaitForServerResponse
+                            while find localJarOfHoney backpack and timer brewingWaitTimer < brewingMaxWaitForServerResponse
+                            endwhile
+                        else
+                            break
+                        endif
+                    endwhile
+                    if brewingDebugMode > 0 and not ingump "Add Jar of Honey (10/10)" 2874981722
+                        sysmsg "[Brewing] Honey failed" 33
+                    elseif brewingDebugMode > 0
+                        overhead "Honey" 1720 localCask
+                        sysmsg "[Brewing] Honey added" 100
+                    endif
+                elseif counttype 2540 backpack < 10
+                    overhead "|* Not enough honey *|" 33
+                endif
+
+                if brewingDebugMode > 0 and ingump "Add Jar of Honey (10/10)" 2874981722
+                    overhead "Done" 68 localCask
+                    overhead " ¼ " 68 localCask
+                    sysmsg "[Brewing] Cask done (Serial: {{localCask}}, Timer: {{brewingDebugTimer}})" 100 
+                elseif brewingDebugMode > 0
+                    overhead "Fail" 33 localCask
+                    overhead " ¼ " 33 localCask
+                    sysmsg "[Brewing] Cask refill failed (Serial: {{localCask}}, Timer: {{brewingDebugTimer}})" 100                 
+                endif
+                @ignore localCask
+
+            endif
+        endif
+
+    //Kettle            
+    elseif findtype "brewing kettle" ground -1 -1 2 as localKettle
+
+        getlabel localKettle localKettleLabel
+        
+        if "%)" in localKettleLabel
+            @ignore localKettle
+        
+        else
+            gumpclose brewingKettleGumpID
+            while timer brewingObjectDelayTimer < brewingWaitForObjectDelay
+            endwhile
+            dclick localKettle
+            settimer brewingObjectDelayTimer 0
+            waitforgump brewingKettleGumpID brewingMaxWaitForServerResponse
+
+            if not gumpexists brewingKettleGumpID
+                wait brewingMaxWaitForServerResponse
+                if not gumpexists brewingKettleGumpID
+                    continue
+                endif
+            endif    
+
+            //Transfer mixture to cask
+            if gumpexists brewingKettleGumpID and "complete)" in localKettleLabel and list brewingEmptyCaskList > 0
+                if poplist brewingEmptyCaskList front as localEmptyCask
+                    if insysmsg "You transfer the mixture to a brewing cask." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                    endif
+                    while not targetexists
+                        gumpresponse 13 brewingKettleGumpID
+                        waitforgump brewingKettleGumpID brewingMaxWaitForServerResponse
+                        if insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                            break
+                        endif
+                    endwhile
+                    if targetexists
+                        target localEmptyCask
+                        settimer brewingWaitTimer 0
+                        waitforgump brewingKettleGumpID brewingMaxWaitForServerResponse
+                        getlabel backpack pingCheck
+                        while timer brewingWaitTimer < brewingMinWaitForServerResponse
+                        endwhile
+                        if insysmsg "You transfer the mixture to a brewing cask."
+                            @unignore localEmptyCask
+                            if brewingDebugMode > 0
+                                overhead "Mixture" 1150 localEmptyCask
+                                sysmsg "[Brewing] Adding mixture (Cask: {{localEmptyCask}}, Timer: {{brewingDebugTimer}} ms)" 100
+                            endif
+                        else
+                            pushlist brewingEmptyCaskList localEmptyCask front
+                        endif
+                    endif
+                endif
+            endif
+            
+            //Refill kettle
+            if gumpexists brewingKettleGumpID and ingump "(0.0% Complete)" 2803256377
+                
+                //Barley
+                if gumpexists brewingKettleGumpID and ingump "Add Barley (0/1)" 2803256377
+                    if findtype 49557 backpack as localBarley
+                        if insysmsg "This kettle does not currently require barley." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                        endif
+                        while not targetexists
+                            gumpresponse 10 brewingKettleGumpID
+                            waitforgump brewingKettleGumpID brewingMaxWaitForServerResponse
+                            if insysmsg "This kettle does not currently require barley." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                                break
+                            endif
+                        endwhile
+                        if targetexists
+                            target localBarley
+                            settimer brewingWaitTimer 0
+                            waitforgump brewingKettleGumpID brewingMaxWaitForServerResponse
+                            getlabel backpack pingCheck
+                            while timer brewingWaitTimer < brewingMinWaitForServerResponse
+                            endwhile
+                            if brewingDebugMode > 0
+                                overhead "Barley" 68 localKettle
+                                sysmsg "[Brewing] Adding barley" 100
+                            endif
+                        endif
+                    else
+                        overhead "|* Not enough barley *|" 33
+                    endif
+                endif
+
+                //Water
+                if gumpexists brewingKettleGumpID and ingump "Add Water (0/250)" 2803256377 and not ingump "Add Barley (0/1)" 2803256377
+                    createlist brewingFullWateringCanList
+                    if insysmsg "You do not see any nearby water containers to fill this from."
+                    endif
+                    while findtype 25570|56416|56417 backpack as localWateringCan
+                        getlabel localWateringCan localWateringCanLabel
+                        if "250/250" in localWateringCanLabel
+                            pushlist brewingFullWateringCanList localWateringCan
+                            @ignore localWateringCan
+                        else
+                            while timer brewingObjectDelayTimer < brewingWaitForObjectDelay
+                            endwhile
+                            dclick localWateringCan
+                            settimer brewingWaitTimer 0
+                            settimer brewingObjectDelayTimer 0
+                            getlabel backpack pingCheck
+                            while timer brewingWaitTimer < brewingMinWaitForServerResponse
+                                if insysmsg "You completely fill the watering can."
+                                    break
+                                elseif insysmsg "You do not see any nearby water containers to fill this from."
+                                    @ignore localWateringCan
+                                    break
+                                endif                                    
+                            endwhile
+                        endif
+                    endwhile
+                    @unignore brewingFullWateringCanList
+                    if list brewingFullWateringCanList = 0
+                        overhead "|* No water supply *|" 33
+                    elseif poplist brewingFullWateringCanList front as localFullWateringCan
+                        if insysmsg "This kettle does not currently require water." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                        endif
+                        while find localFullWateringCan backpack and not targetexists
+                            gumpresponse 11 brewingKettleGumpID
+                            waitforgump brewingKettleGumpID brewingMaxWaitForServerResponse
+                            if insysmsg "This kettle does not currently require water." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item." 
+                                break
+                            endif
+                        endwhile
+                        if targetexists and find localFullWateringCan backpack
+                            target localFullWateringCan
+                            settimer brewingWaitTimer 0
+                            waitforgump brewingKettleGumpID brewingMaxWaitForServerResponse
+                            getlabel backpack pingCheck
+                            while timer brewingWaitTimer < brewingMinWaitForServerResponse
+                            endwhile                            
+                            if brewingDebugMode > 0
+                                overhead "Water" 100 localKettle
+                                sysmsg "[Brewing] Adding water" 100
+                            endif
+                        endif
+                    endif
+                    removelist brewingFullWateringCanList
+                endif
+
+                //Garlic
+                if gumpexists brewingKettleGumpID and counttype 3972 self >= 10 and not ingump "Add Garlic (10/10)" 2803256377 and not ingump "Add Water (0/250)" 2803256377
+                    if not findtype 3972 backpack 0 10 and findtype 3972 self 0 10 as localGarlic
+                        while timer brewingObjectDelayTimer < brewingWaitForObjectDelay
+                        endwhile
+                        @drop backpack -1 -1 -1
+                        lift localGarlic 10
+                        settimer brewingObjectDelayTimer 0
+                        @drop backpack -1 -1 -1
+                        settimer brewingWaitTimer 0
+                        while not find localGarlic backpack 0 10 and timer brewingWaitTimer < brewingMaxWaitForServerResponse
+                        endwhile
+                    endif
+                    while not ingump "Add Garlic (10/10)" 2803256377 and findtype 3972 backpack as localGarlic
+                        if insysmsg "This kettle does not currently require garlic." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item." or insysmsg "That item must be in your backpack in order to be used."
+                        endif
+                        while not targetexists
+                            gumpresponse 12 brewingKettleGumpID
+                            waitforgump brewingKettleGumpID brewingMaxWaitForServerResponse
+                            if insysmsg "This kettle does not currently require garlic." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item." or insysmsg "That item must be in your backpack in order to be used."
+                                break
+                            endif
+                        endwhile
+                        if targetexists
+                            target localGarlic
+                            settimer brewingWaitTimer 0
+                            waitforgump brewingKettleGumpID brewingMaxWaitForServerResponse
+                            while find localGarlic backpack and timer brewingWaitTimer < brewingMaxWaitForServerResponse
+                            endwhile
+                        else
+                            break
+                        endif
+                    endwhile
+                    if brewingDebugMode > 0 and not ingump "Add Garlic (10/10)" 2803256377
+                        sysmsg "[Brewing] Garlic failed" 33
+                    elseif brewingDebugMode > 0
+                        overhead "Garlic" 1150 localKettle
+                        sysmsg "[Brewing] Garlic added" 100
+                    endif
+                elseif counttype 3972 self < 10
+                    overhead "|* Not enough garlic *|" 33
+                endif
+                
+                if brewingDebugMode > 0 and ingump "Add Garlic (10/10)" 2803256377
+                    overhead "Done" 68 localKettle
+                    overhead " ¼ " 68 localKettle
+                    sysmsg "[Brewing] Kettle done (Serial: {{localKettle}}, Timer: {{brewingDebugTimer}})" 100 
+                elseif brewingDebugMode > 0
+                    overhead "Fail" 33 localKettle
+                    overhead " ¼ " 33 localKettle
+                    sysmsg "[Brewing] Kettle refill failed (Serial: {{localKettle}}, Timer: {{brewingDebugTimer}})" 100
+                endif
+            endif
+            @ignore localKettle            
+
+        endif
+    endif
+
+    if list brewingEmptyCaskList > 0 and not findtype "brewing kettle" ground -1 -1 brewingRange
+        overhead "|* Not enough mixtures *|" 33
+        @ignore brewingEmptyCaskList
+    endif
+
+endwhile
+
+gumpclose brewingKettleGumpID
+gumpclose brewingCaskGumpID
+
+removetimer brewingDebugTimer
+removetimer brewingOverheadTimer
+removetimer brewingWaitTimer
+removetimer globalWorldSaveTimer
+
+removelist brewingEmptyCaskList
+
+@clearignore
+overhead "|* Brewing Done *|" 1720

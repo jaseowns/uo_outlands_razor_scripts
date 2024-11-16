@@ -727,7 +727,12 @@ if not dead
         cooldown "Provoked" 0
     endif
     
-    while not dead ClosestTarget or find ClosestTarget ground -1 -1 8
+    
+            #############################
+            ####     COMBAT LOOP:    ####
+            #############################   
+    
+    while not dead ClosestTarget or not find ClosestTarget ground -1 -1 8
    
             if not timerexists "FindTarget"
                 createtimer "FindTarget"
@@ -768,15 +773,20 @@ if not dead
                 getlabel NextClosestTarget descNextTarget
                     if not cooldown " Next Target Timer"
                         if "Paragon" in descNextTarget
-                            overhead " ¼ PARAGON! ¼ " 12 NextClosestTarget
-                            cooldown "Next Target Timer" 4000
+                        overhead " ¼ PARAGON! ¼ " 12 NextClosestTarget
+                    cooldown "Next Target Timer" 4000
                         else 
                             overhead " ¼ TARGET ¼ " 43 NextClosestTarget 
-                            cooldown "Next Target Timer" 4000
+                        cooldown "Next Target Timer" 4000
                         endif   
                     endif
                 settimer "FindNextTarget" 0
-            endif       
+            endif   
+        
+            
+            #################################
+            ####    DEFENSIVE CHECKS:    ####
+            #################################
 
             if skill 'Healing' > 38
                 if not bandaging and hits < maxhits
@@ -907,7 +917,277 @@ if not dead
                     wait 250 
                 endif
             endif 
+            
+            
+            ###############################
+            ####    BARDING SKILLS:    ####
+            ###############################
+     
+            if EnableProvocation = 1
+                if not cooldown "Provo Check"  
+                    getlabel ClosestTarget descTarget
+                    getlabel NextClosestTarget descNextTarget
+                    
+                    if "provoked" in descTarget or "provoked" in descNextTarget
+                        cooldown "Provo Check" 2000
+                    else
+                        cooldown "Provoked" 0
+                    endif
+                endif
+                    
+               if not dead ClosestTarget and find ClosestTarget ground -1 -1 6 and find NextClosestTarget ground -1 -1 6 and ClosestTarget != NextClosestTarget and NextClosestTarget != 0 and not cooldown "Provoked" and not cooldown "Provocation" and not cooldown "Musicianship" and not dead NextClosestTarget
+                    
+                    getlabel ClosestTarget descTarget
+                    getlabel NextClosestTarget descNextTarget
+                    wait 150
+                  
+                    if "provoked" in descTarget
+                        @setvar! NeedtoProvoke 0
+                        wait 150
+                    endif
+                    
+                    if "provoked" in descNextTarget
+                        @setvar! NeedtoProvoke 0
+                        wait 150
+                    else 
+                        @setvar! NeedtoProvoke 1
+                        wait 150
+                    endif
+                    
+                        if NeedtoProvoke = 1
+                            skill "Provocation"
+                            wft 500
+                            target NextClosestTarget
+                            wft 500
 
+                            if insysmsg 'Target cannot be seen'
+                                overhead "[ TARGET CANNOT BE SEEN... ]" 339 NextClosestTarget
+                                cooldown "Provocation" 5000
+                                replay
+                            elseif insysmsg "You must wait"
+                                overhead "[ WAITING... ]" 2117
+                                cooldown "Provocation" 2500
+                                clearsysmsg 
+                                wait 250
+                            elseif insysmsg 'That is too far away.'
+                                overhead '[ TOO FAR AWAY! ]' 339 NextClosestTarget
+                                cooldown "Provocation" 5000
+                                replay
+                            else                        
+                                overhead "[ PROVOKING... ]" 2117
+                                target ClosestTarget
+                                wait 250
+                            endif
+
+                                if insysmsg 'You play successfully, provoking'
+                                    overhead '[ PROVOKED! ]' 2117 ClosestTarget
+                                    overhead '[ PROVOKED! ]' 2117 NextClosestTarget
+                                    sysmsg "You play successfully, provoking {{descTarget}} and {{descNextTarget}}!" 2117
+                                    cooldown "Musicianship" 5500
+                                    cooldown "Provocation" 11000
+                                    cooldown "Provoked" ProvocationReapply
+                                    @setvar! SwitchStance 1
+                                    wait 150
+                                        
+                                        if mana > 10 and SwitchStance = 1
+                                            yell "[ArcheryAmmunition3"
+                                            wait 150
+                                            yell "[ArcheryFinisher1"
+                                            cooldown "Codex" 5000
+                                            wait 250
+                                            if insysmsg "You deactivate" 
+                                                yell "[ArcheryAmmunition3"
+                                                wait 150
+                                                yell "[ArcheryFinisher1"
+                                                cooldown "Codex" 5000
+                                            endif           
+                                        endif
+                    
+                                elseif insysmsg 'You fail to incite'
+                                    overhead '[ PROVO FAIL! ]' 153
+                                    sysmsg "You fail to provoke {{descTarget}} and {{descNextTarget}}!" 339
+                                    cooldown "Provocation" 5500
+                                    wait 250
+                                elseif insysmsg 'Target cannot be seen'
+                                    overhead "[ TARGET CANNOT BE SEEN... ]" 337
+                                    cooldown "Provocation" 5000
+                                    replay
+                                elseif insysmsg 'That is too far away.'
+                                    overhead '[ TOO FAR AWAY! ]' 43 ClosestTarget
+                                    cooldown "Provocation" 5000 
+                                    replay
+                                elseif insysmsg 'The creatures you are trying to provoke are too far away from each other for your music to have an effect.'
+                                    overhead '[ TOO FAR APART! ]' 153 ClosestTarget
+                                    overhead '[ TOO FAR APART! ]' 153 NextClosestTarget
+                                    cooldown "Provocation" 5000
+                                    replay
+                                elseif insysmsg 'tell someone to attack themselves!'
+                                    overhead '[ SELF TARGETING FAIL... ]' 337
+                                    replay
+                                endif
+                        endif 
+                endif
+            endif 
+                    
+            if EnablePeacemaking = 1
+                if not cooldown "Peace Check"  
+                    getlabel ClosestTarget descTarget
+                    
+                    if "pacified" in descTarget
+                        cooldown "Peace Check" 2000
+                    else
+                        cooldown "Pacified" 0
+                    endif
+                endif
+                
+                if not cooldown "Pacified" and not cooldown "Peacemaking" and not cooldown "Musicianship" and not dead ClosestTarget
+
+                    @setvar! NeedtoPacify 1
+                    getlabel ClosestTarget descTarget
+                    wait 150
+
+                        if "provoked" in descTarget or "provoked" in descNextTarget
+                            @setvar! NeedtoPacify 0
+                            wait 150
+                        endif
+                    
+                        if NeedtoPacify = 1            
+                            skill "Peacemaking"
+                            wft 500
+
+                            if insysmsg "What instrument shall you play?"
+                                if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
+                                    target Instrument
+                                    wait 150
+                                else                                 
+                                    overhead "[ NO INSTRUMENT! ]" 337                   
+                                endif
+                            endif
+                    
+                            if not insysmsg "This is not a musical instrument"
+                                target ClosestTarget
+                                wait 250
+                            endif
+                              
+                            if insysmsg "Target cannot be seen"
+                                if not cooldown "Target Timer"
+                                    overhead "[ TARGET CANNOT BE SEEN... ]" 337 
+                                    cooldown "Target Timer" 3500
+                                endif 
+                                replay                           
+                            elseif insysmsg 'That is too far away.'
+                                overhead '[ TOO FAR AWAY! ]' 43 ClosestTarget
+                                replay     
+                            elseif insysmsg "You must wait" 
+                                overhead "[ WAITING... ]" 84
+                                cooldown "Peacemaking" 2500
+                                wait 250      
+                            endif 
+              
+                            if insysmsg "You play successfully, pacifying your"
+                                overhead "[ PACIFYING... ]" 84
+                                cooldown "Pacified" PeacemakingReapply
+                                cooldown "Musicianship" 5500
+                                cooldown "Peacemaking" 11000
+                                wait 250
+                                overhead "[ PACIFIED! ]" 84 ClosestTarget
+                                sysmsg "You play successfully, pacifying your target!" 84
+                               
+                                    wait 150
+                                    @setvar! SwitchStance 0
+                                    yell "[ArcheryAmmunition1"
+                                    wait 150
+                                    yell "[ArcheryFinisher2"
+                                    cooldown "Codex" 5000
+                                    @setvar! SwitchStance 0
+                                    wait 250
+                                        if insysmsg "You deactivate" 
+                                            yell "[ArcheryAmmunition1"
+                                            wait 150
+                                            yell "[ArcheryFinisher2"
+                                            cooldown "Codex" 5000
+                                        endif
+                            endif
+                     
+                            if insysmsg "you fail to pacify your opponent"
+                                overhead "[ PACIFY FAIL! ]" 153
+                                sysmsg "You fail to pacify your target!" 339
+                                cooldown "Peacemaking" 5500
+                                wait 250
+                            endif                        
+                    endif
+                endif
+            endif
+                    
+            if EnableDiscordance = 1
+                if not cooldown "Disco Check"  
+                    getlabel ClosestTarget descTarget
+                    
+                    if "discord" in descTarget
+                        cooldown "Disco Check" 2000
+                    else
+                        cooldown "discord" 0
+                    endif
+                endif
+                    
+                if not cooldown "Discorded" and not cooldown "Discordance" and not cooldown "Musicianship" and not dead ClosestTarget
+
+                    @setvar! NeedtoDiscord 1
+                    getlabel ClosestTarget descTarget
+                    wait 150
+                    
+                    if "discord" in descTarget
+                        @setvar! NeedtoDiscord 0
+                    endif
+                        
+                        if NeedtoDiscord = 1
+                            skill "Discordance"
+                            wft 500
+                
+                            if insysmsg "What instrument shall you play?"
+                                if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
+                                    target Instrument
+                                    wait 150
+                                else                                 
+                                    overhead "[ NO INSTRUMENT! ]" 337                        
+                                endif                
+                    
+                            elseif not insysmsg "This is not a musical instrument"
+                                target ClosestTarget
+                                overhead "[ DISCORDING... ]" 69
+                                wait 250   
+
+                                if insysmsg "Target cannot be seen."
+                                    overhead "[ TARGET CANNOT BE SEEN... ]" 337  
+                                    replay
+                                        
+                                elseif insysmsg "You must wait" 
+                                    overhead "[ WAITING... ]" 69
+                                    cooldown "Discordance" 2500
+                                    wait 250  
+                                endif
+                        
+                                if insysmsg "You play successfully, disrupting your opponent"
+                                    cooldown "Discorded" DiscordanceReapply
+                                    cooldown "Musicianship" 5500
+                                    cooldown "Discordance" 11000
+                                    overhead "[ DISCORDED! ]" 69 ClosestTarget
+                                    sysmsg "You play successfully, disrupting your target!" 69
+                                    wait 250                                  
+                                endif
+                        
+                                if insysmsg "fail to discord"
+                                    cooldown "Discordance" 5500
+                                    overhead "[ DISCORD FAIL! ]" 153
+                                    sysmsg "You fail to discord your target!" 339  
+                                    wait 250                         
+                                endif
+                                                            
+                            endif 
+                        endif                
+                    endif
+            endif 
+            
             if EnableRefreshPotion = 1
                 if diffstam > RefreshPotSPdiff and not cooldown "Refresh Potion"
                     if findtype "Red Potion" self as refreshpot
@@ -1200,284 +1480,7 @@ if not dead
             
             clearsysmsg  
             
-            if dead ClosestTarget
-                cooldown "Pacified" 0
-                cooldown "Discorded" 0
-                cooldown "Provoked" 0
-                break
-            endif 
 
-        ##############################
-        ####    BARDING SKILLS    ####
-        ##############################
-     
-        if EnableProvocation = 1
-            if not cooldown "Provo Check"  
-                getlabel ClosestTarget descTarget
-                getlabel NextClosestTarget descNextTarget
-                
-                if "provoked" in descTarget or "provoked" in descNextTarget
-                    cooldown "Provo Check" 2000
-                else
-                    cooldown "Provoked" 0
-                endif
-            endif
-                
-                if not dead ClosestTarget and find ClosestTarget ground -1 -1 6 and find NextClosestTarget ground -1 -1 6 and ClosestTarget != NextClosestTarget and NextClosestTarget != 0 and not cooldown "Provoked" and not cooldown "Provocation" and not cooldown "Musicianship" and not dead NextClosestTarget
-                
-                    getlabel ClosestTarget descTarget
-                    getlabel NextClosestTarget descNextTarget
-                    wait 150
-                
-                    if "provoked" in descTarget
-                        @setvar! NeedtoProvoke 0
-                        wait 150
-                    endif
-                
-                    if "provoked" in descNextTarget
-                        @setvar! NeedtoProvoke 0
-                        wait 150
-                    else 
-                        @setvar! NeedtoProvoke 1
-                        wait 150
-                    endif
-                
-                        if NeedtoProvoke = 1
-                            skill "Provocation"
-                            wft 500
-                            target NextClosestTarget
-                            wft 500
-
-                            if insysmsg 'Target cannot be seen'
-                                overhead "[ TARGET CANNOT BE SEEN... ]" 339 NextClosestTarget
-                                cooldown "Provocation" 5000
-                                replay
-                            elseif insysmsg "You must wait"
-                                overhead "[ WAITING... ]" 2117
-                                cooldown "Provocation" 2500
-                                clearsysmsg 
-                                wait 250
-                            elseif insysmsg 'That is too far away.'
-                                overhead '[ TOO FAR AWAY! ]' 339 NextClosestTarget
-                                cooldown "Provocation" 5000
-                                replay
-                            else                        
-                                overhead "[ PROVOKING... ]" 2117
-                                target ClosestTarget
-                                wait 250
-                            endif
-
-                                if insysmsg 'You play successfully, provoking'
-                                        overhead '[ PROVOKED! ]' 2117 ClosestTarget
-                                        overhead '[ PROVOKED! ]' 2117 NextClosestTarget
-                                        sysmsg "You play successfully, provoking {{descTarget}} and {{descNextTarget}}!" 2117
-                                        cooldown "Musicianship" 5500
-                                        cooldown "Provocation" 11000
-                                        cooldown "Provoked" ProvocationReapply
-                                        @setvar! SwitchStance 1
-                                        wait 150
-                                    
-                                        if mana > 10 and SwitchStance = 1
-                                            yell "[ArcheryAmmunition3"
-                                            wait 150
-                                            yell "[ArcheryFinisher1"
-                                            cooldown "Codex" 5000
-                                            wait 250
-                                            if insysmsg "You deactivate" 
-                                                yell "[ArcheryAmmunition3"
-                                                wait 150
-                                                yell "[ArcheryFinisher1"
-                                                cooldown "Codex" 5000
-                                            endif           
-                                        endif
-                
-                                elseif insysmsg 'You fail to incite'
-                                    overhead '[ PROVO FAIL! ]' 153
-                                    sysmsg "You fail to provoke {{descTarget}} and {{descNextTarget}}!" 339
-                                    cooldown "Provocation" 5500
-                                    wait 250
-                                elseif insysmsg 'Target cannot be seen'
-                                    overhead "[ TARGET CANNOT BE SEEN... ]" 337
-                                    cooldown "Provocation" 5000
-                                    replay
-                                elseif insysmsg 'That is too far away.'
-                                    overhead '[ TOO FAR AWAY! ]' 43 ClosestTarget
-                                    cooldown "Provocation" 5000 
-                                    replay
-                                elseif insysmsg 'The creatures you are trying to provoke are too far away from each other for your music to have an effect.'
-                                    overhead '[ TOO FAR APART! ]' 153 ClosestTarget
-                                    overhead '[ TOO FAR APART! ]' 153 NextClosestTarget
-                                    cooldown "Provocation" 5000
-                                    replay
-                                elseif insysmsg 'tell someone to attack themselves!'
-                                    overhead '[ SELF TARGETING FAIL... ]' 337
-                                    replay
-                                endif
-                        endif 
-                endif
-            endif 
-                
-            if EnablePeacemaking = 1
-                if not cooldown "Peace Check"  
-                    getlabel ClosestTarget descTarget
-                
-                    if "pacified" in descTarget
-                        cooldown "Peace Check" 2000
-                    else
-                        cooldown "Pacified" 0
-                    endif
-                endif
-            
-                if not cooldown "Pacified" and not cooldown "Peacemaking" and not cooldown "Musicianship" and not dead ClosestTarget
-
-                    @setvar! NeedtoPacify 1
-                    getlabel ClosestTarget descTarget
-                    wait 150
-
-                        if "provoked" in descTarget or "provoked" in descNextTarget
-                            @setvar! NeedtoPacify 0
-                            wait 150
-                        endif
-                
-                        if NeedtoPacify = 1            
-                            skill "Peacemaking"
-                            wft 500
-
-                            if insysmsg "What instrument shall you play?"
-                                if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
-                                    target Instrument
-                                    wait 150
-                                else                                 
-                                    overhead "[ NO INSTRUMENT! ]" 337                   
-                                endif
-                            endif
-                
-                            if not insysmsg "This is not a musical instrument"
-                                target ClosestTarget
-                                wait 250
-                            endif
-                          
-                            if insysmsg "Target cannot be seen"
-                                if not cooldown "Target Timer"
-                                    overhead "[ TARGET CANNOT BE SEEN... ]" 337 
-                                    cooldown "Target Timer" 3500
-                                endif 
-                                replay                           
-                            elseif insysmsg 'That is too far away.'
-                                overhead '[ TOO FAR AWAY! ]' 43 ClosestTarget
-                                replay     
-                            elseif insysmsg "You must wait" 
-                                overhead "[ WAITING... ]" 84
-                                cooldown "Peacemaking" 2500
-                                wait 250      
-                            endif 
-                            
-                            wait 150
-                            
-                            if insysmsg "You play successfully, pacifying your"
-                                overhead "[ PACIFYING... ]" 84
-                                cooldown "Pacified" PeacemakingReapply
-                                cooldown "Musicianship" 5500
-                                cooldown "Peacemaking" 11000
-                                wait 250
-                                overhead "[ PACIFIED! ]" 84 ClosestTarget
-                                sysmsg "You play successfully, pacifying your target!" 84
-                                
-                                    wait 150
-                                    @setvar! SwitchStance 0
-                                    yell "[ArcheryAmmunition1"
-                                    wait 150
-                                    yell "[ArcheryFinisher2"
-                                    cooldown "Codex" 5000
-                                    @setvar! SwitchStance 0
-                                    wait 250
-                                        if insysmsg "You deactivate" 
-                                            yell "[ArcheryAmmunition1"
-                                            wait 150
-                                            yell "[ArcheryFinisher2"
-                                            cooldown "Codex" 5000
-                                        endif
-                            endif
-                    
-                            if insysmsg "you fail to pacify your opponent"
-                                overhead "[ PACIFY FAIL! ]" 153
-                                sysmsg "You fail to pacify your target!" 339
-                                cooldown "Peacemaking" 5500
-                                wait 250
-                            endif                        
-                    endif
-                endif
-            endif
-                
-            if EnableDiscordance = 1
-                if not cooldown "Disco Check"  
-                    getlabel ClosestTarget descTarget
-                
-                    if "discord" in descTarget
-                        cooldown "Disco Check" 2000
-                    else
-                        cooldown "discord" 0
-                    endif
-                endif
-                
-                if not cooldown "Discorded" and not cooldown "Discordance" and not cooldown "Musicianship" and not dead ClosestTarget
-
-                    @setvar! NeedtoDiscord 1
-                    getlabel ClosestTarget descTarget
-                    wait 150
-                
-                    if "discord" in descTarget
-                        @setvar! NeedtoDiscord 0
-                    endif
-                    
-                        if NeedtoDiscord = 1
-                            skill "Discordance"
-                            wft 500
-            
-                            if insysmsg "What instrument shall you play?"
-                                if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
-                                    target Instrument
-                                    wait 150
-                                else                                 
-                                    overhead "[ NO INSTRUMENT! ]" 337                        
-                                endif                
-                    
-                            elseif not insysmsg "This is not a musical instrument"
-                                    target ClosestTarget
-                                    overhead "[ DISCORDING... ]" 69
-                                    wait 250   
-
-                                    if insysmsg "Target cannot be seen."
-                                        overhead "[ TARGET CANNOT BE SEEN... ]" 337  
-                                        replay
-                                    
-                                    elseif insysmsg "You must wait" 
-                                        overhead "[ WAITING... ]" 69
-                                        cooldown "Discordance" 2500
-                                        wait 250  
-                                    endif
-                    
-                                    if insysmsg "You play successfully, disrupting your opponent"
-                                        cooldown "Discorded" DiscordanceReapply
-                                        cooldown "Musicianship" 5500
-                                        cooldown "Discordance" 11000
-                                        overhead "[ DISCORDED! ]" 69 ClosestTarget
-                                        sysmsg "You play successfully, disrupting your target!" 69
-                                        wait 250                                  
-                                    endif
-                    
-                                    if insysmsg "fail to discord"
-                                        cooldown "Discordance" 5500
-                                        overhead "[ DISCORD FAIL! ]" 153
-                                        sysmsg "You fail to discord your target!" 339  
-                                        wait 250                         
-                                    endif
-                                                        
-                            endif 
-                        endif                
-                endif
-            endif 
-            
                 
         ################################
         ####    BUFFS & ABILITIES   ####

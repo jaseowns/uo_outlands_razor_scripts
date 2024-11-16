@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 2.77
+#Auto-mage attack 2.84
 
 #********** INFORMATION **********# 
 
@@ -20,10 +20,13 @@
     
 ### Changes Log ###
 
-# Ver2.77 fixes and changes to casting and targetting spells
-# Ver2.61 added spirit speak skill use
-# Ver2.60 fixes to manual targetting
-# Ver2.59 Set last target can be activated while fighting a mob to change targets 
+# ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
+
+# Ver.2.84 fixes and changes to the healing trigger mechanism
+# Ver.2.77 fixes and changes to casting and targetting spells
+# Ver.2.61 added spirit speak skill use
+# Ver.2.60 fixes to manual targetting
+# Ver.2.59 Set last target can be activated while fighting a mob to change targets 
 
 ### Changes Log ###
 
@@ -39,7 +42,7 @@
 
 @setvar! castMagicArrow 1
 @setvar! castHarm 1
-@setvar! castFireball 0
+@setvar! castFireball 1
 @setvar! castLightning 1
 
 #- Big spells prioritize order -#
@@ -57,10 +60,10 @@
 # 0 - Greater or lesser 
 # 1 - Deadly 
 # 2 - Lethal
-@setvar! poisonLevel 1
+@setvar! poisonLevel 0
 
 @setvar! castCurse 1
-@setvar! castManaDrain 1
+@setvar! castManaDrain 0
 
 #--- Set Mage attack cooldowns ---#
 
@@ -129,19 +132,6 @@ l
 @setvar! drinkRefresh 1
 @setvar! staminaLowerThan 15
 
-#--- Auto healing hp diffs ---#
-
-@setvar! activateAutoHealDiff 20
-
-@setvar! allowCastingDiff 30
-@setvar! interruptCastingDiff 40
-
-@setvar! lowDiff 20 
-@setvar! medDiff 30
-@setvar! highDiff 50
-@setvar! extremeDiff 60
-@setvar! criticalDiff 75
-
 #--- Arcane Weapon Ability ---#
 
 @setvar! useWeaponAbility 2
@@ -149,7 +139,7 @@ l
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 1
+@setvar! useMeditationSkill 0
 @setvar! meditateWhenManaBelow 14
 @setvar! meditateUntilManaReach 65
 
@@ -164,6 +154,19 @@ l
 @setvar! healingPotCD 11000
 
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
+
+#--- Auto healing hp diffs ---#
+#--- All variables refer to hit points differences ---#
+#--- When below certain hit points it will trigger ---#
+
+@setvar! activateAutoHealDiff 20
+
+@setvar! interruptCastingDiff 40
+
+@setvar! drinkHealPotDiff 30
+
+@setvar! castFirstGreaterHealDiff 30
+@setvar! castLastGreaterHealDiff 60
 
 clearsysmsg
 
@@ -373,7 +376,11 @@ while not dead
 #********** AUTO HEALING START  **********#         
 
     while diffhits >= activateAutoHealDiff or paralyzed or poisoned
+        if dead
+            stop
+        endif
         sysmsg "auto-healing activated" 11      
+        
         #--- Trapped ---#
         
         if paralyzed 
@@ -423,7 +430,7 @@ while not dead
                         settimer orangeMessageTimer 0
                     endif
                     
-                    if diffhits > highDiff or not findtype 3972 self or not findtype 3973 self
+                    if diffhits >= castFirstGreaterHealDiff or not findtype 3972 self or not findtype 3973 self
                         break
                     endif
                     
@@ -452,7 +459,7 @@ while not dead
             
         #--- Drink Heal Pot ---#
         
-        if diffhits >= highDiff and 1 = drinkHeal
+        if diffhits >= drinkHealPotDiff and 1 = drinkHeal
             if findtype "Yellow Potion" self as hPot
                 getlabel hPot potLabel
                 if "next" in potLabel
@@ -483,7 +490,8 @@ while not dead
             
         #--- Cast heals ---#
         
-        if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits < medDiff and mana >= 4 and miniHeal = 1 and not casting
+        if skill 'magery' >= 40 and diffhits >= activateAutoHealDiff and diffhits < castFirstGreaterHealDiff and mana >= 4 and miniHeal = 1 and not casting
+            sysmsg 'mini heal' 11
             cast 'heal'
             while not casting                   
                 if targetexists
@@ -499,7 +507,8 @@ while not dead
             target 'self' 
             wait 200  
             
-        elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1 and not casting
+        elseif skill 'magery' >= 60 and diffhits >= castFirstGreaterHealDiff and diffhits < castLastGreaterHealDiff and mana >= 11 and greaterHeal = 1 and not casting
+            sysmsg "greater heal" 11
             cast 'greater heal'         
             while not casting                   
                 if targetexists
@@ -512,7 +521,7 @@ while not dead
                 
                 #--- Poisoned ---#
                 
-                if 1 = drinkCure
+                if 1 = drinkCure and casting and not targetexists
                     while poisoned
                         if findtype "Orange Potion" self
                             dclicktype "Orange Potion"
@@ -530,7 +539,7 @@ while not dead
             
                 #--- Drink Heal Pot ---#
                 
-                if diffhits >= highDiff and 1 = drinkHeal
+                if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists
                     if findtype "Yellow Potion" self as hPot
                         getlabel hPot potLabel
                         if "next" in potLabel
@@ -549,6 +558,12 @@ while not dead
                                         
                             if ch != counttype 3852 self or insysmsg "potion satchel used"
                                 cooldown "Heal Pot" healingPotCD
+                                if diffhits < activateAutoHealDiff
+                                    interrupt
+                                    if targetexists
+                                        hotkey 'cancel current target'
+                                    endif
+                                endif
                             endif
                         endif
                     else
@@ -565,7 +580,8 @@ while not dead
             target 'self' 
             wait 200 
             
-        elseif skill 'magery' >= 40 and diffhits > highDiff and mana >= 4 and miniHeal = 1 and not casting
+        elseif skill 'magery' >= 40 and diffhits >= castLastGreaterHealDiff and mana >= 4 and miniHeal = 1 and not casting
+            sysmsg 'mini heal' 11
             cast 'heal'     
             while not casting                   
                 if targetexists
@@ -1024,7 +1040,7 @@ while not dead
 
 #********** CAST POISON  **********#          
          
-        if repeatCastingPoison = 1 and diffhits < allowCastingDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12
+        if repeatCastingPoison = 1 and diffhits < activateAutoHealDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12
             
             if insysmsg "Your concentration is disturbed"
             endif       
@@ -1121,7 +1137,7 @@ while not dead
 
 #********** CAST CURSE  **********#    
 
-        elseif 1 = castCurse and timer curseTimer > curseCD and mana >= 11 and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif 1 = castCurse and timer curseTimer > curseCD and mana >= 11 and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12
             if insysmsg "Your concentration is disturbed"
             endif       
             if insysmsg "target cannot be seen"
@@ -1154,7 +1170,7 @@ while not dead
                 #--- Poisoned ---#
                 
                 if 1 = drinkCure
-                    while poisoned
+                    while poisoned and casting and not targetexists
                         if findtype "Orange Potion" self
                             dclicktype "Orange Potion"
                             wait 200
@@ -1171,7 +1187,7 @@ while not dead
             
                 #--- Drink Heal Pot ---#
                 
-                if diffhits >= highDiff and 1 = drinkHeal
+                if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists
                     if findtype "Yellow Potion" self as hPot
                         getlabel hPot potLabel
                         if "next" in potLabel
@@ -1217,7 +1233,7 @@ while not dead
             
 #********** CAST MANA DRAIN  **********#
 
-        elseif 1 = castManaDrain and timer manaDrainTimer > manaDrainCD and mana >= 11 and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif 1 = castManaDrain and timer manaDrainTimer > manaDrainCD and mana >= 11 and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12
             if insysmsg "Your concentration is disturbed"
             endif       
             if insysmsg "target cannot be seen"
@@ -1250,7 +1266,7 @@ while not dead
                 
                 #--- Poisoned ---#
                 
-                if 1 = drinkCure
+                if 1 = drinkCure and casting and not targetexists
                     while poisoned
                         if findtype "Orange Potion" self
                             dclicktype "Orange Potion"
@@ -1268,7 +1284,7 @@ while not dead
             
                 #--- Drink Heal Pot ---#
                 
-                if diffhits >= highDiff and 1 = drinkHeal
+                if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists
                     if findtype "Yellow Potion" self as hPot
                         getlabel hPot potLabel
                         if "next" in potLabel
@@ -1314,7 +1330,7 @@ while not dead
             
 #********* CAST NECRO STRANGLE *********            
             
-        elseif 1 = NecroStrangle and 3 < unholyPoints and timer strangleTimer > strangleCD and skill 'necromancy' >= 85 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif 1 = NecroStrangle and 3 < unholyPoints and timer strangleTimer > strangleCD and skill 'necromancy' >= 85 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12
             if insysmsg "unholy symbols remaining"
             endif
             if insysmsg "seconds before you may use that ability again."
@@ -1340,7 +1356,7 @@ while not dead
             
 #********* CAST NECRO CORPSE SKIN *********
             
-        elseif 1 = NecroCorpseSkin and 1 < unholyPoints and timer corpseSkinTimer > corpseSkinCD and skill 'necromancy' >= 65 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif 1 = NecroCorpseSkin and 1 < unholyPoints and timer corpseSkinTimer > corpseSkinCD and skill 'necromancy' >= 65 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12
             if insysmsg "unholy symbols remaining"
             endif
             if insysmsg "seconds before you may use that ability again."
@@ -1366,7 +1382,7 @@ while not dead
             
 #********* CAST NECRO EVIL OMEN *********
 
-        elseif 1 = NecroEvilOmen and 1 < unholyPoints and timer evilOmenTimer > evilOmenCD and skill 'necromancy' >= 60 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < allowCastingDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif 1 = NecroEvilOmen and 1 < unholyPoints and timer evilOmenTimer > evilOmenCD and skill 'necromancy' >= 60 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12
             if insysmsg "unholy symbols remaining"
             endif
             if insysmsg "seconds before you may use that ability again."
@@ -1392,7 +1408,7 @@ while not dead
             
 #********** CAST MAGIC ARROW  **********#
 
-        elseif castMagicArrow = 1 and timer magicArrowTimer > magicArrowCD and diffhits < allowCastingDiff and mana >= 4 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castMagicArrow = 1 and timer magicArrowTimer > magicArrowCD and diffhits < activateAutoHealDiff and mana >= 4 and not dead currentTarget and find currentTarget ground -1 -1 12
             if insysmsg "Your concentration is disturbed"
             endif       
             if insysmsg "target cannot be seen"
@@ -1437,7 +1453,7 @@ while not dead
             
 #********** CAST HARM  **********#        
 
-        elseif castHarm = 1 and timer harmTimer > harmCD and diffhits < allowCastingDiff and mana >= 6 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castHarm = 1 and timer harmTimer > harmCD and diffhits < activateAutoHealDiff and mana >= 6 and not dead currentTarget and find currentTarget ground -1 -1 12
             if insysmsg "Your concentration is disturbed"
             endif       
             if insysmsg "target cannot be seen"
@@ -1482,7 +1498,7 @@ while not dead
  
 #********** CAST FIREBALL  **********#   
 
-        elseif castFireball = 1 and timer fireballTimer > fireballCD and diffhits < allowCastingDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castFireball = 1 and timer fireballTimer > fireballCD and diffhits < activateAutoHealDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12
             sysmsg "fireball" 11
             if insysmsg "Your concentration is disturbed"
             endif       
@@ -1527,7 +1543,7 @@ while not dead
 
 #********** CAST LIGHTNING  **********#   
 
-        elseif castLightning = 1 and timer lightningTimer > lightningCD and diffhits < allowCastingDiff and mana >= 11 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castLightning = 1 and timer lightningTimer > lightningCD and diffhits < activateAutoHealDiff and mana >= 11 and not dead currentTarget and find currentTarget ground -1 -1 12
             sysmsg "lightning" 11
             if insysmsg "Your concentration is disturbed"
             endif       
@@ -1560,7 +1576,7 @@ while not dead
                 
                 #--- Poisoned ---#
                 
-                if 1 = drinkCure
+                if 1 = drinkCure and casting and not targetexists
                     while poisoned
                         if findtype "Orange Potion" self
                             dclicktype "Orange Potion"
@@ -1578,7 +1594,7 @@ while not dead
             
                 #--- Drink Heal Pot ---#
                 
-                if diffhits >= highDiff and 1 = drinkHeal
+                if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists
                     if findtype "Yellow Potion" self as hPot
                         getlabel hPot potLabel
                         if "next" in potLabel
@@ -1629,7 +1645,7 @@ while not dead
 
         elseif castExplosion = 1 or castFlamestrike = 1 or castEnergyBolt = 1 or castMindblast = 1
             
-            if diffhits < allowCastingDiff
+            if diffhits < activateAutoHealDiff
                 if insysmsg "Your concentration is disturbed"
                 endif       
                 if insysmsg "target cannot be seen"
@@ -1694,7 +1710,7 @@ while not dead
                     
                     #--- Poisoned ---#
                     
-                    if 1 = drinkCure
+                    if 1 = drinkCure and casting and not targetexists
                         while poisoned
                             if findtype "Orange Potion" self
                                 dclicktype "Orange Potion"
@@ -1705,14 +1721,13 @@ while not dead
                                     settimer orangeMessageTimer 0
                                     break
                                 endif
-                
                             endif
                         endwhile
                     endif            
                 
                     #--- Drink Heal Pot ---#
                     
-                    if diffhits >= highDiff and 1 = drinkHeal
+                    if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists
                         if findtype "Yellow Potion" self as hPot
                             getlabel hPot potLabel
                             if "next" in potLabel
@@ -1776,6 +1791,9 @@ while not dead
 #********** AUTO HEALING START  **********#         
 
         while diffhits >= activateAutoHealDiff or paralyzed or poisoned
+            if dead
+                stop
+            endif
             sysmsg "auto-healing activated" 11      
             #--- Trapped ---#
             
@@ -1826,7 +1844,7 @@ while not dead
                             settimer orangeMessageTimer 0
                         endif
                         
-                        if diffhits > highDiff or not findtype 3972 self or not findtype 3973 self
+                        if diffhits > castFirstGreaterHealDiff or not findtype 3972 self or not findtype 3973 self
                             break
                         endif
                         
@@ -1853,9 +1871,9 @@ while not dead
                 endwhile
             endif
                 
-            #--- Heal Pot ---#
+            #--- Drink Heal Pot ---#
             
-            if diffhits >= highDiff and 1 = drinkHeal
+            if diffhits >= drinkHealPotDiff and 1 = drinkHeal
                 if findtype "Yellow Potion" self as hPot
                     getlabel hPot potLabel
                     if "next" in potLabel
@@ -1886,7 +1904,8 @@ while not dead
                 
             #--- Cast heals ---#
             
-            if skill 'magery' >= 40 and diffhits >= lowDiff and diffhits <= medDiff and mana >= 4 and miniHeal = 1 and not casting
+            if skill 'magery' >= 40 and diffhits >= activateAutoHealDiff and diffhits <= castFirstGreaterHealDiff and mana >= 4 and miniHeal = 1 and not casting
+                sysmsg 'mini heal' 11
                 cast 'heal'
                 while not casting                   
                     if targetexists
@@ -1902,7 +1921,8 @@ while not dead
                 target 'self' 
                 wait 200  
                 
-            elseif skill 'magery' >= 60 and diffhits >= medDiff and diffhits <= highDiff mana >= 11 and greaterHeal = 1 and not casting
+            elseif skill 'magery' >= 60 and diffhits >= castFirstGreaterHealDiff and diffhits <= castLastGreaterHealDiff and mana >= 11 and greaterHeal = 1 and not casting
+                sysmsg "greater heal" 11
                 cast 'greater heal'         
                 while not casting                   
                     if targetexists
@@ -1915,7 +1935,7 @@ while not dead
                 
                     #--- Poisoned ---#
                     
-                    if 1 = drinkCure
+                    if 1 = drinkCure and casting and not targetexists
                         while poisoned
                             if findtype "Orange Potion" self
                                 dclicktype "Orange Potion"
@@ -1933,7 +1953,7 @@ while not dead
                 
                     #--- Drink Heal Pot ---#
                     
-                    if diffhits >= highDiff and 1 = drinkHeal
+                    if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists
                         if findtype "Yellow Potion" self as hPot
                             getlabel hPot potLabel
                             if "next" in potLabel
@@ -1952,6 +1972,12 @@ while not dead
                                             
                                 if ch != counttype 3852 self or insysmsg "potion satchel used"
                                     cooldown "Heal Pot" healingPotCD
+                                    if diffhits < activateAutoHealDiff
+                                        interrupt
+                                        if targetexists
+                                            hotkey 'cancel current target'
+                                        endif
+                                    endif
                                 endif
                             endif
                         else
@@ -1968,7 +1994,8 @@ while not dead
                 target 'self' 
                 wait 200 
                 
-            elseif skill 'magery' >= 40 and diffhits >= medDiff and mana >= 4 and miniHeal = 1 and not casting
+            elseif skill 'magery' >= 40 and diffhits >= castLastGreaterHealDiff and mana >= 4 and miniHeal = 1 and not casting
+                sysmsg 'mini heal' 11
                 cast 'heal'     
                 while not casting                   
                     if targetexists
@@ -2025,7 +2052,7 @@ while not dead
             wait 200
             if findbuff 'meditating'
                 overhead '* meditating *' 88
-                while mana < meditateUntilManaReach and diffhits < medDiff
+                while mana < meditateUntilManaReach and diffhits < activateAutoHealDiff
                     #interrupt here if hp is low
                     if not findbuff 'meditating'
                         break
@@ -2172,10 +2199,10 @@ while not dead
     
 #********** AUTO-MAGERY BUFFS IF NEEDED **********          
 
-    if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < allowCastingDiff
+    if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff
         if timer magicReflectTimer > magicReflectCD
             cast 'Magic Reflection'
-            while not casting and diffhits < lowDiff    
+            while not casting 
                 getlabel backpack xxx
                 wait 200
                 if insysmsg "that spell will not" or insysmsg "that spell is already"
@@ -2188,11 +2215,15 @@ while not dead
                 cast 'Magic Reflection'
             endwhile 
             
-            while casting and diffhits < highDiff   
-            
+            while casting 
+                if diffhits >= interruptCastingDiff
+                    interrupt
+                    @setvar! castingInterrupted 1 
+                    break
+                endif            
                 #--- Poisoned ---#
                 
-                if 1 = drinkCure
+                if 1 = drinkCure and casting and not targetexists
                     while poisoned
                         if findtype "Orange Potion" self
                             dclicktype "Orange Potion"
@@ -2210,7 +2241,7 @@ while not dead
             
                 #--- Drink Heal Pot ---#
                 
-                if diffhits >= highDiff and 1 = drinkHeal
+                if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists
                     if findtype "Yellow Potion" self as hPot
                         getlabel hPot potLabel
                         if "next" in potLabel
@@ -2244,10 +2275,10 @@ while not dead
         endif    
     endif
     
-    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < allowCastingDiff
+    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff
         if timer magicReflectTimer > magicReflectCD
             cast 'Reactive Armor'
-            while not casting and diffhits < highDiff       
+            while not casting   
                 getlabel backpack xxx
                 wait 200
                 if insysmsg "that spell will not" or insysmsg "that spell is already"
@@ -2260,28 +2291,29 @@ while not dead
                 cast 'Reactive Armor'
             endwhile  
             
-            while casting and diffhits < lowDiff   
+            while casting 
             endwhile
+            getlabel backpack xxx
             wait 200  
         endif    
     endif     
     
-    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < allowCastingDiff
+    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff
         cast 'Protection'
-        while not casting and diffhits < highDiff 
+        while not casting
             if targetexists
                 hotkey 'cancel current target'
             endif
             cast 'Protection'
         endwhile  
-        while casting and diffhits < lowDiff   
+        while casting
         endwhile
         wait 200  
     endif 
     
-    if bless = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < allowCastingDiff
+    if bless = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff
         cast 'Bless'         
-        while not casting and diffhits < highDiff                   
+        while not casting                  
             if targetexists
                 hotkey 'cancel current target'
             endif
@@ -2334,8 +2366,7 @@ while not dead
         wait 200
         if findbuff 'meditating'
             overhead '* meditating *' 88
-            while mana < meditateUntilManaReach and diffhits < medDiff
-                #interrupt here if hp is low
+            while mana < meditateUntilManaReach and diffhits < activateAutoHealDiff
                 if not findbuff 'meditating'
                     break
                 endif

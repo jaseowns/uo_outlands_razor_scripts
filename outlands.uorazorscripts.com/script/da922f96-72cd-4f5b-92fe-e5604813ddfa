@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.02
+#Auto-mage attack 3.04
 
 #********** INFORMATION **********# 
 
@@ -16,7 +16,7 @@
 
 #--- *!*!* SCRIPT IS UNDER DEVELOPMENT. *!*!*!* ---#
 
-# !!!VERSION 3.00 IS IN HEAVY TESTING SINCE IT INCLUDED AUTO-SUMMONING !!! #
+# !!!VERSION 3.00+ IS IN HEAVY TESTING SINCE IT INCLUDED AUTO-SUMMONING !!! #
 
 # !!! IMPORTANT !!! DISABLE: `Filter repeating system messages` ON RAZOR !!! # 
     
@@ -24,6 +24,7 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.04 Code restructure, add variable to break attacking and summon elemental if needed, added mindrot necro spell on regular casting
 # Ver 3.00 Added auto-summoning and FIX on script stopping suddenly
 # Ver.2.84 fixes and changes to the healing trigger mechanism
 # Ver.2.77 fixes and changes to casting and targetting spells
@@ -43,12 +44,14 @@
 
 #--- Set Elementals Count ---#
 
-@setvar! earthElementals 0
+@setvar! earthElementals 2
 @setvar! waterElementals 0
 @setvar! airElementals 0
 @setvar! fireElementals 0
 @setvar! summonDaemons 0
 @setvar! summonCreature 0
+
+@setvar! minimumFollowers 4
 
 #--- Set Followers Necromancy Spells ---#
 
@@ -60,7 +63,7 @@
 
 @setvar! castMagicArrow 1
 @setvar! castHarm 1
-@setvar! castFireball 1
+@setvar! castFireball 0
 @setvar! castLightning 1
 
 #- Big spells prioritize order -#
@@ -78,7 +81,7 @@
 # 0 - Greater or lesser 
 # 1 - Deadly 
 # 2 - Lethal
-@setvar! poisonLevel 0
+@setvar! poisonLevel 1
 
 @setvar! castCurse 1
 @setvar! castManaDrain 1
@@ -114,7 +117,7 @@
 # 9 - Apply in 9 ticks left or less
 # 10 - Apply in 10 ticks left or less
 
-@setvar! NecroPoisonStrike 7
+@setvar! NecroPoisonStrike 8
 
 #--- Set Mage auto heals ---#
 
@@ -157,7 +160,7 @@ l
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 0
+@setvar! useMeditationSkill 1
 @setvar! meditateWhenManaBelow 14
 @setvar! meditateUntilManaReach 65
 
@@ -590,7 +593,9 @@ endif
 while not dead
     
     @setvar! currentlyAttacking 0 
-    
+
+#********* DROP GOLD IF OVERWEIGHT *********
+
     if weight > maxweight
         if timer overweightMessageTimer > overweightMessageCD
             overhead "Overweight !!" 34
@@ -620,7 +625,75 @@ while not dead
         if dead
             stop
         endif
+        
         sysmsg "auto-healing activated" 11      
+    
+        if not findbuff "food" and findtype "tray" backpack as fody    
+            dclick fody
+            wait 200
+        endif
+        
+        #--- Drink str pot ---#
+        
+        if drinkStr = 1 and str < strengthLowerThan
+            if not findbuff "Strength" 
+                if findtype "White Potion" self
+                    dclicktype "White Potion"
+                    wait 200
+                else
+                    if timer whiteMessageTimer > whiteMessageCD
+                        overhead "Out of str pots" 34
+                        settimer whiteMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+        
+        #--- Drink agility pot ---#
+        
+        if drinkAgility = 1
+            if not findbuff "Agility" 
+                if findtype "Blue Potion" self
+                    dclicktype "Blue Potion"
+                    wait 200
+                else
+                    if timer blueMessageTimer > blueMessageCD
+                        overhead "Out of agility pots" 34
+                        settimer blueMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+            
+        #--- Drink magic resist pot ---#
+    
+        if drinkMagicResist = 1
+            if not findbuff "Magic Resist" 
+                if findtype "Black Potion" self
+                    dclicktype "Black Potion"
+                    wait 200
+                else
+                    if timer blackMessageTimer > blackMessageCD
+                        overhead "Out of resist pots" 34
+                        settimer blackMessageTimer 0
+                    endif
+                endif
+            endif
+        endif
+        
+        #--- Drink red pot ---#
+        
+        if stam < staminaLowerThan and 1 = drinkRefresh
+            if findtype "Red Potion" self
+                dclicktype "Red Potion"
+                wait 200
+            else
+                if timer redMessageTimer > redMessageCD
+                    overhead "Out of refresh pots" 34
+                    settimer redMessageTimer 0 
+                endif
+            endif
+        endif
         
         #--- Trapped ---#
         
@@ -842,58 +915,6 @@ while not dead
         endif 
     
     endwhile
-
-#********* EAT TRAY FOOD *********
-    
-    if not findbuff "food" and findtype "tray" backpack as fody    
-        dclick fody
-        wait 200
-    endif
-    
-#********* CREATE MUSHROOMS *********
-    
-    if counttype 29012 backpack = 0
-        while counttype 29012 backpack < mushroomCount
-            cast 'create food'
-            wait 100
-        endwhile
-    endif   
-    
-#********** EAT MUSHROOM  **********# 
- 
-    if mana < eatMushWhenManaLowerThan and mushroomCount > 0
-        if timer mushroomTimer > mushroomTimerCD
-            if counttype 29012 backpack as c
-                @setvar! cm c
-                sysmsg "Eating mush." 66
-                dclicktype 29012 backpack
-                getlabel backpack xxx
-                wait 200
-                
-                if cm != counttype 29012 backpack
-                    settimer mushroomTimer 0
-                endif
-            else 
-                overhead "No mushrooms found!" 34
-            endif
-        endif
-    endif
-    
-#********* USE MEDITATION *********
-
-    if 1 = useMeditationSkill and mana < meditateWhenManaBelow and not findbuff "meditating"
-        skill 'meditation'
-        getlabel backpack xxx
-        wait 200
-        if findbuff 'meditating'
-            overhead '* meditating *' 88
-            while mana < meditateUntilManaReach and diffhits < activateAutoHealDiff
-                if not findbuff 'meditating'
-                    break
-                endif
-            endwhile
-        endif
-    endif 
     
 #********** AUTO-MAGERY BUFFS IF NEEDED **********          
 
@@ -1031,6 +1052,120 @@ while not dead
 #********** START AUTO SUMMONING **********# 
 
     while followers < maxFollowers and diffhits < activateAutoHealDiff
+
+        #--- Eat Food ---#
+
+        if not findbuff "food" and findtype "tray" backpack as fody    
+            dclick fody
+            wait 200
+        endif
+        
+        #--- Drink str pot ---#
+        
+        if drinkStr = 1 and str < strengthLowerThan
+            if not findbuff "Strength" 
+                if findtype "White Potion" self
+                    dclicktype "White Potion"
+                    wait 200
+                else
+                    if timer whiteMessageTimer > whiteMessageCD
+                        overhead "Out of str pots" 34
+                        settimer whiteMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+        
+        #--- Drink agility pot ---#
+        
+        if drinkAgility = 1
+            if not findbuff "Agility" 
+                if findtype "Blue Potion" self
+                    dclicktype "Blue Potion"
+                    wait 200
+                else
+                    if timer blueMessageTimer > blueMessageCD
+                        overhead "Out of agility pots" 34
+                        settimer blueMessageTimer 0 
+                    endif
+                endif
+            endif
+        endif
+            
+        #--- Drink magic resist pot ---#
+    
+        if drinkMagicResist = 1
+            if not findbuff "Magic Resist" 
+                if findtype "Black Potion" self
+                    dclicktype "Black Potion"
+                    wait 200
+                else
+                    if timer blackMessageTimer > blackMessageCD
+                        overhead "Out of resist pots" 34
+                        settimer blackMessageTimer 0
+                    endif
+                endif
+            endif
+        endif
+        
+        #--- Drink red pot ---#
+        
+        if stam < staminaLowerThan and 1 = drinkRefresh
+            if findtype "Red Potion" self
+                dclicktype "Red Potion"
+                wait 200
+            else
+                if timer redMessageTimer > redMessageCD
+                    overhead "Out of refresh pots" 34
+                    settimer redMessageTimer 0 
+                endif
+            endif
+        endif
+        
+        #--- Create Mushroom ---#
+        
+        if counttype 29012 backpack = 0
+            while counttype 29012 backpack < mushroomCount
+                cast 'create food'
+                wait 100
+            endwhile
+        endif   
+        
+        #--- Eat Mushroom ---#
+     
+        if mana < eatMushWhenManaLowerThan and mushroomCount > 0 and timer mushroomTimer > mushroomTimerCD
+            if counttype 29012 backpack as c
+                @setvar! cm c
+                sysmsg "Eating mush." 66
+                dclicktype 29012 backpack
+                getlabel backpack xxx
+                wait 200
+                
+                if cm != counttype 29012 backpack
+                    settimer mushroomTimer 0
+                endif
+            else 
+                overhead "No mushrooms found!" 34
+            endif
+        endif
+        
+        #--- Use Meditation ---#
+    
+        if 1 = useMeditationSkill and mana < meditateWhenManaBelow and not findbuff "meditating"
+            skill 'meditation'
+            getlabel backpack xxx
+            wait 200
+            if findbuff 'meditating'
+                overhead '* meditating *' 88
+                while mana < meditateUntilManaReach and diffhits < activateAutoHealDiff
+                    if not findbuff 'meditating'
+                        break
+                    endif
+                endwhile
+            endif
+        endif 
+        
+        #--- Check for new elementals ---#
         
         if 1 = castingEarth 
             sysmsg "fixing earth" 44
@@ -1203,6 +1338,8 @@ while not dead
             @setvar! castingCreature 0
         endif
         
+        #--- Check for dead elementals ---#
+        
         if earthFirsty != 0 and dead earthFirsty
             if list earthListy != 0
                 poplist earthListy 'front' 
@@ -1315,60 +1452,6 @@ while not dead
                 sysmsg "pop creature 5"
             endif 
             @setvar! creatureFithy 0
-        endif
-
-#********* CREATE MUSHROOMS *********
-        
-        if counttype 29012 backpack = 0
-            while counttype 29012 backpack < mushroomCount
-                cast 'create food'
-                wait 100
-            endwhile
-        endif   
-        
-#********** EAT MUSHROOM  **********# 
-     
-        if mana < eatMushWhenManaLowerThan and mushroomCount > 0
-            if timer mushroomTimer > mushroomTimerCD
-                if counttype 29012 backpack as c
-                    @setvar! cm c
-                    sysmsg "Eating mush." 55
-                    dclicktype 29012 backpack
-                    getlabel backpack xxx
-                    wait 200
-                    
-                    if cm != counttype 29012 backpack
-                        settimer mushroomTimer 0
-                    endif
-                else 
-                    overhead "No mushrooms found!" 34
-                endif
-            endif
-        endif
-        
-#********* USE MEDITATION *********
-
-        if 1 = useMeditationSkill and mana < 50 and not findbuff "meditating"
-            skill 'meditation'
-            getlabel backpack xxx
-            wait 200
-            if findbuff 'meditating'
-                overhead '* meditating *' 88
-                while mana < meditateUntilManaReach and diffhits < activateAutoHealDiff
-                    #interrupt here if hp is low
-                    if not findbuff 'meditating'
-                        break
-                    endif
-                endwhile
-            endif
-        endif     
-    
-        if mana < 50
-            if timer manaMsgTimer > manaMsgCD
-                overhead "No mana to summon" 34
-                settimer manaMsgTimer 0
-            endif
-            break
         endif
         
         @clearsysmsg
@@ -2231,56 +2314,13 @@ while not dead
 #********** BEGIN AUTO ATTACKING LOOP **********#    
     
     while 1 = foundTarget and not dead currentTarget and find currentTarget ground -1 -1 12 and diffhits < activateAutoHealDiff
-        @setvar! castingInterrupted 0
-        sysmsg 'found target' 55
         
-        if targetexists
-            hotkey 'cancel current target'
+        #--- Eat food ---#
+        
+        if not findbuff "food" and findtype "tray" backpack as fody    
+            dclick fody
+            wait 200
         endif
-        
-        if followers > 0 and 0 = currentlyAttacking
-            if insysmsg "Ignoring speech request"
-            endif
-            while not dead 
-                say 'ALL Guard ME' 11
-                getlabel backpack xxx
-                wait 200   
-                if insysmsg "Ignoring speech request"
-                else 
-                    break
-                endif
-            endwhile
-        endif
-        
-        @setvar! currentlyAttacking 1
-        
-        if weight > maxweight
-            if timer overweightMessageTimer > overweightMessageCD
-                overhead "Overweight !!" 34
-                settimer overweightMessageTimer 0
-            endif
-            
-            if 0 != amountOfGoldToDrop
-                while weight > maxweight
-                    if findtype "gold coin" backpack as item
-                        lift item amountOfGoldToDrop
-                        droprelloc 0 0
-                        getlabel backpack xxx
-                        wait 200
-                        if insysmsg "cannot drop anything"
-                            drop backpack -1 -1 -1
-                        endif
-                        wait maxwaittimeinms
-                        overhead "* Gold Dropped *" 55
-                    else 
-                        overhead "* No Gold found to drop *" 44
-                        break
-                    endif
-                endwhile            
-            endif
-        endif
-        
-#********** DRINK POTION IF NEEDED **********#
         
         #--- Drink str pot ---#
         
@@ -2343,8 +2383,38 @@ while not dead
                 endif
             endif
         endif
+
+        @setvar! castingInterrupted 0
+        sysmsg 'found target' 55
         
-#********** EAT MUSHROOM  **********# 
+        if targetexists
+            hotkey 'cancel current target'
+        endif
+        
+        if followers > 0 and 0 = currentlyAttacking
+            if insysmsg "Ignoring speech request"
+            endif
+            while not dead 
+                say 'ALL Guard ME' 11
+                getlabel backpack xxx
+                wait 200   
+                if insysmsg "Ignoring speech request"
+                else 
+                    break
+                endif
+            endwhile
+        endif
+        
+        #--- Create mushroom ---#
+    
+        if counttype 29012 backpack = 0 and diffhits < activateAutoHealDiff
+            while counttype 29012 backpack < mushroomCount
+                cast 'create food'
+                wait 100
+            endwhile
+        endif  
+        
+        #--- Eat Mushroom ---# 
  
         if mana < eatMushWhenManaLowerThan and mushroomCount > 0
             if timer mushroomTimer > mushroomTimerCD
@@ -2364,7 +2434,7 @@ while not dead
             endif
         endif
         
-#********* USE MEDITATION *********
+        #--- Use Meditation ---# 
 
         if 1 = useMeditationSkill and mana < meditateWhenManaBelow and not findbuff "meditating"
             skill 'meditation'
@@ -2380,6 +2450,8 @@ while not dead
                 endwhile
             endif
         endif  
+
+        @setvar! currentlyAttacking 1       
         
         if 1 = targetSelectionMode
             if insysmsg! "target a new"
@@ -2387,6 +2459,7 @@ while not dead
                 break
             endif
         endif
+        
         
 #********** CHECK POISONING STATUS **********#
         
@@ -2677,7 +2750,7 @@ while not dead
             endwhile  
             
             @settimer! spellTimer 0  
-            @setvar! spellCD 700    
+            @setvar! spellCD 800    
             
             while not targetexists
                 if diffhits >= interruptCastingDiff
@@ -2783,7 +2856,7 @@ while not dead
             endwhile  
             
             @settimer! spellTimer 0  
-            @setvar! spellCD 700  
+            @setvar! spellCD 800  
             
             while not targetexists
                 if diffhits >= interruptCastingDiff
@@ -2950,6 +3023,32 @@ while not dead
                 settimer evilOmenTimer 0
             endif
             
+#********* CAST NECRO MIND ROT *********
+
+        elseif 1 = NecroMindRot and 4 < unholyPoints and timer mindRotTimer > mindRotCD and skill 'necromancy' >= 75 and mana >= minManaToUseDamageBuffNecroSpells and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+            if insysmsg "unholy symbols remaining"
+            endif
+            if insysmsg "seconds before you may use that ability again."
+            endif
+
+            while not insysmsg "unholy symbols remaining"
+                sysmsg "mindrot" 66
+                yell '[mindrot'
+                getlabel backpack xxx
+                wait 200
+                if insysmsg "seconds before you may use that ability again."
+                    sysmsg "necro margin error 4" 44
+                    @setvar! castingInterrupted 1
+                    settimer mindRotTimer necroMarginErrorCD
+                    break    
+                endif
+            endwhile
+            
+            if 0 = castingInterrupted
+                overhead '[>Mind Rot<]' 44
+                settimer mindRotTimer 0
+            endif
+            
 #********** CAST MAGIC ARROW  **********#
 
         elseif castMagicArrow = 1 and timer magicArrowTimer > magicArrowCD and diffhits < activateAutoHealDiff and mana >= 4 and not dead currentTarget and find currentTarget ground -1 -1 12
@@ -3102,7 +3201,7 @@ while not dead
             endwhile  
             
             @settimer! spellTimer 0  
-            @setvar! spellCD 700     
+            @setvar! spellCD 800     
             
             while not targetexists
                 if diffhits >= interruptCastingDiff
@@ -3214,7 +3313,7 @@ while not dead
                         cast 'flamestrike'             
                     endwhile
                     @settimer! spellTimer 0  
-                    @setvar! spellCD 1300
+                    @setvar! spellCD 1400
                 elseif castEnergyBolt = 1 and bigSpellCounter = 1 and mana >= 20
                     sysmsg "energy" 11
                     cast 'energy bolt'           
@@ -3225,7 +3324,7 @@ while not dead
                         cast 'energy bolt'             
                     endwhile
                     @settimer! spellTimer 0  
-                    @setvar! spellCD 1100                    
+                    @setvar! spellCD 1200                    
                 elseif castExplosion = 1 and bigSpellCounter = 2 and mana >= 20
                     sysmsg "explo" 11
                     cast 'Explosion'           
@@ -3236,7 +3335,7 @@ while not dead
                         cast 'Explosion'             
                     endwhile
                     @settimer! spellTimer 0  
-                    @setvar! spellCD 1100                 
+                    @setvar! spellCD 1200                 
                 elseif castMindblast = 1 and mana >= 14
                     sysmsg "mind" 11
                     cast 'mind blast'           
@@ -3247,7 +3346,7 @@ while not dead
                         cast 'mind blast'             
                     endwhile
                     @settimer! spellTimer 0  
-                    @setvar! spellCD 900   
+                    @setvar! spellCD 1000   
                 endif
                 
                 while not targetexists
@@ -3353,79 +3452,6 @@ while not dead
             endif
         endif
         
-        if mana < lowManaWarningMessageWhenBelow and timer manaMessageTimer > manaMessageCD
-            overhead "Low mana warning" 34
-            settimer manaMessageTimer 0
-        endif
-        
-#********** DRINK POTION IF NEEDED **********#
-    
-        #--- Drink str pot ---#
-        
-        if drinkStr = 1 and str < strengthLowerThan
-            if not findbuff "Strength" 
-                if findtype "White Potion" self
-                    dclicktype "White Potion"
-                    getlabel backpack xxx
-                    wait 200
-                else
-                    if timer whiteMessageTimer > whiteMessageCD
-                        overhead "Out of str pots" 34
-                        settimer whiteMessageTimer 0 
-                    endif
-                endif
-            endif
-        endif
-        
-        #--- Drink agility pot ---#
-        
-        if drinkAgility = 1
-            if not findbuff "Agility" 
-                if findtype "Blue Potion" self
-                    dclicktype "Blue Potion"
-                    getlabel backpack xxx
-                    wait 200
-                else
-                    if timer blueMessageTimer > blueMessageCD
-                        overhead "Out of agility pots" 34
-                        settimer blueMessageTimer 0 
-                    endif
-                endif
-            endif
-        endif
-            
-        #--- Drink magic resist pot ---#
-    
-        if drinkMagicResist = 1
-            if not findbuff "Magic Resist" 
-                if findtype "Black Potion" self
-                    dclicktype "Black Potion"
-                    getlabel backpack xxx
-                    wait 200
-                else
-                    if timer blackMessageTimer > blackMessageCD
-                        overhead "Out of resist pots" 34
-                        settimer blackMessageTimer 0
-                    endif
-                endif
-            endif
-        endif
-        
-        #--- Drink red pot ---#
-        
-        if stam < staminaLowerThan and 1 = drinkRefresh
-            if findtype "Red Potion" self
-                dclicktype "Red Potion"
-                getlabel backpack xxx
-                wait 200
-            else
-                if timer redMessageTimer > redMessageCD
-                    overhead "Out of refresh pots" 34
-                    settimer redMessageTimer 0 
-                endif
-            endif
-        endif
-        
  #********** USE WEAPON ABILITY **********# 
  
         if skill "Arcane" >= 80
@@ -3455,14 +3481,16 @@ while not dead
             endif
         endif 
         
-#********* CREATE MUSHROOMS *********
-    
-        if counttype 29012 backpack = 0 and diffhits < activateAutoHealDiff
-            while counttype 29012 backpack < mushroomCount
-                cast 'create food'
-                wait 100
-            endwhile
-        endif   
+        if mana < lowManaWarningMessageWhenBelow and timer manaMessageTimer > manaMessageCD
+            overhead "Low mana warning" 34
+            settimer manaMessageTimer 0
+        endif
+        
+        if earthElementals != 0 or waterElementals != 0 or fireElementals != 0 or airElementals != 0 or summonDaemons != 0 or summonCreature != 0
+            if followers < minimumFollowers
+                break
+            endif
+        endif
         
     endwhile
     

@@ -51,6 +51,7 @@
 # Healing Potion
 # Cure Potion
 # Refresh Potion
+# Purple Potion
 # Holy Light
 # Noble Sacrifice
 # Cleanse By Fire
@@ -73,6 +74,7 @@
 # Cleanup
 # Radar
 # Ammunition
+# Breather 
 
 
 
@@ -258,7 +260,7 @@ if not dead
 
             if paralyzed and EnableParalyzePouch = 1
                 if findtype "pouch" self
-                    yell "[pouch"
+                yell "[pouch"
                     overhead '-[[[ RUN! ]]]-' 2114 
                 else 
                     overhead "[ NO TRAPPED POUCHES! ]" 337          
@@ -474,16 +476,211 @@ if not dead
                         endif
                 gumpclose 4267467659
                 overhead "[ TRACKING ENABLED! ]" 149
+                wait 1000
             endif 
 
-        if not cooldown "Breather"
-            hotkey 'Target Closest Grey Monster'
-            wait 250
-        else 
-            hotkey 'Cancel Current Target'
-            wait 250
-            replay
-        endif 
+            if warmode
+                hotkey 'Cancel Current Target'
+                wait 150 
+                hotkey 'Target Random Murderer Player'
+                wait 250 
+                    if insysmsg "No one matching that was found"   
+                        cooldown "Pacified" 0
+                        cooldown "Discorded" 0
+                        cooldown "Provoked" 0
+                        overhead "[ NO NEARBY REDS... ]" 339
+                        wait 1000
+                        hotkey 'Toggle Peace Only'
+                        replay
+                    else
+                        @setvar! MurdererTarget lasttarget
+                        wait 150
+                        attack MurdererTarget
+                        wait 500
+
+                        while not dead MurdererTarget
+
+                            if paralyzed and EnableParalyzePouch = 1
+                                if findtype "pouch" self
+                                    yell "[pouch"
+                                else 
+                                    overhead "[ NO MORE POUCHES! ]" 337          
+                                endif           
+                            endif
+
+                            if skill 'Healing' > 38
+                                if not bandaging and hits < maxhits
+                                    hotkey "Bandage Self"
+                                elseif counttype 'clean bandage%s%' < 10 and not cooldown "Inventory Timer"
+                                    cooldown "Inventory Timer" 6000
+                                elseif counttype 'clean bandage%s%' = 0 and not cooldown "Inventory Timer"
+                                    cooldown "Inventory Timer" 6000
+                                endif 
+                            endif
+                        
+                            if not findtype 'crossbow|balestra|stubnose crossbow' hand
+                                if findtype 'crossbow|balestra|stubnose crossbow' backpack as fastweapon
+                                    dclick fast weapon
+                                    wait 250
+                                endif 
+                            endif 
+                   
+                            attack MurdererTarget
+
+                            if not findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                                if findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                    dclick shield
+                                    wait 250
+                                endif
+                            endif 
+
+                            if findtype "Purple Potion" self as pot and not cooldown "Purple Potion" 
+                                getlabel pot desc
+                                if "next usable in 15" in desc
+                                    @setvar! purplePotionCD 15000 
+                                elseif "next usable in 14" in desc
+                                    @setvar! purplePotionCD 14000
+                                elseif "next usable in 13" in desc
+                                    @setvar! purplePotionCD 13000
+                                elseif "next usable in 12" in desc
+                                    @setvar! purplePotionCD 12000
+                                elseif "next usable in 11" in desc
+                                    @setvar! purplePotionCD 11000
+                                elseif "next usable in 10" in desc
+                                    @setvar! purplePotionCD 10000
+                                elseif "next usable in 9" in desc
+                                    @setvar! purplePotionCD 9000
+                                elseif "next usable in 8" in desc
+                                    @setvar! purplePotionCD 8000
+                                elseif "next usable in 7" in desc
+                                    @setvar! purplePotionCD 7000
+                                elseif "next usable in 6" in desc
+                                    @setvar! purplePotionCD 6000
+                                elseif "next usable in 5" in desc
+                                    @setvar! purplePotionCD 5000
+                                elseif "next usable in 4" in desc
+                                    @setvar! purplePotionCD 4000
+                                elseif "next usable in 3" in desc
+                                    @setvar! purplePotionCD 3000
+                                elseif "next usable in 2" in desc
+                                    @setvar! purplePotionCD 2000
+                                elseif "next usable in 1" in desc
+                                    @setvar! purplePotionCD 1000
+                                else 
+                                    @setvar! purplePotionCD 0
+                                endif
+                               
+                                cooldown "Purple Potion" purplePotionCD
+                                wait 250
+
+                                if find MurdererTarget ground -1 -1 10 and not cooldown "Purple Potion"
+                                    dclick pot
+                                    wft 500
+                                    target MurdererTarget
+                                    wait 500  
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE EXPLOSION POTION! ]" 419
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ EXPLOSION POTION... ]' 419
+                                            clearsysmsg
+                                        endif
+                                    cooldown "Purple Potion" 15000 
+                                endif
+                            else
+                                overhead "[ NO EXPLOSION POTS! ]" 337
+                                cooldown "Purple Potion" 30000
+                            endif    
+
+                            if hits < maxhits and not cooldown "Healing Potion"
+                                if findtype "Yellow Potion" self as healpot
+                                    dclick healpot
+                                    cooldown "Healing Potion" 11000
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE HEAL POTION! ]" 253
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ HEAL POTION... ]' 253
+                                            clearsysmsg
+                                        endif
+                                else 
+                                    if not cooldown "Inventory Timer" 
+                                        overhead '[ NO HEAL POTS! ]' 337
+                                        cooldown "Healing Potion" 30000
+                                    endif
+                                endif
+                                wait 250 
+                            endif
+
+                            if poisoned and not cooldown "Cure Potion"
+                                if findtype "Orange Potion" self as curepot
+                                    dclick curepot
+                                    cooldown "Cure Potion" 11000
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE CURE POTION! ]" 44
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ CURE POTION... ]' 44
+                                            clearsysmsg
+                                        endif
+                                else
+                                    if not cooldown "Inventory Timer" 
+                                        overhead '[ NO CURE POTS! ]' 337
+                                        cooldown "Cure Potion" 30000
+                                    endif
+                                endif
+                                wait 250 
+                            endif
+
+                            if stam < maxstam and not cooldown "Refresh Potion"
+                                if findtype "Red Potion" self as refreshpot
+                                    dclick refreshpot
+                                    cooldown "Refresh Potion" 11000
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE REFRESH POTION! ]" 34
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ REFRESH POTION... ]' 34
+                                            clearsysmsg
+                                        endif
+                                else 
+                                    if not cooldown "Inventory Timer" 
+                                        overhead '[ NO REFRESH POTS! ]' 337
+                                        cooldown "Refresh Potion" 30000
+                                    endif
+                                endif
+                                wait 250 
+                            endif
+                      
+                            if not cooldown "Weapon Ability" and not cooldown "Skirmish"
+                                yell "[WeaponAbility1" 
+                                wait 250
+                                if insysmsg "You cannot"
+                                    cooldown "Weapon Ability" 5000
+                                else 
+                                    overhead "[ SKIRMISH! ]" 339
+                                    cooldown "Weapon Ability" 61000
+                                    cooldown "Skirmish" 15000
+                                endif   
+                            endif 
+                            wait 1000
+                            
+                        endwhile
+                        replay
+                    endif
+            endif
+    
+            if not cooldown "Breather"
+                hotkey 'Target Closest Grey Monster'
+                wait 250
+            else 
+                hotkey 'Cancel Current Target'
+                wait 250
+                replay
+            endif 
 
 
         #######################
@@ -544,16 +741,230 @@ if not dead
                     wait 500
                 endif
             endif 
-        
-            if warmode
-                cooldown "Pacified" 0
-                cooldown "Discorded" 0
-                cooldown "Provoked" 0
-                overhead "[ BARDING BREAK... ]" 444
-                hotkey 'Toggle Peace Only'
-                replay
-            endif                        
 
+            if warmode
+                hotkey 'Cancel Current Target'
+                wait 150 
+                hotkey 'Target Random Murderer Player'
+                wait 250 
+                    if insysmsg "No one matching that was found"   
+                        cooldown "Pacified" 0
+                        cooldown "Discorded" 0
+                        cooldown "Provoked" 0
+                        hotkey 'Toggle Peace Only'
+                        replay
+                    else
+                        @setvar! MurdererTarget lasttarget
+                        wait 150
+                        attack MurdererTarget
+                        wait 500
+
+                        while not dead MurdererTarget
+
+                            if paralyzed and EnableParalyzePouch = 1
+                                if findtype "pouch" self
+                                    yell "[pouch"
+                                else 
+                                    overhead "[ NO MORE POUCHES! ]" 337          
+                                endif           
+                            endif
+
+                            if skill 'Healing' > 38
+                                if not bandaging and hits < maxhits
+                                    hotkey "Bandage Self"
+                                elseif counttype 'clean bandage%s%' < 10 and not cooldown "Inventory Timer"
+                                    cooldown "Inventory Timer" 6000
+                                elseif counttype 'clean bandage%s%' = 0 and not cooldown "Inventory Timer"
+                                    cooldown "Inventory Timer" 6000
+                                endif 
+                            endif
+                        
+                            if not findtype 'crossbow|balestra|stubnose crossbow' hand
+                                if findtype 'crossbow|balestra|stubnose crossbow' backpack as fastweapon
+                                    dclick fast weapon
+                                    wait 250
+                                endif 
+                            endif 
+                   
+                            attack MurdererTarget
+
+                            if not findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                                if findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                    dclick shield
+                                    wait 250
+                                endif
+                            endif 
+
+                            if not cooldown "Provoked" and not cooldown "Provocation" and find ClosestTarget ground -1 -1 10
+                                skill "Provocation"
+                                wft 500
+                                target ClosestTarget
+                                wft 500                        
+                                target MurderTarget
+                                wait 250 
+                                    if insysmsg 'You play successfully, provoking'
+                                        cooldown "Musicianship" 5500
+                                        cooldown "Provocation" 11000
+                                        cooldown "Provoked" 15000                    
+                                    elseif insysmsg 'You fail to incite'
+                                        overhead '[ PROVO FAIL! ]' 153
+                                        cooldown "Provocation" 5000
+                                        wait 250
+                                    elseif insysmsg 'Target cannot be seen'
+                                        overhead "[ TARGET CANNOT BE SEEN... ]" 337
+                                        cooldown "Provocation" 5000
+                                    elseif insysmsg 'That is too far away.'
+                                        overhead '[ TOO FAR AWAY! ]' 43
+                                        cooldown "Provocation" 5000 
+                                    elseif insysmsg 'The creatures you are trying to provoke are too far away from each other for your music to have an effect.'
+                                        overhead '[ TOO FAR APART! ]' 153 ClosestTarget
+                                        overhead '[ TOO FAR APART! ]' 153 MurdererTarget
+                                        cooldown "Provocation" 5000
+                                    elseif insysmsg 'tell someone to attack themselves!'
+                                        overhead '[ SELF TARGETING FAIL... ]' 337
+                                        cooldown "Provocation" 5000
+                                    endif 
+                            endif 
+                            
+                            if findtype "Purple Potion" self as pot and not cooldown "Purple Potion" 
+                                getlabel pot desc
+                                if "next usable in 15" in desc
+                                    @setvar! purplePotionCD 15000 
+                                elseif "next usable in 14" in desc
+                                    @setvar! purplePotionCD 14000
+                                elseif "next usable in 13" in desc
+                                    @setvar! purplePotionCD 13000
+                                elseif "next usable in 12" in desc
+                                    @setvar! purplePotionCD 12000
+                                elseif "next usable in 11" in desc
+                                    @setvar! purplePotionCD 11000
+                                elseif "next usable in 10" in desc
+                                    @setvar! purplePotionCD 10000
+                                elseif "next usable in 9" in desc
+                                    @setvar! purplePotionCD 9000
+                                elseif "next usable in 8" in desc
+                                    @setvar! purplePotionCD 8000
+                                elseif "next usable in 7" in desc
+                                    @setvar! purplePotionCD 7000
+                                elseif "next usable in 6" in desc
+                                    @setvar! purplePotionCD 6000
+                                elseif "next usable in 5" in desc
+                                    @setvar! purplePotionCD 5000
+                                elseif "next usable in 4" in desc
+                                    @setvar! purplePotionCD 4000
+                                elseif "next usable in 3" in desc
+                                    @setvar! purplePotionCD 3000
+                                elseif "next usable in 2" in desc
+                                    @setvar! purplePotionCD 2000
+                                elseif "next usable in 1" in desc
+                                    @setvar! purplePotionCD 1000
+                                else 
+                                    @setvar! purplePotionCD 0
+                                endif
+                               
+                                cooldown "Purple Potion" purplePotionCD
+                                wait 250
+
+                                if find MurdererTarget ground -1 -1 10 and not cooldown "Purple Potion"
+                                    dclick pot
+                                    wft 500
+                                    target MurdererTarget
+                                    wait 500  
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE EXPLOSION POTION! ]" 419
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ EXPLOSION POTION... ]' 419
+                                            clearsysmsg
+                                        endif
+                                    cooldown "Purple Potion" 15000 
+                                endif
+                            else
+                                overhead "[ NO EXPLOSION POTS! ]" 337
+                                cooldown "Purple Potion" 30000
+                            endif    
+
+                            if hits < maxhits and not cooldown "Healing Potion"
+                                if findtype "Yellow Potion" self as healpot
+                                    dclick healpot
+                                    cooldown "Healing Potion" 11000
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE HEAL POTION! ]" 253
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ HEAL POTION... ]' 253
+                                            clearsysmsg
+                                        endif
+                                else 
+                                    if not cooldown "Inventory Timer" 
+                                        overhead '[ NO HEAL POTS! ]' 337
+                                        cooldown "Healing Potion" 30000
+                                    endif
+                                endif
+                                wait 250 
+                            endif
+
+                            if poisoned and not cooldown "Cure Potion"
+                                if findtype "Orange Potion" self as curepot
+                                    dclick curepot
+                                    cooldown "Cure Potion" 11000
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE CURE POTION! ]" 44
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ CURE POTION... ]' 44
+                                            clearsysmsg
+                                        endif
+                                else
+                                    if not cooldown "Inventory Timer" 
+                                        overhead '[ NO CURE POTS! ]' 337
+                                        cooldown "Cure Potion" 30000
+                                    endif
+                                endif
+                                wait 250 
+                            endif
+
+                            if stam < maxstam and not cooldown "Refresh Potion"
+                                if findtype "Red Potion" self as refreshpot
+                                    dclick refreshpot
+                                    cooldown "Refresh Potion" 11000
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE REFRESH POTION! ]" 34
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ REFRESH POTION... ]' 34
+                                            clearsysmsg
+                                        endif
+                                else 
+                                    if not cooldown "Inventory Timer" 
+                                        overhead '[ NO REFRESH POTS! ]' 337
+                                        cooldown "Refresh Potion" 30000
+                                    endif
+                                endif
+                                wait 250 
+                            endif
+                      
+                            if not cooldown "Weapon Ability" and not cooldown "Skirmish"
+                                yell "[WeaponAbility1" 
+                                wait 250
+                                if insysmsg "You cannot"
+                                    cooldown "Weapon Ability" 5000
+                                else 
+                                    overhead "[ SKIRMISH! ]" 339
+                                    cooldown "Weapon Ability" 61000
+                                    cooldown "Skirmish" 15000
+                                endif   
+                            endif 
+                            wait 1000
+                            
+                        endwhile
+                        replay
+                    endif
+            endif
+            
             if paralyzed and EnableParalyzePouch = 1
                 if findtype "pouch" self
                     yell "[pouch"
@@ -878,7 +1289,7 @@ if not dead
             ####     COMBAT LOOP:    ####
             #############################   
     
-    while not dead ClosestTarget 
+        while not dead ClosestTarget or find ClosestTarget ground -1 -1 8
    
             if not timerexists "FindTarget"
                 createtimer "FindTarget"
@@ -896,7 +1307,7 @@ if not dead
                             cooldown "Target Timer" 3500
                         endif   
                     endif
-                hotkey 'Target Closest Non-Friendly Monster'
+                    hotkey 'Target Closest Grey Monster'
                 wait 150
                 @setvar! ClosestTarget lasttarget
                 attack ClosestTarget
@@ -1459,13 +1870,227 @@ if not dead
             endif 
         
             if warmode
-                cooldown "Pacified" 0
-                cooldown "Discorded" 0
-                cooldown "Provoked" 0
-                overhead "[ BARDING BREAK... ]" 444
-                hotkey 'Toggle Peace Only'
-                replay
-            endif                
+                hotkey 'Cancel Current Target'
+                wait 150 
+                hotkey 'Target Random Murderer Player'
+                wait 250 
+                    if insysmsg "No one matching that was found"   
+                        cooldown "Pacified" 0
+                        cooldown "Discorded" 0
+                        cooldown "Provoked" 0
+                        overhead "[ BARDING BREAK... ]" 444
+                        hotkey 'Toggle Peace Only'
+                        replay
+                    else
+                        @setvar! MurdererTarget lasttarget
+                        wait 150
+                        attack MurdererTarget
+                        wait 500
+
+                        while not dead MurdererTarget
+
+                            if paralyzed and EnableParalyzePouch = 1
+                                if findtype "pouch" self
+                                    yell "[pouch"
+                                else 
+                                    overhead "[ NO MORE POUCHES! ]" 337          
+                                endif           
+                            endif
+
+                            if skill 'Healing' > 38
+                                if not bandaging and hits < maxhits
+                                    overhead '[ BANDAGING...]' 88
+                                    hotkey "Bandage Self"
+                                elseif counttype 'clean bandage%s%' < 10 and not cooldown "Inventory Timer"
+                                    overhead "[ BANDAGES LOW! ]" 339
+                                    cooldown "Inventory Timer" 6000
+                                elseif counttype 'clean bandage%s%' = 0 and not cooldown "Inventory Timer"
+                                    overhead "[ NO BANDAGES! ]" 337
+                                    cooldown "Inventory Timer" 6000
+                                endif 
+                            endif
+                        
+                            if not findtype 'crossbow|balestra|stubnose crossbow' hand
+                                if findtype 'crossbow|balestra|stubnose crossbow' backpack as fastweapon
+                                    dclick fast weapon
+                                    wait 250
+                                endif 
+                            endif 
+                   
+                            attack MurdererTarget
+
+                            if not findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                                if findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                    dclick shield
+                                    wait 250
+                                endif
+                            endif 
+
+                            if not cooldown "Provoked" and not cooldown "Provocation" and find ClosestTarget ground -1 -1 10
+                                skill "Provocation"
+                                wft 500
+                                target ClosestTarget
+                                wft 500                        
+                                target MurderTarget
+                                wait 250 
+                                    if insysmsg 'You play successfully, provoking'
+                                        cooldown "Musicianship" 5500
+                                        cooldown "Provocation" 11000
+                                        cooldown "Provoked" 15000                    
+                                    elseif insysmsg 'You fail to incite'
+                                        overhead '[ PROVO FAIL! ]' 153
+                                        cooldown "Provocation" 5000
+                                        wait 250
+                                    elseif insysmsg 'Target cannot be seen'
+                                        overhead "[ TARGET CANNOT BE SEEN... ]" 337
+                                        cooldown "Provocation" 5000
+                                    elseif insysmsg 'That is too far away.'
+                                        overhead '[ TOO FAR AWAY! ]' 43
+                                        cooldown "Provocation" 5000 
+                                    elseif insysmsg 'The creatures you are trying to provoke are too far away from each other for your music to have an effect.'
+                                        overhead '[ TOO FAR APART! ]' 153 ClosestTarget
+                                        overhead '[ TOO FAR APART! ]' 153 MurdererTarget
+                                        cooldown "Provocation" 5000
+                                    elseif insysmsg 'tell someone to attack themselves!'
+                                        overhead '[ SELF TARGETING FAIL... ]' 337
+                                        cooldown "Provocation" 5000
+                                    endif 
+                            endif 
+
+                            if findtype "Purple Potion" self as pot and not cooldown "Purple Potion" 
+                                getlabel pot desc
+                                if "next usable in 15" in desc
+                                    @setvar! purplePotionCD 15000 
+                                elseif "next usable in 14" in desc
+                                    @setvar! purplePotionCD 14000
+                                elseif "next usable in 13" in desc
+                                    @setvar! purplePotionCD 13000
+                                elseif "next usable in 12" in desc
+                                    @setvar! purplePotionCD 12000
+                                elseif "next usable in 11" in desc
+                                    @setvar! purplePotionCD 11000
+                                elseif "next usable in 10" in desc
+                                    @setvar! purplePotionCD 10000
+                                elseif "next usable in 9" in desc
+                                    @setvar! purplePotionCD 9000
+                                elseif "next usable in 8" in desc
+                                    @setvar! purplePotionCD 8000
+                                elseif "next usable in 7" in desc
+                                    @setvar! purplePotionCD 7000
+                                elseif "next usable in 6" in desc
+                                    @setvar! purplePotionCD 6000
+                                elseif "next usable in 5" in desc
+                                    @setvar! purplePotionCD 5000
+                                elseif "next usable in 4" in desc
+                                    @setvar! purplePotionCD 4000
+                                elseif "next usable in 3" in desc
+                                    @setvar! purplePotionCD 3000
+                                elseif "next usable in 2" in desc
+                                    @setvar! purplePotionCD 2000
+                                elseif "next usable in 1" in desc
+                                    @setvar! purplePotionCD 1000
+                                else 
+                                    @setvar! purplePotionCD 0
+                                endif
+                               
+                                cooldown "Purple Potion" purplePotionCD
+
+                                if find MurdererTarget ground -1 -1 10 and not cooldown "Purple Potion"
+                                    dclick pot
+                                    wait 150
+                                    target MurdererTarget
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE EXPLOSION POTION! ]" 419
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ EXPLOSION POTION... ]' 419
+                                            clearsysmsg
+                                        endif 
+                                    cooldown "Purple Potion" 15000 
+                                endif
+                            else
+                                overhead "[ NO EXPLOSION POTS! ]" 337
+                                cooldown "Purple Potion" 30000
+                            endif    
+
+                            if hits < maxhits and not cooldown "Healing Potion"
+                                if findtype "Yellow Potion" self as healpot
+                                    dclick healpot
+                                    cooldown "Healing Potion" 11000
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE HEAL POTION! ]" 253
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ HEAL POTION... ]' 253
+                                            clearsysmsg
+                                        endif
+                                else 
+                                    if not cooldown "Inventory Timer" 
+                                        overhead '[ NO HEAL POTS! ]' 337
+                                        cooldown "Inventory Timer" 6000
+                                    endif
+                                endif
+                                wait 250 
+                            endif
+
+                            if poisoned and not cooldown "Cure Potion"
+                                if findtype "Orange Potion" self as curepot
+                                    dclick curepot
+                                    cooldown "Cure Potion" 11000
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE CURE POTION! ]" 44
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ CURE POTION... ]' 44
+                                            clearsysmsg
+                                        endif
+                                else
+                                    if not cooldown "Inventory Timer" 
+                                        overhead '[ NO CURE POTS! ]' 337
+                                        cooldown "Inventory Timer" 6000
+                                    endif
+                                endif
+                                wait 250 
+                            endif
+
+                            if stam < maxstam and not cooldown "Refresh Potion"
+                                if findtype "Red Potion" self as refreshpot
+                                    dclick refreshpot
+                                    cooldown "Refresh Potion" 11000
+                                    wait 500
+                                        if insysmsg "Potion satchel used"
+                                            overhead "[ FREE REFRESH POTION! ]" 34
+                                            clearsysmsg
+                                        else 
+                                            overhead '[ REFRESH POTION... ]' 34
+                                            clearsysmsg
+                                        endif
+                                else 
+                                    if not cooldown "Inventory Timer" 
+                                        overhead '[ NO REFRESH POTS! ]' 337
+                                        cooldown "Inventory Timer" 6000
+                                    endif
+                                endif
+                                wait 250 
+                            endif
+                      
+                            if not cooldown "Weapon Ability" and not cooldown "Skirmish"
+                                yell "[WeaponAbility1" 
+                                wait 250
+                                if insysmsg "You cannot"
+                                    cooldown "Weapon Ability" 5000
+                                else 
+                                    overhead "[ SKIRMISH! ]" 339
+                                    cooldown "Weapon Ability" 61000
+                                    cooldown "Skirmish" 15000
+                                endif   
+                            endif     
+                        endwhile
+                    endif
+            endif
       
             if EnableAmmoWarningMessage = 1
                 if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand

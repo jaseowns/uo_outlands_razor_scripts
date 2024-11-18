@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.04
+#Auto-mage attack 3.06
 
 #********** INFORMATION **********# 
 
@@ -24,7 +24,9 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
-# Ver 3.04 Code restructure, add variable to break attacking and summon elemental if needed, added mindrot necro spell on regular casting
+# Ver 3.06 Changes to the auto healing mechanic and variables
+# Ver 3.05 Added variables to activate mini spells when mana below `X amount`
+# Ver 3.04 Code restructure, add variable to break attacking and summon elemental if needed || added mindrot necro spell on regular casting
 # Ver 3.00 Added auto-summoning and FIX on script stopping suddenly
 # Ver.2.84 fixes and changes to the healing trigger mechanism
 # Ver.2.77 fixes and changes to casting and targetting spells
@@ -44,7 +46,7 @@
 
 #--- Set Elementals Count ---#
 
-@setvar! earthElementals 2
+@setvar! earthElementals 0
 @setvar! waterElementals 0
 @setvar! airElementals 0
 @setvar! fireElementals 0
@@ -63,19 +65,24 @@
 
 @setvar! castMagicArrow 1
 @setvar! castHarm 1
-@setvar! castFireball 0
+@setvar! castFireball 1
 @setvar! castLightning 1
+
+@setvar! activateMagicArrowWhenManaBelow 65
+@setvar! activateHarmWhenManaBelow 65
+@setvar! activateFireballWhenManaBelow 65
+@setvar! activateLightningWhenManaBelow 200
 
 #- Big spells prioritize order -#
 
 @setvar! castFlamestrike 1
 @setvar! castEnergyBolt 0
 @setvar! castExplosion 0
-@setvar! castMindblast 1
+@setvar! castMindblast 0
 
 #--- Poison ---#
 
-@setvar! castPoison 1
+@setvar! castPoison 0
 
 #- Poison Level
 # 0 - Greater or lesser 
@@ -84,7 +91,7 @@
 @setvar! poisonLevel 1
 
 @setvar! castCurse 1
-@setvar! castManaDrain 1
+@setvar! castManaDrain 0
 
 #--- Set Mage attack cooldowns ---#
 
@@ -117,13 +124,7 @@
 # 9 - Apply in 9 ticks left or less
 # 10 - Apply in 10 ticks left or less
 
-@setvar! NecroPoisonStrike 8
-
-#--- Set Mage auto heals ---#
-
-@setvar! miniHeal 1
-@setvar! greaterHeal 1
-@setvar! cureSpell 1
+@setvar! NecroPoisonStrike 7
 
 #--- Set Mage Buffs ---#
 
@@ -153,6 +154,30 @@ l
 @setvar! drinkRefresh 1
 @setvar! staminaLowerThan 15
 
+#--- Set Mage auto heals ---#
+
+@setvar! miniHeal 1
+@setvar! greaterHeal 1
+@setvar! cureSpell 1
+
+#--- Auto healing hp diffs ---#
+#--- All variables refer to hit points differences ---#
+#--- When below certain hit points it will trigger ---#
+
+@setvar! activateAutoHealDiff 30
+
+@setvar! startCastMiniHealDiff 60
+@setvar! endCastMiniHealDiff 200
+
+@setvar! castEmergencyMiniHealDiff 60
+
+@setvar! startCastGreaterHealDiff 30
+@setvar! endCastGreaterHealDiff 200
+
+@setvar! drinkHealPotDiff 30
+
+@setvar! interruptCastingDiff 40
+
 #--- Arcane Weapon Ability ---#
 
 @setvar! useWeaponAbility 2
@@ -160,7 +185,7 @@ l
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 1
+@setvar! useMeditationSkill 0
 @setvar! meditateWhenManaBelow 14
 @setvar! meditateUntilManaReach 65
 
@@ -175,19 +200,6 @@ l
 @setvar! healingPotCD 11000
 
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
-
-#--- Auto healing hp diffs ---#
-#--- All variables refer to hit points differences ---#
-#--- When below certain hit points it will trigger ---#
-
-@setvar! activateAutoHealDiff 20
-
-@setvar! interruptCastingDiff 40
-
-@setvar! drinkHealPotDiff 30
-
-@setvar! castFirstGreaterHealDiff 30
-@setvar! castLastGreaterHealDiff 60
 
 clearsysmsg
 
@@ -334,7 +346,7 @@ settimer manaMessageTimer manaMessageCD
 
 #--- Skills timers ---#
 
-@setvar! spiritSpeakCD 45000
+@setvar! spiritSpeakCD 60000
 if not timerexists spiritSpeakTimer
     settimer spiritSpeakTimer spiritSpeakCD
 endif
@@ -626,6 +638,8 @@ while not dead
             stop
         endif
         
+        @setvar! castingInterrupted 0
+        
         sysmsg "auto-healing activated" 11      
     
         if not findbuff "food" and findtype "tray" backpack as fody    
@@ -745,7 +759,7 @@ while not dead
                         settimer orangeMessageTimer 0
                     endif
                     
-                    if diffhits >= castFirstGreaterHealDiff or not findtype 3972 self or not findtype 3973 self
+                    if diffhits >= 30 or not findtype 3972 self or not findtype 3973 self
                         break
                     endif
                     
@@ -805,7 +819,10 @@ while not dead
             
         #--- Cast heals ---#
         
-        if skill 'magery' >= 40 and diffhits >= activateAutoHealDiff and diffhits < castFirstGreaterHealDiff and mana >= 4 and miniHeal = 1 and not casting
+        if skill 'magery' >= 40 and diffhits >= startCastMiniHealDiff and diffhits < endCastMiniHealDiff and mana >= 4 and miniHeal = 1 and not casting
+            if insysmsg "Your concentration is disturbed"
+            endif  
+            
             sysmsg 'mini heal' 11
             cast 'heal'
             while not casting                   
@@ -815,14 +832,47 @@ while not dead
                 cast 'heal'
             endwhile  
             
-            while not targetexists and casting
+            while not targetexists
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
+                endif
             endwhile
             
-            waitfortarget maxwaittimeinms
-            target 'self' 
-            wait 200  
+            if 0 = castingInterrupted
+                target 'self' 
+            endif 
             
-        elseif skill 'magery' >= 60 and diffhits >= castFirstGreaterHealDiff and diffhits < castLastGreaterHealDiff and mana >= 11 and greaterHeal = 1 and not casting
+        elseif skill 'magery' >= 40 and diffhits >= castEmergencyMiniHealDiff and mana >= 4 and miniHeal = 1 and not casting
+            if insysmsg "Your concentration is disturbed"
+            endif  
+            
+            sysmsg 'mini heal' 11
+            cast 'heal'
+            while not casting                   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'heal'
+            endwhile  
+            
+            while not targetexists
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
+                endif
+            endwhile
+            
+            if 0 = castingInterrupted
+                target 'self' 
+            endif 
+            
+        elseif skill 'magery' >= 60 and diffhits >= startCastGreaterHealDiff and diffhits < endCastGreaterHealDiff and mana >= 11 and greaterHeal = 1 and not casting
+            if insysmsg "Your concentration is disturbed"
+            endif  
+                        
             sysmsg "greater heal" 11
             cast 'greater heal'         
             while not casting                   
@@ -832,92 +882,114 @@ while not dead
                 cast 'greater heal'
             endwhile  
             
-            while not targetexists and casting
-                
-                #--- Poisoned ---#
-                
-                if 1 = drinkCure
-                    while poisoned and casting and not targetexists 
-                        if findtype "Orange Potion" self
-                            dclicktype "Orange Potion"
-                            wait 200
-                        else
-                            if timer orangeMessageTimer > orangeMessageCD
-                                overhead "Out of cure pots" 34
-                                settimer orangeMessageTimer 0
-                            endif
-                            break
-                        endif
-                    endwhile
-                endif            
+            @settimer! spellTimer 0  
+            @setvar! spellCD 800  
             
-                #--- Drink Heal Pot ---#
+            while not targetexists
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
+                endif 
                 
-                if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists
-                    if findtype "Yellow Potion" self as hPot
-                        getlabel hPot potLabel
-                        if "next" in potLabel
-                            #do nothing
-                        else
-                            @setvar! ch 0
-                            
-                            if counttype 3852 self as c
-                                @setvar! ch c
+                if timer spellTimer < spellCD
+                    #--- Poisoned ---#
+                    
+                    if 1 = drinkCure
+                        while poisoned and casting and not targetexists 
+                            if findtype "Orange Potion" self
+                                dclicktype "Orange Potion"
+                                wait 200
+                            else
+                                if timer orangeMessageTimer > orangeMessageCD
+                                    overhead "Out of cure pots" 34
+                                    settimer orangeMessageTimer 0
+                                endif
+                                break
                             endif
-                            if insysmsg "potion satchel used"
-                            endif
-        
-                            dclicktype 3852
-                            getlabel backpack xxx
-                            wait 200
-                                        
-                            if ch != counttype 3852 self or insysmsg "potion satchel used"
-                                cooldown "Heal Pot" healingPotCD
-                                if diffhits < activateAutoHealDiff
-                                    interrupt
-                                    if targetexists
-                                        hotkey 'cancel current target'
+                        endwhile
+                    endif            
+                
+                    #--- Drink Heal Pot ---#
+                    
+                    if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists
+                        if findtype "Yellow Potion" self as hPot
+                            getlabel hPot potLabel
+                            if "next" in potLabel
+                                #do nothing
+                            else
+                                @setvar! ch 0
+                                
+                                if counttype 3852 self as c
+                                    @setvar! ch c
+                                endif
+                                if insysmsg "potion satchel used"
+                                endif
+            
+                                dclicktype 3852
+                                getlabel backpack xxx
+                                wait 200
+                                            
+                                if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                    cooldown "Heal Pot" healingPotCD
+                                    if diffhits < activateAutoHealDiff
+                                        interrupt
+                                        if targetexists
+                                            hotkey 'cancel current target'
+                                        endif
                                     endif
                                 endif
                             endif
-                        endif
-                    else
-                        if timer yellowMessageTimer > yellowMessageCD
-                            overhead "Out of heals pots" 34
-                            settimer yellowMessageTimer 0
+                        else
+                            if timer yellowMessageTimer > yellowMessageCD
+                                overhead "Out of heals pots" 34
+                                settimer yellowMessageTimer 0
+                            endif
                         endif
                     endif
                 endif
-        
             endwhile
             
-            waitfortarget maxwaittimeinms
-            target 'self' 
-            wait 200 
-            
-        elseif skill 'magery' >= 40 and diffhits >= castLastGreaterHealDiff and mana >= 4 and miniHeal = 1 and not casting
-            sysmsg 'mini heal' 11
-            cast 'heal'     
-            while not casting                   
-                if targetexists
-                    hotkey 'cancel current target'
-                endif
-                cast 'heal' 
-            endwhile  
-            
-            while not targetexists and casting
-            endwhile
-            
-            waitfortarget maxwaittimeinms
-            target 'self' 
-            wait 200  
+            if 0 = castingInterrupted
+                target 'self' 
+            endif 
         
         endif 
     
     endwhile
     
-#********** AUTO-MAGERY BUFFS IF NEEDED **********          
+    #--- Create mushroom ---#
 
+    if counttype 29012 backpack = 0
+        while counttype 29012 backpack < mushroomCount and mana > 3 and diffhits < activateAutoHealDiff
+            if not casting
+                cast 'create food'
+            endif
+        endwhile
+    endif  
+    
+    #--- Eat Mushroom ---# 
+
+    if mana < eatMushWhenManaLowerThan and mushroomCount > 0 and timer mushroomTimer > mushroomTimerCD
+        if counttype 29012 backpack
+            if insysmsg "You consume a magic mushroom"
+            endif
+            sysmsg "Eating mush." 44
+            dclicktype 29012 backpack
+            getlabel backpack xxx
+            wait 200
+            
+            if insysmsg "You consume a magic mushroom"
+                settimer mushroomTimer 0
+            endif
+        else 
+            overhead "No mushrooms found!" 34
+        endif
+    endif
+    
+#********** AUTO-MAGERY BUFFS IF NEEDED **********          
+    @setvar! castingInterrupted 0
+    
     if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff
         if timer magicReflectTimer > magicReflectCD
             cast 'Magic Reflection'
@@ -1122,26 +1194,28 @@ while not dead
             endif
         endif
         
-        #--- Create Mushroom ---#
-        
+        #--- Create mushroom ---#
+    
         if counttype 29012 backpack = 0
-            while counttype 29012 backpack < mushroomCount
-                cast 'create food'
-                wait 100
+            while counttype 29012 backpack < mushroomCount and mana > 3 and diffhits < activateAutoHealDiff
+                if not casting
+                    cast 'create food'
+                endif
             endwhile
-        endif   
+        endif  
         
         #--- Eat Mushroom ---#
      
         if mana < eatMushWhenManaLowerThan and mushroomCount > 0 and timer mushroomTimer > mushroomTimerCD
-            if counttype 29012 backpack as c
-                @setvar! cm c
-                sysmsg "Eating mush." 66
+            if counttype 29012 backpack
+                if insysmsg "You consume a magic mushroom"
+                endif
+                sysmsg "Eating mush." 44
                 dclicktype 29012 backpack
                 getlabel backpack xxx
                 wait 200
                 
-                if cm != counttype 29012 backpack
+                if insysmsg "You consume a magic mushroom"
                     settimer mushroomTimer 0
                 endif
             else 
@@ -1526,7 +1600,7 @@ while not dead
             endwhile
             
             if insysmsg "unholy symbols"
-                say '[>Vengeful Spirits<]' 44
+                overhead '[>Vengeful Spirits<]' 44
             endif
   
         endif 
@@ -1588,7 +1662,7 @@ while not dead
             endwhile
             
             if insysmsg "unholy symbols"
-                say '[>Blood Oath<]' 55
+                overhead '[>Blood Oath<]' 55
             endif
         endif
         
@@ -1649,7 +1723,7 @@ while not dead
             endwhile
             
             if insysmsg "unholy symbols"
-                say '[>Wither<]' 66
+                overhead '[>Wither<]' 66
             endif
             
         endif
@@ -1684,25 +1758,29 @@ while not dead
         
         sysmsg 'begin casting elementals...' 11
         
-        if not findtype 3963 backpack or not findtype 3974 backpack or not findtype 3981 backpack
+        @setvar! missingRegs 0
+        
+        if not findtype 3963 self or not findtype 3974 self or not findtype 3981 self
+            @setvar! missingRegs 1
             if timer noRegsMessageTimer > noRegsMessageCD
                 overhead 'Out of regs!' 34
                 settimer noRegsMessageTimer 0
             endif
-        elseif fireElementals = 1 and not findtype 3980 backpack 
-            if timer noRegsMessageTimer > noRegsMessageCD
-                overhead 'Out of regs!' 34
-                settimer noRegsMessageTimer 0
+            wait noRegsMessageCD
+        elseif not findtype 3980 self 
+            if fireElementals != 0 or summonDaemons != 0
+                @setvar! missingRegs 1
+                if timer noRegsMessageTimer > noRegsMessageCD
+                    overhead 'Out of regs!' 34
+                    settimer noRegsMessageTimer 0
+                endif
+                wait noRegsMessageCD
             endif
-        elseif summonDaemons = 1 and not findtype 3980 backpack 
-            if timer noRegsMessageTimer > noRegsMessageCD
-                overhead 'Out of regs!' 34
-                settimer noRegsMessageTimer 0
-            endif
+        endif
             
 #********** CAST EARTH ELEMENTAL **********# 
     
-        elseif earthElementals != 0 and list earthListy < earthElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting      
+        if earthElementals != 0 and list earthListy < earthElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0
         
             cast 'Earth Elemental'
             @setvar! castingEarth 1
@@ -1780,7 +1858,7 @@ while not dead
             
 #********** CAST WATER ELEMENTAL **********# 
         
-        elseif waterElementals != 0 and list waterListy < waterElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting
+        elseif waterElementals != 0 and list waterListy < waterElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 
             cast 'Water Elemental'
             @setvar! castingWater 1
             while not casting                   
@@ -1857,7 +1935,7 @@ while not dead
         
 #********** CAST AIR ELEMENTAL **********# 
         
-        elseif airElementals != 0 and list airListy < airElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting                       
+        elseif airElementals != 0 and list airListy < airElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0                    
             cast 'Air Elemental'
             @setvar! castingAir 1
             while not casting                   
@@ -1933,7 +2011,7 @@ while not dead
         
 #********** CAST FIRE ELEMENTAL **********# 
         
-        elseif fireElementals != 0 and list fireListy < fireElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting                       
+        elseif fireElementals != 0 and list fireListy < fireElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0                       
             cast 'Fire Elemental'
             @setvar! castingFire 1
             while not casting                   
@@ -2009,7 +2087,7 @@ while not dead
             
 #********** CAST DAEMON **********# 
         
-        elseif summonDaemons != 0 and list daemonListy < summonDaemons and followers < 4 and diffhits < activateAutoHealDiff and not casting                       
+        elseif summonDaemons != 0 and list daemonListy < summonDaemons and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0                        
             cast 'Summon Daemon'
             @setvar! castingDaemon 1
             while not casting                   
@@ -2085,7 +2163,7 @@ while not dead
             
 #********** CAST SUMMON CREATURE **********# 
         
-        elseif summonCreature != 0 and list creatureListy < summonCreature and followers < 5 and diffhits < activateAutoHealDiff and not casting                   
+        elseif summonCreature != 0 and list creatureListy < summonCreature and followers < 5 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0                    
             cast 'Summ. Creature'
             @setvar! castingCreature 1
             while not casting                   
@@ -2235,7 +2313,6 @@ while not dead
             @setvar! foundTarget 0
             
             hotkey 'target closest grey monster'
-            wait 25
             
             if not find lasttarget ground -1 -1 12
                 if timer noTargetMessageTimer > noTargetMessageCD
@@ -2301,7 +2378,6 @@ while not dead
                             break
                         endif
                     endif
-                    wait 50
                 endwhile
             endif
             
@@ -2392,45 +2468,35 @@ while not dead
         endif
         
         if followers > 0 and 0 = currentlyAttacking
-            if insysmsg "Ignoring speech request"
-            endif
-            while not dead 
-                say 'ALL Guard ME' 11
-                getlabel backpack xxx
-                wait 200   
-                if insysmsg "Ignoring speech request"
-                else 
-                    break
-                endif
-            endwhile
+            say 'ALL Guard ME' 11
         endif
         
         #--- Create mushroom ---#
     
-        if counttype 29012 backpack = 0 and diffhits < activateAutoHealDiff
-            while counttype 29012 backpack < mushroomCount
-                cast 'create food'
-                wait 100
+        if counttype 29012 backpack = 0
+            while counttype 29012 backpack < mushroomCount and mana > 3 and diffhits < activateAutoHealDiff
+                if not casting
+                    cast 'create food'
+                endif
             endwhile
-        endif  
+        endif 
         
         #--- Eat Mushroom ---# 
  
-        if mana < eatMushWhenManaLowerThan and mushroomCount > 0
-            if timer mushroomTimer > mushroomTimerCD
-                if counttype 29012 backpack as c
-                    @setvar! cm c
-                    sysmsg "Eating mush." 44
-                    dclicktype 29012 backpack
-                    getlabel backpack xxx
-                    wait 200
-                    
-                    if cm != counttype 29012 backpack
-                        settimer mushroomTimer 0
-                    endif
-                else 
-                    overhead "No mushrooms found!" 34
+        if mana < eatMushWhenManaLowerThan and mushroomCount > 0 and timer mushroomTimer > mushroomTimerCD
+            if counttype 29012 backpack
+                if insysmsg "You consume a magic mushroom"
                 endif
+                sysmsg "Eating mush." 44
+                dclicktype 29012 backpack
+                getlabel backpack xxx
+                wait 200
+                
+                if insysmsg "You consume a magic mushroom"
+                    settimer mushroomTimer 0
+                endif
+            else 
+                overhead "No mushrooms found!" 34
             endif
         endif
         
@@ -3051,7 +3117,7 @@ while not dead
             
 #********** CAST MAGIC ARROW  **********#
 
-        elseif castMagicArrow = 1 and timer magicArrowTimer > magicArrowCD and diffhits < activateAutoHealDiff and mana >= 4 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castMagicArrow = 1 and timer magicArrowTimer > magicArrowCD and diffhits < activateAutoHealDiff and mana >= 4 and mana < activateMagicArrowWhenManaBelow and not dead currentTarget and find currentTarget ground -1 -1 12
             if insysmsg "Your concentration is disturbed"
             endif       
             if insysmsg "target cannot be seen"
@@ -3096,7 +3162,7 @@ while not dead
             
 #********** CAST HARM  **********#        
 
-        elseif castHarm = 1 and timer harmTimer > harmCD and diffhits < activateAutoHealDiff and mana >= 6 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castHarm = 1 and timer harmTimer > harmCD and diffhits < activateAutoHealDiff and mana >= 6 and mana < activateHarmWhenManaBelow and not dead currentTarget and find currentTarget ground -1 -1 12
             if insysmsg "Your concentration is disturbed"
             endif       
             if insysmsg "target cannot be seen"
@@ -3141,7 +3207,7 @@ while not dead
  
 #********** CAST FIREBALL  **********#   
 
-        elseif castFireball = 1 and timer fireballTimer > fireballCD and diffhits < activateAutoHealDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castFireball = 1 and timer fireballTimer > fireballCD and diffhits < activateAutoHealDiff and mana >= 9 and mana < activateFireballWhenManaBelow and not dead currentTarget and find currentTarget ground -1 -1 12
             sysmsg "fireball" 11
             if insysmsg "Your concentration is disturbed"
             endif       
@@ -3186,7 +3252,7 @@ while not dead
 
 #********** CAST LIGHTNING  **********#   
 
-        elseif castLightning = 1 and timer lightningTimer > lightningCD and diffhits < activateAutoHealDiff and mana >= 11 and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif castLightning = 1 and timer lightningTimer > lightningCD and diffhits < activateAutoHealDiff and mana >= 11 and mana < activateLightningWhenManaBelow and not dead currentTarget and find currentTarget ground -1 -1 12
             sysmsg "lightning" 11
             if insysmsg "Your concentration is disturbed"
             endif       
@@ -3303,6 +3369,8 @@ while not dead
                 if insysmsg "target cannot be seen"
                 endif     
                 
+                @setvar! spellCD 0 
+                
                 if castFlamestrike = 1 and mana >= 40
                     sysmsg "flamestrike" 11
                     cast 'flamestrike'           
@@ -3349,7 +3417,7 @@ while not dead
                     @setvar! spellCD 1000   
                 endif
                 
-                while not targetexists
+                while not targetexists and spellCD != 0
                     if mana < 14 
                         interrupt
                         @setvar! castingInterrupted 1 
@@ -3428,7 +3496,7 @@ while not dead
                     
                 endwhile
     
-                if 0 = castingInterrupted
+                if 0 = castingInterrupted and spellCD != 0
                     target currentTarget
                     getlabel backpack xxx
                     wait 200
@@ -3449,6 +3517,7 @@ while not dead
                         endif
                     endif
                 endif
+                
             endif
         endif
         
@@ -3497,19 +3566,9 @@ while not dead
 #********* ^ AUTO ATTACKING ENDS ^ *********    
     
     if followers > 0 and 1 = currentlyAttacking and diffhits < activateAutoHealDiff
-        if insysmsg "Ignoring speech request"
-        endif
-        while not dead 
-            say 'ALL Guard ME' 65
-            getlabel backpack xxx
-            wait 200   
-            if insysmsg "Ignoring speech request"
-            else 
-                break
-            endif  
-        endwhile
+        say 'ALL Guard ME' 65
 
-        if skill 'spirit' >= 50 and timer spiritSpeakTimer > spiritSpeakCD and findtype 'corpse' ground -1 -1 18
+        if skill 'spirit' >= 50 and timer spiritSpeakTimer > spiritSpeakCD and findtype 'corpse' ground -1 -1 18 and dead currentTarget and not find currentTarget ground -1 -1 12
 
             if insysmsg "you establish contact"
             endif

@@ -252,16 +252,30 @@ while not dead
     @setvar! SongReapply 900000
     hotkey 'Cancel Current Target'
 
-        if insysmsg "Captcha successful"
-            overhead "[ CAPTCHA SUCCESSFUL! ]" 77
-        endif
+    if insysmsg "Captcha successful"
+        overhead "[ CAPTCHA SUCCESSFUL! ]" 77
+    endif
 
         clearsysmsg
+
+            if insysmsg "world is saving"        
+                if not timerexists "WorldSaveTimer"
+                    createtimer "WorldSaveTimer"
+                endif             
+                    settimer "WorldSaveTimer" 0
+                while timer "WorldSaveTimer" < 4000
+                    if insysmsg "save complete"
+                        break
+                    endif
+                    wait 250 
+                endwhile            
+                overhead "[ SAVE COMPLETE! ]" 253
+            endif 
 
             if paralyzed and EnableParalyzePouch = 1
                 if findtype "pouch" self
                     yell "[pouch"
-                    hotkey 'Toggle War/Peace'
+                    hotkey 'Toggle War Only'
                     replay
                 else
                     overhead "[ NO MORE POUCHES! ]" 337
@@ -281,6 +295,46 @@ while not dead
                     cooldown "Inventory Timer" 6000
                 endif 
             endif
+
+            if EnableHealPotion = 1
+                if diffhits > HealPotHPdiff and not cooldown "Healing Potion"
+                    if findtype "Yellow Potion" self as healpot
+                        dclick healpot
+                        cooldown "Healing Potion" 11000
+                        wait 500
+                            if insysmsg "Potion satchel used"
+                                overhead "[ FREE HEAL POTION! ]" 253
+                                clearsysmsg
+                            else 
+                                overhead '[ HEAL POTION... ]' 253
+                                clearsysmsg
+                            endif
+                    else 
+                        if not cooldown "Inventory Timer" 
+                            overhead '[ NO HEAL POTS! ]' 337
+                            cooldown "Inventory Timer" 6000
+                        endif
+                    endif
+                    wait 250 
+                endif
+            endif 
+        
+            if EnableHolyLight = 1            
+                if diffhits > HolyLightHPdiff and skill "Chivalry" >= 95 and not cooldown "Holy Light" and not cooldown "Prevented" and not cooldown "Chivalry"
+                    clearsysmsg
+                    yell "[HolyLight"
+                    wait 250
+                    if insysmsg "You do not have enough holy"
+                        cooldown "Prevented" 5000
+                        clearsysmsg                    
+                    else   
+                        overhead "[ HOLY LIGHT! ]" 254
+                        cooldown "Holy Light" 31000
+                        cooldown "Chivalry" 1000
+                    endif 
+                    wait 250 
+                endif
+            endif
     
             if EnableNobleSacrifice = 1            
                 if diffhits > NobleSacrificeHPdiff and skill "Chivalry" >= 80 and not cooldown "Noble Sacrifice" and not cooldown "Prevented" and not cooldown "Chivalry" 
@@ -299,25 +353,31 @@ while not dead
                     endif
                     wait 250 
                 endif       
-            endif    
-        
-            if EnableHolyLight = 1            
-                if diffhits > HolyLightHPdiff and skill "Chivalry" >= 95 and not cooldown "Holy Light" and not cooldown "Prevented" and not cooldown "Chivalry"
-                    clearsysmsg
-                    yell "[HolyLight"
-                    wait 250
-                    if insysmsg "You do not have enough holy"
-                        cooldown "Prevented" 5000
-                        clearsysmsg                    
-                    else   
-                        overhead "[ HOLY LIGHT! ]" 254
-                        cooldown "Holy Light" 31000
-                        cooldown "Chivalry" 1000
-                    endif 
+            endif  
+
+            if EnableCurePotion = 1
+                if poisoned and not cooldown "Cure Potion" and diffhits > CurePotHPdiff
+                    if findtype "Orange Potion" self as curepot
+                        dclick curepot
+                        cooldown "Cure Potion" 11000
+                        wait 500
+                            if insysmsg "Potion satchel used"
+                                overhead "[ FREE CURE POTION! ]" 44
+                                clearsysmsg
+                            else 
+                                overhead '[ CURE POTION... ]' 44
+                                clearsysmsg
+                            endif
+                    else
+                        if not cooldown "Inventory Timer" 
+                            overhead '[ NO CURE POTS! ]' 337
+                            cooldown "Inventory Timer" 6000
+                        endif
+                    endif
                     wait 250 
                 endif
-            endif
-            
+            endif 
+           
             if EnableCleanseByFire = 1
                 if diffhits > CleanseByFireHPdiff and poisoned and not cooldown "Cleanse By Fire" and not cooldown "Chivalry" and not cooldown "Prevented"
                     clearsysmsg 
@@ -353,52 +413,6 @@ while not dead
                     endif
                 endif            
             endif
-
-            if EnableHealPotion = 1
-                if diffhits > HealPotHPdiff and not cooldown "Healing Potion"
-                    if findtype "Yellow Potion" self as healpot
-                        dclick healpot
-                        cooldown "Healing Potion" 11000
-                        wait 500
-                            if insysmsg "Potion satchel used"
-                                overhead "[ FREE HEAL POTION! ]" 253
-                                clearsysmsg
-                            else 
-                                overhead '[ HEAL POTION... ]' 253
-                                clearsysmsg
-                            endif
-                    else 
-                        if not cooldown "Inventory Timer" 
-                            overhead '[ NO HEAL POTS! ]' 337
-                            cooldown "Inventory Timer" 6000
-                        endif
-                    endif
-                    wait 250 
-                endif
-            endif 
-
-            if EnableCurePotion = 1
-                if poisoned and not cooldown "Cure Potion" and diffhits > CurePotHPdiff
-                    if findtype "Orange Potion" self as curepot
-                        dclick curepot
-                        cooldown "Cure Potion" 11000
-                        wait 500
-                            if insysmsg "Potion satchel used"
-                                overhead "[ FREE CURE POTION! ]" 44
-                                clearsysmsg
-                            else 
-                                overhead '[ CURE POTION... ]' 44
-                                clearsysmsg
-                            endif
-                    else
-                        if not cooldown "Inventory Timer" 
-                            overhead '[ NO CURE POTS! ]' 337
-                            cooldown "Inventory Timer" 6000
-                        endif
-                    endif
-                    wait 250 
-                endif
-            endif 
 
             if EnableRefreshPotion = 1
                 if diffstam > RefreshPotSPdiff and not cooldown "Refresh Potion"
@@ -637,20 +651,21 @@ while not dead
                         replay
                     endif
             endif
-    
-            if not cooldown "Breather"
-                hotkey 'Target Closest Grey Monster'
-                wait 500
+
+
+        if not cooldown "Breather"
+            hotkey 'Target Closest Grey Monster'
+            wait 500
+        else 
+            hotkey 'Cancel Current Target'
+            if not cooldown "Target Timer"
+                overhead "[ LOOTING... ]" 149
+                cooldown "Target Timer" 3500
             else 
-                hotkey 'Cancel Current Target'
-                if not cooldown "Target Timer"
-                    overhead "[ LOOTING... ]" 149
-                    cooldown "Target Timer" 3500
-                else 
-                    wait 1000
-                endif
-                replay
-            endif 
+                wait 1000
+            endif
+            replay
+        endif 
 
 
         #######################
@@ -911,7 +926,7 @@ while not dead
             if paralyzed and EnableParalyzePouch = 1
                 if findtype "pouch" self
                     yell "[pouch"
-                    hotkey 'Toggle War/Peace'
+                    hotkey 'Toggle War Only'
                     replay
                 else
                     overhead "[ NO MORE POUCHES! ]" 337
@@ -951,18 +966,20 @@ while not dead
                 overhead "¼ SOMEONE HIDING! ¼" 6                
             endif
 
-            if insysmsg "world is saving"      
+            if insysmsg "world is saving"        
                 if not timerexists "WorldSaveTimer"
                     createtimer "WorldSaveTimer"
                 endif             
                     settimer "WorldSaveTimer" 0
-                while timer "WorldSaveTimer" < 3500
+                while timer "WorldSaveTimer" < 4000
                     if insysmsg "save complete"
                         break
                     endif
+                    wait 250 
                 endwhile            
-                    overhead "[ SAVE COMPLETE! ]" 253
+                overhead "[ SAVE COMPLETE! ]" 253
             endif 
+
             
             if skill 'Healing' > 38
                 if not bandaging and hits < maxhits
@@ -976,6 +993,46 @@ while not dead
                     overhead "[ NO BANDAGES! ]" 337
                     cooldown "Inventory Timer" 6000
                 endif 
+            endif
+
+            if EnableHealPotion = 1
+                if diffhits > HealPotHPdiff and not cooldown "Healing Potion"
+                    if findtype "Yellow Potion" self as healpot
+                        dclick healpot
+                        cooldown "Healing Potion" 11000
+                        wait 500
+                            if insysmsg "Potion satchel used"
+                                overhead "[ FREE HEAL POTION! ]" 253
+                                clearsysmsg
+                            else 
+                                overhead '[ HEAL POTION... ]' 253
+                                clearsysmsg
+                            endif
+                    else 
+                        if not cooldown "Inventory Timer" 
+                            overhead '[ NO HEAL POTS! ]' 337
+                            cooldown "Inventory Timer" 6000
+                        endif
+                    endif
+                    wait 250 
+                endif
+            endif 
+
+            if EnableHolyLight = 1            
+                if diffhits > HolyLightHPdiff and skill "Chivalry" >= 95 and not cooldown "Holy Light" and not cooldown "Prevented" and not cooldown "Chivalry"
+                    clearsysmsg
+                    yell "[HolyLight"
+                    wait 250
+                    if insysmsg "You do not have enough holy"
+                        cooldown "Prevented" 5000
+                        clearsysmsg                    
+                    else   
+                        overhead "[ HOLY LIGHT! ]" 254
+                        cooldown "Holy Light" 31000
+                        cooldown "Chivalry" 1000
+                    endif 
+                    wait 250 
+                endif
             endif
                    
             if EnableNobleSacrifice = 1            
@@ -996,24 +1053,30 @@ while not dead
                     wait 250 
                 endif       
             endif    
-        
-            if EnableHolyLight = 1            
-                if diffhits > HolyLightHPdiff and skill "Chivalry" >= 95 and not cooldown "Holy Light" and not cooldown "Prevented" and not cooldown "Chivalry"
-                    clearsysmsg
-                    yell "[HolyLight"
-                    wait 250
-                    if insysmsg "You do not have enough holy"
-                        cooldown "Prevented" 5000
-                        clearsysmsg                    
-                    else   
-                        overhead "[ HOLY LIGHT! ]" 254
-                        cooldown "Holy Light" 31000
-                        cooldown "Chivalry" 1000
-                    endif 
+
+            if EnableCurePotion = 1
+                if poisoned and not cooldown "Cure Potion" and diffhits > CurePotHPdiff
+                    if findtype "Orange Potion" self as curepot
+                        dclick curepot
+                        cooldown "Cure Potion" 11000
+                        wait 500
+                            if insysmsg "Potion satchel used"
+                                overhead "[ FREE CURE POTION! ]" 44
+                                clearsysmsg
+                            else 
+                                overhead '[ CURE POTION... ]' 44
+                                clearsysmsg
+                            endif
+                    else
+                        if not cooldown "Inventory Timer" 
+                            overhead '[ NO CURE POTS! ]' 337
+                            cooldown "Inventory Timer" 6000
+                        endif
+                    endif
                     wait 250 
                 endif
-            endif
-            
+            endif 
+           
             if EnableCleanseByFire = 1
                 if diffhits > CleanseByFireHPdiff and poisoned and not cooldown "Cleanse By Fire" and not cooldown "Chivalry" and not cooldown "Prevented"
                     clearsysmsg 
@@ -1049,52 +1112,6 @@ while not dead
                     endif
                 endif            
             endif
-
-            if EnableHealPotion = 1
-                if diffhits > HealPotHPdiff and not cooldown "Healing Potion"
-                    if findtype "Yellow Potion" self as healpot
-                        dclick healpot
-                        cooldown "Healing Potion" 11000
-                        wait 500
-                            if insysmsg "Potion satchel used"
-                                overhead "[ FREE HEAL POTION! ]" 253
-                                clearsysmsg
-                            else 
-                                overhead '[ HEAL POTION... ]' 253
-                                clearsysmsg
-                            endif
-                    else 
-                        if not cooldown "Inventory Timer" 
-                            overhead '[ NO HEAL POTS! ]' 337
-                            cooldown "Inventory Timer" 6000
-                        endif
-                    endif
-                    wait 250 
-                endif
-            endif 
-
-            if EnableCurePotion = 1
-                if poisoned and not cooldown "Cure Potion" and diffhits > CurePotHPdiff
-                    if findtype "Orange Potion" self as curepot
-                        dclick curepot
-                        cooldown "Cure Potion" 11000
-                        wait 500
-                            if insysmsg "Potion satchel used"
-                                overhead "[ FREE CURE POTION! ]" 44
-                                clearsysmsg
-                            else 
-                                overhead '[ CURE POTION... ]' 44
-                                clearsysmsg
-                            endif
-                    else
-                        if not cooldown "Inventory Timer" 
-                            overhead '[ NO CURE POTS! ]' 337
-                            cooldown "Inventory Timer" 6000
-                        endif
-                    endif
-                    wait 250 
-                endif
-            endif 
 
             if EnableRefreshPotion = 1
                 if diffstam > RefreshPotSPdiff and not cooldown "Refresh Potion"
@@ -1634,24 +1651,7 @@ while not dead
                     endif
                 endif            
             endif
-                     
-            if EnableCleanseByFire = 1
-                if diffhits > CleanseByFireHPdiff and poisoned and not cooldown "Cleanse By Fire" and not cooldown "Chivalry" and not cooldown "Prevented"
-                    clearsysmsg 
-                    yell "[CleanseByFire"
-                    wait 250
-                    if insysmsg "You do not have enough holy"
-                        cooldown "Prevented" 5000
-                        clearsysmsg      
-                    else
-                        cooldown "Cleanse By Fire" 31000
-                        cooldown "Chivalry" 500
-                        overhead "[ CLEANSE BY FIRE! ]" 43              
-                    endif
-                    wait 250 
-                endif            
-            endif
-                
+
             if EnableCurePotion = 1
                 if poisoned and not cooldown "Cure Potion" and diffhits > CurePotHPdiff
                     if findtype "Orange Potion" self as curepot
@@ -1674,7 +1674,38 @@ while not dead
                     wait 250 
                 endif
             endif 
-       
+                     
+            if EnableCleanseByFire = 1
+                if diffhits > CleanseByFireHPdiff and poisoned and not cooldown "Cleanse By Fire" and not cooldown "Chivalry" and not cooldown "Prevented"
+                    clearsysmsg 
+                    yell "[CleanseByFire"
+                    wait 250
+                    if insysmsg "You do not have enough holy"
+                        cooldown "Prevented" 5000
+                        clearsysmsg      
+                    else
+                        cooldown "Cleanse By Fire" 31000
+                        cooldown "Chivalry" 500
+                        overhead "[ CLEANSE BY FIRE! ]" 43              
+                    endif
+                    wait 250 
+                endif            
+            endif
+
+            if insysmsg "world is saving"        
+                if not timerexists "WorldSaveTimer"
+                    createtimer "WorldSaveTimer"
+                endif             
+                    settimer "WorldSaveTimer" 0
+                while timer "WorldSaveTimer" < 4000
+                    if insysmsg "save complete"
+                        break
+                    endif
+                    wait 250 
+                endwhile            
+                overhead "[ SAVE COMPLETE! ]" 253
+            endif 
+                       
             if dead ClosestTarget
                 break
             endif
@@ -2082,7 +2113,7 @@ while not dead
             if paralyzed and EnableParalyzePouch = 1
                 if findtype "pouch" self
                     yell "[pouch"
-                    hotkey 'Toggle War/Peace'
+                    hotkey 'Toggle War Only'
                     replay
                 else
                     overhead "[ NO MORE POUCHES! ]" 337
@@ -2135,7 +2166,7 @@ while not dead
             if findtype "arrow|crossbow bolt" backpack
                 if not cooldown "Satchel Timer" and findtype "quiver" self as MyQuiver
                     menu MyQuiver 0
-                    wait 500
+                    wait 250
                 endif
             endif 
             
@@ -2150,7 +2181,7 @@ while not dead
                     wft 1000
                     overhead "[ SKINNING... ]" 338
                     target 'self'
-                    wait 250
+                    wait 500
                     @ignore body
                 endif
             else
@@ -2169,7 +2200,7 @@ while not dead
                     wait 250
                     if findtype "quiver" self as MyQuiver
                         menu MyQuiver 0
-                        wait 500
+                        wait 250
                     else
                         hotkey 'Organizer Agent-03'
                         wait 150  
@@ -2462,35 +2493,33 @@ while not dead
                 wait 250          
             endif
 
-            if insysmsg "world is saving"       
+            if insysmsg "world is saving"        
                 if not timerexists "WorldSaveTimer"
                     createtimer "WorldSaveTimer"
-                endif
-            
-                settimer "WorldSaveTimer" 0
-
-                while timer "WorldSaveTimer" < 3000
+                endif             
+                    settimer "WorldSaveTimer" 0
+                while timer "WorldSaveTimer" < 4000
                     if insysmsg "save complete"
                         break
                     endif
+                    wait 250 
                 endwhile            
                 overhead "[ SAVE COMPLETE! ]" 253
-            endif  
+            endif 
 
             if not find ClosestTarget ground -1 -1 8
                 break
             else 
                 replay
-            endif         
- 
+            endif       
         endwhile   
-        wait 250 
-            if not find ClosestTarget ground -1 -1 8
-                break
-            else 
+        if not find ClosestTarget ground -1 -1 8
+            break
+        else 
             replay
-        endif       
+        endif            
     endwhile
+
 
         if insysmsg "You have gained"    
             overhead "[ TARGET ELIMINATED!! ]" 149
@@ -2498,13 +2527,11 @@ while not dead
             cooldown "Pacified" 0
             cooldown "Discorded" 0
             cooldown "Provoked" 0   
-            clearsysmsg   
         else    
             overhead "[ TARGET LOST... ]" 339
             cooldown "Pacified" 0
             cooldown "Discorded" 0
-            cooldown "Provoked" 0
-            clearsysmsg  
+            cooldown "Provoked" 0 
         endif 
 
         wait 500
@@ -2538,7 +2565,7 @@ while not dead
                 dclicktype "Elven Spellblade"
                 wft 1000
                 target 'self'
-                wait 250
+                wait 500
                 @ignore body
             endif
         else
@@ -2551,7 +2578,7 @@ while not dead
         if paralyzed and EnableParalyzePouch = 1
             if findtype "pouch" self
                 yell "[pouch"
-                hotkey 'Toggle War/Peace'
+                hotkey 'Toggle War Only'
                 replay
             else
                 overhead "[ NO MORE POUCHES! ]" 337
@@ -2559,8 +2586,9 @@ while not dead
         endif     
             
         if EnableArrowCleanup = 1
+            for 5
             if findtype 7163|3903 ground -1 -1 2 as item and not cooldown "Cleanup"
-                wait 500
+                wait 250
                 overhead '[ CLEANUP... ]' 93
                 hotkey "Grab Item"
                 wft 1000
@@ -2573,8 +2601,9 @@ while not dead
                     hotkey 'Organizer Agent-03'
                     wait 150  
                 endif
-                cooldown "Cleanup" 1000
+                cooldown "Cleanup" 750
             endif
+            endfor 
 
             if findtype 7163 ground -1 -1 12 as bolt and not cooldown "Radar"                    
                 overhead "¼" 93 bolt
@@ -2590,18 +2619,16 @@ while not dead
         if insysmsg "world is saving"        
             if not timerexists "WorldSaveTimer"
                 createtimer "WorldSaveTimer"
-            endif
-             
+            endif             
                 settimer "WorldSaveTimer" 0
-
-            while timer "WorldSaveTimer" < 3500
+            while timer "WorldSaveTimer" < 4000
                 if insysmsg "save complete"
                     break
                 endif
+                wait 250 
             endwhile            
-                overhead "[ SAVE COMPLETE! ]" 253
+            overhead "[ SAVE COMPLETE! ]" 253
         endif 
-    endif
 
     wait 500    
     replay

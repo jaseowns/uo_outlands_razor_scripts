@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.07
+#Auto-mage attack 3.07.3
 
 #********** INFORMATION **********# 
 
@@ -43,10 +43,11 @@
 
 # 0 - Auto Target Selection 
 # 1 - Auto Target Selection in warmode only (while warmode = on then will auto attack)
-# 2 - Single Target Selection in warmode only (single auto attack in warmode, able to re-select targetting when toggle warmode)
-# 3 - Manual selection using hotkey `set last target`
+# 2 - Manual selection using hotkey `set last target`
 
-@setvar! targetSelectionMode 1
+@setvar! targetSelectionMode 0
+
+@setvar! switchTargetWhenToggleWarMode 1
 
 #--- Set Elementals Count ---#
 
@@ -55,7 +56,7 @@
 @setvar! airElementals 0
 @setvar! fireElementals 0
 @setvar! summonDaemons 0
-@setvar! summonCreature 1
+@setvar! summonCreature 0
 
 @setvar! minimumFollowers 4
 
@@ -69,7 +70,7 @@
 
 @setvar! castMagicArrow 1
 @setvar! castHarm 1
-@setvar! castFireball 0
+@setvar! castFireball 1
 @setvar! castLightning 1
 
 @setvar! activateMagicArrowWhenManaBelow 200
@@ -86,7 +87,7 @@
 
 #--- Poison ---#
 
-@setvar! castPoison 1
+@setvar! castPoison 0
 
 #- Poison Level
 # 0 - Greater or lesser 
@@ -95,7 +96,7 @@
 @setvar! poisonLevel 1
 
 @setvar! castCurse 1
-@setvar! castManaDrain 1
+@setvar! castManaDrain 0
 
 #--- Set Mage attack cooldowns ---#
 
@@ -189,7 +190,7 @@ l
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 1
+@setvar! useMeditationSkill 0
 @setvar! meditateWhenManaBelow 14
 @setvar! meditateUntilManaReach 65
 
@@ -210,7 +211,7 @@ clearsysmsg
 @setvar! castStrike 0 
 @setvar! repeatCastingPoison 0 
 
-if 2 = targetSelectionMode or 3 = targetSelectionMode
+if 2 = targetSelectionMode
     @setvar! currentTarget 0 
     @setvar! foundTarget 0 
     @setvar! tempTarget 0 
@@ -1781,9 +1782,11 @@ while not dead
                 endif
                 wait noRegsMessageCD
             endif
-        else 
-            
-            sysmsg 'begin casting elementals...' 11
+        elseif mana < 50
+            if timer noRegsMessageTimer > noRegsMessageCD
+                overhead "* low mana to summon *" 34
+                settimer noRegsMessageTimer 0
+            endif
         endif
             
 #********** CAST EARTH ELEMENTAL **********# 
@@ -2273,7 +2276,7 @@ while not dead
 
 #********* MANUAL-SELECT NEW TARGET *********
 
-    if 3 = targetSelectionMode
+    if 2 = targetSelectionMode
 
         if insysmsg "target a new"
             @setvar! currentTarget 0
@@ -2394,9 +2397,6 @@ while not dead
                             getlabel currentTarget myLabel
                             sysmsg "Target: {{myLabel}}" 55
                             overhead "Target found!" 66
-                            if 2 = targetSelectionMode
-                                warmode off  
-                            endif
                             break
                         endif
                     endif
@@ -2541,7 +2541,7 @@ while not dead
 
         @setvar! currentlyAttacking 1       
         
-        if 1 = targetSelectionMode
+        if 2 = targetSelectionMode
             if insysmsg! "target a new"
                 sysmsg "Breaking to set last target!" 44
                 break
@@ -3583,10 +3583,20 @@ while not dead
             endif
         endif
         
-        if 2 = targetSelectionMode and warmode on
-            @setvar! foundTarget 0
-            @setvar! currentTarget 0
-            break            
+        if 0 = targetSelectionMode and 1 = switchTargetWhenToggleWarMode
+            if warmode
+                warmode off
+                @setvar! foundTarget 0
+                @setvar! currentTarget 0      
+                sysmsg "0-Switching Targets" 34
+            endif
+        elseif 1 = targetSelectionMode and 1 = switchTargetWhenToggleWarMode
+            if not warmode
+                warmode on
+                @setvar! foundTarget 0
+                @setvar! currentTarget 0   
+                sysmsg "1-Switching Targets" 34
+            endif
         endif
         
     endwhile

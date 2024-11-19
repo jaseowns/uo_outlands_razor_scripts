@@ -194,7 +194,6 @@ if not varexist DanStock.Bard
     wait 500
 endif 
 
-
 while not dead 
 
         ##########################
@@ -1277,15 +1276,26 @@ while not dead
         ########################
         ####   TARGET ID:   ####
         ########################
-
+        
         @setvar! ClosestTarget lasttarget
         getlabel ClosestTarget descTarget
+        wait 250
         
-        if find ClosestTarget ground -1 -1 8
-            hotkey "Next Grey Monster Target"
-            wait 250
+        if find ClosestTarget ground -1 -1 6
+            hotkey 'Next Grey Monster Target' 
+            wait 100
             @setvar! NextClosestTarget lasttarget 
             getlabel NextClosestTarget descNextTarget
+            for 5
+                if find NextClosestTarget ground -1 -1 6
+                    break
+                else 
+                    hotkey 'Next Grey Monster Target' 
+                    wait 100
+                    @setvar! NextClosestTarget lasttarget 
+                    getlabel NextClosestTarget descNextTarget
+                endif 
+            endfor 
         else 
             if not cooldown "Target Timer"
                 overhead "[ GET CLOSER! ]" 69
@@ -1293,7 +1303,7 @@ while not dead
             endif 
             replay    
         endif 
-            
+
         if NextClosestTarget != ClosestTarget and find NextClosestTarget ground -1 -1 10
             @setvar! NeedtoProvoke 1
             cooldown "Peacemaking" 3000
@@ -1307,8 +1317,11 @@ while not dead
             cooldown "Provoked" 0
         endif
         
-        hotkey 'Target Closest Grey Monster'  
-    
+        hotkey 'Target Closest Grey Monster'
+        wait 100
+        @setvar! ClosestTarget lasttarget
+        getlabel ClosestTarget descTarget
+        
 
         #############################
         ####     COMBAT LOOP:    ####
@@ -1318,10 +1331,10 @@ while not dead
    
             if not timerexists "FindNextTarget"
                 createtimer "FindNextTarget"
-                settimer "FindNextTarget" 4500
+                settimer "FindNextTarget" 2000
             endif
 
-            if timer "FindNextTarget" >= 4500 and find NextClosestTarget ground -1 -1 8 and NextClosestTarget != ClosestTarget and NextClosestTarget != 0
+            if timer "FindNextTarget" >= 2000 and find NextClosestTarget ground -1 -1 8 and NextClosestTarget != ClosestTarget and NextClosestTarget != 0
                 getlabel NextClosestTarget descNextTarget
                     if not cooldown " Next Target Timer"
                         if "Paragon" in descNextTarget
@@ -1590,61 +1603,6 @@ while not dead
                 endif
             endif
 
-
-            #################################
-            ####    OVERHEAD MESSAGES:   ####
-            #################################
-
-                if insysmsg "Barding break avoided"
-                    overhead "[ BREAK AVOIDED! ]" 84 ClosestTarget
-                endif
-                
-                if insysmsg "something invisible out of" 
-                    overhead "¼ SOMEONE HIDING! ¼" 6
-                    wait 500
-                endif
-
-                if insysmsg "mastery chain"
-                    overhead "[ NEW LINK UNLOCKED!! ]" 149
-                endif 
-                
-                if insysmsg "You have unlocked a codex upgrade point"
-                    overhead "[ CODEX POINT UNLOCKED! ]" 2114
-                endif             
-
-                if insysmsg "enough experience to upgrade"
-                    overhead "[ ASPECT TIER UNLOCKED!! ]" 2241
-                endif 
-
-                if insysmsg "Cacophony activated"
-                    overhead "[ CACOPHONY!!! ]" 2241              
-                endif  
-
-                if insysmsg "causes you to bleed"
-                    overhead "[ BLEEDING... ]" 2118
-                endif
-
-                if insysmsg "Your shot hinders"
-                    overhead "[ HINDERED! ]" 44 ClosestTarget   
-                endif    
-
-                if insysmsg "Your target overpowers"
-                    overhead "[ VICIOUS WOUND! ]" 1664 ClosestTarget             
-                endif 
-           
-                if insysmsg "Your shot turns the target into"
-                    overhead "[ PIN CUSHION!! ]" 2115
-                endif 
-      
-                if insysmsg  "Your shot ricochets"
-                    overhead "[ RICOCHET!! ]" 2115
-                endif 
-
-                if not findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" self
-                    overhead "[ NO INSTRUMENT! ]" 333
-                    replay
-                endif            
-            
 
             ###############################
             ####    BARDING SKILLS:    ####
@@ -2148,321 +2106,376 @@ while not dead
                 endif
             endif
             
-            if insysmsg "world is saving"        
-                if not timerexists "WorldSaveTimer"
-                    createtimer "WorldSaveTimer"
-                endif             
-                    settimer "WorldSaveTimer" 0
-                while timer "WorldSaveTimer" < 4000
-                    if insysmsg "save complete"
-                        break
-                    endif
-                    wait 250 
-                endwhile            
-                overhead "[ SAVE COMPLETE! ]" 253
-            endif     
-
-            if EnableWeightWarningMessage = 1
-                if weight > GreenWarningWeight and weight < YellowWarningWeight and not cooldown "Weight Warning"
-                    overhead "[ WEIGHT WARNING... ]" 77
-                    cooldown "Weight Warning" 6000
-                endif
-
-                if weight > YellowWarningWeight and weight < RedWeightLimit and not cooldown "Weight Warning"
-                    overhead "[ WEIGHT WARNING! ]" 153
-                    cooldown "Weight Warning" 6000
-                endif 
-
-                if weight > RedWeightLimit and not cooldown "Weight Warning"
-                    overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
-                    cooldown "Weight Warning" 6000    
-                    sysmsg "Time to head home and unload our loot!" 0           
-                endif
-            endif  
-      
-            if EnableAmmoWarningMessage = 1
-                if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand
-                    # BOLTS
-                    @setvar! AMMO 1
-
-                elseif findtype 'long bow|bow|recurve bow|composite bow' hand
-                    # ARROWS
-                    @setvar AMMO 2
-                endif
-
-                if counttype "crossbow bolt" self < AmmoWarningAmount and not cooldown "Ammunition" and AMMO = 1
-                    overhead "[ AMMO LOW! ]" 37
-                    cooldown "Ammunition" 6000
-                endif 
-
-                if counttype "arrow" self < AmmoWarningAmount and not cooldown "Ammunition" and AMMO = 2
-                    overhead "[ AMMO LOW! ]" 37
-                    cooldown "Ammunition" 6000    
-                endif
-            endif 
-    
-            if findtype "arrow|crossbow bolt" backpack
-                if not cooldown "Satchel Timer" and findtype "quiver" self as MyQuiver
-                    menu MyQuiver 0
-                    wait 250
-                endif
-            endif 
             
-            if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                if findtype "corpse" ground -1 -1 2 as body
-                    wait 500
-                    dclicktype "Elven Spellblade"
-                    wft 1000
-                    overhead "[ SKINNING... ]" 338
-                    target 'self'
-                    wait 500
-                    @ignore body
+            #################################
+            ####    OVERHEAD MESSAGES:   ####
+            #################################
+
+                if insysmsg "Barding break avoided"
+                    overhead "[ BREAK AVOIDED! ]" 84 ClosestTarget
                 endif
-            else
-                if not cooldown "Inventory Timer" 
-                    overhead "[ NO SKINNING KNIFE! ]" 337
-                    cooldown "Inventory Timer" 6000
+                
+                if insysmsg "something invisible out of" 
+                    overhead "¼ SOMEONE HIDING! ¼" 6
+                    wait 500
+                endif
+
+                if insysmsg "mastery chain"
+                    overhead "[ NEW LINK UNLOCKED!! ]" 149
                 endif 
-            endif
+                
+                if insysmsg "You have unlocked a codex upgrade point"
+                    overhead "[ CODEX POINT UNLOCKED! ]" 2114
+                endif             
+
+                if insysmsg "enough experience to upgrade"
+                    overhead "[ ASPECT TIER UNLOCKED!! ]" 2241
+                endif 
+
+                if insysmsg "Cacophony activated"
+                    overhead "[ CACOPHONY!!! ]" 2241              
+                endif  
+
+                if insysmsg "causes you to bleed"
+                    overhead "[ BLEEDING... ]" 2118
+                endif
+
+                if insysmsg "Your shot hinders"
+                    overhead "[ HINDERED! ]" 44 ClosestTarget   
+                endif    
+
+                if insysmsg "Your target overpowers"
+                    overhead "[ VICIOUS WOUND! ]" 1664 ClosestTarget             
+                endif 
+           
+                if insysmsg "Your shot turns the target into"
+                    overhead "[ PIN CUSHION!! ]" 2115
+                endif 
       
-            if EnableArrowCleanup = 1
-                if findtype 7163|3903 ground -1 -1 2 as item and not cooldown "Cleanup"
-                    overhead '[ CLEANUP... ]' 93
-                    hotkey "Grab Item"
-                    wft 1000
-                    target item
-                    wait 250
-                    if findtype "quiver" self as MyQuiver
-                        menu MyQuiver 0
-                        wait 500
-                    else
-                        hotkey 'Organizer Agent-03'
-                        wait 150  
-                    endif
-                    cooldown "Cleanup" 1000
-                endif
-
-                if findtype 7163 ground -1 -1 10 as bolt and not cooldown "Radar"                    
-                    overhead "¼" 93 bolt
-                    cooldown "Radar" 3500
-                endif
-
-                if findtype 3903 ground -1 -1 10 as arrow and not cooldown "Radar"
-                    overhead "¼" 37 arrow
-                    cooldown "Radar" 3500
-                endif
-            endif  
-
-            if not findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand 
-                if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
-                    for 5
-                        getlabel weapon WeaponLabel
-                        wait 250
-                            if "unidentified" in WeaponLabel
-                                @ignore weapon
-                                if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
-                                    getlabel weapon WeaponLabel
-                                endif
-                            else 
-                                break
-                            endif 
-                    endfor            
-                dclick weapon
-                wait 250
+                if insysmsg  "Your shot ricochets"
+                    overhead "[ RICOCHET!! ]" 2115
                 endif 
-            endif
 
-            if EnableShield = 1
-                if not findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' lefthand
-                    if findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
-                        getlabel shield ShieldLabel
-                            for 5
-                                wait 250
-                                if "unidentified" in ShieldLabel
-                                    @ignore shield
-                                    if findtype 'metal shield|Chaos shield|heater shield' backpack as shield
-                                        getlabel shield ShieldLabel
-                                    endif
-                                endif 
-                            endfor            
-                        dclick shield
+                if not findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" self
+                    overhead "[ NO INSTRUMENT! ]" 333
+                    replay
+                endif  
+                
+                if insysmsg "world is saving"        
+                    if not timerexists "WorldSaveTimer"
+                        createtimer "WorldSaveTimer"
+                    endif             
+                        settimer "WorldSaveTimer" 0
+                    while timer "WorldSaveTimer" < 4000
+                        if insysmsg "save complete"
+                            break
+                        endif
+                        wait 250 
+                    endwhile            
+                    overhead "[ SAVE COMPLETE! ]" 253
+                endif     
+
+                if EnableWeightWarningMessage = 1
+                    if weight > GreenWarningWeight and weight < YellowWarningWeight and not cooldown "Weight Warning"
+                        overhead "[ WEIGHT WARNING... ]" 77
+                        cooldown "Weight Warning" 6000
+                    endif
+
+                    if weight > YellowWarningWeight and weight < RedWeightLimit and not cooldown "Weight Warning"
+                        overhead "[ WEIGHT WARNING! ]" 153
+                        cooldown "Weight Warning" 6000
+                    endif 
+
+                    if weight > RedWeightLimit and not cooldown "Weight Warning"
+                        overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
+                        cooldown "Weight Warning" 6000    
+                        sysmsg "Time to head home and unload our loot!" 0           
+                    endif
+                endif  
+          
+                if EnableAmmoWarningMessage = 1
+                    if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand
+                        # BOLTS
+                        @setvar! AMMO 1
+
+                    elseif findtype 'long bow|bow|recurve bow|composite bow' hand
+                        # ARROWS
+                        @setvar AMMO 2
+                    endif
+
+                    if counttype "crossbow bolt" self < AmmoWarningAmount and not cooldown "Ammunition" and AMMO = 1
+                        overhead "[ AMMO LOW! ]" 37
+                        cooldown "Ammunition" 6000
+                    endif 
+
+                    if counttype "arrow" self < AmmoWarningAmount and not cooldown "Ammunition" and AMMO = 2
+                        overhead "[ AMMO LOW! ]" 37
+                        cooldown "Ammunition" 6000    
+                    endif
+                endif 
+        
+                if findtype "arrow|crossbow bolt" backpack
+                    if not cooldown "Satchel Timer" and findtype "quiver" self as MyQuiver
+                        menu MyQuiver 0
                         wait 250
+                    endif
+                endif 
+                
+                if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
+                    if findtype "corpse" ground -1 -1 2 as body
+                        wait 500
+                        dclicktype "Elven Spellblade"
+                        wft 1000
+                        overhead "[ SKINNING... ]" 338
+                        target 'self'
+                        wait 500
+                        @ignore body
+                    endif
+                else
+                    if not cooldown "Inventory Timer" 
+                        overhead "[ NO SKINNING KNIFE! ]" 337
+                        cooldown "Inventory Timer" 6000
                     endif 
                 endif
-            endif
+          
+                if EnableArrowCleanup = 1
+                    if findtype 7163|3903 ground -1 -1 2 as item and not cooldown "Cleanup"
+                        overhead '[ CLEANUP... ]' 93
+                        hotkey "Grab Item"
+                        wft 1000
+                        target item
+                        wait 250
+                        if findtype "quiver" self as MyQuiver
+                            menu MyQuiver 0
+                            wait 500
+                        else
+                            hotkey 'Organizer Agent-03'
+                            wait 150  
+                        endif
+                        cooldown "Cleanup" 1000
+                    endif
+
+                    if findtype 7163 ground -1 -1 10 as bolt and not cooldown "Radar"                    
+                        overhead "¼" 93 bolt
+                        cooldown "Radar" 3500
+                    endif
+
+                    if findtype 3903 ground -1 -1 10 as arrow and not cooldown "Radar"
+                        overhead "¼" 37 arrow
+                        cooldown "Radar" 3500
+                    endif
+                endif  
+
+                if not findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand 
+                    if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                        for 5
+                            getlabel weapon WeaponLabel
+                            wait 250
+                                if "unidentified" in WeaponLabel
+                                    @ignore weapon
+                                    if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                                        getlabel weapon WeaponLabel
+                                    endif
+                                else 
+                                    break
+                                endif 
+                        endfor            
+                    dclick weapon
+                    wait 250
+                    endif 
+                endif
+
+                if EnableShield = 1
+                    if not findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                        if findtype 'metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                            getlabel shield ShieldLabel
+                                for 5
+                                    wait 250
+                                    if "unidentified" in ShieldLabel
+                                        @ignore shield
+                                        if findtype 'metal shield|Chaos shield|heater shield' backpack as shield
+                                            getlabel shield ShieldLabel
+                                        endif
+                                    endif 
+                                endfor            
+                            dclick shield
+                            wait 250
+                        endif 
+                    endif
+                endif
 
                 
         #################################
         ####    BUFFS & ABILITIES:   ####
         #################################
         
-            if EnableConsecrateWeapon = 1 
-                if cooldown "Discorded"
-                    wait 150
-                    if cooldown "Pacified" or cooldown "Provoked"
+                if EnableConsecrateWeapon = 1 
+                    if cooldown "Discorded"
                         wait 150
-                        if not cooldown "Consecrate Weapon" and not cooldown "Chivalry" and not cooldown "Prevented" and diffhits < HolyLightHPdiff 
-                            yell "[ConsecrateWeapon"
-                            wait 250
-                        
-                            if not insysmsg "You do not have enough holy" and not insysmsg "You must wait a moment"
-                                cooldown "Consecrate Weapon" 31000
-                                cooldown "Chivalry" 10000
-                                overhead "[ CONSECRATE WEAPON! ]" 2206
-                            else 
-                                cooldown "Prevented" 5000
+                        if cooldown "Pacified" or cooldown "Provoked"
+                            wait 150
+                            if not cooldown "Consecrate Weapon" and not cooldown "Chivalry" and not cooldown "Prevented" and diffhits < HolyLightHPdiff 
+                                yell "[ConsecrateWeapon"
+                                wait 250
+                            
+                                if not insysmsg "You do not have enough holy" and not insysmsg "You must wait a moment"
+                                    cooldown "Consecrate Weapon" 31000
+                                    cooldown "Chivalry" 10000
+                                    overhead "[ CONSECRATE WEAPON! ]" 2206
+                                else 
+                                    cooldown "Prevented" 5000
+                                endif
+                                wait 250
                             endif
-                            wait 250
                         endif
                     endif
                 endif
-            endif
-            
-            if EnableDivineFury = 1 
-                if not cooldown "Divine Fury" and not cooldown "Chivalry" and not cooldown "Prevented" and diffhits < HolyLightHPdiff 
-                    clearsysmsg 
-                    yell "[DivineFury"
-                    wait 250
                 
-                    if not insysmsg "You do not have enough holy" and not insysmsg "You must wait a moment"
-                        cooldown "Divine Fury" 31000
-                        cooldown "Chivalry" 10000
-                        overhead "[ DIVINE FURY! ]" 2117
-                    else 
-                        cooldown "Prevented" 5000
+                if EnableDivineFury = 1 
+                    if not cooldown "Divine Fury" and not cooldown "Chivalry" and not cooldown "Prevented" and diffhits < HolyLightHPdiff 
+                        clearsysmsg 
+                        yell "[DivineFury"
+                        wait 250
+                    
+                        if not insysmsg "You do not have enough holy" and not insysmsg "You must wait a moment"
+                            cooldown "Divine Fury" 31000
+                            cooldown "Chivalry" 10000
+                            overhead "[ DIVINE FURY! ]" 2117
+                        else 
+                            cooldown "Prevented" 5000
+                        endif
+                        wait 250
                     endif
-                    wait 250
-                endif
-            endif        
+                endif        
 
-            if EnableEnemyOfOne = 1 
-                if not cooldown "Enemy Of One" and not cooldown "Chivalry" and not cooldown "Prevented" and diffhits < HolyLightHPdiff 
-                    yell "[EnemyOfOne"
-                    wait 250
+                if EnableEnemyOfOne = 1 
+                    if not cooldown "Enemy Of One" and not cooldown "Chivalry" and not cooldown "Prevented" and diffhits < HolyLightHPdiff 
+                        yell "[EnemyOfOne"
+                        wait 250
+                    
+                        if not insysmsg "You do not have enough holy" and not insysmsg "You must wait a moment"
+                            cooldown "Enemy Of One" 31000
+                            cooldown "Chivalry" 10000
+                            overhead "[ ENEMY OF ONE! ]" 332
+                        else 
+                            cooldown "Prevented" 5000
+                        endif
+                        wait 250
+                    endif
+                endif
                 
-                    if not insysmsg "You do not have enough holy" and not insysmsg "You must wait a moment"
-                        cooldown "Enemy Of One" 31000
-                        cooldown "Chivalry" 10000
-                        overhead "[ ENEMY OF ONE! ]" 332
-                    else 
-                        cooldown "Prevented" 5000
-                    endif
-                    wait 250
-                endif
-            endif
-            
-            if EnableWeaponAbility = 1 
-                if cooldown "Discorded" 
-                    if cooldown "Pacified" or cooldown "Provoked"
-                        if EnableSkirmish = 1 and not cooldown "Weapon Ability" and not cooldown "Skirmish"
-                            yell "[WeaponAbility1" 
-                            wait 250
-                            if insysmsg "You cannot"
-                                cooldown "Weapon Ability" 5000
-                            else 
-                                overhead "[ SKIRMISH! ]" 339
-                                cooldown "Weapon Ability" 61000
-                                cooldown "Skirmish" 15000
-                            endif 
+                if EnableWeaponAbility = 1 
+                    if cooldown "Discorded" 
+                        if cooldown "Pacified" or cooldown "Provoked"
+                            if EnableSkirmish = 1 and not cooldown "Weapon Ability" and not cooldown "Skirmish"
+                                yell "[WeaponAbility1" 
+                                wait 250
+                                if insysmsg "You cannot"
+                                    cooldown "Weapon Ability" 5000
+                                else 
+                                    overhead "[ SKIRMISH! ]" 339
+                                    cooldown "Weapon Ability" 61000
+                                    cooldown "Skirmish" 15000
+                                endif 
 
-                        elseif EnableFullDraw = 1 and not cooldown "Weapon Ability" and not cooldown "Full Draw"
-                            yell "[WeaponAbility2" 
-                            wait 250
-                            if insysmsg "You cannot"
-                                cooldown "Weapon Ability" 5000
-                            else 
-                                overhead "[ FULL DRAW! ]" 339
-                                cooldown "Weapon Ability" 61000
-                                cooldown "Full Draw" 15000
-                            endif 
+                            elseif EnableFullDraw = 1 and not cooldown "Weapon Ability" and not cooldown "Full Draw"
+                                yell "[WeaponAbility2" 
+                                wait 250
+                                if insysmsg "You cannot"
+                                    cooldown "Weapon Ability" 5000
+                                else 
+                                    overhead "[ FULL DRAW! ]" 339
+                                    cooldown "Weapon Ability" 61000
+                                    cooldown "Full Draw" 15000
+                                endif 
 
-                        elseif EnableRepeater = 1 and not cooldown "Weapon Ability" and not cooldown "Repeater"
-                            yell "[WeaponAbility3" 
-                            wait 250
-                            if insysmsg "You cannot"
-                                cooldown "Weapon Ability" 5000
-                            else 
-                                overhead "[ REPEATER LOADED... ]" 2114
-                                cooldown "Weapon Ability" 65000
-                                cooldown "Repeater" 15000
-                                cooldown "Target Timer" 2500
-                                wait 500
-                                overhead "Uh oh..." 339 ClosestTarget
-                            endif 
+                            elseif EnableRepeater = 1 and not cooldown "Weapon Ability" and not cooldown "Repeater"
+                                yell "[WeaponAbility3" 
+                                wait 250
+                                if insysmsg "You cannot"
+                                    cooldown "Weapon Ability" 5000
+                                else 
+                                    overhead "[ REPEATER LOADED... ]" 2114
+                                    cooldown "Weapon Ability" 65000
+                                    cooldown "Repeater" 15000
+                                    cooldown "Target Timer" 2500
+                                    wait 500
+                                    overhead "Uh oh..." 339 ClosestTarget
+                                endif 
+                            endif
                         endif
                     endif
                 endif
-            endif
+                   
+                if EnablePeacemakingBuff = 1 and not findbuff "Song Of Peacemaking" and not cooldown "Musicianship" and not cooldown "Peacemaking" and not cooldown "Song Buff Delay"
                
-            if EnablePeacemakingBuff = 1 and not findbuff "Song Of Peacemaking" and not cooldown "Musicianship" and not cooldown "Peacemaking" and not cooldown "Song Buff Delay"
-           
-                skill "Peacemaking"
-                wait 250
-            
-                if insysmsg "What instrument shall you play?"
-                    if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
-                        target Instrument
-                    else                                 
-                        overhead "[ NO INSTRUMENT! ]" 337                        
-                    endif
-                endif
+                    skill "Peacemaking"
+                    wait 250
                 
-                if not insysmsg "This is not a musical instrument"
-                    wft 1000
-                    target backpack 
-                    overhead "[ PEACEMAKING BUFF... ]" 84
-                    cooldown "Peacemaking Buff" SongReapply
-                    cooldown "Song Buff Delay" 11000
-                endif    
-                wait 250        
-            endif        
-        
-            if EnableDiscordanceBuff = 1 and not findbuff "Song Of Discordance" and not cooldown "Musicianship" and not cooldown "Discordance" and not cooldown "Song Buff Delay"
-            
-                skill "Discordance"
-                wait 250
-            
-                if insysmsg "What instrument shall you play?"
-                    if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
-                        target Instrument
-                    else                                 
-                        overhead "[ NO INSTRUMENT! ]" 337                        
+                    if insysmsg "What instrument shall you play?"
+                        if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
+                            target Instrument
+                        else                                 
+                            overhead "[ NO INSTRUMENT! ]" 337                        
+                        endif
                     endif
-                endif
+                    
+                    if not insysmsg "This is not a musical instrument"
+                        wft 1000
+                        target backpack 
+                        overhead "[ PEACEMAKING BUFF... ]" 84
+                        cooldown "Peacemaking Buff" SongReapply
+                        cooldown "Song Buff Delay" 11000
+                    endif    
+                    wait 250        
+                endif        
             
-                if not insysmsg "This is not a musical instrument"
-                    wft 1000
-                    target backpack 
-                    overhead "[ DISCORDANCE BUFF... ]" 69
-                    cooldown "Discordance Buff" SongReapply
-                    cooldown "Song Buff Delay" 11000
-                endif 
-                wait 250          
-            endif        
+                if EnableDiscordanceBuff = 1 and not findbuff "Song Of Discordance" and not cooldown "Musicianship" and not cooldown "Discordance" and not cooldown "Song Buff Delay"
+                
+                    skill "Discordance"
+                    wait 250
+                
+                    if insysmsg "What instrument shall you play?"
+                        if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
+                            target Instrument
+                        else                                 
+                            overhead "[ NO INSTRUMENT! ]" 337                        
+                        endif
+                    endif
+                
+                    if not insysmsg "This is not a musical instrument"
+                        wft 1000
+                        target backpack 
+                        overhead "[ DISCORDANCE BUFF... ]" 69
+                        cooldown "Discordance Buff" SongReapply
+                        cooldown "Song Buff Delay" 11000
+                    endif 
+                    wait 250          
+                endif        
 
-            if EnableProvocationBuff = 1 and not findbuff "Song of Provocation" and not cooldown "Musicianship" and not cooldown "Provocation" and not cooldown "Song Buff Delay"
-            
-                skill "Provocation"
-                wait 250
-            
-                if insysmsg "What instrument shall you play?"
-                    if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
-                        target Instrument
-                    else                                 
-                        overhead "[ NO INSTRUMENT! ]" 337                        
+                if EnableProvocationBuff = 1 and not findbuff "Song of Provocation" and not cooldown "Musicianship" and not cooldown "Provocation" and not cooldown "Song Buff Delay"
+                
+                    skill "Provocation"
+                    wait 250
+                
+                    if insysmsg "What instrument shall you play?"
+                        if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
+                            target Instrument
+                        else                                 
+                            overhead "[ NO INSTRUMENT! ]" 337                        
+                        endif
                     endif
+            
+                    if not insysmsg "This is not a musical instrument"
+                        wft 1000
+                        target backpack 
+                        overhead "[ PROVOCATION BUFF... ]" 334
+                        cooldown "Provocation Buff" SongReapply
+                        cooldown "Song Buff Delay" 11000
+                    endif  
+                    wait 250          
                 endif
-        
-                if not insysmsg "This is not a musical instrument"
-                    wft 1000
-                    target backpack 
-                    overhead "[ PROVOCATION BUFF... ]" 334
-                    cooldown "Provocation Buff" SongReapply
-                    cooldown "Song Buff Delay" 11000
-                endif  
-                wait 250          
-            endif
-           
+                wait 500
         clearsysmsg  
     endwhile
 

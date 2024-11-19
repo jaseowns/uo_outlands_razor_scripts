@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.06
+#Auto-mage attack 3.07
 
 #********** INFORMATION **********# 
 
@@ -24,6 +24,7 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.07 Added a new auto target mode activating war mode to attack or reset the target selection
 # Ver 3.06 Changes to the auto healing mechanic and variables
 # Ver 3.05 Added variables to activate mini spells when mana below `X amount`
 # Ver 3.04 Code restructure, add variable to break attacking and summon elemental if needed || added mindrot necro spell on regular casting
@@ -39,19 +40,22 @@
 #********** SET YOUR SETTINGS **********#   
 
 #--- Set Target Mode ---#
-# 0 - Auto Target Selection 
-# 1 - Manual selection using hotkey `set last target`
 
-@setvar! targetSelectionMode 0
+# 0 - Auto Target Selection 
+# 1 - Auto Target Selection in warmode only (while warmode = on then will auto attack)
+# 2 - Single Target Selection in warmode only (single auto attack in warmode, able to re-select targetting when toggle warmode)
+# 3 - Manual selection using hotkey `set last target`
+
+@setvar! targetSelectionMode 1
 
 #--- Set Elementals Count ---#
 
-@setvar! earthElementals 0
-@setvar! waterElementals 0
+@setvar! earthElementals 1
+@setvar! waterElementals 1
 @setvar! airElementals 0
 @setvar! fireElementals 0
 @setvar! summonDaemons 0
-@setvar! summonCreature 0
+@setvar! summonCreature 1
 
 @setvar! minimumFollowers 4
 
@@ -65,12 +69,12 @@
 
 @setvar! castMagicArrow 1
 @setvar! castHarm 1
-@setvar! castFireball 1
+@setvar! castFireball 0
 @setvar! castLightning 1
 
-@setvar! activateMagicArrowWhenManaBelow 65
-@setvar! activateHarmWhenManaBelow 65
-@setvar! activateFireballWhenManaBelow 65
+@setvar! activateMagicArrowWhenManaBelow 200
+@setvar! activateHarmWhenManaBelow 200
+@setvar! activateFireballWhenManaBelow 200
 @setvar! activateLightningWhenManaBelow 200
 
 #- Big spells prioritize order -#
@@ -78,11 +82,11 @@
 @setvar! castFlamestrike 1
 @setvar! castEnergyBolt 0
 @setvar! castExplosion 0
-@setvar! castMindblast 0
+@setvar! castMindblast 1
 
 #--- Poison ---#
 
-@setvar! castPoison 0
+@setvar! castPoison 1
 
 #- Poison Level
 # 0 - Greater or lesser 
@@ -91,7 +95,7 @@
 @setvar! poisonLevel 1
 
 @setvar! castCurse 1
-@setvar! castManaDrain 0
+@setvar! castManaDrain 1
 
 #--- Set Mage attack cooldowns ---#
 
@@ -185,7 +189,7 @@ l
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 0
+@setvar! useMeditationSkill 1
 @setvar! meditateWhenManaBelow 14
 @setvar! meditateUntilManaReach 65
 
@@ -206,7 +210,7 @@ clearsysmsg
 @setvar! castStrike 0 
 @setvar! repeatCastingPoison 0 
 
-if 1 = targetSelectionMode
+if 2 = targetSelectionMode or 3 = targetSelectionMode
     @setvar! currentTarget 0 
     @setvar! foundTarget 0 
     @setvar! tempTarget 0 
@@ -287,7 +291,7 @@ settimer noTargetMessageTimer noTargetMessageCD
 @setvar! poisonLabelCD 5000
 settimer poisonLabelTimer poisonLabelCD
 
-@setvar! targetSelectCD 5000
+@setvar! targetSelectCD 3000
 settimer targetSelectTimer targetSelectCD
 
 @setvar! noRegsMessageCD 3000
@@ -1225,7 +1229,7 @@ while not dead
         
         #--- Use Meditation ---#
     
-        if 1 = useMeditationSkill and mana < meditateWhenManaBelow and not findbuff "meditating"
+        if 1 = useMeditationSkill and mana < 50 and not findbuff "meditating"
             skill 'meditation'
             getlabel backpack xxx
             wait 200
@@ -1756,14 +1760,14 @@ while not dead
             #sysmsg "Creature List = 2"
         endif
         
-        sysmsg 'begin casting elementals...' 11
-        
+        @setvar! summoningSucessful 0
         @setvar! missingRegs 0
         
         if not findtype 3963 self or not findtype 3974 self or not findtype 3981 self
             @setvar! missingRegs 1
             if timer noRegsMessageTimer > noRegsMessageCD
                 overhead 'Out of regs!' 34
+                sysmsg 'Out of regs!' 34
                 settimer noRegsMessageTimer 0
             endif
             wait noRegsMessageCD
@@ -1772,15 +1776,19 @@ while not dead
                 @setvar! missingRegs 1
                 if timer noRegsMessageTimer > noRegsMessageCD
                     overhead 'Out of regs!' 34
+                    sysmsg 'Out of regs!' 34
                     settimer noRegsMessageTimer 0
                 endif
                 wait noRegsMessageCD
             endif
+        else 
+            
+            sysmsg 'begin casting elementals...' 11
         endif
             
 #********** CAST EARTH ELEMENTAL **********# 
     
-        if earthElementals != 0 and list earthListy < earthElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0
+        if earthElementals != 0 and list earthListy < earthElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49
         
             cast 'Earth Elemental'
             @setvar! castingEarth 1
@@ -1824,6 +1832,7 @@ while not dead
             endwhile
 
             if 0 = wasInterrupted
+                @setvar! summoningSucessful 1
                 sysmsg "Summon Earth Successful" 
                 pushlist earthListy 'x' 'front'
                 
@@ -1858,7 +1867,7 @@ while not dead
             
 #********** CAST WATER ELEMENTAL **********# 
         
-        elseif waterElementals != 0 and list waterListy < waterElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 
+        elseif waterElementals != 0 and list waterListy < waterElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49
             cast 'Water Elemental'
             @setvar! castingWater 1
             while not casting                   
@@ -1901,6 +1910,7 @@ while not dead
             endwhile
 
             if 0 = wasInterrupted
+                @setvar! summoningSucessful 1
                 sysmsg "Summon Water Successful" 
                 pushlist waterListy 'x' 'front'
                 
@@ -1935,7 +1945,7 @@ while not dead
         
 #********** CAST AIR ELEMENTAL **********# 
         
-        elseif airElementals != 0 and list airListy < airElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0                    
+        elseif airElementals != 0 and list airListy < airElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49                    
             cast 'Air Elemental'
             @setvar! castingAir 1
             while not casting                   
@@ -1978,6 +1988,7 @@ while not dead
             endwhile
             
             if 0 = wasInterrupted
+                @setvar! summoningSucessful 1
                 sysmsg "Summon Air Successful" 
                 pushlist airListy 'x' 'front'
                 
@@ -2011,7 +2022,7 @@ while not dead
         
 #********** CAST FIRE ELEMENTAL **********# 
         
-        elseif fireElementals != 0 and list fireListy < fireElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0                       
+        elseif fireElementals != 0 and list fireListy < fireElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49                      
             cast 'Fire Elemental'
             @setvar! castingFire 1
             while not casting                   
@@ -2054,6 +2065,7 @@ while not dead
             endwhile
             
             if 0 = wasInterrupted
+                @setvar! summoningSucessful 1
                 sysmsg "Summon Fire Successful" 
                 pushlist fireListy 'x' 'front'
                 
@@ -2087,7 +2099,7 @@ while not dead
             
 #********** CAST DAEMON **********# 
         
-        elseif summonDaemons != 0 and list daemonListy < summonDaemons and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0                        
+        elseif summonDaemons != 0 and list daemonListy < summonDaemons and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49                        
             cast 'Summon Daemon'
             @setvar! castingDaemon 1
             while not casting                   
@@ -2130,6 +2142,7 @@ while not dead
             endwhile
             
             if 0 = wasInterrupted
+                @setvar! summoningSucessful 1
                 sysmsg "Summon Daemon Successful" 
                 pushlist daemonListy 'x' 'front'
                 
@@ -2163,7 +2176,7 @@ while not dead
             
 #********** CAST SUMMON CREATURE **********# 
         
-        elseif summonCreature != 0 and list creatureListy < summonCreature and followers < 5 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0                    
+        elseif summonCreature != 0 and list creatureListy < summonCreature and followers < 5 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 13                   
             cast 'Summ. Creature'
             @setvar! castingCreature 1
             while not casting                   
@@ -2206,6 +2219,7 @@ while not dead
             endwhile
 
             if 0 = wasInterrupted
+                @setvar! summoningSucessful 1
                 sysmsg "Summon Creature Successful" 
                 pushlist creatureListy 'x' 'front'
                 while not dead
@@ -2251,16 +2265,16 @@ while not dead
             
         endif
         
-        if followers > 0
-            say 'ALL Guard ME' 11
+        if 1 = summoningSucessful
+            say 'ALL Guard ME' 44
         endif
     
     endwhile
 
 #********* MANUAL-SELECT NEW TARGET *********
 
-    if 1 = targetSelectionMode
-        #sysmsg "TargetSelectionMode = 1"
+    if 3 = targetSelectionMode
+
         if insysmsg "target a new"
             @setvar! currentTarget 0
             @setvar! foundTarget 0
@@ -2304,10 +2318,15 @@ while not dead
         endif
         wait 200    
         
-    else 
-    
+    elseif 0 = targetSelectionMode or warmode on 
+
 #********* AUTO-SELECT NEW TARGET *********
-    
+        
+        #if timer targetSelectTimer > targetSelectCD
+        #    overhead "Looking for target.." 55
+        #    settimer targetSelectTimer 0
+        #endif
+        
         if not find currentTarget ground -1 -1 12
             @setvar! currentTarget 0
             @setvar! foundTarget 0
@@ -2357,7 +2376,7 @@ while not dead
                         elseif insysmsg "Perhaps" or insysmsg "You are too far away from them." or insysmsg "They do not appear to have anything to offer you." or insysmsg! "You must wait"
                             
                             if insysmsg "You must wait"
-                                overhead "* target skill cooldown targetting closest mob *" 34
+                                sysmsg "* target skill cooldown targetting closest mob *" 34
                                 hotkey 'target closest grey monster'   
                                 @setvar! tempTarget lasttarget 
                             endif
@@ -2374,7 +2393,10 @@ while not dead
                             attack currentTarget
                             getlabel currentTarget myLabel
                             sysmsg "Target: {{myLabel}}" 55
-                            
+                            overhead "Target found!" 66
+                            if 2 = targetSelectionMode
+                                warmode off  
+                            endif
                             break
                         endif
                     endif
@@ -2461,7 +2483,7 @@ while not dead
         endif
 
         @setvar! castingInterrupted 0
-        sysmsg 'found target' 55
+        #sysmsg 'found target' 55
         
         if targetexists
             hotkey 'cancel current target'
@@ -3559,6 +3581,12 @@ while not dead
             if followers < minimumFollowers
                 break
             endif
+        endif
+        
+        if 2 = targetSelectionMode and warmode on
+            @setvar! foundTarget 0
+            @setvar! currentTarget 0
+            break            
         endif
         
     endwhile

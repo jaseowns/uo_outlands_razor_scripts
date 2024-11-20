@@ -23,7 +23,7 @@
 # Recommend using LYRIC ASPECT ARMOUR and DAMAGE TO BARDED CREATURES and/or EFFECTIVE BARDING SKILL links 
 # BARD CODEX: Must have 6 pts in "Self Taught" in order to drop musicianship skill
 # If using 1H archery weapon, add a shield for extra AR (and enable variable below)
-# Toggle WAR MODE if barding break isn't auto detected (while no REDS nearby)
+# Toggle WAR MODE to clear barding cooldowns and retarget (while no REDS nearby)
 # Otherwise, toggle WAR MODE to auto TARGET and ATTACK nearby REDS!
 # Having 1 point in Alchemy gives a 2m 5s potion duration w/ a 2m cooldown - allowing new strength pot to take effect before old one wears off
 # Make sure [ShowBardingDurations is set to "Display All Barding Durations" in UO client under Commands -> Text Displays
@@ -31,7 +31,6 @@
 # The COOLDOWNS just need to exist - you don't need to set any triggers or anything (but they are very important!)
 # Recommend using Razor FILTERS to cancel instrument sounds and redundant system messages
 # This script can be used to play with a game controller (start script, stop script, warmode toggle and joystick movement is all that is needed)
-# I use this script to play on a ROG Ally handheld gaming device - it works great!
 
 // VERY IMPT:  MUST add the following COOLDOWNS (case sensitive - no triggers necessary):
 # Musicianship
@@ -143,10 +142,10 @@
 //       UTILITY:       //
 //////////////////////////
 
-@setvar! EnableOverheadMessages 1
-
 @setvar! EnableAutoCarving 1
 @setvar! EnableArrowCleanup 1
+
+@setvar! EnableOverheadMessages 1
 
 @setvar! EnableAmmoWarningMessage 1
 @setvar! LowAmmoWarningAmount 15
@@ -164,7 +163,7 @@
     #########    SCRIPT STARTS HERE:    #########
     #############################################
 
-if not varexist UltimateBard
+if not varexist BardAutoPilot
     overhead "DanStock's Ultimate Bard Auto Pilot Script" 77
     overhead "Last updated Nov 20, 2024" 84
     wait 2500
@@ -176,11 +175,17 @@ if not varexist UltimateBard
     wait 4000
     overhead "Email any questions/bugs to: dan@danstockman.com" 0
     wait 4000
-    overhead "[ HAPPY BARDING! ]" 2241
-    wait 1500
-    setvar UltimateBard 1
+    setvar BardAutoPilot 1
     sysmsg "Beginning DanStock's Ultimate Bard Auto Pilot script...... " 0
     wait 500
+endif 
+
+if not varexist StartFarming
+    if EnableOverheadMessages = 1  
+        overhead "[ TIME TO FARM! ]" 77
+        wait 1000
+    endif 
+    @setvar! StartFarming 1
 endif 
 
 while not dead 
@@ -189,19 +194,15 @@ while not dead
         ###   WEAPON CHECKS:   ###
         ##########################
 
-    if not findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" self
-        if EnableOverheadMessages = 1        
-            overhead "[ NO INSTRUMENT! ]" 337
-        endif
+    if not findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" self       
+        overhead "[ NO INSTRUMENT! ]" 337
         sysmsg "Please acquire a musical instrument before you start this script!" 0
         wait 2000
         stop
     endif 
 
-    if not findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' self
-        if EnableOverheadMessages = 1      
-            overhead "[ NO WEAPON! ]" 337
-        endif
+    if not findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' self    
+        overhead "[ NO WEAPON! ]" 337
         wait 2000
         sysmsg "Please acquire an archery weapon before you start this script!" 0
         stop
@@ -255,15 +256,12 @@ while not dead
     @setvar! SongReapply 900000
     hotkey 'Cancel Current Target'
 
-    if insysmsg "Captcha successful" and EnableOverheadMessages = 1
-        overhead "[ CAPTCHA SUCCESSFUL! ]" 77
-    endif
+        if insysmsg "Captcha successful" and EnableOverheadMessages = 1
+            wait 500
+            overhead "[ CAPTCHA SUCCESSFUL! ]" 77
+        endif
 
-    clearsysmsg            
-            
-        ###########################
-        ###     SAFETY 1ST:     ###
-        ###########################
+            clearsysmsg            
 
                 if skill 'Tracking' > 50 and not findbuff 'tracking'
                         while not gumpexists 4267467659
@@ -525,7 +523,7 @@ while not dead
                     endif
                 endif
             
-               if paralyzed and EnableParalyzePouch = 1
+                if paralyzed and EnableParalyzePouch = 1
                     if findtype "pouch" self
                         yell "[pouch"
                         hotkey 'Toggle War Only'
@@ -723,76 +721,6 @@ while not dead
                         wait 250 
                     endif
                 endif 
-                
-                if insysmsg "world is saving"        
-                    if not timerexists "WorldSaveTimer"
-                        createtimer "WorldSaveTimer"
-                    endif             
-                        settimer "WorldSaveTimer" 0
-                    while timer "WorldSaveTimer" < 4000
-                        if insysmsg "save complete"
-                            break
-                        endif
-                        wait 250 
-                    endwhile  
-                    if EnableOverheadMessages = 1            
-                        overhead "[ SAVE COMPLETE! ]" 253
-                    endif
-                endif     
-                        
-                if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                    if findtype "corpse" ground -1 -1 2 as body
-                        dclicktype "Elven Spellblade"
-                        wft 1000
-                        if EnableOverheadMessages = 1  
-                            overhead "[ SKINNING... ]" 338
-                        endif
-                        target 'self'
-                        wait 500
-                        @ignore body
-                    endif
-                else
-                    if not cooldown "Inventory Timer" 
-                        if EnableOverheadMessages = 1  
-                            overhead "[ NO SKINNING KNIFE! ]" 337
-                        endif
-                        cooldown "Inventory Timer" 6000
-                    endif 
-                endif
-          
-                if EnableArrowCleanup = 1
-                    if findtype 7163|3903 ground -1 -1 2 as item and not cooldown "Cleanup"
-                        if EnableOverheadMessages = 1  
-                            overhead '[ CLEANUP... ]' 93
-                        endif
-                        hotkey "Grab Item"
-                        wft 1000
-                        target item
-                        wait 250
-                        if findtype "quiver" self as MyQuiver
-                            menu MyQuiver 0
-                            wait 500
-                        else
-                            hotkey 'Organizer Agent-03'
-                            wait 150  
-                        endif
-                        cooldown "Cleanup" 1000
-                    endif
-
-                    if findtype 7163 ground -1 -1 10 as bolt and not cooldown "Radar"                    
-                        overhead "¼" 93 bolt
-                        cooldown "Radar" 3500
-                    endif
-
-                    if findtype 3903 ground -1 -1 10 as arrow and not cooldown "Radar"
-                        overhead "¼" 37 arrow
-                        cooldown "Radar" 3500
-                    endif
-                endif  
-
-        ##########################
-        ###   FIND A TARGET:   ###
-        ##########################
 
         hotkey 'Target Closest Grey Monster'
         wait 250
@@ -1114,7 +1042,7 @@ while not dead
                     endif           
                 endif
 
-                if EnableWeightWarningMessage = 1 and EnableOverheadMessages = 1  
+                if EnableWeightWarningMessage = 1
                     if weight > GreenWarningDiffWeight and weight < YellowWarningWeight and not cooldown "Weight Warning"
                         overhead "[ WEIGHT WARNING... ]" 77
                         cooldown "Weight Warning" 6000
@@ -1132,7 +1060,7 @@ while not dead
                     endif
                 endif  
 
-                if EnableAmmoWarningMessage = 1 and EnableOverheadMessages = 1  
+                if EnableAmmoWarningMessage = 1
                     if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand
                         # BOLTS
                         @setvar! AMMO 1
@@ -1489,7 +1417,6 @@ while not dead
             
                 clearsysmsg 
             replay
-
         else
 
         ########################
@@ -1883,6 +1810,7 @@ while not dead
             if EnableOverheadMessages = 1
                 if insysmsg "Barding break avoided"
                     overhead "[ BREAK AVOIDED! ]" 84 ClosestTarget
+                    wait 250
                 endif
                 
                 if insysmsg "something invisible out of" 
@@ -1892,38 +1820,47 @@ while not dead
 
                 if insysmsg "mastery chain"
                     overhead "[ NEW LINK UNLOCKED!! ]" 149
+                    wait 250
                 endif 
                 
                 if insysmsg "You have unlocked a codex upgrade point"
                     overhead "[ CODEX POINT UNLOCKED! ]" 2114
+                    wait 250
                 endif             
 
                 if insysmsg "enough experience to upgrade"
                     overhead "[ ASPECT TIER UNLOCKED!! ]" 2241
+                    wait 250
                 endif 
 
                 if insysmsg "Cacophony activated"
-                    overhead "[ CACOPHONY!!! ]" 2241              
+                    overhead "[ CACOPHONY!!! ]" 2241 
+                    wait 250
                 endif  
 
                 if insysmsg "causes you to bleed"
                     overhead "[ BLEEDING... ]" 2118
+                    wait 250
                 endif
 
                 if insysmsg "Your shot hinders"
                     overhead "[ HINDERED! ]" 44 ClosestTarget   
+                    wait 250
                 endif    
 
                 if insysmsg "Your target overpowers"
-                    overhead "[ VICIOUS WOUND! ]" 1664 ClosestTarget             
+                    overhead "[ VICIOUS WOUND! ]" 1664 ClosestTarget  
+                    wait 250
                 endif 
            
                 if insysmsg "Your shot turns the target into"
                     overhead "[ PIN CUSHION!! ]" 2115
+                    wait 250
                 endif 
       
                 if insysmsg  "Your shot ricochets"
                     overhead "[ RICOCHET!! ]" 2115
+                    wait 250
                 endif 
             endif 
 
@@ -2745,7 +2682,7 @@ while not dead
                     endif 
                 endif     
 
-                if EnableWeightWarningMessage = 1 and EnableOverheadMessages = 1
+                if EnableWeightWarningMessage = 1
                     if weight > GreenWarningDiffWeight and weight < YellowWarningWeight and not cooldown "Weight Warning"
                         overhead "[ WEIGHT WARNING... ]" 77
                         cooldown "Weight Warning" 6000
@@ -2763,7 +2700,7 @@ while not dead
                     endif
                 endif  
           
-                if EnableAmmoWarningMessage = 1 and EnableOverheadMessages = 1
+                if EnableAmmoWarningMessage = 1
                     if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand
                         # BOLTS
                         @setvar! AMMO 1
@@ -2888,8 +2825,7 @@ while not dead
             
                 if targetexists
                    hotkey 'CancelCurrentTarget'
-                endif
-                
+                endif                
             wait 250 
     endwhile   
     
@@ -2926,14 +2862,17 @@ while not dead
         if EnableOverheadMessages = 1    
             if insysmsg "mastery chain"
                 overhead "[ NEW LINK UNLOCKED!! ]" 149
+                wait 250
             endif 
 
             if insysmsg "You have unlocked a codex upgrade point"
                 overhead "[ CODEX POINT UNLOCKED! ]" 2114  
+                wait 250
             endif 
 
             if insysmsg "enough experience to upgrade"
                 overhead "[ ASPECT TIER UNLOCKED! ]" 2241
+                wait 250
             endif 
         endif 
         
@@ -2957,36 +2896,7 @@ while not dead
                 endif 
                 cooldown "Inventory Timer" 4000
             endif
-        endif
-           
-        if paralyzed and EnableParalyzePouch = 1
-            if findtype "pouch" self
-                yell "[pouch"
-                hotkey 'Toggle War Only'
-                replay
-            else
-                if EnableOverheadMessages = 1
-                    overhead "[ NO MORE POUCHES! ]" 337
-                endif 
-            endif           
-        endif     
-
-        if insysmsg "world is saving"        
-            if not timerexists "WorldSaveTimer"
-                createtimer "WorldSaveTimer"
-            endif             
-                settimer "WorldSaveTimer" 0
-            while timer "WorldSaveTimer" < 4000
-                if insysmsg "save complete"
-                    break
-                endif
-                wait 250 
-            endwhile            
-            if EnableOverheadMessages = 1
-                overhead "[ SAVE COMPLETE! ]" 253
-            endif 
         endif 
-
         replay
     endif
     replay

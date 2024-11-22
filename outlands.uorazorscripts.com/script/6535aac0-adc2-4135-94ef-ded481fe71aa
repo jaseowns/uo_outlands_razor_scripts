@@ -83,6 +83,7 @@
 # Radar
 # Ammunition
 # PK Radar
+# Dungeon Escape
 
 // The COOLDOWNS just need to exist... no further configuration or triggers necessary to run the script! //
         // (though some are very helpful to add to your UI screen and/or colour code, etc.) //
@@ -151,16 +152,9 @@
 @setvar! CleanseByFireHPdiff 25
 @setvar! RefreshPotSPdiff 10
 
-@setvar! EnableShield 1
+@setvar! EnableShield 0
 
 @setvar! EnableParalyzePouch 1
-
-@setvar! EnablePKradar 1
-
-# Auto Recall should be disabled if farming in dungeon:
-    @setvar! EnableAutoRedRecall 1
-# or fight back instead: 
-    @setvar! EnableStandYourGround 0
 
 
 //////////////////////////
@@ -185,14 +179,12 @@
 //       UTILITY:       //
 //////////////////////////
 
-# Infinite Loop will unload/resupply and then Chiv Gate to Custom location after unloading on Auto Recall (weight recall only):
-    @setvar! InfiniteLoop 1
 
-@setvar! EnableLootChest 1
+@setvar! EnableLootChest 0
 @setvar! EnableAutoCarving 1
 @setvar! EnableArrowCleanup 1
 
-@setvar! EnableOverheadMessages 0
+@setvar! EnableOverheadMessages 1
 
 @setvar! EnableAmmoWarningMessage 1
 @setvar! LowAmmoWarningAmount 15
@@ -202,10 +194,30 @@
 @setvar! YellowWarningDiffWeight 20
 @setvar! RedWeightLimitDiffWeight 5
 
-# Auto Recall should be disabled if farming in dungeon:
+
+//////////////////////////
+//     AUTO-RECALL:     //
+//////////////////////////
+
+# Must enable PK radar for Auto Red Recall 
+    @setvar! EnablePKradar 1
+    
+# Auto Recall should be disabled if farming in dungeons!
+# (if both are set to 0 script will default to Auto Dungeon Escape through moongates)
+    @setvar! EnableAutoRedRecall 1
+# or you can fight back instead: 
+    @setvar! EnableStandYourGround 0
+
+# Auto Recall when weight limit met and coast is clear:
     @setvar! EnableAutoWeightRecall 1
+# Infinite Loop will unload/resupply and then Chiv Gate to Custom location after unloading on Auto Recall (weight recall only):
+    @setvar! InfiniteLoop 1
 
-
+    
+# Use this variable to enable your own Razor script for Auto Recall (otherwise it will prompt for Runebook and use mine):
+    @setvar! EnableDIYHomeRecallScript 1
+# Type the name of your own Home Recall Razor script here:
+    @setvar! HomeRecallScriptName 'Home Recall 2'
 
 
 
@@ -235,7 +247,7 @@ if not varexist BardAutoPilot
     wait 1000
 endif 
 
-if EnableAutoRedRecall = 1 or EnableAutoRedRecall = 1 and not varexist escape_runebook
+if EnableAutoRedRecall = 1 or EnableAutoRedRecall = 1 and not varexist escape_runebook and EnableDIYHomeRecallScript != 1
     wait 500
     overhead "Please select your escape runebook..." 253
     wait 2000
@@ -740,195 +752,507 @@ while not dead
                             endif
                             
                         elseif EnableAutoRedRecall = 1
+                            
+                            if EnableDIYHomeRecallScript = 1
+                                script HomeRecallScriptName
+                            else 
                                                     
-                            if targetexists 
-                                hotkey 'Cancel Current Target'
-                            endif
+                                if targetexists 
+                                    hotkey 'Cancel Current Target'
+                                endif
 
-                            clearsysmsg 
+                                clearsysmsg 
 
-                            if not varexist escape_runebook
-                                overhead "Select your escape runebook..." 253
-                                setvar escape_runebook
-                                wait 2000
-                                replay
-                            endif
-    
-                                overhead "[ AUTO RED RECALL! ]" 37
-                                wait 150
-                                dclick escape_runebook
-                                waitforgump 1551740969
-                                gumpresponse 2
-                                wait 500
-                                
-                                    if insysmsg 'Your concentration is disturbed'
-                                        wait 1000
-                                        for 5
-                                            clearsysmsg
-                                            overhead '[ INTERUPTED! ]' 153
-                                            wait 500
-                                            dclick escape_runebook
-                                            waitforgump 1551740969 
-                                            gumpresponse 2
-                                            wait 500
-                                            if insysmsg 'Your concentration is disturbed'
-                                                overhead 'Fuck off!' 6
-                                                wait 250
-                                            else 
-                                                break
-                                            endif 
-                                        endfor
-                                    endif
-
+                                if not varexist escape_runebook
+                                    overhead "Select your escape runebook..." 253
+                                    setvar escape_runebook
                                     wait 2000
+                                    replay
+                                endif
+        
+                                    overhead "[ AUTO RED RECALL! ]" 37
+                                    wait 150
+                                    dclick escape_runebook
+                                    waitforgump 1551740969
+                                    gumpresponse 2
+                                    wait 500
                                     
-                                    if not findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' hand 
-                                        if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
-                                        for 5
-                                                getlabel weapon WeaponLabel
+                                        if insysmsg 'Your concentration is disturbed'
+                                            wait 1000
+                                            for 5
+                                                clearsysmsg
+                                                overhead '[ INTERUPTED! ]' 153
                                                 wait 500
-                                                if "unidentified" in WeaponLabel
-                                                    @ignore weapon
-                                                    wait 150
-                                                    if findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' backpack as weapon
-                                                        getlabel weapon WeaponLabel
-                                                    endif
+                                                dclick escape_runebook
+                                                waitforgump 1551740969 
+                                                gumpresponse 2
+                                                wait 500
+                                                if insysmsg 'Your concentration is disturbed'
+                                                    overhead 'Fuck off!' 6
+                                                    wait 250
                                                 else 
                                                     break
                                                 endif 
-                                            endfor            
-                                            dclick weapon
-                                            wait 500
-                                        endif 
-                                    endif
+                                            endfor
+                                        endif
 
-                                    if EnableShield = 1
-                                        if not findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' lefthand
-                                            if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
-                                                for 5
-                                                    getlabel shield ShieldLabel
+                                        wait 2000
+                                        
+                                        if not findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' hand 
+                                            if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                                            for 5
+                                                    getlabel weapon WeaponLabel
                                                     wait 500
-                                                    if "unidentified" in ShieldLabel
-                                                        @ignore shield
-                                                        wait 150 
-                                                        if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
-                                                            getlabel shield ShieldLabel
+                                                    if "unidentified" in WeaponLabel
+                                                        @ignore weapon
+                                                        wait 150
+                                                        if findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' backpack as weapon
+                                                            getlabel weapon WeaponLabel
                                                         endif
                                                     else 
                                                         break
                                                     endif 
                                                 endfor            
-                                                dclick shield
+                                                dclick weapon
                                                 wait 500
                                             endif 
                                         endif
-                                    endif
 
+                                        if EnableShield = 1
+                                            if not findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                                                if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                    for 5
+                                                        getlabel shield ShieldLabel
+                                                        wait 500
+                                                        if "unidentified" in ShieldLabel
+                                                            @ignore shield
+                                                            wait 150 
+                                                            if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                                getlabel shield ShieldLabel
+                                                            endif
+                                                        else 
+                                                            break
+                                                        endif 
+                                                    endfor            
+                                                    dclick shield
+                                                    wait 500
+                                                endif 
+                                            endif
+                                        endif
+
+                                            wait 500
+                                            useskill "Hiding"
+                                            
+                                            
+                                        if findtype "bank deposit safe" ground -1 -1 2 as safe
+                                            while findtype "gold coin" backpack as gold
+                                                lift gold 60000
+                                                overhead "[ DEPOSIT GOLD... ]" 149
+                                                drop safe -1 -1 -1
+                                                wait 1500
+                                            endwhile
+                                            while findtype 2539 backpack as dubs
+                                                lift dubs 60000
+                                                drop safe -1 -1 -1
+                                                overhead "[ DEPOSIT DUBS... ]" 149
+                                                wait 1500
+                                            endwhile
+                                        else
+                                            overhead "[ NO BANK SAFE FOUND ]" 337
+                                        endif
                                         wait 500
-                                        useskill "Hiding"
-                                        
-                                        
-                                    if findtype "bank deposit safe" ground -1 -1 2 as safe
-                                        while findtype "gold coin" backpack as gold
-                                            lift gold 60000
-                                            overhead "[ DEPOSIT GOLD... ]" 149
-                                            drop safe -1 -1 -1
-                                            wait 1500
-                                        endwhile
-                                        while findtype 2539 backpack as dubs
-                                            lift dubs 60000
-                                            drop safe -1 -1 -1
-                                            overhead "[ DEPOSIT DUBS... ]" 149
-                                            wait 1500
-                                        endwhile
-                                    else
-                                        overhead "[ NO BANK SAFE FOUND ]" 337
-                                    endif
-                                    wait 500
 
-                                    if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map|research materials" self
-                                        dclick LootChest
+                                        if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map|research materials" self
+                                            dclick LootChest
+                                            wait 1000
+                                            overhead "[ STASHING LOOT... ]" 69
+                                            hotkey "Organizer Agent-06"
+                                            wait 250
+                                            hotkey "Organizer Agent-07"
+                                            wait 250
+                                            hotkey "Organizer Agent-08"
+                                            wait 250
+                                            hotkey "Organizer Agent-09"
+                                            wait 1500
+                                        endif 
+
+                                        if findtype "resource container" ground -1 -1 2 as resource
+                                            menu resource 0
+                                            wft 500
+                                            target self
+                                            overhead "[ PILING RESOURCES... ]" 84
+                                            wait 1500
+                                        else
+                                            overhead "[ NO RESOURCE STOCKPILE FOUND ]" 337
+                                        endif
+                                        wait 500
+                                        
+                                        if findtype "repair bench" ground -1 -1 3 as RepairBench
+                                            clearsysmsg 
+                                            dclick RepairBench
+                                            wait 200
+                                            if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
+                                                overhead "[ NOTHING TO REPAIR! ]" 0
+                                                wait 1500
+                                            else
+                                                overhead "[ REPAIRING EQUIPMENT... ]" 337
+                                                settimer RepairTimer 0
+                                            while timer RepairTimer <= 5000 
+                                                if insysmsg "Repair"
+                                                    break
+                                                endif
+                                            endwhile
+                                            overhead "[ ITEMS REPAIRED! ]" 0
+                                            overhead "Repair took: {{RepairTimer}}ms" 149
+                                            removetimer RepairTimer
+                                            wait 500
+                                            endif
+                                        else
+                                            overhead "[ NO REPAIR BENCH FOUND ]" 337
+                                        endif
+
+                                        if findtype "storage shelf" ground -1 -1 2 as shelf
+                                            menu shelf 0
+                                            wft 500
+                                            target self
+                                            overhead "[ UNLOADING... ]" 2114
+                                            wait 1500
+                                            gumpclose 3232825965
+                                            wait 500
+                                            menu shelf 1
+                                            wft 500
+                                            target self   
+                                            overhead "[ RESUPPLYING... ]" 93
+                                            wait 1500
+                                        else
+                                            overhead "[ NO STORAGE SHELF FOUND ]" 0
+                                        endif   
+
+                                        if findtype "ornate elven chest|magic item recycler" ground -1 -1 2 as recycler
+                                            menu recycler 1
+                                            wait 1000
+                                            if insysmsg "0 recyclable"
+                                                overhead "[ NO MAGIC LOOT! ]" 6
+                                            else
+                                                overhead "[ RECYCLING MAGIC LOOT... ]" 6
+                                                wait 200
+                                            endif
+                                        else
+                                            overhead "[ NO MAGIC ITEM RECYCLER FOUND ]" 337
+                                        endif
+
                                         wait 1000
-                                        overhead "[ STASHING LOOT... ]" 69
-                                        hotkey "Organizer Agent-06"
-                                        wait 250
-                                        hotkey "Organizer Agent-07"
-                                        wait 250
-                                        hotkey "Organizer Agent-08"
-                                        wait 250
-                                        hotkey "Organizer Agent-09"
-                                        wait 1500
+                                        hotkey "Organizer Agent-04"
+                                        overhead "[ SCRIPT COMPLETE! ]" 69
+                                        stop 
+                                endif
+                        else
+                            overhead "[ !!RED ALERT!! ]" 37
+                            cooldown "Target Timer" 0
+                            cooldown "No Target Timer" 3000
+                            cooldown "Dungeon Escape" 120000
+
+                            while cooldown "Dungeon Escape"
+                                
+                                while find MurdererTarget ground -1 -1 12
+                                    if not cooldown "No Target Timer"
+                                        overhead "[ RUN!! ]" 153
+                                        cooldown "No Target Timer" 3500
                                     endif 
 
-                                    if findtype "resource container" ground -1 -1 2 as resource
-                                        menu resource 0
-                                        wft 500
-                                        target self
-                                        overhead "[ PILING RESOURCES... ]" 84
-                                        wait 1500
-                                    else
-                                        overhead "[ NO RESOURCE STOCKPILE FOUND ]" 337
-                                    endif
-                                    wait 500
-                                    
-                                    if findtype "repair bench" ground -1 -1 3 as RepairBench
-                                        clearsysmsg 
-                                        dclick RepairBench
-                                        wait 200
-                                        if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
-                                            overhead "[ NOTHING TO REPAIR! ]" 0
-                                            wait 1500
+                                    if paralyzed and EnableParalyzePouch = 1
+                                        if findtype "pouch" self
+                                            yell "[pouch"
                                         else
-                                            overhead "[ REPAIRING EQUIPMENT... ]" 337
-                                            settimer RepairTimer 0
-                                        while timer RepairTimer <= 5000 
-                                            if insysmsg "Repair"
-                                                break
+                                            if EnableOverheadMessages = 1 
+                                                overhead "[ NO MORE POUCHES! ]" 337
                                             endif
-                                        endwhile
-                                        overhead "[ ITEMS REPAIRED! ]" 0
-                                        overhead "Repair took: {{RepairTimer}}ms" 149
-                                        removetimer RepairTimer
-                                        wait 500
-                                        endif
-                                    else
-                                        overhead "[ NO REPAIR BENCH FOUND ]" 337
+                                        endif           
                                     endif
 
-                                    if findtype "storage shelf" ground -1 -1 2 as shelf
-                                        menu shelf 0
-                                        wft 500
-                                        target self
-                                        overhead "[ UNLOADING... ]" 2114
-                                        wait 1500
-                                        gumpclose 3232825965
-                                        wait 500
-                                        menu shelf 1
-                                        wft 500
-                                        target self   
-                                        overhead "[ RESUPPLYING... ]" 93
-                                        wait 1500
-                                    else
-                                        overhead "[ NO STORAGE SHELF FOUND ]" 0
-                                    endif   
+                                    if skill 'Healing' > 38
+                                        if not bandaging 
+                                            if hp < maxhp or poisoned or findbuff "bleed" or findbuff "disease" 
+                                                hotkey "Bandage Self"                                       
+                                            endif 
+                                        endif
+                                    endif          
+                                    
+                                    if not cooldown "Weapon Ability" and not cooldown "Skirmish"
+                                        yell "[WeaponAbility1" 
+                                        wait 250
+                                        if insysmsg "You cannot"
+                                            cooldown "Weapon Ability" 5000
+                                        else     
+                                            overhead "[ SKIRMISH! ]" 6
+                                            cooldown "Weapon Ability" 61000
+                                            cooldown "Skirmish" 15000
+                                        endif   
+                                    endif
+                                     
+                                    if not findtype 'stubnose crossbow|balestra|crossbow' hand
+                                        if findtype 'stubnose crossbow|balestra|crossbow' backpack as fastweapon
+                                            dclick fast weapon
+                                            wait 500
+                                        endif 
+                                    endif          
 
-                                    if findtype "ornate elven chest|magic item recycler" ground -1 -1 2 as recycler
-                                        menu recycler 1
-                                        wait 1000
-                                        if insysmsg "0 recyclable"
-                                            overhead "[ NO MAGIC LOOT! ]" 6
+                                    if not findtype 'heater shield|metal shield|Chaos shield|bone shield|bronze shield|buckler |kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                                        if findtype 'heater shield|metal shield|Chaos shield|heater shield|bone shield|bronze shield|buckler |kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                            dclick shield
+                                            wait 500
+                                        endif
+                                    endif 
+                                    
+                                    if not cooldown "Provocation" and not cooldown "Musicianship" and not dead ClosestTarget and find ClosestTarget ground -1 -1 10
+                                        skill "Provocation"
+                                        wft 1000
+                                        target ClosestTarget
+                                        wft 1000                        
+                                        target MurdererTarget
+                                        wait 500 
+                                            if insysmsg 'You play successfully, provoking'
+                                                cooldown "Musicianship" 5500
+                                                cooldown "Provocation" 11000
+                                                say " :) " 
+                                            elseif insysmsg 'You fail to incite'
+                                                overhead '[ PROVO FAIL! ]' 153
+                                                cooldown "Provocation" 5000
+                                            elseif insysmsg 'Target cannot be seen'
+                                                overhead "[ TARGET CANNOT BE SEEN... ]" 337
+                                                cooldown "Provocation" 1000
+                                            elseif insysmsg 'That is too far away.'
+                                                overhead '[ TOO FAR AWAY! ]' 43
+                                                cooldown "Provocation" 1000 
+                                            elseif insysmsg 'The creatures you are trying to provoke are too far away from each other for your music to have an effect.'
+                                                overhead '[ TOO FAR APART! ]' 153 ClosestTarget
+                                                overhead '[ TOO FAR APART! ]' 153 MurdererTarget
+                                                cooldown "Provocation" 1000
+                                            elseif insysmsg 'tell someone to attack themselves!'
+                                                overhead '[ SELF TARGETING FAIL... ]' 337
+                                            else
+                                                say " :( " 
+                                            endif 
+                                    endif 
+
+                                    if diffhits > 35 and not cooldown "Healing Potion"
+                                        if findtype "Yellow Potion" self as healpot
+                                            dclick healpot
+                                            wait 500
+                                            cooldown "Healing Potion" 11000
+                                                if insysmsg "Potion satchel used"
+                                                    if EnableOverheadMessages = 1 
+                                                        overhead "[ FREE HEAL POTION! ]" 253
+                                                    endif
+                                                    clearsysmsg
+                                                else 
+                                                    if EnableOverheadMessages = 1 
+                                                        overhead '[ HEAL POTION... ]' 253
+                                                    endif
+                                                    clearsysmsg
+                                                endif
+                                        else 
+                                            if not cooldown "Inventory Timer" 
+                                                if EnableOverheadMessages = 1 
+                                                    overhead '[ NO HEAL POTS! ]' 337
+                                                endif
+                                                cooldown "Healing Potion" 30000
+                                            endif
+                                        endif
+                                        wait 500 
+                                    endif
+
+                                    if poisoned and not cooldown "Cure Potion"
+                                        if findtype "Orange Potion" self as curepot
+                                            dclick curepot
+                                            wait 500
+                                            cooldown "Cure Potion" 11000
+                                                if insysmsg "Potion satchel used"
+                                                    if EnableOverheadMessages = 1 
+                                                        overhead "[ FREE CURE POTION! ]" 44
+                                                    endif
+                                                    clearsysmsg
+                                                else 
+                                                    if EnableOverheadMessages = 1 
+                                                        overhead '[ CURE POTION... ]' 44
+                                                    endif
+                                                    clearsysmsg
+                                                endif
                                         else
-                                            overhead "[ RECYCLING MAGIC LOOT... ]" 6
-                                            wait 200
+                                            if not cooldown "Inventory Timer" 
+                                                if EnableOverheadMessages = 1 
+                                                    overhead '[ NO CURE POTS! ]' 337
+                                                endif
+                                                cooldown "Cure Potion" 30000
+                                            endif
                                         endif
-                                    else
-                                        overhead "[ NO MAGIC ITEM RECYCLER FOUND ]" 337
+                                        wait 500 
                                     endif
 
-                                    wait 1000
-                                    hotkey "Organizer Agent-04"
-                                    overhead "[ SCRIPT COMPLETE! ]" 69
-                                stop                     
+                                    if stam < maxstam and not cooldown "Refresh Potion"
+                                        if findtype "Red Potion" self as refreshpot
+                                            dclick refreshpot
+                                            cooldown "Refresh Potion" 11000
+                                            wait 500
+                                                if insysmsg "Potion satchel used"
+                                                    if EnableOverheadMessages = 1 
+                                                        overhead "[ FREE REFRESH POTION! ]" 34
+                                                    endif
+                                                    clearsysmsg
+                                                else 
+                                                    if EnableOverheadMessages = 1 
+                                                        overhead '[ REFRESH POTION... ]' 34
+                                                    endif
+                                                    clearsysmsg
+                                                endif
+                                        else 
+                                            if not cooldown "Inventory Timer" 
+                                                if EnableOverheadMessages = 1 
+                                                    overhead '[ NO REFRESH POTS! ]' 337
+                                                endif
+                                                cooldown "Refresh Potion" 30000
+                                            endif
+                                        endif
+                                        wait 500 
+                                    endif  
+
+                                    while not gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as EscapeGate
+                                        dclick EscapeGate
+                                    endwhile
+
+                                    if gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as EscapeGate
+                                        while gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as EscapeGate
+                                            gumpresponse 2 3899019871
+                                            wait 200
+                                        endwhile
+                                        wait 1500
+                                        script HomeRecallScriptName
+                                        stop
+                                    endif
+
+                                    while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as EscapeGate
+                                        dclick EscapeGate
+                                    endwhile
+
+                                    if gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as EscapeGate
+                                        while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as EscapeGate
+                                            gumpresponse 2 3899019871
+                                            wait 200
+                                        endwhile
+                                        wait 1500
+                                        script HomeRecallScriptName
+                                        stop
+                                    endif
+
+                                    while not gumpexists 3773199800 and findtype "blue moongate" ground -1 1 2 as EscapeGate
+                                        dclick EscapeGate
+                                    endwhile
+
+                                    if gumpexists 3773199800 and findtype "blue moongate" ground -1 1 2 as EscapeGate
+                                        while gumpexists 3773199800 and findtype "blue moongate" ground -1 1 2 as EscapeGate
+                                                gumpresponse 2 3773199800
+                                                wait 200
+                                        endwhile
+                                        wait 1500
+                                        script HomeRecallScriptName
+                                        stop
+                                    endif
+
+                                    while not gumpexists 3899019871 and findtype "moongate" ground -1 -1 2 as EscapeGate
+                                        dclick EscapeGate
+                                    endwhile
+
+                                    if gumpexists 3899019871 and findtype "moongate" ground -1 -1 2 as EscapeGate
+                                        while gumpexists 3899019871 and findtype "moongate" ground -1 -1 2 as EscapeGate
+                                            gumpresponse 2 3899019871
+                                            wait 200
+                                        endwhile
+                                        wait 1500
+                                        script HomeRecallScriptName
+                                        stop
+                                    endif
+
+                                    if findtype "moongate" ground -1 1 12 or findtype "blue moongate" ground -1 1 12 as EscapeGate
+                                        if not cooldown "Target Timer"
+                                            overhead "[ GET CLOSER! ]" 84 
+                                            cooldown "Target Timer" 3000
+                                        endif
+                                    else 
+                                        if not cooldown "Target Timer"
+                                            overhead "[ GET TO A GATE... ]" 88
+                                            cooldown "Target Timer" 3000
+                                        endif 
+                                    endif
+                                endwhile
+
+                                while not gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as EscapeGate
+                                    dclick EscapeGate
+                                endwhile
+
+                                if gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as EscapeGate
+                                    while gumpexists 3899019871 and findtype "blue moongate" ground 0 1 2 as EscapeGate
+                                        gumpresponse 2 3899019871
+                                        wait 200
+                                    endwhile
+                                    wait 1500
+                                    script HomeRecallScriptName
+                                    stop
+                                endif
+
+                                while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as EscapeGate
+                                    dclick EscapeGate
+                                endwhile
+
+                                if gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as EscapeGate
+                                    while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as EscapeGate
+                                        gumpresponse 2 3899019871
+                                        wait 200
+                                    endwhile
+                                    wait 1500
+                                    script HomeRecallScriptName
+                                    stop
+                                endif
+
+                                while not gumpexists 3773199800 and findtype "blue moongate" ground -1 1 2 as EscapeGate
+                                    dclick EscapeGate
+                                endwhile
+
+                                if gumpexists 3773199800 and findtype "blue moongate" ground -1 1 2 as EscapeGate
+                                    while gumpexists 3773199800 and findtype "blue moongate" ground -1 1 2 as EscapeGate
+                                        gumpresponse 2 3773199800
+                                        wait 200
+                                    endwhile
+                                    wait 1500
+                                    script HomeRecallScriptName
+                                    stop
+                                endif
+
+                                while not gumpexists 3899019871 and findtype "moongate" ground -1 -1 2 as EscapeGate
+                                    dclick EscapeGate
+                                endwhile
+
+                                if gumpexists 3899019871 and findtype "moongate" ground -1 -1 2 as EscapeGate
+                                    while gumpexists 3899019871 and findtype "moongate" ground -1 -1 2 as EscapeGate
+                                        gumpresponse 2 3899019871
+                                        wait 200
+                                    endwhile
+                                    wait 1500
+                                    script HomeRecallScriptName
+                                    stop
+                                endif
+
+                                if findtype "moongate" ground -1 1 12 or findtype "blue moongate" ground -1 1 12 as EscapeGate
+                                    if not cooldown "Target Timer"
+                                        overhead "[ GET CLOSER! ]" 84 
+                                        cooldown "Target Timer" 3000
+                                    endif
+                                else 
+                                    if not cooldown "Target Timer"
+                                        overhead "[ GET TO A GATE... ]" 88
+                                        cooldown "Target Timer" 3000
+                                    endif 
+                                endif
+                            endwhile
                         endif
                 endif        
                 
@@ -1296,213 +1620,220 @@ while not dead
                         overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
                         if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 6
                             
-                            if targetexists 
-                                hotkey 'Cancel Current Target'
-                            endif
+                            if EnableDIYHomeRecallScript = 1
+                                script HomeRecallScriptName
+                            else                           
+          
+                                if targetexists 
+                                    hotkey 'Cancel Current Target'
+                                endif
 
-                            clearsysmsg 
+                                clearsysmsg 
 
-                            if not varexist escape_runebook
-                                overhead "Select your escape runebook..." 253
-                                setvar escape_runebook
-                                wait 2000
-                                replay
-                            endif
-    
-                                overhead "[ AUTO RECALL! ]" 84
-                                wait 150
-                                dclick escape_runebook
-                                waitforgump 1551740969
-                                gumpresponse 2
-                                wait 500
-                                
-                                    if insysmsg 'Your concentration is disturbed'
-                                        wait 1000
-                                        for 5
-                                            clearsysmsg
-                                            overhead '[ INTERUPTED! ]' 153
-                                            wait 500
-                                            dclick escape_runebook
-                                            waitforgump 1551740969 
-                                            gumpresponse 2
-                                            wait 500
-                                            if insysmsg 'Your concentration is disturbed'
-                                                overhead 'Fuck off!' 6
-                                                wait 250
-                                            else 
-                                                break
-                                            endif 
-                                        endfor
-                                    endif
-
+                                if not varexist escape_runebook
+                                    overhead "Select your escape runebook..." 253
+                                    setvar escape_runebook
                                     wait 2000
+                                    replay
+                                endif
+        
+                                    overhead "[ AUTO RECALL! ]" 84
+                                    wait 150
+                                    dclick escape_runebook
+                                    waitforgump 1551740969
+                                    gumpresponse 2
+                                    wait 500
                                     
-                                    if not findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' hand 
-                                        if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
-                                        for 5
-                                                getlabel weapon WeaponLabel
+                                        if insysmsg 'Your concentration is disturbed'
+                                            wait 1000
+                                            for 5
+                                                clearsysmsg
+                                                overhead '[ INTERUPTED! ]' 153
                                                 wait 500
-                                                if "unidentified" in WeaponLabel
-                                                    @ignore weapon
-                                                    wait 150
-                                                    if findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' backpack as weapon
-                                                        getlabel weapon WeaponLabel
-                                                    endif
+                                                dclick escape_runebook
+                                                waitforgump 1551740969 
+                                                gumpresponse 2
+                                                wait 500
+                                                if insysmsg 'Your concentration is disturbed'
+                                                    overhead 'Fuck off!' 6
+                                                    wait 250
                                                 else 
                                                     break
                                                 endif 
-                                            endfor            
-                                            dclick weapon
-                                            wait 500
-                                        endif 
-                                    endif
+                                            endfor
+                                        endif
 
-                                    if EnableShield = 1
-                                        if not findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' lefthand
-                                            if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
-                                                for 5
-                                                    getlabel shield ShieldLabel
+                                        wait 2000
+                                        
+                                        if not findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' hand 
+                                            if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                                            for 5
+                                                    getlabel weapon WeaponLabel
                                                     wait 500
-                                                    if "unidentified" in ShieldLabel
-                                                        @ignore shield
-                                                        wait 150 
-                                                        if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
-                                                            getlabel shield ShieldLabel
+                                                    if "unidentified" in WeaponLabel
+                                                        @ignore weapon
+                                                        wait 150
+                                                        if findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' backpack as weapon
+                                                            getlabel weapon WeaponLabel
                                                         endif
                                                     else 
                                                         break
                                                     endif 
                                                 endfor            
-                                                dclick shield
+                                                dclick weapon
                                                 wait 500
                                             endif 
                                         endif
-                                    endif
 
-                                        wait 500
-                                        useskill "Hiding"
-                                        
-                                        
-                                    if findtype "bank deposit safe" ground -1 -1 2 as safe
-                                        while findtype "gold coin" backpack as gold
-                                            lift gold 60000
-                                            overhead "[ DEPOSIT GOLD... ]" 149
-                                            drop safe -1 -1 -1
-                                            wait 1500
-                                        endwhile
-                                        while findtype 2539 backpack as dubs
-                                            lift dubs 60000
-                                            drop safe -1 -1 -1
-                                            overhead "[ DEPOSIT DUBS... ]" 149
-                                            wait 1500
-                                        endwhile
-                                    else
-                                        overhead "[ NO BANK SAFE FOUND ]" 337
-                                    endif
-                                    wait 500
-
-                                    if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map|research materials" self
-                                        dclick LootChest
-                                        wait 1000
-                                        overhead "[ STASHING LOOT... ]" 69
-                                        hotkey "Organizer Agent-06"
-                                        wait 250
-                                        hotkey "Organizer Agent-07"
-                                        wait 250
-                                        hotkey "Organizer Agent-08"
-                                        wait 250
-                                        hotkey "Organizer Agent-09"
-                                        wait 1500
-                                    endif 
-
-                                    if findtype "resource container" ground -1 -1 2 as resource
-                                        menu resource 0
-                                        wft 500
-                                        target self
-                                        overhead "[ PILING RESOURCES... ]" 84
-                                        wait 1500
-                                    else
-                                        overhead "[ NO RESOURCE STOCKPILE FOUND ]" 337
-                                    endif
-                                    wait 500
-                                    
-                                    if findtype "repair bench" ground -1 -1 3 as RepairBench
-                                        clearsysmsg 
-                                        dclick RepairBench
-                                        wait 200
-                                        if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
-                                            overhead "[ NOTHING TO REPAIR! ]" 0
-                                            wait 1500
-                                        else
-                                            overhead "[ REPAIRING EQUIPMENT... ]" 337
-                                            settimer RepairTimer 0
-                                        while timer RepairTimer <= 5000 
-                                            if insysmsg "Repair"
-                                                break
+                                        if EnableShield = 1
+                                            if not findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                                                if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                    for 5
+                                                        getlabel shield ShieldLabel
+                                                        wait 500
+                                                        if "unidentified" in ShieldLabel
+                                                            @ignore shield
+                                                            wait 150 
+                                                            if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                                getlabel shield ShieldLabel
+                                                            endif
+                                                        else 
+                                                            break
+                                                        endif 
+                                                    endfor            
+                                                    dclick shield
+                                                    wait 500
+                                                endif 
                                             endif
-                                        endwhile
-                                        overhead "[ ITEMS REPAIRED! ]" 0
-                                        overhead "Repair took: {{RepairTimer}}ms" 149
-                                        removetimer RepairTimer
-                                        wait 500
                                         endif
-                                    else
-                                        overhead "[ NO REPAIR BENCH FOUND ]" 337
-                                    endif
 
-                                    if findtype "storage shelf" ground -1 -1 2 as shelf
-                                        menu shelf 0
-                                        wft 500
-                                        target self
-                                        overhead "[ UNLOADING... ]" 2114
-                                        wait 1500
-                                        gumpclose 3232825965
-                                        wait 500
-                                        menu shelf 1
-                                        wft 500
-                                        target self   
-                                        overhead "[ RESUPPLYING... ]" 93
-                                        wait 1500
-                                    else
-                                        overhead "[ NO STORAGE SHELF FOUND ]" 0
-                                    endif   
-
-                                    if findtype "ornate elven chest|magic item recycler" ground -1 -1 2 as recycler
-                                        menu recycler 1
-                                        wait 1000
-                                        if insysmsg "0 recyclable"
-                                            overhead "[ NO MAGIC LOOT! ]" 6
+                                            wait 500
+                                            useskill "Hiding"
+                                            
+                                            
+                                        if findtype "bank deposit safe" ground -1 -1 2 as safe
+                                            while findtype "gold coin" backpack as gold
+                                                lift gold 60000
+                                                overhead "[ DEPOSIT GOLD... ]" 149
+                                                drop safe -1 -1 -1
+                                                wait 1500
+                                            endwhile
+                                            while findtype 2539 backpack as dubs
+                                                lift dubs 60000
+                                                drop safe -1 -1 -1
+                                                overhead "[ DEPOSIT DUBS... ]" 149
+                                                wait 1500
+                                            endwhile
                                         else
-                                            overhead "[ RECYCLING MAGIC LOOT... ]" 6
-                                            wait 200
+                                            overhead "[ NO BANK SAFE FOUND ]" 337
                                         endif
-                                    else
-                                        overhead "[ NO MAGIC ITEM RECYCLER FOUND ]" 337
-                                    endif
+                                        wait 500
 
-                                    wait 500
-                                    hotkey "Organizer Agent-04"
-                                    
-                                    if InfiniteLoop = 1
-                                        wait 2500
-                                        say '[SacredJourney'
-                                        waitforgump 
-                                        gumpresponse 4
-                                        wait 1000
-                                        while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
-                                            dclick ChivGate
-                                        endwhile
+                                        if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map|research materials" self
+                                            dclick LootChest
+                                            wait 1000
+                                            overhead "[ STASHING LOOT... ]" 69
+                                            hotkey "Organizer Agent-06"
+                                            wait 250
+                                            hotkey "Organizer Agent-07"
+                                            wait 250
+                                            hotkey "Organizer Agent-08"
+                                            wait 250
+                                            hotkey "Organizer Agent-09"
+                                            wait 1500
+                                        endif 
 
-                                        while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
-                                            gumpresponse 2 3899019871
+                                        if findtype "resource container" ground -1 -1 2 as resource
+                                            menu resource 0
+                                            wft 500
+                                            target self
+                                            overhead "[ PILING RESOURCES... ]" 84
+                                            wait 1500
+                                        else
+                                            overhead "[ NO RESOURCE STOCKPILE FOUND ]" 337
+                                        endif
+                                        wait 500
+                                        
+                                        if findtype "repair bench" ground -1 -1 3 as RepairBench
+                                            clearsysmsg 
+                                            dclick RepairBench
                                             wait 200
-                                        endwhile
-                                        wait 1000
-                                        replay
-                                    else 
-                                        overhead "[ SCRIPT COMPLETE! ]" 69
-                                        stop       
-                                    endif 
+                                            if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
+                                                overhead "[ NOTHING TO REPAIR! ]" 0
+                                                wait 1500
+                                            else
+                                                overhead "[ REPAIRING EQUIPMENT... ]" 337
+                                                settimer RepairTimer 0
+                                            while timer RepairTimer <= 5000 
+                                                if insysmsg "Repair"
+                                                    break
+                                                endif
+                                            endwhile
+                                            overhead "[ ITEMS REPAIRED! ]" 0
+                                            overhead "Repair took: {{RepairTimer}}ms" 149
+                                            removetimer RepairTimer
+                                            wait 500
+                                            endif
+                                        else
+                                            overhead "[ NO REPAIR BENCH FOUND ]" 337
+                                        endif
+
+                                        if findtype "storage shelf" ground -1 -1 2 as shelf
+                                            menu shelf 0
+                                            wft 500
+                                            target self
+                                            overhead "[ UNLOADING... ]" 2114
+                                            wait 1500
+                                            gumpclose 3232825965
+                                            wait 500
+                                            menu shelf 1
+                                            wft 500
+                                            target self   
+                                            overhead "[ RESUPPLYING... ]" 93
+                                            wait 1500
+                                        else
+                                            overhead "[ NO STORAGE SHELF FOUND ]" 0
+                                        endif   
+
+                                        if findtype "ornate elven chest|magic item recycler" ground -1 -1 2 as recycler
+                                            menu recycler 1
+                                            wait 1000
+                                            if insysmsg "0 recyclable"
+                                                overhead "[ NO MAGIC LOOT! ]" 6
+                                            else
+                                                overhead "[ RECYCLING MAGIC LOOT... ]" 6
+                                                wait 200
+                                            endif
+                                        else
+                                            overhead "[ NO MAGIC ITEM RECYCLER FOUND ]" 337
+                                        endif
+
+                                        wait 500
+                                        hotkey "Organizer Agent-04"
+                                        
+                                        if InfiniteLoop = 1
+                                            say '[SacredJourney'
+                                            waitforgump 
+                                            gumpresponse 4
+                                            wait 500
+                                            while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
+                                                dclick ChivGate
+                                            endwhile
+
+                                            if gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
+                                                while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
+                                                    gumpresponse 2 3899019871
+                                                    wait 200
+                                                endwhile
+                                            endif
+                                            wait 1500
+                                            replay
+                                        else 
+                                            wait 500
+                                            overhead "[ SCRIPT COMPLETE! ]" 69
+                                            stop       
+                                        endif 
+                            endif
                         elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 6
                             if not cooldown "Cleanup"
                                 overhead "[ WAITING TO RECALL... ]" 149
@@ -3251,213 +3582,217 @@ while not dead
                         elseif diffweight < RedWeightLimitDiffWeight and not cooldown "Weight Warning"
                             overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
                             if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 6
+                            
+                                if EnableDIYHomeRecallScript = 1
+                                    script HomeRecallScriptName
+                                else 
                                 
-                                if targetexists 
-                                    hotkey 'Cancel Current Target'
-                                endif
-
-                                clearsysmsg 
-
-                                if not varexist escape_runebook
-                                    overhead "Select your escape runebook..." 253
-                                    setvar escape_runebook
-                                    wait 2000
-                                    replay
-                                endif
-                                    overhead "[ AUTO RECALL! ]" 84
-                                    wait 1500
-                                    dclick escape_runebook
-                                    waitforgump 1551740969
-                                    gumpresponse 2
-                                    wait 500
-                                    
-                                    if insysmsg 'Your concentration is disturbed'
-                                        wait 1000
-                                        for 5
-                                            clearsysmsg
-                                            overhead '[ INTERUPTED! ]' 153
-                                            wait 500
-                                            dclick escape_runebook
-                                            waitforgump 1551740969 
-                                            gumpresponse 2
-                                            wait 500
-                                            if insysmsg 'Your concentration is disturbed'
-                                                overhead 'Fuck off!' 6
-                                                wait 250
-                                            else 
-                                                break
-                                            endif 
-                                        endfor
+                                    if targetexists 
+                                        hotkey 'Cancel Current Target'
                                     endif
 
-                                    wait 2000
-                                    
-                                    if not findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' hand 
-                                        if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
-                                        for 5
-                                                getlabel weapon WeaponLabel
+                                    clearsysmsg 
+
+                                    if not varexist escape_runebook
+                                        overhead "Select your escape runebook..." 253
+                                        setvar escape_runebook
+                                        wait 2000
+                                        replay
+                                    endif
+                                        overhead "[ AUTO RECALL! ]" 84
+                                        wait 1500
+                                        dclick escape_runebook
+                                        waitforgump 1551740969
+                                        gumpresponse 2
+                                        wait 500
+                                        
+                                        if insysmsg 'Your concentration is disturbed'
+                                            wait 1000
+                                            for 5
+                                                clearsysmsg
+                                                overhead '[ INTERUPTED! ]' 153
                                                 wait 500
-                                                if "unidentified" in WeaponLabel
-                                                    @ignore weapon
-                                                    wait 150
-                                                    if findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' backpack as weapon
-                                                        getlabel weapon WeaponLabel
-                                                    endif
+                                                dclick escape_runebook
+                                                waitforgump 1551740969 
+                                                gumpresponse 2
+                                                wait 500
+                                                if insysmsg 'Your concentration is disturbed'
+                                                    overhead 'Fuck off!' 6
+                                                    wait 250
                                                 else 
                                                     break
                                                 endif 
-                                            endfor            
-                                            dclick weapon
-                                            wait 500
-                                        endif 
-                                    endif
+                                            endfor
+                                        endif
 
-                                    if EnableShield = 1
-                                        if not findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' lefthand
-                                            if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
-                                                for 5
-                                                    getlabel shield ShieldLabel
+                                        wait 2000
+                                        
+                                        if not findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' hand 
+                                            if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                                            for 5
+                                                    getlabel weapon WeaponLabel
                                                     wait 500
-                                                    if "unidentified" in ShieldLabel
-                                                        @ignore shield
-                                                        wait 150 
-                                                        if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
-                                                            getlabel shield ShieldLabel
+                                                    if "unidentified" in WeaponLabel
+                                                        @ignore weapon
+                                                        wait 150
+                                                        if findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' backpack as weapon
+                                                            getlabel weapon WeaponLabel
                                                         endif
                                                     else 
                                                         break
                                                     endif 
                                                 endfor            
-                                                dclick shield
+                                                dclick weapon
                                                 wait 500
                                             endif 
                                         endif
-                                    endif
 
-                                        wait 500
-                                        useskill "Hiding"
-                                        
-                                        
-                                    if findtype "bank deposit safe" ground -1 -1 2 as safe
-                                        while findtype "gold coin" backpack as gold
-                                            lift gold 60000
-                                            overhead "[ DEPOSIT GOLD... ]" 149
-                                            drop safe -1 -1 -1
-                                            wait 1500
-                                        endwhile
-                                        while findtype 2539 backpack as dubs
-                                            lift dubs 60000
-                                            drop safe -1 -1 -1
-                                            overhead "[ DEPOSIT DUBS... ]" 149
-                                            wait 1500
-                                        endwhile
-                                    else
-                                        overhead "[ NO BANK SAFE FOUND ]" 337
-                                    endif
-                                    wait 500
-
-                                    if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map|research materials" self
-                                        dclick LootChest
-                                        wait 1000
-                                        overhead "[ STASHING LOOT... ]" 69
-                                        hotkey "Organizer Agent-06"
-                                        wait 250
-                                        hotkey "Organizer Agent-07"
-                                        wait 250
-                                        hotkey "Organizer Agent-08"
-                                        wait 250
-                                        hotkey "Organizer Agent-09"
-                                        wait 1500
-                                    endif 
-
-                                    if findtype "resource container" ground -1 -1 2 as resource
-                                        menu resource 0
-                                        wft 500
-                                        target self
-                                        overhead "[ PILING RESOURCES... ]" 84
-                                        wait 1500
-                                    else
-                                        overhead "[ NO RESOURCE STOCKPILE FOUND ]" 337
-                                    endif
-                                    wait 500
-                                    
-                                    if findtype "repair bench" ground -1 -1 3 as RepairBench
-                                        clearsysmsg 
-                                        dclick RepairBench
-                                        wait 200
-                                        if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
-                                            overhead "[ NOTHING TO REPAIR! ]" 0
-                                            wait 1500
-                                        else
-                                            overhead "[ REPAIRING EQUIPMENT... ]" 337
-                                            settimer RepairTimer 0
-                                        while timer RepairTimer <= 5000 
-                                            if insysmsg "Repair"
-                                                break
+                                        if EnableShield = 1
+                                            if not findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                                                if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                    for 5
+                                                        getlabel shield ShieldLabel
+                                                        wait 500
+                                                        if "unidentified" in ShieldLabel
+                                                            @ignore shield
+                                                            wait 150 
+                                                            if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                                getlabel shield ShieldLabel
+                                                            endif
+                                                        else 
+                                                            break
+                                                        endif 
+                                                    endfor            
+                                                    dclick shield
+                                                    wait 500
+                                                endif 
                                             endif
-                                        endwhile
-                                        overhead "[ ITEMS REPAIRED! ]" 0
-                                        overhead "Repair took: {{RepairTimer}}ms" 149
-                                        removetimer RepairTimer
-                                        wait 500
                                         endif
-                                    else
-                                        overhead "[ NO REPAIR BENCH FOUND ]" 337
-                                    endif
 
-                                    if findtype "storage shelf" ground -1 -1 2 as shelf
-                                        menu shelf 0
-                                        wft 500
-                                        target self
-                                        overhead "[ UNLOADING... ]" 2114
-                                        wait 1500
-                                        gumpclose 3232825965
-                                        wait 500
-                                        menu shelf 1
-                                        wft 500
-                                        target self   
-                                        overhead "[ RESUPPLYING... ]" 93
-                                        wait 1500
-                                    else
-                                        overhead "[ NO STORAGE SHELF FOUND ]" 0
-                                    endif   
-
-                                    if findtype "ornate elven chest|magic item recycler" ground -1 -1 2 as recycler
-                                        menu recycler 1
-                                        wait 1000
-                                        if insysmsg "0 recyclable"
-                                            overhead "[ NO MAGIC LOOT! ]" 6
+                                            wait 500
+                                            useskill "Hiding"
+                                            
+                                            
+                                        if findtype "bank deposit safe" ground -1 -1 2 as safe
+                                            while findtype "gold coin" backpack as gold
+                                                lift gold 60000
+                                                overhead "[ DEPOSIT GOLD... ]" 149
+                                                drop safe -1 -1 -1
+                                                wait 1500
+                                            endwhile
+                                            while findtype 2539 backpack as dubs
+                                                lift dubs 60000
+                                                drop safe -1 -1 -1
+                                                overhead "[ DEPOSIT DUBS... ]" 149
+                                                wait 1500
+                                            endwhile
                                         else
-                                            overhead "[ RECYCLING MAGIC LOOT... ]" 6
-                                            wait 200
+                                            overhead "[ NO BANK SAFE FOUND ]" 337
                                         endif
-                                    else
-                                        overhead "[ NO MAGIC ITEM RECYCLER FOUND ]" 337
-                                    endif
+                                        wait 500
 
-                                    wait 500
-                                    hotkey "Organizer Agent-04"
-                                    
-                                    if InfiniteLoop = 1
-                                        wait 2500
-                                        say '[SacredJourney'
-                                        waitforgump 
-                                        gumpresponse 4
-                                        wait 1000
-                                        while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
-                                            dclick ChivGate
-                                        endwhile
+                                        if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map|research materials" self
+                                            dclick LootChest
+                                            wait 1000
+                                            overhead "[ STASHING LOOT... ]" 69
+                                            hotkey "Organizer Agent-06"
+                                            wait 250
+                                            hotkey "Organizer Agent-07"
+                                            wait 250
+                                            hotkey "Organizer Agent-08"
+                                            wait 250
+                                            hotkey "Organizer Agent-09"
+                                            wait 1500
+                                        endif 
 
-                                        while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
-                                            gumpresponse 2 3899019871
+                                        if findtype "resource container" ground -1 -1 2 as resource
+                                            menu resource 0
+                                            wft 500
+                                            target self
+                                            overhead "[ PILING RESOURCES... ]" 84
+                                            wait 1500
+                                        else
+                                            overhead "[ NO RESOURCE STOCKPILE FOUND ]" 337
+                                        endif
+                                        wait 500
+                                        
+                                        if findtype "repair bench" ground -1 -1 3 as RepairBench
+                                            clearsysmsg 
+                                            dclick RepairBench
                                             wait 200
-                                        endwhile
-                                        wait 1000
-                                        replay
-                                    else 
-                                        overhead "[ SCRIPT COMPLETE! ]" 69
-                                        stop   
-                                    endif    
+                                            if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
+                                                overhead "[ NOTHING TO REPAIR! ]" 0
+                                                wait 1500
+                                            else
+                                                overhead "[ REPAIRING EQUIPMENT... ]" 337
+                                                settimer RepairTimer 0
+                                            while timer RepairTimer <= 5000 
+                                                if insysmsg "Repair"
+                                                    break
+                                                endif
+                                            endwhile
+                                            overhead "[ ITEMS REPAIRED! ]" 0
+                                            overhead "Repair took: {{RepairTimer}}ms" 149
+                                            removetimer RepairTimer
+                                            wait 500
+                                            endif
+                                        else
+                                            overhead "[ NO REPAIR BENCH FOUND ]" 337
+                                        endif
+
+                                        if findtype "storage shelf" ground -1 -1 2 as shelf
+                                            menu shelf 0
+                                            wft 500
+                                            target self
+                                            overhead "[ UNLOADING... ]" 2114
+                                            wait 1500
+                                            gumpclose 3232825965
+                                            wait 500
+                                            menu shelf 1
+                                            wft 500
+                                            target self   
+                                            overhead "[ RESUPPLYING... ]" 93
+                                            wait 1500
+                                        else
+                                            overhead "[ NO STORAGE SHELF FOUND ]" 0
+                                        endif   
+
+                                        if findtype "ornate elven chest|magic item recycler" ground -1 -1 2 as recycler
+                                            menu recycler 1
+                                            wait 1000
+                                            if insysmsg "0 recyclable"
+                                                overhead "[ NO MAGIC LOOT! ]" 6
+                                            else
+                                                overhead "[ RECYCLING MAGIC LOOT... ]" 6
+                                                wait 200
+                                            endif
+                                        else
+                                            overhead "[ NO MAGIC ITEM RECYCLER FOUND ]" 337
+                                        endif
+
+                                        wait 500
+                                        hotkey "Organizer Agent-04"
+                                        
+                                        if InfiniteLoop = 1
+                                            say '[SacredJourney'
+                                            waitforgump 1482653814
+                                            gumpresponse 4
+                                            wait 1000
+                                            while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
+                                                dclick ChivGate
+                                            endwhile
+
+                                            while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
+                                                gumpresponse 2 3899019871
+                                                wait 200
+                                            endwhile
+                                            wait 1000
+                                            replay
+                                        else 
+                                            overhead "[ SCRIPT COMPLETE! ]" 69
+                                            stop   
+                                        endif    
+                                endif 
                             elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 6
                                 if not cooldown "Cleanup"
                                     overhead "[ WAITING TO RECALL... ]" 149
@@ -3728,212 +4063,216 @@ while not dead
                             overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
                             if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 6
                                 
-                                if targetexists 
-                                    hotkey 'Cancel Current Target'
-                                endif
-
-                                clearsysmsg 
-
-                                if not varexist escape_runebook
-                                    overhead "Select your escape runebook..." 253
-                                    setvar escape_runebook
-                                    wait 2000
-                                    replay
-                                endif
-        
-                                    overhead "[ AUTO RECALL! ]" 84
-                                    wait 150
-                                    dclick escape_runebook
-                                    waitforgump 1551740969
-                                    gumpresponse 2
-                                    wait 500
-                                    
-                                    if insysmsg 'Your concentration is disturbed'
-                                        wait 1000
-                                        for 5
-                                            clearsysmsg
-                                            overhead '[ INTERUPTED! ]' 153
-                                            wait 500
-                                            dclick escape_runebook
-                                            waitforgump 1551740969 
-                                            gumpresponse 2
-                                            wait 500
-                                            if insysmsg 'Your concentration is disturbed'
-                                                overhead 'Fuck off!' 6
-                                                wait 250
-                                            else 
-                                                break
-                                            endif 
-                                        endfor
+                                if EnableDIYHomeRecallScript = 1
+                                    script HomeRecallScriptName
+                                else 
+                                        
+                                    if targetexists 
+                                        hotkey 'Cancel Current Target'
                                     endif
 
-                                    wait 2000
-                                    
-                                    if not findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' hand 
-                                        if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
-                                        for 5
-                                                getlabel weapon WeaponLabel
+                                    clearsysmsg 
+
+                                    if not varexist escape_runebook
+                                        overhead "Select your escape runebook..." 253
+                                        setvar escape_runebook
+                                        wait 2000
+                                        replay
+                                    endif
+            
+                                        overhead "[ AUTO RECALL! ]" 84
+                                        wait 150
+                                        dclick escape_runebook
+                                        waitforgump 1551740969
+                                        gumpresponse 2
+                                        wait 500
+                                        
+                                        if insysmsg 'Your concentration is disturbed'
+                                            wait 1000
+                                            for 5
+                                                clearsysmsg
+                                                overhead '[ INTERUPTED! ]' 153
                                                 wait 500
-                                                if "unidentified" in WeaponLabel
-                                                    @ignore weapon
-                                                    wait 150
-                                                    if findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' backpack as weapon
-                                                        getlabel weapon WeaponLabel
-                                                    endif
+                                                dclick escape_runebook
+                                                waitforgump 1551740969 
+                                                gumpresponse 2
+                                                wait 500
+                                                if insysmsg 'Your concentration is disturbed'
+                                                    overhead 'Fuck off!' 6
+                                                    wait 250
                                                 else 
                                                     break
                                                 endif 
-                                            endfor            
-                                            dclick weapon
-                                            wait 500
-                                        endif 
-                                    endif
+                                            endfor
+                                        endif
 
-                                    if EnableShield = 1
-                                        if not findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' lefthand
-                                            if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
-                                                for 5
-                                                    getlabel shield ShieldLabel
+                                        wait 2000
+                                        
+                                        if not findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' hand 
+                                            if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                                            for 5
+                                                    getlabel weapon WeaponLabel
                                                     wait 500
-                                                    if "unidentified" in ShieldLabel
-                                                        @ignore shield
-                                                        wait 150 
-                                                        if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
-                                                            getlabel shield ShieldLabel
+                                                    if "unidentified" in WeaponLabel
+                                                        @ignore weapon
+                                                        wait 150
+                                                        if findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' backpack as weapon
+                                                            getlabel weapon WeaponLabel
                                                         endif
                                                     else 
                                                         break
                                                     endif 
                                                 endfor            
-                                                dclick shield
+                                                dclick weapon
                                                 wait 500
                                             endif 
                                         endif
-                                    endif
 
-                                        wait 500
-                                        useskill "Hiding"
-                                        
-                                        
-                                    if findtype "bank deposit safe" ground -1 -1 2 as safe
-                                        while findtype "gold coin" backpack as gold
-                                            lift gold 60000
-                                            overhead "[ DEPOSIT GOLD... ]" 149
-                                            drop safe -1 -1 -1
-                                            wait 1500
-                                        endwhile
-                                        while findtype 2539 backpack as dubs
-                                            lift dubs 60000
-                                            drop safe -1 -1 -1
-                                            overhead "[ DEPOSIT DUBS... ]" 149
-                                            wait 1500
-                                        endwhile
-                                    else
-                                        overhead "[ NO BANK SAFE FOUND ]" 337
-                                    endif
-                                    wait 500
-
-                                    if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map|research materials" self
-                                        dclick LootChest
-                                        wait 1000
-                                        overhead "[ STASHING LOOT... ]" 69
-                                        hotkey "Organizer Agent-06"
-                                        wait 250
-                                        hotkey "Organizer Agent-07"
-                                        wait 250
-                                        hotkey "Organizer Agent-08"
-                                        wait 250
-                                        hotkey "Organizer Agent-09"
-                                        wait 1500
-                                    endif 
-
-                                    if findtype "resource container" ground -1 -1 2 as resource
-                                        menu resource 0
-                                        wft 500
-                                        target self
-                                        overhead "[ PILING RESOURCES... ]" 84
-                                        wait 1500
-                                    else
-                                        overhead "[ NO RESOURCE STOCKPILE FOUND ]" 337
-                                    endif
-                                    wait 500
-                                    
-                                    if findtype "repair bench" ground -1 -1 3 as RepairBench
-                                        clearsysmsg 
-                                        dclick RepairBench
-                                        wait 200
-                                        if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
-                                            overhead "[ NOTHING TO REPAIR! ]" 0
-                                            wait 1500
-                                        else
-                                            overhead "[ REPAIRING EQUIPMENT... ]" 337
-                                            settimer RepairTimer 0
-                                        while timer RepairTimer <= 5000 
-                                            if insysmsg "Repair"
-                                                break
+                                        if EnableShield = 1
+                                            if not findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                                                if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                    for 5
+                                                        getlabel shield ShieldLabel
+                                                        wait 500
+                                                        if "unidentified" in ShieldLabel
+                                                            @ignore shield
+                                                            wait 150 
+                                                            if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                                getlabel shield ShieldLabel
+                                                            endif
+                                                        else 
+                                                            break
+                                                        endif 
+                                                    endfor            
+                                                    dclick shield
+                                                    wait 500
+                                                endif 
                                             endif
-                                        endwhile
-                                        overhead "[ ITEMS REPAIRED! ]" 0
-                                        overhead "Repair took: {{RepairTimer}}ms" 149
-                                        removetimer RepairTimer
-                                        wait 500
                                         endif
-                                    else
-                                        overhead "[ NO REPAIR BENCH FOUND ]" 337
-                                    endif
 
-                                    if findtype "storage shelf" ground -1 -1 2 as shelf
-                                        menu shelf 0
-                                        wft 500
-                                        target self
-                                        overhead "[ UNLOADING... ]" 2114
-                                        wait 1500
-                                        gumpclose 3232825965
-                                        wait 500
-                                        menu shelf 1
-                                        wft 500
-                                        target self   
-                                        overhead "[ RESUPPLYING... ]" 93
-                                        wait 1500
-                                    else
-                                        overhead "[ NO STORAGE SHELF FOUND ]" 0
-                                    endif   
-
-                                    if findtype "ornate elven chest|magic item recycler" ground -1 -1 2 as recycler
-                                        menu recycler 1
-                                        wait 1000
-                                        if insysmsg "0 recyclable"
-                                            overhead "[ NO MAGIC LOOT! ]" 6
+                                            wait 500
+                                            useskill "Hiding"
+                                            
+                                            
+                                        if findtype "bank deposit safe" ground -1 -1 2 as safe
+                                            while findtype "gold coin" backpack as gold
+                                                lift gold 60000
+                                                overhead "[ DEPOSIT GOLD... ]" 149
+                                                drop safe -1 -1 -1
+                                                wait 1500
+                                            endwhile
+                                            while findtype 2539 backpack as dubs
+                                                lift dubs 60000
+                                                drop safe -1 -1 -1
+                                                overhead "[ DEPOSIT DUBS... ]" 149
+                                                wait 1500
+                                            endwhile
                                         else
-                                            overhead "[ RECYCLING MAGIC LOOT... ]" 6
-                                            wait 200
+                                            overhead "[ NO BANK SAFE FOUND ]" 337
                                         endif
-                                    else
-                                        overhead "[ NO MAGIC ITEM RECYCLER FOUND ]" 337
-                                    endif
+                                        wait 500
 
-                                    wait 500
-                                    hotkey "Organizer Agent-04"
-                                    if InfiniteLoop = 1
-                                        wait 2500
-                                        say '[SacredJourney'
-                                        waitforgump 
-                                        gumpresponse 4
-                                        wait 1000
-                                        while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
-                                            dclick ChivGate
-                                        endwhile
+                                        if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map|research materials" self
+                                            dclick LootChest
+                                            wait 1000
+                                            overhead "[ STASHING LOOT... ]" 69
+                                            hotkey "Organizer Agent-06"
+                                            wait 250
+                                            hotkey "Organizer Agent-07"
+                                            wait 250
+                                            hotkey "Organizer Agent-08"
+                                            wait 250
+                                            hotkey "Organizer Agent-09"
+                                            wait 1500
+                                        endif 
 
-                                        while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
-                                            gumpresponse 2 3899019871
+                                        if findtype "resource container" ground -1 -1 2 as resource
+                                            menu resource 0
+                                            wft 500
+                                            target self
+                                            overhead "[ PILING RESOURCES... ]" 84
+                                            wait 1500
+                                        else
+                                            overhead "[ NO RESOURCE STOCKPILE FOUND ]" 337
+                                        endif
+                                        wait 500
+                                        
+                                        if findtype "repair bench" ground -1 -1 3 as RepairBench
+                                            clearsysmsg 
+                                            dclick RepairBench
                                             wait 200
-                                        endwhile
-                                        wait 1000
-                                        replay
-                                    else 
-                                        overhead "[ SCRIPT COMPLETE! ]" 69
-                                        stop       
-                                   endif
+                                            if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
+                                                overhead "[ NOTHING TO REPAIR! ]" 0
+                                                wait 1500
+                                            else
+                                                overhead "[ REPAIRING EQUIPMENT... ]" 337
+                                                settimer RepairTimer 0
+                                            while timer RepairTimer <= 5000 
+                                                if insysmsg "Repair"
+                                                    break
+                                                endif
+                                            endwhile
+                                            overhead "[ ITEMS REPAIRED! ]" 0
+                                            overhead "Repair took: {{RepairTimer}}ms" 149
+                                            removetimer RepairTimer
+                                            wait 500
+                                            endif
+                                        else
+                                            overhead "[ NO REPAIR BENCH FOUND ]" 337
+                                        endif
+
+                                        if findtype "storage shelf" ground -1 -1 2 as shelf
+                                            menu shelf 0
+                                            wft 500
+                                            target self
+                                            overhead "[ UNLOADING... ]" 2114
+                                            wait 1500
+                                            gumpclose 3232825965
+                                            wait 500
+                                            menu shelf 1
+                                            wft 500
+                                            target self   
+                                            overhead "[ RESUPPLYING... ]" 93
+                                            wait 1500
+                                        else
+                                            overhead "[ NO STORAGE SHELF FOUND ]" 0
+                                        endif   
+
+                                        if findtype "ornate elven chest|magic item recycler" ground -1 -1 2 as recycler
+                                            menu recycler 1
+                                            wait 1000
+                                            if insysmsg "0 recyclable"
+                                                overhead "[ NO MAGIC LOOT! ]" 6
+                                            else
+                                                overhead "[ RECYCLING MAGIC LOOT... ]" 6
+                                                wait 200
+                                            endif
+                                        else
+                                            overhead "[ NO MAGIC ITEM RECYCLER FOUND ]" 337
+                                        endif
+
+                                        wait 500
+                                        hotkey "Organizer Agent-04"
+                                        if InfiniteLoop = 1
+                                            say '[SacredJourney'
+                                            waitforgump 1482653814
+                                            gumpresponse 4
+                                            wait 1000
+                                            while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
+                                                dclick ChivGate
+                                            endwhile
+
+                                            while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
+                                                gumpresponse 2 3899019871
+                                                wait 200
+                                            endwhile
+                                            wait 1000
+                                            replay
+                                        else 
+                                            overhead "[ SCRIPT COMPLETE! ]" 69
+                                            stop       
+                                    endif
+                                endif
                             elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 6
                                 if not cooldown "Cleanup"
                                     overhead "[ WAITING TO RECALL... ]" 149

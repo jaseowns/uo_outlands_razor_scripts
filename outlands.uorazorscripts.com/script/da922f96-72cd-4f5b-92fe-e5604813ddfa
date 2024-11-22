@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.07.3
+#Auto-mage attack 3.08.3
 
 #********** INFORMATION **********# 
 
@@ -16,14 +16,14 @@
 
 #--- *!*!* SCRIPT IS UNDER DEVELOPMENT. *!*!*!* ---#
 
-# !!!VERSION 3.00+ IS IN HEAVY TESTING SINCE IT INCLUDED AUTO-SUMMONING !!! #
-
 # !!! IMPORTANT !!! DISABLE: `Filter repeating system messages` ON RAZOR !!! # 
+# !!! IMPORTANT !!! IF ENABLE NECRO ABILITIES IN SCRIPT MAKE SURE DO NOT CHECK MARK ON NECRO BAR  !!! # 
     
 ### Changes Log ###
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.08 Added ignore list. 
 # Ver 3.07 Added a new auto target mode activating war mode to attack or reset the target selection
 # Ver 3.06 Changes to the auto healing mechanic and variables
 # Ver 3.05 Added variables to activate mini spells when mana below `X amount`
@@ -38,6 +38,67 @@
 ### Changes Log ###
 
 #********** SET YOUR SETTINGS **********#   
+
+removelist animalsIgnoreList
+createlist animalsIgnoreList
+
+#--- Set Ignore Monsters ---#
+
+pushlist animalsIgnoreList "a plover"
+pushlist animalsIgnoreList "a sheep"
+pushlist animalsIgnoreList "a frenzied ostard"
+pushlist animalsIgnoreList "a tundra ostard"
+pushlist animalsIgnoreList "a desert ostard"
+pushlist animalsIgnoreList "a forest ostard"
+pushlist animalsIgnoreList "a finch"
+pushlist animalsIgnoreList "a sparrow"
+pushlist animalsIgnoreList "a towhee"
+pushlist animalsIgnoreList "a lapwing"
+pushlist animalsIgnoreList "a silverback"
+pushlist animalsIgnoreList "a giant frog"
+pushlist animalsIgnoreList "a crow"
+pushlist animalsIgnoreList "a woodpecker"
+pushlist animalsIgnoreList "a horse"
+pushlist animalsIgnoreList "a swift"
+pushlist animalsIgnoreList "a skylark"
+pushlist animalsIgnoreList "a corpser"
+pushlist animalsIgnoreList "a hawk"
+pushlist animalsIgnoreList "a chickadee"
+pushlist animalsIgnoreList "a cat"
+pushlist animalsIgnoreList "a dog"
+pushlist animalsIgnoreList "a black bear"
+pushlist animalsIgnoreList "a brown bear"
+pushlist animalsIgnoreList "a grizzly bear"
+pushlist animalsIgnoreList "a bull"
+pushlist animalsIgnoreList "a cow"
+pushlist animalsIgnoreList "a chicken"
+pushlist animalsIgnoreList "a bird"
+pushlist animalsIgnoreList "an eagle"
+pushlist animalsIgnoreList "an elk"
+pushlist animalsIgnoreList "a great hart"
+pushlist animalsIgnoreList "a kingfisher"
+pushlist animalsIgnoreList "a hind"
+pushlist animalsIgnoreList "a llama"
+pushlist animalsIgnoreList "a sand crab"
+pushlist animalsIgnoreList "a pig"
+pushlist animalsIgnoreList "a polar bear"
+pushlist animalsIgnoreList "a walrus"
+pushlist animalsIgnoreList "a cougar"
+pushlist animalsIgnoreList "a wolf"
+pushlist animalsIgnoreList "a goat"
+pushlist animalsIgnoreList "a raven"
+pushlist animalsIgnoreList "a magpie"
+pushlist animalsIgnoreList "a warbler"
+pushlist animalsIgnoreList "a tern"
+pushlist animalsIgnoreList "a nightingale"
+pushlist animalsIgnoreList "a colossal frog"
+pushlist animalsIgnoreList "a wren"
+
+pushlist animalsIgnoreList "red rubble"
+pushlist animalsIgnoreList "a spirit wolf"
+pushlist animalsIgnoreList "a spirit sabertus"
+pushlist animalsIgnoreList "a death asp"
+pushlist animalsIgnoreList "a death adder"
 
 #--- Set Target Mode ---#
 
@@ -56,9 +117,9 @@
 @setvar! airElementals 0
 @setvar! fireElementals 0
 @setvar! summonDaemons 0
-@setvar! summonCreature 0
+@setvar! summonCreature 1
 
-@setvar! minimumFollowers 4
+@setvar! breakCastingWhenFollowersBelow 4
 
 #--- Set Followers Necromancy Spells ---#
 
@@ -93,7 +154,7 @@
 # 0 - Greater or lesser 
 # 1 - Deadly 
 # 2 - Lethal
-@setvar! poisonLevel 1
+@setvar! poisonLevel 0
 
 @setvar! castCurse 1
 @setvar! castManaDrain 0
@@ -297,6 +358,9 @@ settimer targetSelectTimer targetSelectCD
 
 @setvar! noRegsMessageCD 3000
 settimer noRegsMessageTimer noRegsMessageCD
+
+@setvar! allGuardCD 1500
+settimer allGuardTimer allGuardCD
 
 #--- Summons timers ---#
 
@@ -1072,7 +1136,7 @@ while not dead
         endif    
     endif
     
-    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff
+    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3980 backpack and findtype 3972 backpack and findtype 3981 backpack
         if timer magicReflectTimer > magicReflectCD
             cast 'Reactive Armor'
             while not casting   
@@ -1095,7 +1159,7 @@ while not dead
         endif    
     endif     
     
-    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff
+    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3980 backpack and findtype 3972 backpack and findtype 3973 backpack
         cast 'Protection'
         while not casting
             if targetexists
@@ -1129,7 +1193,13 @@ while not dead
 #********** START AUTO SUMMONING **********# 
 
     while followers < maxFollowers and diffhits < activateAutoHealDiff
-
+        
+        if find currentTarget ground -1 -1 12 and not dead currentTarget
+            if followers >= breakCastingWhenFollowersBelow
+                break
+            endif
+        endif
+        
         #--- Eat Food ---#
 
         if not findbuff "food" and findtype "tray" backpack as fody    
@@ -1231,6 +1301,13 @@ while not dead
         #--- Use Meditation ---#
     
         if 1 = useMeditationSkill and mana < 50 and not findbuff "meditating"
+            if insysmsg "you are at peace"
+            endif
+            if insysmsg "you enter a meditative trance"
+            endif
+            if insysmsg "You must wait a few moments to use another skill."
+            endif
+            
             skill 'meditation'
             getlabel backpack xxx
             wait 200
@@ -2269,7 +2346,11 @@ while not dead
         endif
         
         if 1 = summoningSucessful
-            say 'ALL Guard ME' 44
+            if timer allGuardTimer > allGuardCD
+                #sysmsg "guard 1"
+                say 'ALL Guard ME' 44
+                settimer allGuardTimer 0
+            endif
         endif
     
     endwhile
@@ -2302,7 +2383,6 @@ while not dead
 
         if find tempTarget ground -1 -1 12 and not dead tempTarget
             if previousTarget != tempTarget
-                sysmsg "Resetting timers" 15
                 settimer curseTimer curseCD
                 settimer manaDrainTimer manaDrainCD
             endif
@@ -2325,16 +2405,16 @@ while not dead
 
 #********* AUTO-SELECT NEW TARGET *********
         
-        #if timer targetSelectTimer > targetSelectCD
-        #    overhead "Looking for target.." 55
-        #    settimer targetSelectTimer 0
-        #endif
-        
         if not find currentTarget ground -1 -1 12
             @setvar! currentTarget 0
             @setvar! foundTarget 0
             
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            
             hotkey 'target closest grey monster'
+            #sysmsg "hotkey closest" 55
             
             if not find lasttarget ground -1 -1 12
                 if timer noTargetMessageTimer > noTargetMessageCD
@@ -2343,61 +2423,91 @@ while not dead
                 endif
             else
                 @setvar! tempTarget lasttarget
-                while index != 20
-                    @setvar! tempTarget lasttarget 
-                    if index != 0 
-                        hotkey "next non-friendly monster target"
-                        @setvar! tempTarget lasttarget 
-                        #overhead "*{{index}}*" 34 tempTarget
-                        
-                        if index = 1
-                            @setvar! firstTarget lasttarget
-                        elseif firstTarget = tempTarget
-                            @setvar! foundTarget 2
+                while diffhits < activateAutoHealDiff
+                    if earthElementals != 0 or waterElementals != 0 or fireElementals != 0 or airElementals != 0 or summonDaemons != 0 or summonCreature != 0
+                        if followers < breakCastingWhenFollowersBelow
                             break
                         endif
                     endif
                     
+                    @setvar! tempTarget lasttarget 
+                                       
+                    if index != 0 
+                        hotkey "next non-friendly monster target"
+                        #sysmsg "hotkey non-friendly" 55
+                        @setvar! tempTarget lasttarget 
+                        #overhead "*{{index}}*" 34 tempTarget
+                        
+                        #if index = 1
+                        #    @setvar! firstTarget lasttarget
+                        #elseif firstTarget = tempTarget
+                        #    @setvar! foundTarget 2
+                        #    break
+                        #endif
+                    endif
+                    
                     if find tempTarget ground -1 -1 12
-                        clearsysmsg
-                        
-                        skill 'begging'
-                        waitfortarget maxwaittimeinms
-                        target tempTarget
-                        getlabel backpack xxx
-                        wait 200
-                        
                         if insysmsg "Target cannot be seen"
-                            sysmsg "*Not visible* [{{index}}]" 44
-                            overhead  "*Not visible* [{{index}}]" 44 tempTarget
-                        elseif insysmsg "That is too far away."
-                            overhead "*Too far* [{{index}}]" 44 tempTarget
-                        #elseif insysmsg "You must wait"
-                            #overhead "*Skill cooldown*" 11
-                            #sysmsg "*Skill cooldown*" 11
-                            #break
-                        elseif insysmsg "Perhaps" or insysmsg "You are too far away from them." or insysmsg "They do not appear to have anything to offer you." or insysmsg! "You must wait"
-                            
-                            if insysmsg "You must wait"
-                                sysmsg "* target skill cooldown targetting closest mob *" 34
-                                hotkey 'target closest grey monster'   
-                                @setvar! tempTarget lasttarget 
-                            endif
-                            
-                            if previousTarget != tempTarget
-                                sysmsg "Resetting timers" 15
-                                settimer curseTimer curseCD
-                                settimer manaDrainTimer manaDrainCD
-                            endif
+                        endif
+                        if insysmsg "That is too far away."
+                        endif
+                        if insysmsg "You must wait"
+                        endif
+                        if insysmsg "Perhaps"
+                        endif
+                        if insysmsg "You are too far away from them."
+                        endif
+                        if insysmsg "They do not appear to have anything to offer you."
+                        endif
                         
-                            @setvar! foundTarget 1 
-                            @setvar! currentTarget tempTarget
-                            @setvar! previousTarget currentTarget
-                            attack currentTarget
-                            getlabel currentTarget myLabel
-                            sysmsg "Target: {{myLabel}}" 55
-                            overhead "Target found!" 66
-                            break
+                        getlabel tempTarget tempLabel
+                        
+                        if inlist animalsIgnoreList tempLabel
+                            @ignore tempTarget
+                            #sysmsg "ignoring : {{tempLabel}}"
+                        else
+                            skill 'begging'
+                            while not targetexists
+                               if insysmsg! 'you must wait'
+                                    break
+                               endif
+                            endwhile
+                            if not insysmsg! 'you must wait'
+                                target tempTarget
+                                getlabel backpack xxx
+                                wait 200
+                            endif
+                            
+                            if insysmsg "Target cannot be seen"
+                                sysmsg "*Not visible* [{{index}}]" 44
+                                overhead  "*Not visible* [{{index}}]" 44 tempTarget
+                            elseif insysmsg "That is too far away."
+                                overhead "*Too far* [{{index}}]" 44 tempTarget
+                            #elseif insysmsg "You must wait"
+                                #overhead "*Skill cooldown*" 11
+                                #sysmsg "*Skill cooldown*" 11
+                                #break
+                            elseif insysmsg "Perhaps" or insysmsg "You are too far away from them." or insysmsg "They do not appear to have anything to offer you." or insysmsg! "You must wait"
+                                
+                                if insysmsg "You must wait"
+                                    sysmsg "* target skill cooldown targetting closest mob *" 34
+                                    hotkey 'target closest grey monster'   
+                                    @setvar! tempTarget lasttarget 
+                                endif
+                                
+                                if previousTarget != tempTarget
+                                    settimer curseTimer curseCD
+                                    settimer manaDrainTimer manaDrainCD
+                                endif
+                            
+                                @setvar! foundTarget 1 
+                                @setvar! currentTarget tempTarget
+                                @setvar! previousTarget currentTarget
+                                attack currentTarget
+                                sysmsg "Target: {{tempLabel}}" 55
+                                overhead "Target found!" 66
+                                break
+                            endif
                         endif
                     endif
                 endwhile
@@ -2490,7 +2600,11 @@ while not dead
         endif
         
         if followers > 0 and 0 = currentlyAttacking
-            say 'ALL Guard ME' 11
+            if timer allGuardTimer > allGuardCD
+                #sysmsg "guard 2"
+                say 'ALL Guard ME' 11
+                settimer allGuardTimer 0
+            endif
         endif
         
         #--- Create mushroom ---#
@@ -2784,6 +2898,7 @@ while not dead
             wait 200 
             
             if insysmsg "target cannot be seen"
+                sysmsg "Poison - resetting target" 11
                 @setvar! foundTarget 0
                 @setvar! currentTarget 0
                 break
@@ -2791,7 +2906,7 @@ while not dead
 
 #********* CAST NECRO POISON STRIKE *********   
 
-        elseif 1 = castStrike and 0 < unholyPoints and timer poisonStrikeTimer > poisonStrikeCD and skill 'necromancy' >= 55 and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+        elseif 1 = castStrike and 0 < unholyPoints and timer poisonStrikeTimer > poisonStrikeCD and skill 'necromancy' >= 55 and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12 and findtype 3972 backpack and findtype 3976 backpack and findtype 3980 backpack
             if insysmsg "unholy symbols remaining"
             endif
             if insysmsg "seconds before you may use that ability again."
@@ -2921,6 +3036,7 @@ while not dead
                 wait 200
                 
                 if insysmsg "target cannot be seen"
+                    sysmsg "Curse - resetting target" 11
                     @setvar! foundTarget 0
                     @setvar! currentTarget 0
                     break
@@ -3027,6 +3143,7 @@ while not dead
                 wait 200
                 
                 if insysmsg "target cannot be seen"
+                    sysmsg "Drain - resetting target" 11
                     @setvar! foundTarget 0
                     @setvar! currentTarget 0
                     break
@@ -3174,6 +3291,7 @@ while not dead
                 if insysmsg "wizardry"
                     settimer magicArrowTimer 0 
                 elseif insysmsg "target cannot be seen"
+                    sysmsg "Magic - resetting target" 11
                     @setvar! foundTarget 0
                     @setvar! currentTarget 0
                     break
@@ -3219,6 +3337,7 @@ while not dead
                 if insysmsg "wizardry"
                     settimer harmTimer 0 
                 elseif insysmsg "target cannot be seen"
+                    sysmsg "Harm - resetting target" 11
                     @setvar! foundTarget 0
                     @setvar! currentTarget 0
                     break
@@ -3264,6 +3383,7 @@ while not dead
                 if insysmsg "wizardry"
                     settimer fireballTimer 0 
                 elseif insysmsg "target cannot be seen"
+                    sysmsg "Fireball - resetting target" 11
                     @setvar! foundTarget 0
                     @setvar! currentTarget 0
                     break
@@ -3373,6 +3493,7 @@ while not dead
                 if insysmsg "wizardry"
                     settimer lightningTimer 0 
                 elseif insysmsg "target cannot be seen"
+                    sysmsg "Lightning - resetting target" 11
                     @setvar! foundTarget 0
                     @setvar! currentTarget 0
                     break
@@ -3524,6 +3645,7 @@ while not dead
                     wait 200
                     
                     if insysmsg "target cannot be seen"
+                        sysmsg "Big spells - resetting target" 11
                         @setvar! foundTarget 0
                         @setvar! currentTarget 0
                         break
@@ -3578,7 +3700,7 @@ while not dead
         endif
         
         if earthElementals != 0 or waterElementals != 0 or fireElementals != 0 or airElementals != 0 or summonDaemons != 0 or summonCreature != 0
-            if followers < minimumFollowers
+            if followers < breakCastingWhenFollowersBelow
                 break
             endif
         endif
@@ -3604,7 +3726,11 @@ while not dead
 #********* ^ AUTO ATTACKING ENDS ^ *********    
     
     if followers > 0 and 1 = currentlyAttacking and diffhits < activateAutoHealDiff
-        say 'ALL Guard ME' 65
+        if timer allGuardTimer > allGuardCD
+            #sysmsg "guard 3"
+            say 'ALL Guard ME' 65
+            settimer allGuardTimer 0
+        endif
 
         if skill 'spirit' >= 50 and timer spiritSpeakTimer > spiritSpeakCD and findtype 'corpse' ground -1 -1 18 and dead currentTarget and not find currentTarget ground -1 -1 12
 

@@ -28,13 +28,13 @@
 # IMPT: Make sure [ShowBardingDurations is set to "Display All Barding Durations" in UO client under Commands -> Text Displays
 # VERY IMPT: This script depends heavily on COOLDOWNS. Please make sure to add them all in UO client under Options -> Cooldowns (see list below)
 # The COOLDOWNS just need to exist - you don't need to set any triggers or anything (but they are very important!)
-# Recommend using LYRIC ASPECT ARMOUR and DAMAGE TO BARDED CREATURES, CHIVALRY SKILL and/or EFFECTIVE BARDING SKILL links 
+# Recommend using LYRIC ASPECT ARMOUR and DAMAGE TO BARDED CREATURES and/or EFFECTIVE BARDING SKILL links 
 # BARD CODEX: Must have 6 pts in "Self Taught" in order to drop musicianship skill
 # If using 1H archery weapon, add a shield for extra AR (and enable variable below)
 # Toggle WAR MODE manually while in COMBAT to throw PURPLE POTIONS (otherwise WAR MODE will reset barding cooldowns and retarget)
 # Script will auto TARGET and ATTACK nearby REDS - could also be used to trigger recall or escape scripts!
-# Recommend using Razor FILTERS to cancel instrument sounds and redundant system messages (if using overhead messages variable in script) 
 # Script uses tons of OVERHEAD MESSAGES - these can be disabled in the variable section (minimal target indicators remain - it's a really nice mode!)
+# Recommend using Razor FILTERS to cancel instrument sounds and redundant system messages (or at least enable all "Filter repeating * messages" in Razor) 
 # Having 1 point in Alchemy gives a 2m 5s potion duration w/ a 2m cooldown - allowing new strength pot to take effect before old one wears off *
 # Optional AUTO RECALL when RED is in target range (or variable can be adjusted to fight back instead) or when weight limit reached
 # AUTO RECALL only uses scrolls in charged runebooks (no Mage skill on template) and should be disabled if farming in dungeons (variable section)
@@ -92,17 +92,17 @@
         
        // SET THIS VALUE TO 1 AND RUN SCRIPT TO RETARGET PERMANENT VARIABLES: \\
 
-        @setvar! ResetScriptPermanentVariable 0
+           @setvar! ResetScriptPermanentVariable 0
         
-        if ResetScriptPermanentVariable = 1
-            unsetvar LootChest
-            unsetvar escape_runebook
-            unsetvar FurstRunUBAP
-            unsetvar BardAutoPilot
-            overhead "[ SCRIPT VARIABLES RESET... ]" 333
-            sysmsg "Please return 'ResetScriptPermanentVariable' to 0 to continue!" 153
-            stop
-        endif
+            if ResetScriptPermanentVariable = 1
+                unsetvar LootChest
+                unsetvar escape_runebook
+                unsetvar FurstRunUBAP
+                unsetvar BardAutoPilot
+                overhead "[ SCRIPT VARIABLES RESET... ]" 333
+                sysmsg "Please return 'ResetScriptPermanentVariable' to 0 to continue!" 153
+                stop
+            endif
         
         # \\ RETURN ResetScriptPermanentVariable TO 0 IN ORDER TO CONTINUE! // #
         
@@ -215,10 +215,10 @@
 
     
     # Use this variable to enable your own Razor script for Auto Recall (otherwise it will prompt for Runebook and use mine): 
-        @setvar! EnableDIYHomeRecallScript 0
+        @setvar! EnableDIYHomeRecallScript 0 
         createlist HomeRecallScriptList
     # Type the name of your own Home Recall Razor script here: 
-        pushlist HomeRecallScriptList "Your Script Name Here"
+        pushlist HomeRecallScriptList "HomeRecall"
 
 
 
@@ -416,16 +416,20 @@ while not dead
                                         cooldown "Target Timer" 3500 
                                     endif  
                                     
-                                    if paralyzed and EnableParalyzePouch = 1
-                                        if findtype "pouch" self
-                                            yell "[pouch"
-                                        else
-                                            if EnableOverheadMessages = 1 
-                                                overhead "[ NO MORE POUCHES! ]" 337
-                                            endif
-                                        endif           
+                                    if EnableParalyzePouch = 1
+                                        if paralyzed
+                                            if findtype "pouch" self
+                                                yell "[pouch"
+                                                hotkey 'Toggle War Only'
+                                                replay
+                                            else
+                                                if EnableOverheadMessages = 1   
+                                                    overhead "[ NO MORE POUCHES! ]" 337
+                                                endif
+                                            endif      
+                                       endif      
                                     endif
-
+                                    
                                     if skill 'Healing' > 38
                                         if not bandaging 
                                             if hp < maxhp or poisoned or findbuff "bleed" or findbuff "disease" 
@@ -963,14 +967,18 @@ while not dead
                                         cooldown "No Target Timer" 3500
                                     endif 
 
-                                    if paralyzed and EnableParalyzePouch = 1
-                                        if findtype "pouch" self
-                                            yell "[pouch"
-                                        else
-                                            if EnableOverheadMessages = 1 
-                                                overhead "[ NO MORE POUCHES! ]" 337
-                                            endif
-                                        endif           
+                                    if EnableParalyzePouch = 1
+                                        if paralyzed
+                                            if findtype "pouch" self
+                                                yell "[pouch"
+                                                hotkey 'Toggle War Only'
+                                                replay
+                                            else
+                                                if EnableOverheadMessages = 1   
+                                                    overhead "[ NO MORE POUCHES! ]" 337
+                                                endif
+                                            endif      
+                                       endif      
                                     endif
 
                                     if skill 'Healing' > 38
@@ -1259,28 +1267,33 @@ while not dead
                         endif
                 endif        
                 
-                if paralyzed and EnableParalyzePouch = 1
-                    if findtype "pouch" self
-                        yell "[pouch"
-                        hotkey 'Toggle War Only'
-                        replay
-                    else
-                        if EnableOverheadMessages = 1   
-                            overhead "[ NO MORE POUCHES! ]" 337
-                        endif
-                    endif           
+                if EnableParalyzePouch = 1
+                    if paralyzed
+                        if findtype "pouch" self
+                            yell "[pouch"
+                            hotkey 'Toggle War Only'
+                            replay
+                        else
+                            if EnableOverheadMessages = 1   
+                                overhead "[ NO MORE POUCHES! ]" 337
+                            endif
+                        endif      
+                   endif      
                 endif
 
-                if EnablePKradar = 1 and not cooldown "PK Radar" 
-                    hotkey 'Next Murderer Player Target'
-                    wait 500
+                if EnablePKradar = 1 
+                    if not cooldown "PK Radar" 
+                        hotkey 'Next Murderer Player Target'
+                        wait 500
                         if insysmsg "No one matching that was found"   
-                            cooldown "PK Radar" 2000
+                            cooldown "PK Radar" 1000
+                            clearsysmsg 
                         else
                             overhead "[ !! RED ALERT !! ]" 37
                             hotkey 'Toggle War Only'
-                            replay
+                            replay 
                         endif 
+                    endif
                 endif 
                 
                 if EnableHolyLight = 1            
@@ -1358,11 +1371,13 @@ while not dead
                                 overhead '[ BANDAGING...]' 88
                             endif
                             hotkey "Bandage Self"                                     
-                        elseif counttype 'clean bandage%s%' < 10 and not cooldown "Inventory Timer"
-                            if EnableOverheadMessages = 1   
+                        elseif counttype 'clean bandage%s%' < 10
+                            if EnableOverheadMessages = 1 and not cooldown "Inventory Timer"
                                 overhead "[ BANDAGES LOW! ]" 339
+                                cooldown "Inventory Timer" 6000
                             endif
-                            cooldown "Inventory Timer" 6000
+                            hotkey "Bandage Self"   
+                            
                         elseif counttype 'clean bandage%s%' = 0 and not cooldown "Inventory Timer"
                             if EnableOverheadMessages = 1   
                                 overhead "[ NO BANDAGES! ]" 337
@@ -1470,153 +1485,28 @@ while not dead
                     endif
                 endif 
                 
-                if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                    if findtype "corpse" ground -1 -1 2 as deadbody
-                        dclicktype "Elven Spellblade"
-                        wft 1000
-                        targettype "Elven Spellblade"
-                        if EnableOverheadMessages = 1  
-                            overhead "[ SKINNING... ]" 339
+                if EnableAutoCarving = 1
+                    if findtype 'Elven SpellBlade' self 
+                        if findtype "corpse" ground -1 -1 2 as deadbody
+                            dclicktype "Elven Spellblade"
+                            wft 1000
+                            targettype "Elven Spellblade"
+                            if EnableOverheadMessages = 1  
+                                overhead "[ SKINNING... ]" 339
+                            endif
+                            wait 500
+                            @ignore deadbody
                         endif
-                        wait 500
-                        @ignore deadbody
-                    endif
-                else
-                    if not cooldown "Inventory Timer"
-                        if EnableOverheadMessages = 1  
-                            overhead "[ NO SKINNING KNIFE! ]" 337
-                        endif
-                        cooldown "Inventory Timer" 6000
-                    endif
-                endif
-                           
-                if not findbuff 'food satisfaction' and findtype "tray" self
-                    if findtype "tray" backpack as Food
-                        if EnableOverheadMessages = 1  
-                            overhead "[ EATING FOOD... ]" 88
-                        endif
-                        dclick Food
-                        wait 1000
-                    endif
-                endif 
-                
-
-    hotkey 'Target Closest Grey Monster'
-    wait 500
-
-
-        #########################
-        ###  NO TARGET LOOP:  ###
-        #########################
-
-            if insysmsg "No one matching that was found on your screen"      
-                                
-                if targetexists 
-                    targettype "Elven Spellblade" 
-                endif
-            
-                if not cooldown "No Target Timer"
-                    if EnableOverheadMessages = 1
-                        overhead "[ NO TARGET... ]" 6
-                        cooldown "No Target Timer" 3500    
-                    else 
-                        overhead " Ï " 6
-                        cooldown "No Target Timer" 3500  
-                    endif 
-                endif     
-             
-                if findtype "Ginseng|Garlic|Blood Moss|Sulfurous Ash|Mandrake Root%s%|Nightshade|Black Pearl%s%|Spider's Silk" backpack
-                    if not cooldown "Satchel Timer" and findtype "reagent satchel" self as MyWizardBag
-                        menu MyWizardBag 0
-                        wait 500
-                        cooldown "Satchel Timer" 15000
-                    endif
-                endif
-         
-                if findtype "arrow|crossbow bolt" backpack
-                    if not cooldown "Satchel Timer" and findtype "quiver" self as MyQuiver
-                        menu MyQuiver 0
-                        wait 500
-                        cooldown "Satchel Timer" 15000
-                    endif
-                endif 
-
-                if findtype "Yellow Potion|Orange Potion|Red Potion|White Potion|Blue Potion|Black Potion|" backpack
-                    if not cooldown "Satchel Timer" and findtype 31262 self as MyPotBag
-                        menu MyPotBag 0
-                        wait 500
-                        cooldown "Satchel Timer" 15000
-                    endif
-                endif 
-
-                if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                    if findtype "corpse" ground -1 -1 2 as deadbody
-                        wait 500
-                        dclicktype "Elven Spellblade"
-                        wft 1000
-                        targettype "Elven Spellblade"
-                        if EnableOverheadMessages = 1  
-                            overhead "[ SKINNING... ]" 339
-                        endif
-                        wait 500
-                        @ignore deadbody
-                    endif
-                else
-                    if not cooldown "Inventory Timer"
-                        if EnableOverheadMessages = 1  
-                            overhead "[ NO SKINNING KNIFE! ]" 337
-                        endif
-                        cooldown "Inventory Timer" 6000
-                    endif
-                endif
-                           
-                if not findbuff 'food satisfaction' and findtype "tray" self
-                    if findtype "tray" backpack as Food
-                        if EnableOverheadMessages = 1  
-                            overhead "[ EATING FOOD... ]" 88
-                        endif
-                        dclick Food
-                        wait 1000
-                    endif
-                endif 
-                
-                if EnablePKradar = 1 and not cooldown "PK Radar" 
-                    hotkey 'Next Murderer Player Target'
-                    wait 500
-                        if insysmsg "No one matching that was found"   
-                            cooldown "PK Radar" 2000
-                        else
-                            overhead "[ !! RED ALERT !! ]" 37
-                            hotkey 'Toggle War Only'
-                            replay 
-                        endif 
-                endif 
-
-                if warmode 
-                    hotkey 'Next Murderer Player Target'
-                    wait 500
-                    if insysmsg "No one matching that was found"   
-                        overhead "[ NO NEARBY REDS... ]" 37
-                        hotkey 'Toggle Peace Only" 
-                        wait 500 
                     else
-                        overhead "[ !! RED ALERT !! ]" 37
-                        replay 
-                    endif 
+                        if not cooldown "Inventory Timer"
+                            if EnableOverheadMessages = 1  
+                                overhead "[ NO SKINNING KNIFE! ]" 337
+                            endif
+                            cooldown "Inventory Timer" 6000
+                        endif
+                    endif
                 endif 
                 
-                if paralyzed and EnableParalyzePouch = 1
-                    if findtype "pouch" self
-                        yell "[pouch"
-                        hotkey 'Toggle War Only'
-                        replay
-                    else
-                        if EnableOverheadMessages = 1  
-                            overhead "[ NO MORE POUCHES! ]" 337
-                        endif
-                    endif           
-                endif
-
                 if EnableWeightWarningMessage = 1
                     if diffweight < GreenWarningDiffWeight and diffweight > YellowWarningDiffWeight and not cooldown "Weight Warning"
                         overhead "[ WEIGHT WARNING... ]" 77
@@ -1626,8 +1516,12 @@ while not dead
                         cooldown "Weight Warning" 6000
                     elseif diffweight < RedWeightLimitDiffWeight and not cooldown "Weight Warning"
                         overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
+                    
                         if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 6
-                            
+                           
+                            wait 2000
+                            overhead "[ AUTO RECALL! ]" 84
+                        
                             if EnableDIYHomeRecallScript = 1
                                 foreach RecallScript in HomeRecallScriptList
                                     script RecallScript
@@ -1646,8 +1540,7 @@ while not dead
                                     wait 2000
                                     replay
                                 endif
-        
-                                    overhead "[ AUTO RECALL! ]" 84
+
                                     wait 150
                                     dclick escape_runebook
                                     waitforgump 1551740969
@@ -1822,25 +1715,441 @@ while not dead
                                         hotkey "Organizer Agent-04"
                                         
                                         if InfiniteLoop = 1
+                                            wait 1000
+                                            overhead "[ !!INFINITE LOOP!! ]" 419
                                             say '[SacredJourney'
                                             waitforgump 1482653814
                                             gumpresponse 4
                                             wait 1000
-
-                                            if findtype 30528 ground 2091 1 1 as ChivGate
+                                            while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
                                                 dclick ChivGate
-                                            endif
-                                            
-                                            wait 500
-                                            
-                                            while findtype 30528 ground 2091 1 1 as ChivGate
+                                            endwhile
+
+                                            while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
                                                 gumpresponse 2 3899019871
-                                                wait 250
+                                                wait 200
                                             endwhile
                                             wait 1000
                                             replay
                                         else 
+                                            overhead "[ SCRIPT COMPLETE! ]" 69
+                                            stop       
+                                        endif 
+                            endif
+                        elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 6
+                            if not cooldown "Cleanup"
+                                overhead "[ WAITING TO RECALL... ]" 149
+                                cooldown "Cleanup" 3500
+                            endif 
+                            wait 500
+                        else 
+                            overhead "[ OVERWEIGHT! ]" 
+                            sysmsg "Time to head home and unload our loot!" 0   
+                            cooldown "Weight Timer" 5000
+                        endif 
+                    endif
+                endif  
+
+                if EnableAmmoWarningMessage = 1
+                    if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand
+                        # BOLTS
+                        @setvar! AMMO 1
+
+                    elseif findtype 'long bow|bow|recurve bow|composite bow' hand
+                        # ARROWS
+                        @setvar AMMO 2
+                    endif
+
+                    if counttype "crossbow bolt" self < LowAmmoWarningAmount and not cooldown "Ammunition" and AMMO = 1
+                        overhead "[ AMMO LOW! ]" 37
+                        cooldown "Ammunition" 6000
+                    endif 
+
+                    if counttype "arrow" self < LowAmmoWarningAmount and not cooldown "Ammunition" and AMMO = 2
+                        overhead "[ AMMO LOW! ]" 37
+                        cooldown "Ammunition" 6000    
+                    endif
+                endif 
+                        
+                if EnableArrowCleanup = 1
+                    if findtype 7163|3903 ground -1 -1 2 as item and not cooldown "Cleanup" 
+                        if EnableOverheadMessages = 1  
+                            overhead '[ CLEANUP... ]' 93
+                        endif
+                        hotkey "Grab Item"
+                        wft 1000
+                        target item
+                        wait 500
+                        if findtype "quiver" self as MyQuiver
+                            menu MyQuiver 0
+                            wait 250
+                        else
+                            hotkey 'Organizer Agent-03'
+                            wait 250  
+                        endif
+                        cooldown "Cleanup" 750
+                    endif
+
+                    if findtype 7163 ground -1 -1 10 as bolt and not cooldown "Radar"                    
+                        overhead "¼" 93 bolt
+                        cooldown "Radar" 3500
+                    endif
+
+                    if findtype 3903 ground -1 -1 10 as arrow and not cooldown "Radar"
+                        overhead "¼" 37 arrow
+                        cooldown "Radar" 3500
+                    endif
+                endif 
+                
+
+    hotkey 'Target Closest Grey Monster'
+    wait 500
+
+
+        #########################
+        ###  NO TARGET LOOP:  ###
+        #########################
+
+            if insysmsg "No one matching that was found on your screen"      
+                                
+                if targetexists 
+                    targettype "Elven Spellblade" 
+                endif
+            
+                if not cooldown "No Target Timer"
+                    if EnableOverheadMessages = 1
+                        overhead "[ NO TARGET... ]" 6
+                        cooldown "No Target Timer" 3500    
+                    else 
+                        overhead " Ï " 6
+                        cooldown "No Target Timer" 3500  
+                    endif 
+                endif     
+             
+                if findtype "Ginseng|Garlic|Blood Moss|Sulfurous Ash|Mandrake Root%s%|Nightshade|Black Pearl%s%|Spider's Silk" backpack
+                    if not cooldown "Satchel Timer" and findtype "reagent satchel" self as MyWizardBag
+                        menu MyWizardBag 0
+                        wait 500
+                        cooldown "Satchel Timer" 15000
+                    endif
+                endif
+         
+                if findtype "arrow|crossbow bolt" backpack
+                    if not cooldown "Satchel Timer" and findtype "quiver" self as MyQuiver
+                        menu MyQuiver 0
+                        wait 500
+                        cooldown "Satchel Timer" 15000
+                    endif
+                endif 
+
+                if findtype "Yellow Potion|Orange Potion|Red Potion|White Potion|Blue Potion|Black Potion|" backpack
+                    if not cooldown "Satchel Timer" and findtype 31262 self as MyPotBag
+                        menu MyPotBag 0
+                        wait 500
+                        cooldown "Satchel Timer" 15000
+                    endif
+                endif 
+
+                if EnableAutoCarving = 1
+                    if findtype 'Elven SpellBlade' self 
+                        if findtype "corpse" ground -1 -1 2 as deadbody
+                            dclicktype "Elven Spellblade"
+                            wft 1000
+                            targettype "Elven Spellblade"
+                            if EnableOverheadMessages = 1  
+                                overhead "[ SKINNING... ]" 339
+                            endif
+                            wait 500
+                            @ignore deadbody
+                        endif
+                    else
+                        if not cooldown "Inventory Timer"
+                            if EnableOverheadMessages = 1  
+                                overhead "[ NO SKINNING KNIFE! ]" 337
+                            endif
+                            cooldown "Inventory Timer" 6000
+                        endif
+                    endif
+                endif 
+                           
+                if not findbuff 'food satisfaction' and findtype "tray" self
+                    if findtype "tray" backpack as Food
+                        if EnableOverheadMessages = 1  
+                            overhead "[ EATING FOOD... ]" 88
+                        endif
+                        dclick Food
+                        wait 1000
+                    endif
+                endif 
+                
+                if EnablePKradar = 1 
+                    if not cooldown "PK Radar" 
+                        hotkey 'Next Murderer Player Target'
+                        wait 500
+                        if insysmsg "No one matching that was found"   
+                            cooldown "PK Radar" 1000
+                            clearsysmsg 
+                        else
+                            overhead "[ !! RED ALERT !! ]" 37
+                            hotkey 'Toggle War Only'
+                            replay 
+                        endif 
+                    endif
+                endif 
+
+                if warmode 
+                    hotkey 'Next Murderer Player Target'
+                    wait 500
+                    if insysmsg "No one matching that was found"   
+                        overhead "[ NO NEARBY REDS... ]" 37
+                        hotkey 'Toggle Peace Only" 
+                        clearsysmsg 
+                        wait 500 
+                    else
+                        overhead "[ !! RED ALERT !! ]" 37
+                        replay 
+                    endif 
+                endif 
+                
+                if EnableParalyzePouch = 1
+                    if paralyzed
+                        if findtype "pouch" self
+                            yell "[pouch"
+                            hotkey 'Toggle War Only'
+                            replay
+                        else
+                            if EnableOverheadMessages = 1   
+                                overhead "[ NO MORE POUCHES! ]" 337
+                            endif
+                        endif      
+                   endif      
+                endif
+
+                if EnableWeightWarningMessage = 1
+                    if diffweight < GreenWarningDiffWeight and diffweight > YellowWarningDiffWeight and not cooldown "Weight Warning"
+                        overhead "[ WEIGHT WARNING... ]" 77
+                        cooldown "Weight Warning" 6000
+                        elseif diffweight < YellowWarningDiffWeight and diffweight > RedWeightLimitDiffWeight and not cooldown "Weight Warning"
+                        overhead "[ WEIGHT WARNING! ]" 153
+                        cooldown "Weight Warning" 6000
+                    elseif diffweight < RedWeightLimitDiffWeight and not cooldown "Weight Warning"
+                        overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
+                    
+                        if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 6
+                           
+                            wait 2000
+                            overhead "[ AUTO RECALL! ]" 84
+                        
+                            if EnableDIYHomeRecallScript = 1
+                                foreach RecallScript in HomeRecallScriptList
+                                    script RecallScript
+                                endfor
+                            else                           
+          
+                                if targetexists 
+                                    hotkey 'Cancel Current Target'
+                                endif
+
+                                clearsysmsg 
+
+                                if not varexist escape_runebook
+                                    overhead "Select your escape runebook..." 253
+                                    setvar escape_runebook
+                                    wait 2000
+                                    replay
+                                endif
+
+                                    wait 150
+                                    dclick escape_runebook
+                                    waitforgump 1551740969
+                                    gumpresponse 2
+                                    wait 500
+                                    
+                                        if insysmsg 'Your concentration is disturbed'
+                                            wait 1000
+                                            for 5
+                                                clearsysmsg
+                                                overhead '[ INTERUPTED! ]' 153
+                                                wait 500
+                                                dclick escape_runebook
+                                                waitforgump 1551740969 
+                                                gumpresponse 2
+                                                wait 500
+                                                if insysmsg 'Your concentration is disturbed'
+                                                    overhead 'Fuck off!' 6
+                                                    wait 250
+                                                else 
+                                                    break
+                                                endif 
+                                            endfor
+                                        endif
+
+                                        wait 2000
+                                        
+                                        if not findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' hand 
+                                            if findtype 'long bow|bow|recurve bow|composite bow|stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' backpack as weapon
+                                            for 5
+                                                    getlabel weapon WeaponLabel
+                                                    wait 500
+                                                    if "unidentified" in WeaponLabel
+                                                        @ignore weapon
+                                                        wait 150
+                                                        if findtype 'stubnose crossbow|tower guard crossbow|balestra|long bow|bow|recurve bow|composite bow|heavy crossbow|crossbow' backpack as weapon
+                                                            getlabel weapon WeaponLabel
+                                                        endif
+                                                    else 
+                                                        break
+                                                    endif 
+                                                endfor            
+                                                dclick weapon
+                                                wait 500
+                                            endif 
+                                        endif
+
+                                        if EnableShield = 1
+                                            if not findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' lefthand
+                                                if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                    for 5
+                                                        getlabel shield ShieldLabel
+                                                        wait 500
+                                                        if "unidentified" in ShieldLabel
+                                                            @ignore shield
+                                                            wait 150 
+                                                            if findtype 'buckler |metal shield|Chaos shield|heater shield|bone shield|bronze shield|kite shield|Order shield|wooden shield|parrying gauche' backpack as shield
+                                                                getlabel shield ShieldLabel
+                                                            endif
+                                                        else 
+                                                            break
+                                                        endif 
+                                                    endfor            
+                                                    dclick shield
+                                                    wait 500
+                                                endif 
+                                            endif
+                                        endif
+
                                             wait 500
+                                            useskill "Hiding"
+                                            
+                                            
+                                        if findtype "bank deposit safe" ground -1 -1 2 as safe
+                                            while findtype "gold coin" backpack as gold
+                                                lift gold 60000
+                                                overhead "[ DEPOSIT GOLD... ]" 149
+                                                drop safe -1 -1 -1
+                                                wait 1500
+                                            endwhile
+                                            while findtype 2539 backpack as dubs
+                                                lift dubs 60000
+                                                drop safe -1 -1 -1
+                                                overhead "[ DEPOSIT DUBS... ]" 149
+                                                wait 1500
+                                            endwhile
+                                        else
+                                            overhead "[ NO BANK SAFE FOUND ]" 337
+                                        endif
+                                        wait 500
+
+                                        if findtype "black market goods|seed of renewal|dirt patch|bag of seeds|void orb|rune|scroll of calling|bottle|dye bottle|map|research materials" self
+                                            dclick LootChest
+                                            wait 1000
+                                            overhead "[ STASHING LOOT... ]" 69
+                                            hotkey "Organizer Agent-06"
+                                            wait 250
+                                            hotkey "Organizer Agent-07"
+                                            wait 250
+                                            hotkey "Organizer Agent-08"
+                                            wait 250
+                                            hotkey "Organizer Agent-09"
+                                            wait 1500
+                                        endif 
+
+                                        if findtype "resource container" ground -1 -1 2 as resource
+                                            menu resource 0
+                                            wft 500
+                                            target self
+                                            overhead "[ PILING RESOURCES... ]" 84
+                                            wait 1500
+                                        else
+                                            overhead "[ NO RESOURCE STOCKPILE FOUND ]" 337
+                                        endif
+                                        wait 500
+                                        
+                                        if findtype "repair bench" ground -1 -1 3 as RepairBench
+                                            clearsysmsg 
+                                            dclick RepairBench
+                                            wait 200
+                                            if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
+                                                overhead "[ NOTHING TO REPAIR! ]" 0
+                                                wait 1500
+                                            else
+                                                overhead "[ REPAIRING EQUIPMENT... ]" 337
+                                                settimer RepairTimer 0
+                                            while timer RepairTimer <= 5000 
+                                                if insysmsg "Repair"
+                                                    break
+                                                endif
+                                            endwhile
+                                            overhead "[ ITEMS REPAIRED! ]" 0
+                                            overhead "Repair took: {{RepairTimer}}ms" 149
+                                            removetimer RepairTimer
+                                            wait 500
+                                            endif
+                                        else
+                                            overhead "[ NO REPAIR BENCH FOUND ]" 337
+                                        endif
+
+                                        if findtype "storage shelf" ground -1 -1 2 as shelf
+                                            menu shelf 0
+                                            wft 500
+                                            target self
+                                            overhead "[ UNLOADING... ]" 2114
+                                            wait 1500
+                                            gumpclose 3232825965
+                                            wait 500
+                                            menu shelf 1
+                                            wft 500
+                                            target self   
+                                            overhead "[ RESUPPLYING... ]" 93
+                                            wait 1500
+                                        else
+                                            overhead "[ NO STORAGE SHELF FOUND ]" 0
+                                        endif   
+
+                                        if findtype "ornate elven chest|magic item recycler" ground -1 -1 2 as recycler
+                                            menu recycler 1
+                                            wait 1000
+                                            if insysmsg "0 recyclable"
+                                                overhead "[ NO MAGIC LOOT! ]" 6
+                                            else
+                                                overhead "[ RECYCLING MAGIC LOOT... ]" 6
+                                                wait 200
+                                            endif
+                                        else
+                                            overhead "[ NO MAGIC ITEM RECYCLER FOUND ]" 337
+                                        endif
+
+                                        wait 500
+                                        hotkey "Organizer Agent-04"
+                                        
+                                        if InfiniteLoop = 1
+                                            wait 1000
+                                            overhead "[ !!INFINITE LOOP!! ]" 419
+                                            say '[SacredJourney'
+                                            waitforgump 1482653814
+                                            gumpresponse 4
+                                            wait 1000
+                                            while not gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
+                                                dclick ChivGate
+                                            endwhile
+
+                                            while gumpexists 3899019871 and findtype 30528 ground 2091 1 1 as ChivGate
+                                                gumpresponse 2 3899019871
+                                                wait 200
+                                            endwhile
+                                            wait 1000
+                                            replay
+                                        else 
                                             overhead "[ SCRIPT COMPLETE! ]" 69
                                             stop       
                                         endif 
@@ -1911,7 +2220,7 @@ while not dead
                 endif 
                 
                 if insysmsg "something invisible out of" and EnableOverheadMessages = 1  
-                    overhead "¼ SOMEONE HIDING! ¼" 6  
+                    overhead "¼ SOMEONE HIDING HERE! ¼" 6  
                     wait 500              
                 endif
 
@@ -1938,11 +2247,13 @@ while not dead
                                 overhead '[ BANDAGING...]' 88
                             endif
                             hotkey "Bandage Self"                                     
-                        elseif counttype 'clean bandage%s%' < 10 and not cooldown "Inventory Timer"
-                            if EnableOverheadMessages = 1   
+                        elseif counttype 'clean bandage%s%' < 10
+                            if EnableOverheadMessages = 1 and not cooldown "Inventory Timer"
                                 overhead "[ BANDAGES LOW! ]" 339
+                                cooldown "Inventory Timer" 6000
                             endif
-                            cooldown "Inventory Timer" 6000
+                            hotkey "Bandage Self"   
+                            
                         elseif counttype 'clean bandage%s%' = 0 and not cooldown "Inventory Timer"
                             if EnableOverheadMessages = 1   
                                 overhead "[ NO BANDAGES! ]" 337
@@ -2223,7 +2534,7 @@ while not dead
         
             if not cooldown "No Target Timer" 
                 if EnableOverheadMessages = 1 
-                    overhead " Ï TARGET Ï " 253
+                    overhead " Ï TARGET Ï " 253 ClosestTarget
                     cooldown "No Target Timer" 5000
                     cooldown "Target Timer" 3000
                 else 
@@ -2418,17 +2729,19 @@ while not dead
                     break
                 endif
 
-                if paralyzed and EnableParalyzePouch = 1
-                    if findtype "pouch" self
-                        yell "[pouch"
-                        hotkey 'Toggle War Only'
-                        replay
-                    else
-                        if EnableOverheadMessages = 1 
-                            overhead "[ NO MORE POUCHES! ]" 337
-                        endif
-                    endif           
-                endif 
+                if EnableParalyzePouch = 1
+                    if paralyzed
+                        if findtype "pouch" self
+                            yell "[pouch"
+                            hotkey 'Toggle War Only'
+                            replay
+                        else
+                            if EnableOverheadMessages = 1   
+                                overhead "[ NO MORE POUCHES! ]" 337
+                            endif
+                        endif      
+                   endif      
+                endif
                 
                 if warmode
                     if EnableExplosionPots = 1 
@@ -2524,16 +2837,19 @@ while not dead
                     endif 
                 endif
                 
-                if EnablePKradar = 1 and not cooldown "PK Radar" 
-                    hotkey 'Next Murderer Player Target'
-                    wait 500
+                if EnablePKradar = 1 
+                    if not cooldown "PK Radar" 
+                        hotkey 'Next Murderer Player Target'
+                        wait 500
                         if insysmsg "No one matching that was found"   
-                            cooldown "PK Radar" 2000
+                            cooldown "PK Radar" 1000
+                            clearsysmsg 
                         else
                             overhead "[ !! RED ALERT !! ]" 37
                             hotkey 'Toggle War Only'
-                            replay
+                            replay 
                         endif 
+                    endif
                 endif 
                 
             
@@ -2970,16 +3286,18 @@ while not dead
             ####    DEFENSIVE CHECKS:    ####
             #################################
             
-                if paralyzed and EnableParalyzePouch = 1
-                    if findtype "pouch" self
-                        yell "[pouch"
-                        hotkey 'Toggle War Only'
-                        replay
-                    else
-                        if EnableOverheadMessages = 1 
-                            overhead "[ NO MORE POUCHES! ]" 337
-                        endif
-                    endif           
+                if EnableParalyzePouch = 1
+                    if paralyzed
+                        if findtype "pouch" self
+                            yell "[pouch"
+                            hotkey 'Toggle War Only'
+                            replay
+                        else
+                            if EnableOverheadMessages = 1   
+                                overhead "[ NO MORE POUCHES! ]" 337
+                            endif
+                        endif      
+                   endif      
                 endif
 
                 if EnableNobleSacrifice = 1            
@@ -3052,33 +3370,24 @@ while not dead
                 endif 
                 
                 if skill 'Healing' > 38
-                    if not bandaging and hp < maxhp
-                        if poisoned or findbuff "bleed" or findbuff "disease" 
+                    if not bandaging 
+                        if hp < maxhp or poisoned or findbuff "bleed" or findbuff "disease" 
                             if EnableOverheadMessages = 1   
                                 overhead '[ BANDAGING...]' 88
                             endif
-                                hotkey "Bandage Self"
-                                wait 500                                   
+                            hotkey "Bandage Self"                                     
                         elseif counttype 'clean bandage%s%' < 10
-                            if EnableOverheadMessages = 1   
-                                if not cooldown "Inventory Timer"
-                                    overhead "[ BANDAGES LOW! ]" 339
-                                endif
-                            endif
-                                hotkey "Bandage Self"   
-                                wait 500                            
+                            if EnableOverheadMessages = 1 and not cooldown "Inventory Timer"
+                                overhead "[ BANDAGES LOW! ]" 339
                                 cooldown "Inventory Timer" 6000
+                            endif
+                            hotkey "Bandage Self"   
+                            
                         elseif counttype 'clean bandage%s%' = 0 and not cooldown "Inventory Timer"
                             if EnableOverheadMessages = 1   
                                 overhead "[ NO BANDAGES! ]" 337
                             endif
-                                cooldown "Inventory Timer" 6000
-                        else 
-                            if EnableOverheadMessages = 1   
-                                overhead '[ BANDAGING...]' 88
-                            endif
-                                hotkey "Bandage Self"    
-                                wait 500 
+                            cooldown "Inventory Timer" 6000
                         endif 
                     endif
                 endif
@@ -3573,14 +3882,18 @@ while not dead
                             cooldown "Weight Warning" 6000
                         elseif diffweight < RedWeightLimitDiffWeight and not cooldown "Weight Warning"
                             overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
+                        
                             if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 6
+                               
+                                wait 2000
+                                overhead "[ AUTO RECALL! ]" 84
                             
                                 if EnableDIYHomeRecallScript = 1
                                     foreach RecallScript in HomeRecallScriptList
                                         script RecallScript
                                     endfor
-                                else 
-                                
+                                else                           
+              
                                     if targetexists 
                                         hotkey 'Cancel Current Target'
                                     endif
@@ -3768,6 +4081,8 @@ while not dead
                                         hotkey "Organizer Agent-04"
                                         
                                         if InfiniteLoop = 1
+                                            wait 1000
+                                            overhead "[ !!INFINITE LOOP!! ]" 419
                                             say '[SacredJourney'
                                             waitforgump 1482653814
                                             gumpresponse 4
@@ -3784,8 +4099,8 @@ while not dead
                                             replay
                                         else 
                                             overhead "[ SCRIPT COMPLETE! ]" 69
-                                            stop   
-                                        endif    
+                                            stop       
+                                        endif  
                                 endif 
                             elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 6
                                 if not cooldown "Cleanup"
@@ -3830,25 +4145,27 @@ while not dead
                         endif
                     endif 
                     
-                    if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                        if findtype "corpse" ground -1 -1 2 as corpse
-                            dclicktype "Elven Spellblade"
-                            wft 1000
-                            if EnableOverheadMessages = 1
-                                overhead "[ SKINNING... ]" 338
-                            endif 
-                            targettype "Elven Spellblade"
-                            wait 500
-                            @ignore corpse
+                    if EnableAutoCarving = 1
+                        if findtype 'Elven SpellBlade' self 
+                            if findtype "corpse" ground -1 -1 2 as deadbody
+                                dclicktype "Elven Spellblade"
+                                wft 1000
+                                targettype "Elven Spellblade"
+                                if EnableOverheadMessages = 1  
+                                    overhead "[ SKINNING... ]" 339
+                                endif
+                                wait 500
+                                @ignore deadbody
+                            endif
+                        else
+                            if not cooldown "Inventory Timer"
+                                if EnableOverheadMessages = 1  
+                                    overhead "[ NO SKINNING KNIFE! ]" 337
+                                endif
+                                cooldown "Inventory Timer" 6000
+                            endif
                         endif
-                    else
-                        if not cooldown "Inventory Timer" 
-                            if EnableOverheadMessages = 1
-                                overhead "[ NO SKINNING KNIFE! ]" 337
-                            endif 
-                            cooldown "Inventory Timer" 6000
-                        endif 
-                    endif
+                    endif 
               
                     if EnableArrowCleanup = 1
                         if findtype 7163|3903 ground -1 -1 2 as item and not cooldown "Cleanup"
@@ -3973,109 +4290,120 @@ while not dead
             cooldown "Satchel Timer" 6000
             cooldown "Target Check" 0
 
-                while cooldown "Cleanup"
+                    while cooldown "Cleanup"
                                 
-                    if findtype 'Elven SpellBlade' backpack and EnableAutoCarving = 1
-                        if findtype "corpse" ground -1 -1 2 as mykill  
-                            if EnableOverheadMessages = 1           
-                                overhead "[ SKINNING... ]" 338
-                            endif 
-                            dclicktype "Elven Spellblade"
-                            wft 3500
-                            targettype "Elven Spellblade"
-                            wait 500
-                            @ignore mykill
-                        endif
-                    else
-                        if not cooldown "Inventory Timer"
-                            if EnableOverheadMessages = 1
-                                overhead "[ NO SKINNING KNIFE! ]" 337
-                            endif 
-                            cooldown "Inventory Timer" 4000
-                        endif
-                    endif 
-
-                   if not cooldown "Target Check"
-                        hotkey 'Target Closest Grey Monster'
-                        wait 250 
-                        if insysmsg "No one matching that was found"  
-                            // Do Nothing
-                        else 
-                            break
-                        endif         
-                        cooldown "Target Check" 1000
-                    endif 
-                    
-                    if paralyzed and EnableParalyzePouch = 1
-                        if findtype "pouch" self
-                            yell "[pouch"
-                            hotkey 'Toggle War Only'
-                            replay
-                        else
-                            if EnableOverheadMessages = 1 
-                                overhead "[ NO MORE POUCHES! ]" 337
+                        if EnableAutoCarving = 1
+                            if findtype 'Elven SpellBlade' self 
+                                if findtype "corpse" ground -1 -1 2 as deadbody
+                                    dclicktype "Elven Spellblade"
+                                    wft 1000
+                                    targettype "Elven Spellblade"
+                                    if EnableOverheadMessages = 1  
+                                        overhead "[ SKINNING... ]" 339
+                                    endif
+                                    wait 500
+                                    @ignore deadbody
+                                endif
+                            else
+                                if not cooldown "Inventory Timer"
+                                    if EnableOverheadMessages = 1  
+                                        overhead "[ NO SKINNING KNIFE! ]" 337
+                                    endif
+                                    cooldown "Inventory Timer" 6000
+                                endif
                             endif
-                        endif           
-                    endif 
-                    
-                    if EnablePKradar = 1 and not cooldown "PK Radar" 
-                        hotkey 'Next Murderer Player Target'
-                        wait 500
-                        if insysmsg "No one matching that was found"   
-                            cooldown "PK Radar" 2000
-                        else
-                            overhead "[ !! RED ALERT !! ]" 37
-                            hotkey 'Toggle War Only'
-                            replay
                         endif 
-                    endif 
 
-                    if insysmsg "world is saving"        
-                        if not timerexists "WorldSaveTimer"
-                            createtimer "WorldSaveTimer"
-                        endif             
-                            settimer "WorldSaveTimer" 0
-                        while timer "WorldSaveTimer" < 4000
-                            if insysmsg "save complete"
-                                break
-                            endif
+                       if not cooldown "Target Check"
+                            hotkey 'Target Closest Grey Monster'
                             wait 250 
-                        endwhile   
-                        if EnableOverheadMessages = 1         
-                            overhead "[ SAVE COMPLETE! ]" 253
+                            if insysmsg "No one matching that was found"  
+                                // Do Nothing
+                            else 
+                                break
+                            endif         
+                            cooldown "Target Check" 1000
                         endif 
-                    endif     
-
-                    if EnableWeightWarningMessage = 1
-                        if diffweight < GreenWarningDiffWeight and diffweight > YellowWarningDiffWeight and not cooldown "Weight Warning"
-                            overhead "[ WEIGHT WARNING... ]" 77
-                            cooldown "Weight Warning" 6000
-                            elseif diffweight < YellowWarningDiffWeight and diffweight > RedWeightLimitDiffWeight and not cooldown "Weight Warning"
-                            overhead "[ WEIGHT WARNING! ]" 153
-                            cooldown "Weight Warning" 6000
-                        elseif diffweight < RedWeightLimitDiffWeight and not cooldown "Weight Warning"
-                            overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
-                            if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 6
-                                
-                                if EnableDIYHomeRecallScript = 1
-                                    foreach RecallScript in HomeRecallScriptList
-                                        script RecallScript
-                                    endfor
-                                else 
-                                        
-                                    if targetexists 
-                                        hotkey 'Cancel Current Target'
+                        
+                        if EnableParalyzePouch = 1
+                            if paralyzed
+                                if findtype "pouch" self
+                                    yell "[pouch"
+                                    hotkey 'Toggle War Only'
+                                    replay
+                                else
+                                    if EnableOverheadMessages = 1   
+                                        overhead "[ NO MORE POUCHES! ]" 337
                                     endif
-
+                                endif      
+                           endif      
+                        endif
+                        
+                        if EnablePKradar = 1 
+                            if not cooldown "PK Radar" 
+                                hotkey 'Next Murderer Player Target'
+                                wait 500
+                                if insysmsg "No one matching that was found"   
+                                    cooldown "PK Radar" 1000
                                     clearsysmsg 
+                                else
+                                    overhead "[ !! RED ALERT !! ]" 37
+                                    hotkey 'Toggle War Only'
+                                    replay 
+                                endif 
+                            endif
+                        endif 
 
-                                    if not varexist escape_runebook
-                                        overhead "Select your escape runebook..." 253
-                                        setvar escape_runebook
-                                        wait 2000
-                                        replay
-                                    endif
-            
+                        if insysmsg "world is saving"        
+                            if not timerexists "WorldSaveTimer"
+                                createtimer "WorldSaveTimer"
+                            endif             
+                                settimer "WorldSaveTimer" 0
+                            while timer "WorldSaveTimer" < 4000
+                                if insysmsg "save complete"
+                                    break
+                                endif
+                                wait 250 
+                            endwhile   
+                            if EnableOverheadMessages = 1         
+                                overhead "[ SAVE COMPLETE! ]" 253
+                            endif 
+                        endif     
+
+                        if EnableWeightWarningMessage = 1
+                            if diffweight < GreenWarningDiffWeight and diffweight > YellowWarningDiffWeight and not cooldown "Weight Warning"
+                                overhead "[ WEIGHT WARNING... ]" 77
+                                cooldown "Weight Warning" 6000
+                                elseif diffweight < YellowWarningDiffWeight and diffweight > RedWeightLimitDiffWeight and not cooldown "Weight Warning"
+                                overhead "[ WEIGHT WARNING! ]" 153
+                                cooldown "Weight Warning" 6000
+                            elseif diffweight < RedWeightLimitDiffWeight and not cooldown "Weight Warning"
+                                overhead "-[ WEIGHT LIMIT REACHED!! ]-" 37
+                                
+                                if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 6
+                                       
+                                    wait 2000
+                                    overhead "[ AUTO RECALL! ]" 84
+                                
+                                    if EnableDIYHomeRecallScript = 1
+                                        foreach RecallScript in HomeRecallScriptList
+                                            script RecallScript
+                                        endfor
+                                    else                           
+                  
+                                        if targetexists 
+                                            hotkey 'Cancel Current Target'
+                                        endif
+
+                                        clearsysmsg 
+
+                                        if not varexist escape_runebook
+                                            overhead "Select your escape runebook..." 253
+                                            setvar escape_runebook
+                                            wait 2000
+                                            replay
+                                        endif
+                
                                         overhead "[ AUTO RECALL! ]" 84
                                         wait 150
                                         dclick escape_runebook
@@ -4249,7 +4577,10 @@ while not dead
 
                                         wait 500
                                         hotkey "Organizer Agent-04"
+                                        
                                         if InfiniteLoop = 1
+                                            wait 1000
+                                            overhead "[ !!INFINITE LOOP!! ]" 419
                                             say '[SacredJourney'
                                             waitforgump 1482653814
                                             gumpresponse 4
@@ -4267,56 +4598,56 @@ while not dead
                                         else 
                                             overhead "[ SCRIPT COMPLETE! ]" 69
                                             stop       
+                                        endif 
                                     endif
-                                endif
-                            elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 6
-                                if not cooldown "Cleanup"
-                                    overhead "[ WAITING TO RECALL... ]" 149
-                                    cooldown "Cleanup" 3500
+                                elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 6
+                                    if not cooldown "Cleanup"
+                                        overhead "[ WAITING TO RECALL... ]" 149
+                                        cooldown "Cleanup" 3500
+                                    endif 
+                                    wait 500
+                                else 
+                                    overhead "[ OVERWEIGHT! ]" 
+                                    sysmsg "Time to head home and unload our loot!" 0   
+                                    cooldown "Weight Timer" 5000
                                 endif 
-                                wait 500
-                            else 
-                                overhead "[ OVERWEIGHT! ]" 
-                                sysmsg "Time to head home and unload our loot!" 0   
-                                cooldown "Weight Timer" 5000
+                            endif
+                        endif  
+                  
+                        if EnableAmmoWarningMessage = 1
+                            if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand
+                                # BOLTS
+                                @setvar! AMMO 1
+
+                            elseif findtype 'long bow|bow|recurve bow|composite bow' hand
+                                # ARROWS
+                                @setvar AMMO 2
+                            endif
+
+                            if counttype "crossbow bolt" self < LowAmmoWarningAmount and not cooldown "Ammunition" and AMMO = 1
+                                overhead "[ AMMO LOW! ]" 37
+                                cooldown "Ammunition" 6000
                             endif 
-                        endif
-                    endif  
-              
-                    if EnableAmmoWarningMessage = 1
-                        if findtype 'stubnose crossbow|tower guard crossbow|balestra|heavy crossbow|crossbow' hand
-                            # BOLTS
-                            @setvar! AMMO 1
 
-                        elseif findtype 'long bow|bow|recurve bow|composite bow' hand
-                            # ARROWS
-                            @setvar AMMO 2
-                        endif
-
-                        if counttype "crossbow bolt" self < LowAmmoWarningAmount and not cooldown "Ammunition" and AMMO = 1
-                            overhead "[ AMMO LOW! ]" 37
-                            cooldown "Ammunition" 6000
+                            if counttype "arrow" self < LowAmmoWarningAmount and not cooldown "Ammunition" and AMMO = 2
+                                overhead "[ AMMO LOW! ]" 37
+                                cooldown "Ammunition" 6000    
+                            endif
                         endif 
-
-                        if counttype "arrow" self < LowAmmoWarningAmount and not cooldown "Ammunition" and AMMO = 2
-                            overhead "[ AMMO LOW! ]" 37
-                            cooldown "Ammunition" 6000    
+                
+                        if findtype "arrow|crossbow bolt" backpack
+                            if not cooldown "Satchel Timer" and findtype "quiver" self as MyQuiver
+                                menu MyQuiver 0
+                                wait 500
+                                cooldown "Satchel Timer" 5000
+                            endif
+                        endif 
+                        
+                        if targetexists 
+                            targettype "Elven Spellblade" 
                         endif
-                    endif 
-            
-                    if findtype "arrow|crossbow bolt" backpack
-                        if not cooldown "Satchel Timer" and findtype "quiver" self as MyQuiver
-                            menu MyQuiver 0
-                            wait 500
-                            cooldown "Satchel Timer" 5000
-                        endif
-                    endif 
-                    
-                if targetexists 
-                    targettype "Elven Spellblade" 
-                endif
-                    
-                endwhile
+                        
+                    endwhile
             replay 
         endif 
 endwhile

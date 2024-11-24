@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.10
+#Auto-mage attack 3.10.2
 
 #********** INFORMATION **********# 
 
@@ -26,6 +26,7 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.10.2 Quick fix to auto carve corpses
 # Ver 3.10 Added Regs warning when missing any regs || Added variable to enable auto carve corpses
 # Ver 3.09 Minor changes and fixes || Organization of variables. 
 # Ver 3.08 Added ignore list. 
@@ -446,6 +447,11 @@ if not timerexists meditationTimer
     settimer meditationTimer meditationCD
 endif
 
+@setvar! carveCD 650
+if not timerexists carveTimer
+    settimer carveTimer carveCD
+endif
+
 #--- Magery attack spells timers ---#
 
 if not timerexists magicArrowTimer 
@@ -728,22 +734,45 @@ while not dead
 
 #********* CARVE CORPSE *********
 
-    if 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 2 as corpsy
-        if insysmsg "That corpse has already been carved."
+    while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 2 as corpsy and diffhits < activateAutoHealDiff
+        if timer carveTimer > carveCD
+            if insysmsg "That corpse has already been carved."
+            endif
+            if insysmsg "You carve materials from the corpse."
+            endif
+            if insysmsg "You must wait to perform another action."
+            endif
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            if casting 
+                interrupt
+            endif
+            dclicktype 11552 backpack
+            getlabel backpack xxx
+            wait 200        
+            while not targetexists 
+                if insysmsg "You must wait to perform another action."
+                    break
+                endif
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                dclicktype 11552 backpack
+                getlabel backpack xxx
+                wait 200
+            endwhile
+            
+            target corpsy    
+            getlabel backpack xxx
+            wait 200
+            
+            if insysmsg "That corpse has already been carved." or insysmsg "You carve materials from the corpse."
+                @ignore corpsy
+                settimer carveTimer 0
+            endif
         endif
-        dclicktype  11552 backpack
-        
-        while not targetexists 
-        endwhile
-        
-        target corpsy    
-        getlabel backpack xxx
-        wait 200
-        
-        if insysmsg "That corpse has already been carved."
-            @ignore corpsy
-        endif
-    endif
+    endwhile
 
 #********** AUTO HEALING START  **********#         
 
@@ -2413,6 +2442,48 @@ while not dead
         endif
     
     endwhile
+    
+    #********* CARVE CORPSE *********
+    
+        while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 2 as corpsy and diffhits < activateAutoHealDiff
+            if timer carveTimer > carveCD
+                if insysmsg "That corpse has already been carved."
+                endif
+                if insysmsg "You carve materials from the corpse."
+                endif
+                if insysmsg "You must wait to perform another action."
+                endif
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                if casting 
+                    interrupt
+                endif
+                dclicktype 11552 backpack
+                getlabel backpack xxx
+                wait 200        
+                while not targetexists 
+                    if insysmsg "You must wait to perform another action."
+                        break
+                    endif
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    dclicktype 11552 backpack
+                    getlabel backpack xxx
+                    wait 200
+                endwhile
+                
+                target corpsy    
+                getlabel backpack xxx
+                wait 200
+                
+                if insysmsg "That corpse has already been carved." or insysmsg "You carve materials from the corpse."
+                    @ignore corpsy
+                    settimer carveTimer 0
+                endif
+            endif
+        endwhile
 
 #********* MANUAL-SELECT NEW TARGET *********
 
@@ -2480,7 +2551,7 @@ while not dead
                     overhead 'No target nearby' 33
                     settimer noTargetMessageTimer 0
                 endif
-            else
+            elseif not dead lasttarget
                 @setvar! tempTarget lasttarget
                 while diffhits < activateAutoHealDiff
                     if earthElementals != 0 or waterElementals != 0 or fireElementals != 0 or airElementals != 0 or summonDaemons != 0 or summonCreature != 0
@@ -2573,6 +2644,49 @@ while not dead
                     if targetexists
                         hotkey 'cancel current target'
                     endif
+                    
+                #********* CARVE CORPSE *********
+                
+                    while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 2 as corpsy and diffhits < activateAutoHealDiff
+                        if timer carveTimer > carveCD
+                            if insysmsg "That corpse has already been carved."
+                            endif
+                            if insysmsg "You carve materials from the corpse."
+                            endif
+                            if insysmsg "You must wait to perform another action."
+                            endif
+                            if targetexists
+                                hotkey 'cancel current target'
+                            endif
+                            if casting 
+                                interrupt
+                            endif
+                            dclicktype 11552 backpack
+                            getlabel backpack xxx
+                            wait 200        
+                            while not targetexists 
+                                if insysmsg "You must wait to perform another action."
+                                    break
+                                endif
+                                if targetexists
+                                    hotkey 'cancel current target'
+                                endif
+                                dclicktype 11552 backpack
+                                getlabel backpack xxx
+                                wait 200
+                            endwhile
+                            
+                            target corpsy    
+                            getlabel backpack xxx
+                            wait 200
+                            
+                            if insysmsg "That corpse has already been carved." or insysmsg "You carve materials from the corpse."
+                                @ignore corpsy
+                                settimer carveTimer 0
+                            endif
+                        endif
+                    endwhile
+                    
                 endwhile
             endif
             

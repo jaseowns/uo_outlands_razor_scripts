@@ -143,7 +143,7 @@
 
 @setvar! EnableHolyLight 1
 @setvar! EnableNobleSacrifice 1
-@setvar! EnableCleanseByFire 1
+@setvar! EnableCleanseByFire 0
 @setvar! EnableCloseWounds 1
 
 @setvar! HealPotHPdiff 30
@@ -163,7 +163,7 @@
 
 @setvar! EnableDivineFury 1
 @setvar! EnableEnemyOfOne 1
-@setvar! EnableConsecrateWeapon 1
+@setvar! EnableConsecrateWeapon 0
 
 @setvar! EnableExplosionPots 1
 
@@ -200,25 +200,28 @@
 //////////////////////////
 
     # PK radar must be enabled for Auto Red Recall to function: 
-        @setvar! EnablePKradar 1 
-    
+        @setvar! EnablePKradar 1         
+    # Auto Recall if PK comes into target range (overhead warning message only, if disabled but radar left on):
+        @setvar! EnableAutoRedRecall 1     
+        
+    # Auto Recall when weight limit met (and coast is clear): 
+        @setvar! EnableAutoWeightRecall 1 
+    # Infinite Loop will unload/resupply and then Chiv Gate to Custom location after unloading (weight recall only): 
+        @setvar! EnableInfiniteLoop 1
+    // ( Must use built-in Home Recall script if using Infinite Loop setting! ) \\
+   
     # Auto Recall should be disabled if farming in dungeons! 
-    # (if both are set to 0 script will default to Auto Dungeon Escape through moongates) 
-        @setvar! EnableAutoRedRecall 1 
+    # You can still use PK Radar.  Just set both Auto Recall to 0 
+    # Script will then default to running an Auto Dungeon Escape through moongates loop instead.
     # or you can fight back instead:  
         @setvar! EnableStandYourGround 0 
 
-    # Auto Recall when weight limit met and coast is clear: 
-        @setvar! EnableAutoWeightRecall 1 
-    # Infinite Loop will unload/resupply and then Chiv Gate to Custom location after unloading on Auto Recall (weight recall only): 
-        @setvar! InfiniteLoop 0
-
-    
-    # Use this variable to enable your own Razor script for Auto Recall (otherwise it will prompt for Runebook and use mine): 
-        @setvar! EnableDIYHomeRecallScript 0 
+    # Use this variable to enable your own Razor script for Auto Recall (otherwise script will prompt for Runebook and use mine): 
+        @setvar! EnableDIYHomeRecallScript 0
         createlist HomeRecallScriptList
     # Type the name of your own Home Recall Razor script here: 
         pushlist HomeRecallScriptList "Your Recall Script Name Here"
+    // ( Must use built-in Home Recall script if using Infinite Loop setting! ) //
 
 
 
@@ -354,7 +357,7 @@ while not dead
     
     @setvar! PreviousTarget lasttarget 
     @setvar! SwitchStance 0 
-    @setvar! NeedtoProvoke 1
+    @setvar! NeedtoProvoke 0
     @setvar! NeedtoDiscord 1
     @setvar! NeedtoPacify 1
     @setvar! ClosestTarget 0
@@ -1718,7 +1721,7 @@ while not dead
                                         wait 500
                                         hotkey "Organizer Agent-04"
                                         
-                                        if InfiniteLoop = 1
+                                        if EnableInfiniteLoop = 1
                                             wait 1000
                                             overhead "[ !!INFINITE LOOP!! ]" 419
                                             say '[SacredJourney'
@@ -1735,7 +1738,7 @@ while not dead
                                             endwhile
                                             wait 1000
                                             replay
-                                        else 
+                                        elseif EnableInfiniteLoop != 1 or EnableInfiniteLoop = 0
                                             overhead "[ SCRIPT COMPLETE! ]" 69
                                             stop       
                                         endif 
@@ -2136,7 +2139,7 @@ while not dead
                                         wait 500
                                         hotkey "Organizer Agent-04"
                                         
-                                        if InfiniteLoop = 1
+                                        if EnableInfiniteLoop = 1
                                             wait 1000
                                             overhead "[ !!INFINITE LOOP!! ]" 419
                                             say '[SacredJourney'
@@ -2153,7 +2156,7 @@ while not dead
                                             endwhile
                                             wait 1000
                                             replay
-                                        else 
+                                        elseif EnableInfiniteLoop != 1 or EnableInfiniteLoop = 0 
                                             overhead "[ SCRIPT COMPLETE! ]" 69
                                             stop       
                                         endif 
@@ -2591,19 +2594,20 @@ while not dead
                     
                 endif 
 
-                if NextClosestTarget != ClosestTarget and find NextClosestTarget ground -1 -1 6
+                if NextClosestTarget != ClosestTarget and find NextClosestTarget ground -1 -1 8
                     @setvar! NeedtoProvoke 1
-                    @setvar! NeedtoPacify 0
-                    @setvar! NeedtoDiscord 0
                     cooldown "Peace Check" 5000
                     cooldown "Provo Check" 5000
                     cooldown "Disco Check" 5000
                     cooldown "Discordance" 5000
                     cooldown "Peacemaking" 2500
-                    cooldown "Target Check" 5000
                 else 
                     @setvar! NeedtoProvoke 0
                     @setvar! NeedtoPacify 1
+                    cooldown "Peace Check" 5000
+                    cooldown "Provo Check" 5000
+                    cooldown "Disco Check" 5000
+                    cooldown "Provocation" 5000
                 endif            
 
             if PreviousTarget != ClosestTarget
@@ -2958,7 +2962,8 @@ while not dead
                                             overhead "[ CANNOT BE SEEN... ]" 339 NextClosestTarget
                                         endif
                                         @setvar! NeedtoProvoke 0
-                                        cooldown "Provocation" 4000
+                                        @setvar! NeedtoPacify 1
+                                        cooldown "Provocation" 5000
                                     elseif insysmsg "You must wait"
                                         if EnableOverheadMessages = 1 
                                             overhead "[ WAITING... ]" 2117
@@ -2973,7 +2978,8 @@ while not dead
                                             overhead '[ TOO FAR AWAY! ]' 339 NextClosestTarget
                                         endif
                                         @setvar! NeedtoProvoke 0
-                                        cooldown "Provocation" 4000
+                                        @setvar! NeedtoPacify 1
+                                        cooldown "Provocation" 5000
                                     else 
                                         if EnableOverheadMessages = 1                        
                                             overhead "[ PROVOKING... ]" 2117
@@ -3041,6 +3047,8 @@ while not dead
                                                 overhead '[ TOO FAR APART! ]' 153 NextClosestTarget
                                             endif
                                             wait 250 
+                                            @setvar! NeedtoProvoke 0
+                                            @setvar! NeedtoPacify 1 
                                         elseif insysmsg 'tell someone to attack themselves!'
                                             if EnableOverheadMessages = 1 
                                                 overhead '[ SELF TARGET FAIL... ]' 337
@@ -4084,7 +4092,7 @@ while not dead
                                         wait 500
                                         hotkey "Organizer Agent-04"
                                         
-                                        if InfiniteLoop = 1
+                                        if EnableInfiniteLoop = 1
                                             wait 1000
                                             overhead "[ !!INFINITE LOOP!! ]" 419
                                             say '[SacredJourney'
@@ -4101,7 +4109,7 @@ while not dead
                                             endwhile
                                             wait 1000
                                             replay
-                                        else 
+                                        elseif EnableInfiniteLoop != 1 or EnableInfiniteLoop = 0 
                                             overhead "[ SCRIPT COMPLETE! ]" 69
                                             stop       
                                         endif  
@@ -4582,7 +4590,7 @@ while not dead
                                         wait 500
                                         hotkey "Organizer Agent-04"
                                         
-                                        if InfiniteLoop = 1
+                                        if EnableInfiniteLoop = 1
                                             wait 1000
                                             overhead "[ !!INFINITE LOOP!! ]" 419
                                             say '[SacredJourney'
@@ -4599,7 +4607,7 @@ while not dead
                                             endwhile
                                             wait 1000
                                             replay
-                                        else 
+                                        elseif EnableInfiniteLoop != 1 or EnableInfiniteLoop = 0 
                                             overhead "[ SCRIPT COMPLETE! ]" 69
                                             stop       
                                         endif 

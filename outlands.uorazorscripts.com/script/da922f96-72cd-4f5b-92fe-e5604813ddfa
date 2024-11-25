@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.10.4
+#Auto-mage attack 3.10.5
 
 #********** INFORMATION **********# 
 
@@ -26,7 +26,7 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
-# Ver 3.10.4 More fixes to auto carve corpses
+# Ver 3.10.5 Minor fixes
 # Ver 3.10 Added Regs warning when missing any regs || Added variable to enable auto carve corpses
 # Ver 3.09 Minor changes and fixes || Organization of variables. 
 # Ver 3.08 Added ignore list. 
@@ -122,7 +122,7 @@ pushlist animalsIgnoreList "a death adder"
 
 @setvar! castMagicArrow 1
 @setvar! castHarm 1
-@setvar! castFireball 0
+@setvar! castFireball 1
 @setvar! castLightning 1
 
 @setvar! activateMagicArrowWhenManaBelow 200
@@ -164,7 +164,7 @@ pushlist animalsIgnoreList "a death adder"
 #--- Set DeBuff Spells ---#
 
 @setvar! castCurse 1
-@setvar! castManaDrain 1
+@setvar! castManaDrain 0
 
 #--- Set Damage Necromancy Spells ---#
 
@@ -177,7 +177,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Poison ---#
 
-@setvar! castPoison 1
+@setvar! castPoison 0
 
 #- Poison Level
 # 0 - Greater or lesser 
@@ -258,7 +258,7 @@ l
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 1
+@setvar! useMeditationSkill 0
 @setvar! meditateWhenManaBelow 50
 @setvar! meditateUntilManaReach 65
 
@@ -275,7 +275,7 @@ l
 
 #--- Carve Corpse ---#
 
-@setvar! autoCarveNearestCorpse 1
+@setvar! autoCarveNearestCorpse 0
 
 #--- Optional : Have a cooldown named `Heal Pot` ---#
 
@@ -381,7 +381,7 @@ settimer targetSelectTimer targetSelectCD
 @setvar! noRegsMessageCD 3000
 settimer noRegsMessageTimer noRegsMessageCD
 
-@setvar! allGuardCD 1500
+@setvar! allGuardCD 2500
 settimer allGuardTimer allGuardCD
 
 #--- Summons timers ---#
@@ -2549,6 +2549,11 @@ while not dead
                         
                         getlabel tempTarget tempLabel
                         
+                        while "-" in tempLabel
+                            sysmsg "* correcting target label.. *" 34
+                            getlabel tempTarget tempLabel    
+                        endwhile
+                        
                         if inlist animalsIgnoreList tempLabel
                             @ignore tempTarget
                             #sysmsg "ignoring : {{tempLabel}}"
@@ -2605,7 +2610,32 @@ while not dead
                     if casting 
                         interrupt
                     endif    
-                    
+
+                #********* DROP GOLD IF OVERWEIGHT *********
+                
+                    if weight > maxweight
+                        if timer overweightMessageTimer > overweightMessageCD
+                            overhead "Overweight !!" 34
+                            settimer overweightMessageTimer 0
+                        endif
+                        
+                        if 0 != amountOfGoldToDrop
+                            while weight > maxweight
+                                if findtype "gold coin" backpack as item
+                                    lift item amountOfGoldToDrop
+                                    droprelloc 0 0
+                                    getlabel backpack xxx
+                                    wait 200
+                                    if insysmsg "cannot drop anything"
+                                        drop backpack -1 -1 -1
+                                    endif
+                                    wait maxwaittimeinms
+                                    overhead "* Gold Dropped *" 55
+                                endif
+                            endwhile            
+                        endif
+                    endif
+    
                 #********* CARVE CORPSE *********
                     
                     while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 1 as corpsy and diffhits < activateAutoHealDiff and findtype 11552 backpack
@@ -2803,12 +2833,10 @@ while not dead
             
             while not dead currentTarget and find currentTarget ground -1 -1 12
                 getlabel currentTarget targetLabel
-                #sysmsg "#1"
                 if "-" in targetLabel
                     getlabel currentTarget targetLabel
-                    #sysmsg targetLabel 34
+                    sysmsg "fixing poison label" 34
                 else 
-                    #sysmsg targetLabel 65
                     break
                 endif
             endwhile
@@ -3014,7 +3042,7 @@ while not dead
                     if insysmsg "seconds before you may use that ability again."
                         @setvar! castingInterrupted 1
                         settimer mindRotTimer necroMarginErrorCD
-                        sysmsg "necro margin error 1" 44
+                        sysmsg "mindrot on cooldown" 44
                         break    
                     endif
                 endwhile
@@ -3302,7 +3330,7 @@ while not dead
                 getlabel backpack xxx
                 wait 200
                 if insysmsg "seconds before you may use that ability again."
-                    sysmsg "necro margin error 1" 44
+                    sysmsg "strangle on cooldown" 44
                     @setvar! castingInterrupted 1
                     settimer strangleTimer necroMarginErrorCD
                     break    
@@ -3354,7 +3382,7 @@ while not dead
                 getlabel backpack xxx
                 wait 200
                 if insysmsg "seconds before you may use that ability again."
-                    sysmsg "necro margin error 3" 44
+                    sysmsg "evilomen on cooldown" 44
                     @setvar! castingInterrupted 1
                     settimer evilOmenTimer necroMarginErrorCD
                     break    
@@ -3380,7 +3408,7 @@ while not dead
                 getlabel backpack xxx
                 wait 200
                 if insysmsg "seconds before you may use that ability again."
-                    sysmsg "necro margin error 4" 44
+                    sysmsg "mindrot on cooldown" 44
                     @setvar! castingInterrupted 1
                     settimer mindRotTimer necroMarginErrorCD
                     break    

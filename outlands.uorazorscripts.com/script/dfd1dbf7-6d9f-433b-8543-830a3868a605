@@ -4,20 +4,17 @@
 ## Created by: flutschi#0
 #############################################
 
-#you need 10 trap pouches and a bag where the wood be seperated in
-#put the normal bag on line 11 as the woodBag
+#its basescript is jasonowns one, just edited for my taste
 
 #create the cooldown 'summons' for keeping up the elementals!
 #create cooldown 'afk' and 'walk' (walk needs to be set to walk in the settings!)
 
-#for autorecall you need to create a recallHome script (exactly that filename) that you find here
-# https://outlands.uorazorscripts.com/script/2304d1ed-69b2-4c5a-9bad-2b4e39a7bde3
 
-# set wood bag
-@setvar! woodBag 
+@setvar! enableRecall 0
 
-#casttime with summoners tome is 2500, else put 5000
-@setvar! castTime 2500
+@setvar! enableSummons 0
+
+@setvar! enableAFK 0
 
 clearsysmsg 
 
@@ -43,30 +40,49 @@ endif
 # AFK PART
 
 @setvar! afkTime  180000
-@setvar! afkAlert 18000
+@setvar! afkAlert 24000
 @setvar! afkTooLong 5000
 
-if cooldown 'afk' < 500
-    cooldown 'afk' afkTime
+if enableAFK = 1
+
+    if cooldown 'afk' < 500
+        cooldown 'afk' afkTime
+    endif
+
+    if cooldown 'walk'
+        cooldown 'afk' afkTime
+    endif
+
+    if cooldown 'afk' < afkAlert
+        overhead 'timer runs out..' 33
+        dclicktype 3834 backpack
+        pause 1500
+    endif
+
+    if cooldown 'afk' < afkTooLong
+        overhead 'afk too long..' 33
+        guild 'afk too long..'
+        script 'recallHome'
+        stop
+    endif
+    
 endif
 
-if cooldown 'walk'
-    cooldown 'afk' afkTime
-endif
 
-if cooldown 'afk' < afkAlert
-    overhead 'timer runs out..' 33
-    dclicktype 3834 backpack
-    pause 1500
-endif
+# flu stuff
 
-if cooldown 'afk' < afkTooLong
-    overhead 'afk too long..' 33
-    guild 'afk too long..'
-    script 'recallHome'
-    stop
+if name == 'Flu Miner'
+    @setvar! woodBag 0x4458D226
 endif
-
+if name == 'Flu Logger'
+    @setvar! woodBag 0x44CC0C8C
+endif
+if name == 'Flutschi'
+    @setvar! woodBag 0x40FFC28F
+endif
+if name == 'Flu Log'
+    @setvar! woodBag 0x46281849
+endif
     
 if findtype 7133 backpack as log
     lift log 999
@@ -83,14 +99,21 @@ if counttype 3705 backpack 38 < 10
 endif
 
 # check for summons
-if followers < 1 or cooldown 'summons' < 60000 and mana > 50
-    cast 'Earth Elemental'
-    pause castTime
-    pause 500
-    say 'all guard me'
-    cooldown 'summons' 600000
-endif
 
+#casttime with summoners tome is 2500, else put 5000
+@setvar! castTime 2500
+
+if enableSummons = 1
+    
+    if followers < 1 or cooldown 'summons' < 60000 and mana > 50
+        cast 'Earth Elemental'
+        pause castTime
+        pause 500
+        say 'all guard me'
+        cooldown 'summons' 600000
+    endif
+
+endif
 # moving stuff
 
 clearignore 
@@ -266,11 +289,11 @@ hotkey 'Target Self'
 for 75
     wait 100
     
-    if insysmsg 'Now tracking' or insysmsg 'Distance'
-        guild 'pk coming..'
-        #xy
-        script 'recallHome'
-        stop
+    if enableRecall = 1
+        if insysmsg 'Now tracking' or insysmsg 'Distance'
+            script 'recallHome'
+            stop
+        endif
     endif
     
     if cooldown 'walk'
@@ -336,5 +359,6 @@ if insysmsg "You must wait"
     wait 500
     replay
 endif
+
 
 overhead 'Stopping script' 34

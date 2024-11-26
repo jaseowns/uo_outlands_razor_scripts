@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.11.2
+#Auto-mage attack 3.12
 
 #********** INFORMATION **********# 
 
@@ -26,6 +26,7 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.12 Minor adjustments and changes to followers commands
 # Ver 3.11.2 Fixes to weapon ability and followers commands
 # Ver 3.11 Changes in summoning attack mechanics
 # Ver 3.10.6 Minor fixes and changes
@@ -179,7 +180,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Poison ---#
 
-@setvar! castPoison 0
+@setvar! castPoison 1
 
 #- Poison Level
 # 0 - Greater or lesser 
@@ -203,12 +204,19 @@ pushlist animalsIgnoreList "a death adder"
 
 @setvar! NecroPoisonStrike 7
 
+#--- Set Follower Attack Mode ---#
+
+# 0 - Say `All Kill`
+# 1 - Say `All Patrol`
+
+@setvar! followerAttackmode 0
+
 #--- Set Elementals Count ---#
 
 @setvar! earthElementals 1
-@setvar! waterElementals 0
+@setvar! waterElementals 1
 @setvar! airElementals 0
-@setvar! fireElementals 1
+@setvar! fireElementals 0
 @setvar! summonDaemons 0
 @setvar! summonCreature 1
 
@@ -216,7 +224,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Set Followers Necromancy Spells ---#
 
-@setvar! NecroVengefulSpirit 0
+@setvar! NecroVengefulSpirit 1
 @setvar! NecroBloodOath 0
 @setvar! NecroWither 0
 
@@ -246,10 +254,10 @@ l
 
 @setvar! activateAutoHealDiff 30
 
-@setvar! startCastMiniHealDiff 60
+@setvar! startCastMiniHealDiff 50
 @setvar! endCastMiniHealDiff 200
 
-@setvar! castEmergencyMiniHealDiff 60
+@setvar! castEmergencyMiniHealDiff 50
 
 @setvar! startCastGreaterHealDiff 30
 @setvar! endCastGreaterHealDiff 200
@@ -260,7 +268,7 @@ l
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 0
+@setvar! useMeditationSkill 1
 @setvar! meditateWhenManaBelow 50
 @setvar! meditateUntilManaReach 65
 
@@ -336,6 +344,24 @@ endif
 
 @setvar! necroMarginErrorCD 28000
 
+@setvar! vengefulSpiritCD 30000
+
+if not timerexists vengefulSpiritTimer
+    settimer vengefulSpiritTimer vengefulSpiritCD
+endif
+
+@setvar! bloodOathCD 30000
+
+if not timerexists bloodOathTimer
+    settimer bloodOathTimer bloodOathCD
+endif
+
+@setvar! witherCD 30000
+
+if not timerexists witherTimer
+    settimer witherTimer witherCD
+endif
+
 @setvar! evilOmenCD 30000
 
 if not timerexists evilOmenTimer
@@ -389,10 +415,10 @@ settimer noRegsMessageTimer noRegsMessageCD
 @setvar! allGuardCD 3000
 settimer allGuardTimer allGuardCD
 
-#--- Summons timers ---#
+@setvar! foodMessageCD 3333
+settimer foodMessageTimer foodMessageCD
 
-@setvar! globalMessageCD 5000
-settimer globalMessageTimer globalMessageCD
+#--- Summons timers ---#
 
 @setvar! summonMsgCD 1500
 settimer summonMsgTimer summonMsgCD
@@ -694,6 +720,12 @@ if not listexists creatureListy or followers = 0
     createlist creatureListy
 endif
 
+if maxFollowers > 5 
+    overhead "Error Max Followers > 5"
+    sysmsg "Error Max Followers > 5:  Check your followers settings"
+    stop
+endif
+
 #********** ACTIVATE NECROMANCER BAR IF USING ANY NECRO SPELLS **********# 
         
 if skill 'necromancy' >= 50 and not gumpexists 622436516
@@ -757,6 +789,12 @@ while not dead
             endif
         endif
     endwhile
+    
+    if timer allGuardTimer > allGuardCD and 0 != petsCurrentlyAttacking and followers > 0
+        sysmsg "main loop: all guard"
+        say 'ALL Guard ME' 55
+        settimer allGuardTimer 0
+    endif
 
 #********** AUTO HEALING START  **********#         
 
@@ -767,17 +805,24 @@ while not dead
         
         @setvar! castingInterrupted 0
         
-        if timer allGuardTimer > allGuardCD
-            sysmsg "guard 7"
+        if timer allGuardTimer > allGuardCD and followers > 0
+            sysmsg "heal loop: all guard"
             say 'ALL Guard ME' 88
             settimer allGuardTimer 0
         endif
         
         sysmsg "auto-healing activated" 11      
     
-        if not findbuff "food" and findtype "tray" backpack as fody    
-            dclick fody
-            wait 200
+        if not findbuff "food" 
+            if findtype "tray" backpack as fody    
+                dclick fody
+                wait 200
+            else 
+                if timer foodMessageTimer > foodMessageCD
+                    overhead "No food found!" 34
+                    settimer foodMessageTimer 0
+                endif
+            endif
         endif
         
         #--- Drink str pot ---#
@@ -1122,7 +1167,7 @@ while not dead
 #********** AUTO-MAGERY BUFFS IF NEEDED **********          
     @setvar! castingInterrupted 0
     
-    if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and timer magicReflectTimer > magicReflectCD and findtype 3972 self and findtype 3974 self and findtype 3981 self
+    if magicReflect = 1 and skill 'magery' >= 70 and not findbuff "Magic Reflection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and timer magicReflectTimer > magicReflectCD and findtype 3972 self and findtype 3974 self and findtype 3981 self and not find currentTarget ground -1 -1 12
         if insysmsg "that spell will not"
         endif
         if insysmsg "that spell is already"
@@ -1203,7 +1248,7 @@ while not dead
   
     endif
     
-    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and timer armorReflectTimer > armorReflectCD and findtype 3980 self and findtype 3972 self and findtype 3981 self
+    if armorReflect = 1 and skill 'magery' >= 30 and not findbuff "Reactive Armor" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and timer armorReflectTimer > armorReflectCD and findtype 3980 self and findtype 3972 self and findtype 3981 self and not find currentTarget ground -1 -1 12
         if insysmsg "that spell will not"
         endif
         if insysmsg "that spell is already"
@@ -1229,7 +1274,7 @@ while not dead
         wait 200  
     endif     
     
-    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3980 self and findtype 3972 self and findtype 3973 self
+    if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3980 self and findtype 3972 self and findtype 3973 self and not find currentTarget ground -1 -1 12
         sysmsg "protect" 11
         cast 'Protection'
         while not casting
@@ -1243,7 +1288,7 @@ while not dead
         wait 200  
     endif 
     
-    if blessSpell = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3972 self and findtype 3974 self
+    if blessSpell = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3972 self and findtype 3974 self and not find currentTarget ground -1 -1 12
         sysmsg "bless" 11
         cast 'Bless'         
         while not casting                  
@@ -1274,9 +1319,16 @@ while not dead
         
         #--- Eat Food ---#
 
-        if not findbuff "food" and findtype "tray" backpack as fody    
-            dclick fody
-            wait 200
+        if not findbuff "food" 
+            if findtype "tray" backpack as fody    
+                dclick fody
+                wait 200
+            else 
+                if timer foodMessageTimer > foodMessageCD
+                    overhead "No food found!" 34
+                    settimer foodMessageTimer 0
+                endif
+            endif
         endif
         
         #--- Drink str pot ---#
@@ -1756,21 +1808,30 @@ while not dead
             @setvar unholyPoints 0
         endif
         
-        if 1 = NecroVengefulSpirit and 0 < unholyPoints
-            clearsysmsg
-            hotkey 'vengeful spirit'
-            wait 200 
-            
-            while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+        if 1 = NecroVengefulSpirit and 0 < unholyPoints and timer vengefulSpiritTimer > vengefulSpiritCD and skill 'necromancy' >= 50 and diffhits < activateAutoHealDiff
+            if insysmsg "unholy symbols remaining"
+            endif
+            if insysmsg "seconds before you may use that ability again."
+            endif
+
+            while not insysmsg "unholy symbols remaining"
+                sysmsg "vengefulspirit" 66
                 hotkey 'vengeful spirit'
+                getlabel backpack xxx
                 wait 200
+                if insysmsg "seconds before you may use that ability again."
+                    sysmsg "vengefulspirit on cooldown" 44
+                    @setvar! castingInterrupted 1
+                    settimer vengefulSpiritTimer necroMarginErrorCD
+                    break    
+                endif
             endwhile
             
-            if insysmsg "unholy symbols"
-                overhead '[>Vengeful Spirits<]' 44
+            if 0 = castingInterrupted
+                overhead '[>Vengeful Spirit<]' 44
+                settimer vengefulSpiritTimer 0
             endif
-  
-        endif 
+	    endif
         
 #********** ACTIVATE NECROMANCER BLOOD OATH SPELL **********# 
         
@@ -1818,20 +1879,30 @@ while not dead
             @setvar unholyPoints 0
         endif
                 
-        if 1 = NecroBloodOath and 3 < unholyPoints
-            clearsysmsg
-            hotkey 'blood oath'
-            wait 200 
-            
-            while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
+        if 1 = NecroBloodOath and 3 < unholyPoints and timer bloodOathTimer > bloodOathCD and skill 'necromancy' >= 80 and diffhits < activateAutoHealDiff
+            if insysmsg "unholy symbols remaining"
+            endif
+            if insysmsg "seconds before you may use that ability again."
+            endif
+
+            while not insysmsg "unholy symbols remaining"
+                sysmsg "bloodoath" 66
                 hotkey 'blood oath'
+                getlabel backpack xxx
                 wait 200
+                if insysmsg "seconds before you may use that ability again."
+                    sysmsg "blood oath on cooldown" 44
+                    @setvar! castingInterrupted 1
+                    settimer bloodOathTimer necroMarginErrorCD
+                    break    
+                endif
             endwhile
             
-            if insysmsg "unholy symbols"
-                overhead '[>Blood Oath<]' 55
+            if 0 = castingInterrupted
+                overhead '[>Blood Oath<]' 44
+                settimer bloodOathTimer 0
             endif
-        endif
+	    endif
         
 #********** ACTIVATE NECROMANCER WITHER SPELL **********# 
         
@@ -1879,21 +1950,30 @@ while not dead
             @setvar unholyPoints 0
         endif
                 
-        if 1 = NecroWither and 4 < unholyPoints and skill 'necromancy' >= 90
-            clearsysmsg
-            hotkey wither
-            wait 200 
-            
-            while not insysmsg! "unholy symbols remaining" and not insysmsg! "you must wait another"
-                hotkey wither
+        if 1 = NecroWither and 4 < unholyPoints and timer witherTimer > witherCD and skill 'necromancy' >= 90 and diffhits < activateAutoHealDiff
+            if insysmsg "unholy symbols remaining"
+            endif
+            if insysmsg "seconds before you may use that ability again."
+            endif
+
+            while not insysmsg "unholy symbols remaining"
+                sysmsg "wither" 66
+                hotkey 'wither'
+                getlabel backpack xxx
                 wait 200
+                if insysmsg "seconds before you may use that ability again."
+                    sysmsg "wither on cooldown" 44
+                    @setvar! castingInterrupted 1
+                    settimer witherTimer necroMarginErrorCD
+                    break    
+                endif
             endwhile
             
-            if insysmsg "unholy symbols"
-                overhead '[>Wither<]' 66
+            if 0 = castingInterrupted
+                overhead '[>Wither<]' 44
+                settimer witherTimer 0
             endif
-            
-        endif
+	    endif
         
         if list earthListy = 0 
             #sysmsg "Earth List = 0"
@@ -1991,7 +2071,6 @@ while not dead
                     overhead "* summoning earth... *" 634
                     sysmsg "* summoning earth... *" 634
                     settimer summonMsgTimer 0
-                    settimer globalMessageTimer 0
                 endif
                 
             endwhile
@@ -2069,7 +2148,6 @@ while not dead
                     overhead "* summoning water... *" 399
                     sysmsg "* summoning water... *" 399
                     settimer summonMsgTimer 0
-                    settimer globalMessageTimer 0
                 endif
                 
             endwhile
@@ -2147,7 +2225,6 @@ while not dead
                     overhead "* summoning air... *" 933
                     sysmsg "* summoning air... *" 933
                     settimer summonMsgTimer 0
-                    settimer globalMessageTimer 0
                 endif
                 
             endwhile
@@ -2224,7 +2301,6 @@ while not dead
                     overhead "* summoning fire... *" 353
                     sysmsg "* summoning fire... *" 353
                     settimer summonMsgTimer 0
-                    settimer globalMessageTimer 0
                 endif
                 
             endwhile
@@ -2301,7 +2377,6 @@ while not dead
                     overhead "* summoning daemon... *" 235
                     sysmsg "* summoning daemon... *" 235
                     settimer summonMsgTimer 0
-                    settimer globalMessageTimer 0
                 endif
                 
             endwhile
@@ -2378,7 +2453,6 @@ while not dead
                     overhead "* summon creature... *" 881
                     sysmsg "* summon creature... *" 881
                     settimer summonMsgTimer 0
-                    settimer globalMessageTimer 0
                 endif
                 
             endwhile
@@ -2707,9 +2781,16 @@ while not dead
         
         #--- Eat food ---#
         
-        if not findbuff "food" and findtype "tray" backpack as fody    
-            dclick fody
-            wait 200
+        if not findbuff "food" 
+            if findtype "tray" backpack as fody    
+                dclick fody
+                wait 200
+            else 
+                if timer foodMessageTimer > foodMessageCD
+                    overhead "No food found!" 34
+                    settimer foodMessageTimer 0
+                endif
+            endif
         endif
         
         #--- Drink str pot ---#
@@ -2781,21 +2862,30 @@ while not dead
             hotkey 'cancel current target'
         endif
         
-        if followers > 0 and 0 = petsCurrentlyAttacking
+        if followers > 0 and 0 = petsCurrentlyAttacking and timer allGuardTimer > allGuardCD
             sysmsg "all kill" 11 
-            say "ALL Kill" 34
+            if followerAttackmode = 0
+                say "ALL Kill" 34
+            else
+                say "ALL Patrol" 34
+            endif
+            
             while not targetexists
                 wait 200
                 if not targetexists
-                    say "ALL Kill" 34
+                    if followerAttackmode = 0
+                        say "ALL Kill" 34
+                    else
+                        say "ALL Patrol" 34
+                    endif
                 endif
             endwhile
             target currentTarget
             @setvar! petsCurrentlyAttacking 1 
             settimer allGuardTimer 0
         elseif followers > 0 and 1 = petsCurrentlyAttacking and timer allGuardTimer > allGuardCD
-            sysmsg "guard 3"
-            say 'ALL Guard ME' 65
+            sysmsg "attack loop: all guard"
+            say 'ALL Guard ME' 34
             settimer allGuardTimer 0
             @setvar! petsCurrentlyAttacking 2
         endif  
@@ -3938,11 +4028,6 @@ while not dead
 #********* ^ AUTO ATTACKING ENDS ^ *********    
     
     if followers > 0 and petsCurrentlyAttacking != 0 and diffhits < activateAutoHealDiff
-        #if timer allGuardTimer > allGuardCD
-        #    sysmsg "guard 3"
-        #    say 'ALL Guard ME' 65
-        #    settimer allGuardTimer 0
-        #endif
 
         if skill 'spirit' >= 50 and timer spiritSpeakTimer > spiritSpeakCD and findtype 'corpse' ground -1 -1 18 and dead currentTarget and not find currentTarget ground -1 -1 12
 

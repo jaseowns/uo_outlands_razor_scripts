@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.11
+#Auto-mage attack 3.11.2
 
 #********** INFORMATION **********# 
 
@@ -26,6 +26,7 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.11.2 Fixes to weapon ability and followers commands
 # Ver 3.11 Changes in summoning attack mechanics
 # Ver 3.10.6 Minor fixes and changes
 # Ver 3.10 Added Regs warning when missing any regs || Added variable to enable auto carve corpses
@@ -123,7 +124,7 @@ pushlist animalsIgnoreList "a death adder"
 
 @setvar! castMagicArrow 1
 @setvar! castHarm 1
-@setvar! castFireball 1
+@setvar! castFireball 0
 @setvar! castLightning 1
 
 @setvar! activateMagicArrowWhenManaBelow 200
@@ -156,7 +157,7 @@ pushlist animalsIgnoreList "a death adder"
 #--- Set Mage Buffs ---#
 
 @setvar! magicReflect 1
-@setvar! bless 1
+@setvar! blessSpell 1
 @setvar! armorReflect 1
 @setvar! protectionSpell 1
 
@@ -165,7 +166,7 @@ pushlist animalsIgnoreList "a death adder"
 #--- Set DeBuff Spells ---#
 
 @setvar! castCurse 1
-@setvar! castManaDrain 0
+@setvar! castManaDrain 1
 
 #--- Set Damage Necromancy Spells ---#
 
@@ -204,14 +205,14 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Set Elementals Count ---#
 
-@setvar! earthElementals 0
+@setvar! earthElementals 1
 @setvar! waterElementals 0
 @setvar! airElementals 0
-@setvar! fireElementals 0
+@setvar! fireElementals 1
 @setvar! summonDaemons 0
-@setvar! summonCreature 5
+@setvar! summonCreature 1
 
-@setvar! breakCastingWhenFollowersBelow 3
+@setvar! breakCastingWhenFollowersBelow 4
 
 #--- Set Followers Necromancy Spells ---#
 
@@ -268,7 +269,7 @@ l
 #--- Arcane Weapon Ability ---#
 
 @setvar! useWeaponAbility 2
-@setvar useAbilityWhenManaLowerThan 65
+@setvar useAbilityWhenManaLowerThan 135
 
 #--- Drop Gold When Overweight ---#
 
@@ -709,7 +710,7 @@ endif
 while not dead
 
 #********* DROP GOLD IF OVERWEIGHT *********
-
+    
     if weight > maxweight
         if timer overweightMessageTimer > overweightMessageCD
             overhead "Overweight !!" 34
@@ -735,14 +736,17 @@ while not dead
 
 #********* CARVE CORPSE *********
     
-    while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 1 as corpsy and diffhits < activateAutoHealDiff and findtype 11552 backpack
+    while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 2 as corpsy and diffhits < activateAutoHealDiff and findtype 11552 backpack
         
         if timer carveTimer > carveCD
+            if targetexists
+                hotkey 'cancel current target'
+            endif
             while not targetexists 
                 skill 'forensicevaluation'
             endwhile
             
-            if targetexists and find corpsy ground -1 -1 1
+            if targetexists and find corpsy ground -1 -1 2
                 sysmsg "Skinning corpse.." 11
                 target 'self'    
                 @ignore corpsy
@@ -759,6 +763,12 @@ while not dead
         endif
         
         @setvar! castingInterrupted 0
+        
+        if timer allGuardTimer > allGuardCD
+            sysmsg "guard 7"
+            say 'ALL Guard ME' 88
+            settimer allGuardTimer 0
+        endif
         
         sysmsg "auto-healing activated" 11      
     
@@ -967,8 +977,7 @@ while not dead
         elseif skill 'magery' >= 40 and diffhits >= castEmergencyMiniHealDiff and mana >= 4 and miniHeal = 1 and not casting
             if insysmsg "Your concentration is disturbed"
             endif  
-            
-            sysmsg 'mini heal' 11
+            sysmsg "mini heal" 11
             cast 'heal'
             while not casting                   
                 if targetexists
@@ -1115,7 +1124,7 @@ while not dead
         endif
         if insysmsg "that spell is already"
         endif
-        
+        sysmsg "magic reflect" 11
         cast 'Magic Reflection'
         while not casting 
             getlabel backpack xxx
@@ -1196,7 +1205,7 @@ while not dead
         endif
         if insysmsg "that spell is already"
         endif
-        
+        sysmsg "reflect armor" 11
         cast 'Reactive Armor'
         while not casting   
             getlabel backpack xxx
@@ -1218,6 +1227,7 @@ while not dead
     endif     
     
     if protectionSpell = 1 and skill 'magery' >= 40 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3980 self and findtype 3972 self and findtype 3973 self
+        sysmsg "protect" 11
         cast 'Protection'
         while not casting
             if targetexists
@@ -1230,7 +1240,8 @@ while not dead
         wait 200  
     endif 
     
-    if bless = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3972 self and findtype 3974 self
+    if blessSpell = 1 and skill 'magery' >= 50 and not findbuff "Cunning" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3972 self and findtype 3974 self
+        sysmsg "bless" 11
         cast 'Bless'         
         while not casting                  
             if targetexists
@@ -1251,7 +1262,7 @@ while not dead
 #********** START AUTO SUMMONING **********# 
 
     while followers < maxFollowers and diffhits < activateAutoHealDiff
-        
+    
         if find currentTarget ground -1 -1 12 and not dead currentTarget
             if followers >= breakCastingWhenFollowersBelow
                 break
@@ -2418,26 +2429,26 @@ while not dead
             
         endif
         
-        #if 1 = summoningSucessful and followers != maxFollowers
-        #    if timer allGuardTimer > allGuardCD
-        #        sysmsg "guard 1"
-        #        say 'ALL Guard ME' 44
-        #        settimer allGuardTimer 0
-        #    endif
-        #endif
+        if 1 = summoningSucessful and followers != maxFollowers
+            hotkey 'target closest grey monster'
+            attack lasttarget
+        endif
     
     endwhile
     
 #********* CARVE CORPSE *********
     
-    while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 1 as corpsy and diffhits < activateAutoHealDiff and findtype 11552 backpack
+    while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 2 as corpsy and diffhits < activateAutoHealDiff and findtype 11552 backpack
         
         if timer carveTimer > carveCD
+            if targetexists
+                hotkey 'cancel current target'
+            endif
             while not targetexists 
                 skill 'forensicevaluation'
             endwhile
             
-            if targetexists and find corpsy ground -1 -1 1
+            if targetexists and find corpsy ground -1 -1 2
                 sysmsg "Skinning corpse.." 11
                 target 'self'    
                 @ignore corpsy
@@ -2520,7 +2531,7 @@ while not dead
             elseif not dead lasttarget
                 @setvar! tempTarget lasttarget
                 while diffhits < activateAutoHealDiff
-                    if earthElementals != 0 or waterElementals != 0 or fireElementals != 0 or airElementals != 0 or summonDaemons != 0 or summonCreature != 0
+                    if maxFollowers > 0
                         if followers < breakCastingWhenFollowersBelow
                             break
                         endif
@@ -2647,14 +2658,16 @@ while not dead
     
                 #********* CARVE CORPSE *********
                     
-                    while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 1 as corpsy and diffhits < activateAutoHealDiff and findtype 11552 backpack
-                        
+                    while 1 = autoCarveNearestCorpse and findtype "corpse" ground -1 -1 2 as corpsy and diffhits < activateAutoHealDiff and findtype 11552 backpack
                         if timer carveTimer > carveCD
+                            if targetexists
+                                hotkey 'cancel current target'
+                            endif
                             while not targetexists 
                                 skill 'forensicevaluation'
                             endwhile
                             
-                            if targetexists and find corpsy ground -1 -1 1
+                            if targetexists and find corpsy ground -1 -1 2
                                 sysmsg "Skinning corpse.." 11
                                 target 'self'    
                                 @ignore corpsy
@@ -2765,6 +2778,10 @@ while not dead
             sysmsg "all kill" 11 
             say "ALL Kill" 34
             while not targetexists
+                wait 200
+                if not targetexists
+                    say "ALL Kill" 34
+                endif
             endwhile
             target currentTarget
             @setvar! petsCurrentlyAttacking 1 
@@ -3851,24 +3868,33 @@ while not dead
  
         if skill "Arcane" >= 80
             if timer weaponAbilityTimer > weaponAbilityCD
+                if insysmsg "You cannot perform that ability yet"
+                endif
                 if useWeaponAbility = 1
                     if mana < useAbilityWhenManaLowerThan
                         gumpresponse 11 3954121934
-                        wait 50
+                        wait 200
                         gumpresponse 10 3954121934
                     endif
                 elseif useWeaponAbility = 2 
                     if mana < useAbilityWhenManaLowerThan
                         gumpresponse 10 3954121934
-                        wait 50
+                        wait 200
                         gumpresponse 11 3954121934
                     endif        
                 elseif useWeaponAbility = 3 
                     if mana < useAbilityWhenManaLowerThan
                         gumpresponse 11 3954121934
-                        wait 50
+                        wait 200
                         gumpresponse 12 3954121934
                     endif        
+                endif
+                
+                if insysmsg "You cannot perform that ability yet"
+                    sysmsg "Ability cooldown" 44
+                    settimer weaponAbilityTimer 0    
+                else
+                    sysmsg "Ability activated" 44    
                 endif
             endif
         endif 
@@ -3905,11 +3931,11 @@ while not dead
 #********* ^ AUTO ATTACKING ENDS ^ *********    
     
     if followers > 0 and petsCurrentlyAttacking != 0 and diffhits < activateAutoHealDiff
-        if timer allGuardTimer > allGuardCD
-            sysmsg "guard 3"
-            say 'ALL Guard ME' 65
-            settimer allGuardTimer 0
-        endif
+        #if timer allGuardTimer > allGuardCD
+        #    sysmsg "guard 3"
+        #    say 'ALL Guard ME' 65
+        #    settimer allGuardTimer 0
+        #endif
 
         if skill 'spirit' >= 50 and timer spiritSpeakTimer > spiritSpeakCD and findtype 'corpse' ground -1 -1 18 and dead currentTarget and not find currentTarget ground -1 -1 12
 

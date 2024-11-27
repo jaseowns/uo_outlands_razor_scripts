@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.12.1
+#Auto-mage attack 3.13
 
 #********** INFORMATION **********# 
 
@@ -26,6 +26,7 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.13 Fixes to followers and weapon ability
 # Ver 3.12 Minor adjustments and changes to followers commands
 # Ver 3.11.2 Fixes to weapon ability and followers commands
 # Ver 3.11 Changes in summoning attack mechanics
@@ -125,7 +126,7 @@ pushlist animalsIgnoreList "a death adder"
 
 @setvar! castMagicArrow 1
 @setvar! castHarm 1
-@setvar! castFireball 0
+@setvar! castFireball 1
 @setvar! castLightning 1
 
 @setvar! activateMagicArrowWhenManaBelow 200
@@ -167,7 +168,7 @@ pushlist animalsIgnoreList "a death adder"
 #--- Set DeBuff Spells ---#
 
 @setvar! castCurse 1
-@setvar! castManaDrain 1
+@setvar! castManaDrain 0
 
 #--- Set Damage Necromancy Spells ---#
 
@@ -180,7 +181,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Poison ---#
 
-@setvar! castPoison 1
+@setvar! castPoison 0
 
 #- Poison Level
 # 0 - Greater or lesser 
@@ -224,7 +225,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Set Followers Necromancy Spells ---#
 
-@setvar! NecroVengefulSpirit 1
+@setvar! NecroVengefulSpirit 0
 @setvar! NecroBloodOath 0
 @setvar! NecroWither 0
 
@@ -268,7 +269,7 @@ l
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 1
+@setvar! useMeditationSkill 0
 @setvar! meditateWhenManaBelow 50
 @setvar! meditateUntilManaReach 65
 
@@ -294,6 +295,8 @@ l
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
 
 clearsysmsg
+
+@setvar! missingRegs 0
 
 @setvar! castStrike 0 
 @setvar! repeatCastingPoison 0 
@@ -409,7 +412,7 @@ settimer poisonLabelTimer poisonLabelCD
 @setvar! targetSelectCD 3000
 settimer targetSelectTimer targetSelectCD
 
-@setvar! noRegsMessageCD 3000
+@setvar! noRegsMessageCD 4000
 settimer noRegsMessageTimer noRegsMessageCD
 
 @setvar! allGuardCD 3000
@@ -511,22 +514,22 @@ if skill "Arcane" >= 80
     endif 
 endif
 
-if not varexist castingEarth 
+if not varexist castingEarth or followers = 0 
     @setvar! castingEarth 0
 endif
-if not varexist castingWater 
+if not varexist castingWater or followers = 0 
     @setvar! castingWater 0
 endif
-if not varexist castingFire 
+if not varexist castingFire or followers = 0 
     @setvar! castingFire 0
 endif
-if not varexist castingAir 
+if not varexist castingAir or followers = 0 
     @setvar! castingAir 0
 endif
-if not varexist castingDaemon 
+if not varexist castingDaemon or followers = 0 
     @setvar! castingDaemon 0
 endif
-if not varexist castingCreature 
+if not varexist castingCreature or followers = 0 
     @setvar! castingCreature 0
 endif
 
@@ -744,6 +747,14 @@ endif
     
 while not dead
 
+    if not findtype 3972 or not findtype 3962  or not findtype 3963 or not findtype 3980 or not findtype 3976 or not findtype 3973 or not findtype 3974 or not findtype 3981 
+        @setvar! missingRegs 1
+        if timer noRegsMessageTimer > noRegsMessageCD
+            overhead "* Missing Reagents *" 34
+            settimer noRegsMessageTimer 0
+        endif
+    endif
+
 #********* DROP GOLD IF OVERWEIGHT *********
     
     if weight > maxweight
@@ -801,6 +812,14 @@ while not dead
     while diffhits >= activateAutoHealDiff or paralyzed or poisoned
         if dead
             stop
+        endif
+        
+        if not findtype 3972 or not findtype 3962  or not findtype 3963 or not findtype 3980 or not findtype 3976 or not findtype 3973 or not findtype 3974 or not findtype 3981 
+            @setvar! missingRegs 1
+            if timer noRegsMessageTimer > noRegsMessageCD
+                overhead "* Missing Reagents *" 34
+                settimer noRegsMessageTimer 0
+            endif
         endif
         
         @setvar! castingInterrupted 0
@@ -1137,7 +1156,7 @@ while not dead
     
     #--- Create mushroom ---#
 
-    if counttype 29012 backpack = 0
+    if counttype 29012 backpack = 0 and missingRegs = 0
         while counttype 29012 backpack < mushroomCount and mana > 3 and diffhits < activateAutoHealDiff
             if not casting
                 cast 'create food'
@@ -1395,7 +1414,7 @@ while not dead
         
         #--- Create mushroom ---#
     
-        if counttype 29012 backpack = 0
+        if counttype 29012 backpack = 0 and missingRegs = 0
             while counttype 29012 backpack < mushroomCount and mana > 3 and diffhits < activateAutoHealDiff
                 if not casting
                     cast 'create food'
@@ -1593,8 +1612,7 @@ while not dead
             sysmsg "fixing creature" 44
             while findtype 215|211|302|317|225|212|202|213|716|729|51|74|214|206|776|737|718|739|718|29|776|317|302|39|56|26|3|57|50|382|717|736|270 ground -1 -1 12 as ele 
                 menu ele 1
-                while not targetexists
-                endwhile
+                waitfortarget maxwaittimeinms
                 if targetexists 
                     if ele != creatureFirsty and ele != creatureSecondly and ele != creatureThirdy and ele != creatureFourthy and ele != creatureFithy
                         hotkey 'cancel current target'
@@ -2003,23 +2021,23 @@ while not dead
             #sysmsg "Creature List = 2"
         endif
         
+        @setvar! missingSummonRegs 0
         @setvar! summoningSucessful 0
-        @setvar! missingRegs 0
         
         if not findtype 3963 self or not findtype 3974 self or not findtype 3981 self
-            @setvar! missingRegs 1
+            @setvar! missingSummonRegs 1
             if timer noRegsMessageTimer > noRegsMessageCD
-                overhead 'Out of regs!' 34
-                sysmsg 'Out of regs!' 34
+                overhead 'No regs to summon!' 34
+                sysmsg 'No regs to summon!' 34
                 settimer noRegsMessageTimer 0
             endif
             wait noRegsMessageCD
         elseif not findtype 3980 self 
             if fireElementals != 0 or summonDaemons != 0
-                @setvar! missingRegs 1
+                @setvar! missingSummonRegs 1
                 if timer noRegsMessageTimer > noRegsMessageCD
-                    overhead 'Out of regs!' 34
-                    sysmsg 'Out of regs!' 34
+                    overhead 'No regs to summon!' 34
+                    sysmsg 'No regs to summon!' 34
                     settimer noRegsMessageTimer 0
                 endif
                 wait noRegsMessageCD
@@ -2033,7 +2051,7 @@ while not dead
             
 #********** CAST EARTH ELEMENTAL **********# 
     
-        if earthElementals != 0 and list earthListy < earthElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49
+        if earthElementals != 0 and list earthListy < earthElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49
         
             cast 'Earth Elemental'
             @setvar! castingEarth 1
@@ -2087,6 +2105,8 @@ while not dead
                         if targetexists 
                             if ele != earthFirsty and ele != earthSecondly
                                 hotkey 'cancel current target'
+                                wait 50
+                                menu ele 3 
                                 
                                 if earthFirsty = 0 
                                     @setvar! earthFirsty ele
@@ -2111,7 +2131,7 @@ while not dead
             
 #********** CAST WATER ELEMENTAL **********# 
         
-        elseif waterElementals != 0 and list waterListy < waterElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49
+        elseif waterElementals != 0 and list waterListy < waterElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49
             cast 'Water Elemental'
             @setvar! castingWater 1
             while not casting                   
@@ -2164,7 +2184,8 @@ while not dead
                         if targetexists 
                             if ele != waterFirsty and ele != waterSecondly
                                 hotkey 'cancel current target'
-                                
+                                wait 50
+                                menu ele 3 
                                 if waterFirsty = 0 
                                     @setvar! waterFirsty ele
                                     sysmsg "add water 1" 11
@@ -2188,7 +2209,7 @@ while not dead
         
 #********** CAST AIR ELEMENTAL **********# 
         
-        elseif airElementals != 0 and list airListy < airElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49                    
+        elseif airElementals != 0 and list airListy < airElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49                    
             cast 'Air Elemental'
             @setvar! castingAir 1
             while not casting                   
@@ -2241,7 +2262,8 @@ while not dead
                         if targetexists 
                             if ele != airFirsty and ele != airSecondly
                                 hotkey 'cancel current target'
-                                
+                                wait 50
+                                menu ele 3 
                                 if airFirsty = 0 
                                     @setvar! airFirsty ele
                                     sysmsg "add air 1" 11
@@ -2264,7 +2286,7 @@ while not dead
         
 #********** CAST FIRE ELEMENTAL **********# 
         
-        elseif fireElementals != 0 and list fireListy < fireElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49                      
+        elseif fireElementals != 0 and list fireListy < fireElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49                      
             cast 'Fire Elemental'
             @setvar! castingFire 1
             while not casting                   
@@ -2317,7 +2339,8 @@ while not dead
                         if targetexists 
                             if ele != fireFirsty and ele != fireSecondly
                                 hotkey 'cancel current target'
-                                
+                                wait 50
+                                menu ele 3 
                                 if fireFirsty = 0 
                                     @setvar! fireFirsty ele
                                     sysmsg "add fire 1" 11
@@ -2340,7 +2363,7 @@ while not dead
             
 #********** CAST DAEMON **********# 
         
-        elseif summonDaemons != 0 and list daemonListy < summonDaemons and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 49                        
+        elseif summonDaemons != 0 and list daemonListy < summonDaemons and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49                        
             cast 'Summon Daemon'
             @setvar! castingDaemon 1
             while not casting                   
@@ -2385,7 +2408,6 @@ while not dead
                 @setvar! summoningSucessful 1
                 sysmsg "Summon Daemon Successful" 
                 pushlist daemonListy 'x' 'front'
-                
                 while not dead
                     if findtype 9|722 ground -1 -1 12 as ele 
                         menu ele 1
@@ -2393,6 +2415,8 @@ while not dead
                         if targetexists 
                             if ele != daemonFirsty and ele != daemonSecondly
                                 hotkey 'cancel current target'
+                                wait 50
+                                menu ele 3 
                                 
                                 if daemonFirsty = 0 
                                     @setvar! daemonFirsty ele
@@ -2416,7 +2440,7 @@ while not dead
             
 #********** CAST SUMMON CREATURE **********# 
         
-        elseif summonCreature != 0 and list creatureListy < summonCreature and followers < 5 and diffhits < activateAutoHealDiff and not casting and missingRegs = 0 and mana > 13                   
+        elseif summonCreature != 0 and list creatureListy < summonCreature and followers < 5 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 13                   
             cast 'Summ. Creature'
             @setvar! castingCreature 1
             while not casting                   
@@ -2464,8 +2488,7 @@ while not dead
                 while not dead
                     if findtype 215|211|302|317|225|212|202|213|716|729|51|74|214|206|776|737|718|739|718|29|776|317|302|39|56|26|3|57|50|382|717|736|270 ground -1 -1 12 as ele 
                         menu ele 1
-                        while not targetexists
-                        endwhile
+                        waitfortarget maxwaittimeinms
                         if targetexists 
                             if ele != creatureFirsty and ele != creatureSecondly and ele != creatureThirdy and ele != creatureFourthy and ele != creatureFithy
                                 hotkey 'cancel current target'
@@ -2770,11 +2793,12 @@ while not dead
     
 #********** BEGIN AUTO ATTACKING LOOP **********#    
     
-    while 1 = foundTarget and not dead currentTarget and find currentTarget ground -1 -1 12 and diffhits < activateAutoHealDiff and mana >= minimumManaToCastAnyDamageSpells
+    while foundTarget = 1 and not dead currentTarget and find currentTarget ground -1 -1 12 and diffhits < activateAutoHealDiff and mana >= minimumManaToCastAnyDamageSpells
         
-        if not findtype 3972 or not findtype 3962  or not findtype 3963 or not findtype 3980 or not findtype 3976 or not findtype 3973 or not findtype 3974 or not findtype 3981 
+        if not findtype 3972 or not findtype 3962  or not findtype 3963 or not findtype 3980 or not findtype 3976 or not findtype 3973 or not findtype 3974 or not findtype 3981
+            @setvar! missingRegs 1
             if timer noRegsMessageTimer > noRegsMessageCD
-                overhead "* Missing Reagents *" 33
+                overhead "* Missing Reagents *" 34
                 settimer noRegsMessageTimer 0
             endif
         endif
@@ -2892,7 +2916,7 @@ while not dead
         
         #--- Create mushroom ---#
     
-        if counttype 29012 backpack = 0
+        if counttype 29012 backpack = 0 and missingRegs = 0
             while counttype 29012 backpack < mushroomCount and mana > 3 and diffhits < activateAutoHealDiff
                 if not casting
                     cast 'create food'
@@ -3970,23 +3994,27 @@ while not dead
                 if useWeaponAbility = 1
                     if mana < useAbilityWhenManaLowerThan
                         gumpresponse 11 3954121934
-                        wait 200
+                        getlabel backpack xxx
+                        wait 100
                         gumpresponse 10 3954121934
                     endif
                 elseif useWeaponAbility = 2 
                     if mana < useAbilityWhenManaLowerThan
                         gumpresponse 10 3954121934
-                        wait 200
+                        getlabel backpack xxx
+                        wait 100
                         gumpresponse 11 3954121934
                     endif        
                 elseif useWeaponAbility = 3 
                     if mana < useAbilityWhenManaLowerThan
                         gumpresponse 11 3954121934
-                        wait 200
+                        getlabel backpack xxx
+                        wait 100
                         gumpresponse 12 3954121934
                     endif        
                 endif
-                
+                getlabel backpack xxx
+                wait 200                
                 if insysmsg "You cannot perform that ability yet"
                     sysmsg "Ability cooldown" 44
                     settimer weaponAbilityTimer 0    

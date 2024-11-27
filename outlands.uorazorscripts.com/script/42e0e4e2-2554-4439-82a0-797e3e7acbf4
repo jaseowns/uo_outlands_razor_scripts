@@ -7,19 +7,16 @@
 //////////////////////////////
 //
 // Gardening-Bot for UO Outlands, Version 3
-// - Automatically processes all flower pots within the range specified below (default 2 tiles)
-// - This script will work without any change. There is an optional setup section below where you can find and adjust some parameters according to your own preferences
+// - Automatically processes all flower pots within the range specified below (default 2 tiles), as soon as you move close enough to use them
+// - This script will work without any change. There is an optional setup section below where you can adjust certain parameters according to your own preference
 // - Make sure to carry all items you want to be used in your backpack, the ground will not be checked for items (except for flower pots and water tiles)
 // - WARNING: server system messages are needed to determine necessary actions, make sure they are not filtered for scripts: 
 //      Razor -> Filters -> Text&Messages ->
-//      - Uncheck "Filter repeating system messages" 
 //      - "Enable text filter" and "Filter system messages" (list entry sub-menu) can be checked, however "Ignore filtered messages in overhead and scripts" (list entry sub-menu) has to be unchecked
 //
 //////////////////////////////
 
-##############################
 ######## MANUAL SETUP ########
-##############################
 
 # gardeningRange: 1 - 18
     # Amout of tiles around character that will be searched for flower pots. If there are no unprocessed flower pots left within this range the script will terminate.
@@ -55,7 +52,7 @@
         createlist gardeningSelectiveBuffList
         clearlist gardeningSelectiveBuffList
 
-        # Comment out planter types you do not want superior and exceptional materials to be used on (select line/s -> right click -> comment, or put a # at the beginning of the line): 
+        # Comment out planter types you do not want superior and exceptional materials to be used on (select line/s -> right click -> comment, or put a # at the beginning of the line):
         # Note: rustic planters and rustic window planters work as large wooden planters and are treated as such
         pushlist gardeningSelectiveBuffList "large wooden planter"
         pushlist gardeningSelectiveBuffList "small wooden planter"
@@ -89,6 +86,7 @@
         pushlist gardeningSpecialSeedList "dungeon seed"
         pushlist gardeningSpecialSeedList "mushroom spore"
         pushlist gardeningSpecialSeedList "watermelon seeds"
+        pushlist gardeningSpecialSeedList "eggplant seeds"
         pushlist gardeningSpecialSeedList "melloweed seed"
         pushlist gardeningSpecialSeedList "barley seed"
         pushlist gardeningSpecialSeedList "hops seed"
@@ -101,7 +99,7 @@
         pushlist gardeningSpecialSeedList "extremely common seed"
 
         # gardeningSpecialPlanterList: changes to the list items are only necessary if you set gardeningAutoPlantNewSeed to 2 or 3
-        # Comment out planter types you do not want to be handled as high quality (select line/s -> right click -> comment, or put a # at the beginning of the line): 
+        # Comment out planter types you do not want to be handled as high quality (select line/s -> right click -> comment, or put a # at the beginning of the line):
         # Note: rustic planters and rustic window planters work as large wooden planters and are treated as such 
         pushlist gardeningSpecialPlanterList "large wooden planter"
         pushlist gardeningSpecialPlanterList "small wooden planter"
@@ -120,9 +118,7 @@
     # Display additional status information in our journal for easier debugging
     setvar! gardeningDebugMode 0
 
-##############################
 ###### END MANUAL SETUP ######
-##############################
 
 //////////////////////////////
 // 
@@ -137,6 +133,7 @@
 // - Update 29-May-2024: Added short wait periods between actions to fix issues mainly related to object delay (making the script run slower but more stable for people with low ping)
 // - Update 05-Jul-2024: Addes rustic planters and rustic window planters
 // - Update 02-Nov-2024: Fixed a bug planting rare seeds to low quality planters when gardeningAutoPlantNewSeed set to 3
+// - Update 27-Nov-2024: Added eggplant seeds (event item)
 //
 //////////////////////////////
 
@@ -239,7 +236,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
         //Check if we need to plant a seed
         if "% grown" in myFlowerPotLabel and gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away."
             //Seed already planted
-        elseif gardeningAutoPlantNewSeed > 0 and gumpexists 3224608375 and findtype 51078|51098|58196|55139|53611|54062|22326 backpack and not insysmsg! "That plant bowl is too far away."
+        elseif gardeningAutoPlantNewSeed > 0 and gumpexists 3224608375 and findtype 22326|51078|51098|53611|54062|55139|58196|59449 backpack and not insysmsg! "That plant bowl is too far away."
             if gardeningDebugMode > 0 
                 sysmsg "[Gardening] Trying to plant new seed (gardeningAutoPlantNewSeed: {{gardeningAutoPlantNewSeed}}, Timer: {{gardeningRunTimer}} ms)" 100
             endif
@@ -303,6 +300,15 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                             getlabel backpack waitForPing
                             while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
                             endwhile
+                        elseif inlist gardeningSpecialSeedList "eggplant seeds" and findtype 59449 backpack as myNewSeed
+                            //Plant eggplant seeds event item
+                            gumpresponse 2 3224608375
+                            wft gardeningMaxWaitForServerResponse
+                            target myNewSeed
+                            settimer gardeningMinWaitTimer 0
+                            getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile                            
                         elseif inlist gardeningSpecialSeedList "melloweed seed" and findtype 51078 backpack 0 as myNewSeed
                             //Plant melloweed seed
                             gumpresponse 2 3224608375
@@ -428,6 +434,15 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                             getlabel backpack waitForPing
                             while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
                             endwhile
+                        elseif inlist gardeningSpecialSeedList "eggplant seeds" and findtype 59449 backpack as myNewSeed
+                            //Plant eggplant seeds event item
+                            gumpresponse 2 3224608375
+                            wft gardeningMaxWaitForServerResponse
+                            target myNewSeed
+                            settimer gardeningMinWaitTimer 0
+                            getlabel backpack waitForPing
+                            while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                            endwhile                              
                         elseif not inlist gardeningSpecialSeedList "melloweed seed" and findtype 51078 backpack 0 as myNewSeed
                             //Plant melloweed seed
                             gumpresponse 2 3224608375
@@ -550,6 +565,15 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                     endwhile
                 elseif findtype 54062 backpack as myNewSeed
                     //Plant watermelon seeds event item
+                    gumpresponse 2 3224608375
+                    wft gardeningMaxWaitForServerResponse
+                    target myNewSeed
+                    settimer gardeningMinWaitTimer 0
+                    getlabel backpack waitForPing
+                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
+                    endwhile
+                elseif findtype 59449 backpack as myNewSeed
+                    //Plant eggplant seeds event item
                     gumpresponse 2 3224608375
                     wft gardeningMaxWaitForServerResponse
                     target myNewSeed
@@ -1190,8 +1214,25 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                             gumpresponse 10 3224608375
                             settimer gardeningMinWaitTimer 0
                             getlabel backpack waitForPing
+                            setvar! gardeningClearPestilentEffects 1
+                            setvar! gardeningClearFungalEffects 1
+                            setvar! gardeningClearCreatureEffects 1
+                            setvar! gardeningGumpResponse 10
+                            setvar! gardeningNextGumpResponse 0
                             while insysmsg! "Reduces" and gumpexists 3224608375 and not insysmsg! "That plant bowl is too far away." and not insysmsg "That plant effect no longer exists." and not insysmsg "Permanent"
-                                if insysmsg "(Pestilent Effect)" and findtype 6187 backpack as myDefoliant
+                                if insysmsg! "(Pestilent Effect)" and not findtype 6187 backpack
+                                    setvar! gardeningClearPestilentEffects 0
+                                    setvar! gardeningNextGumpResponse 1
+                                endif
+                                if insysmsg! "(Fungal Effect)" and not findtype 6193 backpack 
+                                    setvar! gardeningClearFungalEffects 0
+                                    setvar! gardeningNextGumpResponse 1
+                                endif
+                                if insysmsg! "(Creature Effect)" and not findtype 29343 backpack
+                                    setvar! gardeningClearCreatureEffects 0
+                                    setvar! gardeningNextGumpResponse 1
+                                endif
+                                if gardeningClearPestilentEffects = 1 and insysmsg "(Pestilent Effect)" and findtype 6187 backpack as myDefoliant
                                     if gardeningDebugMode > 1
                                         sysmsg "[Gardening] ... removing pestilent effect (Timer: {{gardeningRunTimer}} ms)" 100
                                     endif                        
@@ -1202,7 +1243,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                                     getlabel backpack waitForPing
                                     while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
                                     endwhile
-                                elseif insysmsg "(Fungal Effect)" and findtype 6193 backpack as myFungicide
+                                elseif gardeningClearFungalEffects = 1 and insysmsg "(Fungal Effect)" and findtype 6193 backpack as myFungicide
                                     if gardeningDebugMode > 1
                                         sysmsg "[Gardening] ... removing fungal effect (Timer: {{gardeningRunTimer}} ms)" 100
                                     endif
@@ -1213,7 +1254,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                                     getlabel backpack waitForPing
                                     while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
                                     endwhile
-                                elseif insysmsg "(Creature Effect)" and findtype 29343 backpack as myFarmerAlmanac
+                                elseif gardeningClearCreatureEffects = 1 and insysmsg "(Creature Effect)" and findtype 29343 backpack as myFarmerAlmanac
                                     if gardeningDebugMode > 1
                                         sysmsg "[Gardening] ... removing creature effect (Timer: {{gardeningRunTimer}} ms)" 100
                                     endif
@@ -1225,7 +1266,23 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                                     while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
                                     endwhile
                                 endif
-                                gumpresponse 10 3224608375
+                                if gardeningClearPestilentEffects = 0 and gardeningClearFungalEffects = 0 and gardeningClearCreatureEffects = 0
+                                    break
+                                elseif gardeningNextGumpResponse = 1
+                                    if gardeningGumpResponse = 10
+                                        setvar! gardeningGumpResponse 11
+                                    elseif gardeningGumpResponse = 11
+                                        setvar! gardeningGumpResponse 12
+                                    elseif gardeningGumpResponse = 12
+                                        setvar! gardeningGumpResponse 13
+                                    elseif gardeningGumpResponse = 13
+                                        gumpresponse 7 3224608375
+                                        setvar! gardeningGumpResponse 10
+                                        waitforgump 3224608375 gardeningMaxWaitForServerResponse
+                                    endif
+                                    setvar! gardeningNextGumpResponse 0
+                                endif
+                                gumpresponse gardeningGumpResponse 3224608375
                                 settimer gardeningMinWaitTimer 0
                                 getlabel backpack waitForPing
                                 while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse

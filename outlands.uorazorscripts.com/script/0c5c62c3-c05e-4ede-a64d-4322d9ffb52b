@@ -7,8 +7,8 @@
 //////////////////////////////
 //
 // Brewing-Bot for UO Outlands
-// - Automatically processes all brewing items found within the range specified below, as soon as you move close enough to use them (2 tiles)
-// - This script will work without any change. There is an optional setup section below where you can adjust certain parameters according to your own preference
+// - Processes kettles and casks within range
+// - No mandatory setup, an optional setup section can be found below
 // - Make sure to carry all items you want to be added to your kettles and casks in your backpack
 // - WARNING: server system messages are needed to determine necessary actions, make sure they are not filtered for scripts: 
 //      Razor -> Filters -> Text&Messages ->
@@ -22,22 +22,43 @@
 # brewingRange: 1 - 18
     # Amout of tiles around character that will be searched for brewing equipment. If there are no unprocessed items left within this range the script will terminate.
     # Note: to actually work the kettle and cask you need to be in a range of 2 tiles, maximal visual range is 18 tiles
-setvar! brewingRange 2
+    setvar! brewingRange 2
+
+# brewingSkipOverheadInfo: 0 ... Overhead On, 1 ... Overhead Off
+    # Display status information above kettles and casks
+    setvar! brewingSkipOverheadInfo 0
 
 # brewingDebugMode: 0 ... Off, 1 ... On
     # Display additional status information in our journal for easier debugging
-setvar! brewingDebugMode 0
+    setvar! brewingDebugMode 0
 
 ###### END MANUAL SETUP ######
 
 //////////////////////////////
 // 
-// Changelog
+// Changelog:
+// - 09-Dec-2024: Added overhead info above unprocessed kettles and casks outside 2 tiles range, and possibility to continue brewing session in case script did not finish
 //
 //////////////////////////////
 
-@clearignore
-clearsysmsg
+if timerexists brewingRestartTimer
+    if timer brewingRestartTimer < 10000
+        unsetvar brewingDone
+    endif
+    removetimer brewingRestartTimer    
+endif
+
+if not varexist brewingDone or brewingDone = 1
+    setvar! brewingDone 0
+    @clearignore
+    clearsysmsg
+else
+    settimer brewingRestartTimer 0
+    overhead "|* Resuming brewing *|" cBeer
+    sysmsg "|* Resuming brewing *|" cBeer
+    overhead "|* Replay to start fresh *|" cLightOrange
+    sysmsg "|* Replay within 10s to start fresh *|" cLightOrange
+endif
 
 setvar! brewingMinWaitForServerResponse 200
 setvar! brewingMaxWaitForServerResponse 1000
@@ -48,6 +69,13 @@ endif
 
 setvar! brewingKettleGumpID 2803256377
 setvar! brewingCaskGumpID 2874981722
+
+setvar! cBeer 1720
+setvar! cGreen 68
+setvar! cLightBlue 100
+setvar! cLightOrange 145
+setvar! cRed 33
+setvar! cWhite 1150
 
 removelist brewingEmptyCaskList
 createlist brewingEmptyCaskList
@@ -79,14 +107,25 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
     endif
 
     if not timerexists brewingOverheadTimer
-        overhead "|* Brewing *|" 1720
+        overhead "|* Brewing *|" cBeer
         settimer brewingOverheadTimer 0
     elseif not findtype "brewing kettle|brewing barrel" ground -1 -1 2 and timer brewingOverheadTimer > 2000
-        overhead "|* Searching equipment *|" 1720
+        overhead "|* Searching equipment *|" cBeer
+        if brewingSkipOverheadInfo = 0
+            createlist brewingUnfinishedEquipmentList
+            while 10 > index and findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange as localEquipment
+                overhead "Pending" cLightOrange localEquipment
+                overhead "   ¼   " cLightOrange localEquipment
+                pushlist brewingUnfinishedEquipmentList localEquipment
+                @ignore localEquipment
+            endwhile
+            @unignore brewingUnfinishedEquipmentList
+            removelist brewingUnfinishedEquipmentList
+        endif
         settimer brewingOverheadTimer 0
         continue
     elseif timer brewingOverheadTimer > 2000
-        overhead "|* Brewing *|" 1720
+        overhead "|* Brewing *|" cBeer
         settimer brewingOverheadTimer 0
     endif
     
@@ -97,7 +136,7 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
             endwhile
             dclick localWaterContainer
             if brewingDebugMode > 0
-                sysmsg "[Brewing] Trying to refill water containers (Timer: {{brewingDebugTimer}} ms)" 100 
+                sysmsg "[Brewing] Trying to refill water containers (Timer: {{brewingDebugTimer}} ms)" cLightBlue 
             endif
             settimer brewingObjectDelayTimer 0
             @ignore localWaterContainer
@@ -107,7 +146,7 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
             endwhile
             dclick localWaterContainer
             if brewingDebugMode > 0
-                sysmsg "[Brewing] Trying to refill water containers (Timer: {{brewingDebugTimer}} ms)" 100
+                sysmsg "[Brewing] Trying to refill water containers (Timer: {{brewingDebugTimer}} ms)" cLightBlue
             endif
             settimer brewingObjectDelayTimer 0
             @ignore localWaterContainer
@@ -152,9 +191,9 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                 endwhile
                 if brewingDebugMode > 0
                     if insysmsg "You collect 10 cleansing brew from the brewing cask."
-                        sysmsg "[Brewing] Cleansing brew collected (Cask: {{localCask}}, Timer: {{brewingDebugTimer}} ms)" 100
+                        sysmsg "[Brewing] Cleansing brew collected (Cask: {{localCask}}, Timer: {{brewingDebugTimer}} ms)" cLightBlue
                     else
-                        sysmsg "[Brewing] Cleansing brew pickup failed (Cask: {{localCask}}, Timer: {{brewingDebugTimer}} ms)" 100
+                        sysmsg "[Brewing] Cleansing brew pickup failed (Cask: {{localCask}}, Timer: {{brewingDebugTimer}} ms)" cLightBlue
                     endif
                 endif
             
@@ -181,12 +220,12 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                             while timer brewingWaitTimer < brewingMinWaitForServerResponse
                             endwhile
                             if brewingDebugMode > 0
-                                overhead "Hops" 68 localCask
-                                sysmsg "[Brewing] Adding hops" 100
+                                overhead "Hops" cGreen localCask
+                                sysmsg "[Brewing] Adding hops" cLightBlue
                             endif
                         endif
                     else
-                        overhead "|* Not enough hops *|" 33
+                        overhead "|* Not enough hops *|" cRed
                     endif
                 endif
 
@@ -213,23 +252,23 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                         endif
                     endwhile
                     if brewingDebugMode > 0 and not ingump "Add Jar of Honey (10/10)" 2874981722
-                        sysmsg "[Brewing] Honey failed" 33
+                        sysmsg "[Brewing] Honey failed" cRed
                     elseif brewingDebugMode > 0
-                        overhead "Honey" 1720 localCask
-                        sysmsg "[Brewing] Honey added" 100
+                        overhead "Honey" cBeer localCask
+                        sysmsg "[Brewing] Honey added" cLightBlue
                     endif
                 elseif counttype 2540 backpack < 10
-                    overhead "|* Not enough honey *|" 33
+                    overhead "|* Not enough honey *|" cRed
                 endif
 
                 if brewingDebugMode > 0 and ingump "Add Jar of Honey (10/10)" 2874981722
-                    overhead "Done" 68 localCask
-                    overhead " ¼ " 68 localCask
-                    sysmsg "[Brewing] Cask done (Serial: {{localCask}}, Timer: {{brewingDebugTimer}})" 100 
+                    overhead "Done" cGreen localCask
+                    overhead " ¼ " cGreen localCask
+                    sysmsg "[Brewing] Cask done (Serial: {{localCask}}, Timer: {{brewingDebugTimer}})" cLightBlue 
                 elseif brewingDebugMode > 0
-                    overhead "Fail" 33 localCask
-                    overhead " ¼ " 33 localCask
-                    sysmsg "[Brewing] Cask refill failed (Serial: {{localCask}}, Timer: {{brewingDebugTimer}})" 100                 
+                    overhead "Fail" cRed localCask
+                    overhead " ¼ " cRed localCask
+                    sysmsg "[Brewing] Cask refill failed (Serial: {{localCask}}, Timer: {{brewingDebugTimer}})" cLightBlue                 
                 endif
                 @ignore localCask
 
@@ -281,8 +320,8 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                         if insysmsg "You transfer the mixture to a brewing cask."
                             @unignore localEmptyCask
                             if brewingDebugMode > 0
-                                overhead "Mixture" 1150 localEmptyCask
-                                sysmsg "[Brewing] Adding mixture (Cask: {{localEmptyCask}}, Timer: {{brewingDebugTimer}} ms)" 100
+                                overhead "Mixture" cWhite localEmptyCask
+                                sysmsg "[Brewing] Adding mixture (Cask: {{localEmptyCask}}, Timer: {{brewingDebugTimer}} ms)" cLightBlue
                             endif
                         else
                             pushlist brewingEmptyCaskList localEmptyCask front
@@ -314,12 +353,12 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                             while timer brewingWaitTimer < brewingMinWaitForServerResponse
                             endwhile
                             if brewingDebugMode > 0
-                                overhead "Barley" 68 localKettle
-                                sysmsg "[Brewing] Adding barley" 100
+                                overhead "Barley" cGreen localKettle
+                                sysmsg "[Brewing] Adding barley" cLightBlue
                             endif
                         endif
                     else
-                        overhead "|* Not enough barley *|" 33
+                        overhead "|* Not enough barley *|" cRed
                     endif
                 endif
 
@@ -352,7 +391,7 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                     endwhile
                     @unignore brewingFullWateringCanList
                     if list brewingFullWateringCanList = 0
-                        overhead "|* No water supply *|" 33
+                        overhead "|* No water supply *|" cRed
                     elseif poplist brewingFullWateringCanList front as localFullWateringCan
                         if insysmsg "This kettle does not currently require water." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
                         endif
@@ -371,8 +410,8 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                             while timer brewingWaitTimer < brewingMinWaitForServerResponse
                             endwhile                            
                             if brewingDebugMode > 0
-                                overhead "Water" 100 localKettle
-                                sysmsg "[Brewing] Adding water" 100
+                                overhead "Water" cLightBlue localKettle
+                                sysmsg "[Brewing] Adding water" cLightBlue
                             endif
                         endif
                     endif
@@ -413,23 +452,23 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                         endif
                     endwhile
                     if brewingDebugMode > 0 and not ingump "Add Garlic (10/10)" 2803256377
-                        sysmsg "[Brewing] Garlic failed" 33
+                        sysmsg "[Brewing] Garlic failed" cRed
                     elseif brewingDebugMode > 0
-                        overhead "Garlic" 1150 localKettle
-                        sysmsg "[Brewing] Garlic added" 100
+                        overhead "Garlic" cWhite localKettle
+                        sysmsg "[Brewing] Garlic added" cLightBlue
                     endif
                 elseif counttype 3972 self < 10
-                    overhead "|* Not enough garlic *|" 33
+                    overhead "|* Not enough garlic *|" cRed
                 endif
                 
                 if brewingDebugMode > 0 and ingump "Add Garlic (10/10)" 2803256377
-                    overhead "Done" 68 localKettle
-                    overhead " ¼ " 68 localKettle
-                    sysmsg "[Brewing] Kettle done (Serial: {{localKettle}}, Timer: {{brewingDebugTimer}})" 100 
+                    overhead "Done" cGreen localKettle
+                    overhead " ¼ " cGreen localKettle
+                    sysmsg "[Brewing] Kettle done (Serial: {{localKettle}}, Timer: {{brewingDebugTimer}})" cLightBlue 
                 elseif brewingDebugMode > 0
-                    overhead "Fail" 33 localKettle
-                    overhead " ¼ " 33 localKettle
-                    sysmsg "[Brewing] Kettle refill failed (Serial: {{localKettle}}, Timer: {{brewingDebugTimer}})" 100
+                    overhead "Fail" cRed localKettle
+                    overhead " ¼ " cRed localKettle
+                    sysmsg "[Brewing] Kettle refill failed (Serial: {{localKettle}}, Timer: {{brewingDebugTimer}})" cLightBlue
                 endif
             endif
             @ignore localKettle            
@@ -438,7 +477,7 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
     endif
 
     if list brewingEmptyCaskList > 0 and not findtype "brewing kettle" ground -1 -1 brewingRange
-        overhead "|* Not enough mixtures *|" 33
+        overhead "|* Not enough mixtures *|" cRed
         @ignore brewingEmptyCaskList
     endif
 
@@ -455,4 +494,5 @@ removetimer globalWorldSaveTimer
 removelist brewingEmptyCaskList
 
 @clearignore
-overhead "|* Brewing Done *|" 1720
+setvar! brewingDone 1
+overhead "|* Brewing Done *|" cBeer

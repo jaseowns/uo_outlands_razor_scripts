@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-healer ver.4.07
+#SUPER Auto-healer ver.4.08
 
 #********** INFORMATION **********# 
 
@@ -14,6 +14,11 @@
 # **If you like my work and wish to buy me a coffee: https://buymeacoffee.com/dennoz** #
 
 # Information : This is a script to auto heal you using Magery, Chivarly, Potions, Bandages and magery buffs
+
+# Updates
+#Ver 4.08 - Added the use of cure potion when bleed or disease using ability Panacea from alchemy codex
+#Ver 4.00 - Restructured code and changed variables to make it more friendly to adjust the hit points differences for healing trigger
+
 
 #********** SET YOUR SETTINGS **********# 
 
@@ -37,13 +42,13 @@
 @setvar! nobleSacrifice 1
 @setvar! holyLight 1
 
-@setvar! nobleSacrificeDiff 66
-@setvar! holyLightDiff 44
+@setvar! nobleSacrificeDiff 75
+@setvar! holyLightDiff 55
 
 #--- Set potions ---#
 
 @setvar! drinkStr 1
-@setvar! strengthLowerThan 100
+@setvar! strengthLowerThan 101
 
 @setvar! drinkAgility 1
 @setvar! drinkMagicResist 1
@@ -51,13 +56,17 @@
 @setvar! drinkCure 1
 
 @setvar! drinkRefresh 1
-@setvar! staminaLowerThan 15
+@setvar! staminaLowerThan 85
+
+#--- Alchemy Codex ---#
+
+@setvar! panaceaAbility 1
 
 #--- Auto healing hp diffs ---#
 #--- All variables refer to hit points differences ---#
 #--- When below certain hit points it will trigger ---#
 
-@setvar! activateAutoHealDiff 5
+@setvar! activateAutoHealDiff 1
 
 @setvar! startCastMiniHealDiff 10
 @setvar! endCastMiniHealDiff 30
@@ -67,7 +76,7 @@
 @setvar! startCastGreaterHealDiff 30
 @setvar! endCastGreaterHealDiff 200
 
-@setvar! drinkHealPotDiff 33
+@setvar! drinkHealPotDiff 40
 
 @setvar! interruptCastingBuffsDiff 40
 
@@ -86,7 +95,7 @@ l
 
 @setvar! healingPotCD 8000
 
-@setvar! lowManaWarningMessageWhenBelow 22
+@setvar! lowManaWarningMessageWhenBelow 11
 
 #********** DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING  **********   
 
@@ -97,6 +106,9 @@ settimer nobleTimer nobleCD
 
 @setvar! nobleDelayCD 5000
 settimer nobleDelayTimer nobleDelayCD
+
+@setvar! nobleMessageCD 500
+settimer nobleMessageTimer nobleMessageCD
 
 @setvar! holyLightCD 30000
 settimer holyLightTimer holyLightCD
@@ -143,6 +155,18 @@ settimer redMessageTimer redMessageCD
 @setvar! foodMessageCD 3333
 settimer foodMessageTimer foodMessageCD
 
+@setvar! panaceaAbilityCD 30000
+
+if not timerexists panaceaAbilityTimer
+    settimer panaceaAbilityTimer panaceaAbilityCD
+endif
+
+@setvar! panaceaDelayMessageCD 5000
+
+if not timerexists panaceaDelayMessageTimer
+    settimer panaceaDelayMessageTimer panaceaDelayMessageCD
+endif
+
 #--- Magery buffs timers ---#
 
 @setvar! magicReflectCD 15000
@@ -180,12 +204,34 @@ while not dead
             stop
         endif
 
-        if timer nobleDelayTimer < nobleDelayCD
+        if timer nobleDelayTimer < nobleDelayCD and timer nobleMessageTimer > nobleMessageCD
             sysmsg "Healing Restricted {{nobleDelayTimer}} / 5000" 34 
             overhead "Healing Restricted {{nobleDelayTimer}} / 5000" 34 
+            settimer nobleMessageTimer 0
         endif
         
         @setvar! castingInterrupted 0
+        
+        if panaceaAbility = 1
+            if findbuff "bleed" or findbuff "diseased"
+                if timer panaceaAbilityTimer > panaceaAbilityCD
+                    if findtype "Orange Potion" self
+                        dclicktype "Orange Potion"
+                        wait 200
+                        while not insysmsg "you are not poisoned" and not insysmsg "potion codex panacea"
+                            dclicktype "Orange Potion"
+                            wait 200                        
+                        endwhile
+                        settimer panaceaAbilityTimer 0
+                        overhead "Panacea Activated!" 55
+                        sysmsg "Panacea Activated!" 55
+                    endif 
+                elseif timer panaceaAbilityTimer > 25000 and timer panaceaDelayMessageTimer > panaceaDelayMessageCD
+                    sysmsg "Panacea Ability ready in less than 5 seconds" 44
+                    settimer panaceaDelayMessageTimer 0
+                endif
+            endif
+        endif
         
         if not findbuff "food" 
             if findtype "tray" backpack as fody    
@@ -450,7 +496,7 @@ while not dead
             if insysmsg "seconds before you may use that ability again."
             endif
 
-            while not insysmsg "holy symbols remaining"
+            while not insysmsg "holy symbols remaining" and not dead
                 sysmsg "holy light" 46
                 hotkey 'holy light'
                 getlabel backpack xxx
@@ -475,7 +521,7 @@ while not dead
             if insysmsg "seconds before you may use that ability again."
             endif
 
-            while not insysmsg "holy symbols remaining" and not insysmsg "whom do you wish to heal"
+            while not insysmsg "holy symbols remaining" and not insysmsg "whom do you wish to heal" and not dead
                 sysmsg "noble sacrifice" 46
                 hotkey 'noble sacrifice'
                 getlabel backpack xxx

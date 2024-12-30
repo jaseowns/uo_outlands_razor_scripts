@@ -219,7 +219,7 @@
 @setvar! RedInventoryMessage 1
 @setvar! WhiteInventoryMessage 0
 @setvar! BlueInventoryMessage 0
-@setvar! BlackInventoryMessage 1
+@setvar! BlackInventoryMessage 0
 @setvar! RopeInventoryMessage 0
 #
 @setvar! EnableWeightWarningMessage 1
@@ -278,10 +278,10 @@ endif
 
 # Use this variable to enable your own Razor script for Auto Recall instead:  
 @setvar! EnableDIYHomeRecallScript 0
-if EnableDIYHomeRecallScript = 1
-    createlist HomeRecallScriptList  
+    if EnableDIYHomeRecallScript = 1
+        createlist HomeRecallScriptList  
  
-    # Type the name of your own Recall Razor script here: 
+        # Type the name of your own Recall Razor script here: 
         pushlist HomeRecallScriptList "Your Recall Script Name Here"
     endif 
 
@@ -300,7 +300,7 @@ if skill "Mining" >= 50 and EnableMining = 1
 @setvar! EnableIngotAutoRecall 1
 @setvar! IngotRecallAmount 3000
 
-@setvar! EnableOreStacker 1
+@setvar! EnableOreStacker 0
 @setvar! StackOreinIngotBag 0
 
 # You can choose to set a storage bag for your Ingots:
@@ -352,9 +352,11 @@ endif
     //         Magery Specific Variables:          //
     #################################################
     
-# Use ">info" fo ID your [blessed] spellbook for this variable:
-@setvar! MyBlessedSpellbook 0x69542B55
-# This will stop the script from trying to equip it instead of your aspect book
+    # Use ">info" to ID any of your [blessed] spellbooks and add them here:
+@setvar! MyBlessedMiningSpellbook 0x0000000
+@setvar! MyBlessedLumberSpellbook 0x0000000
+    # This will stop the script from trying to equip it instead of your aspect book
+    
 
     //  DEFENSIVE MAGIC:  \\
 
@@ -622,7 +624,6 @@ endif
 
     
 
-
 ############   EDIT BELOW THIS LINE AT YOUR OWN RISK!   ########   EDIT BELOW THIS LINE AT YOUR OWN RISK!   ########   EDIT BELOW THIS LINE AT YOUR OWN RISK!   ########   EDIT BELOW THIS LINE AT YOUR OWN RISK!   ############
 
 
@@ -872,6 +873,9 @@ if not varexist FIRSTRUN
     overhead "[ HAPPY HARVESTING!! ]" 2086
     wait 3000
 endif
+
+@ignore MyBlessedMiningSpellbook 
+@ignore MyBlessedLumberSpellbook 
 
 @ignore MyBlessedSpellbook
 
@@ -4902,7 +4906,7 @@ if EnableAutoAttackGreyMOB = 1
                                 hotkey '> Interrupt'
                                 break
                             else
-                                cast 'Mind Blast'
+                                cast 'mindblast'
                                 wait 100
                                 while casting 
                                     wait 50
@@ -6590,7 +6594,7 @@ if not dead and skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1 and not
                 wft 1000
                 target lockbox
                 wait 250
-                overhead "[lockbox secured]" 84
+                overhead "[board box locked]" 84
             endif
         endif 
     endif 
@@ -7265,64 +7269,62 @@ if not dead and skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1 and not
                                             getlabel lockbox lockboxLabel
                                             if "items" in lockboxLabel
                                                 wait 500
-                                                overhead "*securing boards...*" 149
-                                                while findtype 'board%s' backpack as boardstostore
+                                            overhead "*securing boards...*" 149
+                                            while findtype 'board%s' backpack as boardstostore
                                                     if find boardstostore lockbox
-                                                        // Do nothing
+                                                        @ignore boardstostore
                                                     else 
                                                         clearsysmsg 
                                                         lift boardstostore 9999
+                                                        wait 150 
                                                         drop lockbox -1 -1 -1
-                                                        wait 350
+                                                        wait 250
                                                     endif
-                                                        @ignore boardstostore
                                                 endwhile 
-                                            
-                                                wait 1000
+
                                                 dclick key
-                                                wft 1000
+                                                wft 1500
                                                 target lockbox
-                                                overhead "[lockbox secured]" 84
-                                                @setvar! NeedtoSecureBoards 0                                              
+                                                overhead "[board box locked]" 69
+                                                @setvar! NeedtoSecureBoards 0                                            
                                             else 
-                                                overhead "[opening lockbox...]" 84
+                                                overhead "[board box unlocked]" 84
                                                 dclick key
                                                 wft 1500
                                                 target lockbox
                                                 overhead "*securing boards...*" 149
                                                 while findtype 'board%s' backpack as boardstostore
                                                     if find boardstostore lockbox
-                                                        // Do nothing
+                                                        @ignore boardstostore
                                                     else 
                                                         clearsysmsg 
                                                         lift boardstostore 9999
+                                                        wait 150
                                                         drop lockbox -1 -1 -1
-                                                        wait 350
+                                                        wait 250
                                                     endif
-                                                    @ignore boardstostore
                                                 endwhile 
                                            
                                                 dclick key
                                                 wft 1500
                                                 target lockbox
-                                                overhead "[lockbox secured]" 69
+                                                overhead "[board box locked]" 69
                                                 @setvar! NeedtoSecureBoards 0
                                             endif 
                                         endif 
-
-                                    getlabel lockbox lockboxLabel
+                                        
                                     wait 150 
+                                    getlabel lockbox lockboxLabel
                                     
                                         if "items" in lockboxLabel
                                             dclick key
                                             wft 1500
                                             target lockbox
-                                            overhead "[lockbox secured]" 84
                                             @setvar! NeedtoSecureBoards 0
                                         endif
                                     endif
-                                endif   
-
+                                endif 
+                                
                             elseif StackBoardsinBoardBag = 1
                                 for 10
                                 if findtype 'board%s' backpack as woodtomove
@@ -7472,63 +7474,61 @@ if not dead and skill "Lumberjacking" > 49.9 and EnableLumberjacking = 1 and not
                                             getlabel lockbox lockboxLabel
                                             if "items" in lockboxLabel
                                                 wait 500
-                                                overhead "*securing boards...*" 149
-                                                while findtype 'board%s' backpack as boardstostore
+                                            overhead "*securing boards...*" 149
+                                            while findtype 'board%s' backpack as boardstostore
                                                     if find boardstostore lockbox
-                                                        // Do nothing
+                                                        @ignore boardstostore
                                                     else 
                                                         clearsysmsg 
                                                         lift boardstostore 9999
+                                                        wait 150 
                                                         drop lockbox -1 -1 -1
-                                                        wait 350
+                                                        wait 250
                                                     endif
-                                                        @ignore boardstostore
                                                 endwhile 
-                                            
-                                                wait 1000
+
                                                 dclick key
-                                                wft 1000
+                                                wft 1500
                                                 target lockbox
-                                                overhead "[lockbox secured]" 84
-                                                @setvar! NeedtoSecureBoards 0                                               
+                                                overhead "[board box locked]" 69
+                                                @setvar! NeedtoSecureBoards 0                                            
                                             else 
-                                                overhead "[opening lockbox...]" 84
+                                                overhead "[board box unlocked]" 84
                                                 dclick key
                                                 wft 1500
                                                 target lockbox
                                                 overhead "*securing boards...*" 149
                                                 while findtype 'board%s' backpack as boardstostore
                                                     if find boardstostore lockbox
-                                                        // Do nothing
+                                                        @ignore boardstostore
                                                     else 
                                                         clearsysmsg 
                                                         lift boardstostore 9999
+                                                        wait 150
                                                         drop lockbox -1 -1 -1
-                                                        wait 350
+                                                        wait 250
                                                     endif
-                                                    @ignore boardstostore
                                                 endwhile 
                                            
                                                 dclick key
                                                 wft 1500
                                                 target lockbox
-                                                overhead "[lockbox secured]" 69
+                                                overhead "[board box locked]" 69
                                                 @setvar! NeedtoSecureBoards 0
                                             endif 
                                         endif 
-
-                                    getlabel lockbox lockboxLabel
+                                        
                                     wait 150 
+                                    getlabel lockbox lockboxLabel
                                     
                                         if "items" in lockboxLabel
                                             dclick key
                                             wft 1500
                                             target lockbox
-                                            overhead "[lockbox secured]" 84
                                             @setvar! NeedtoSecureBoards 0
                                         endif
                                     endif
-                                endif   
+                                endif 
 
                             elseif StackBoardsinBoardBag = 1
                                 for 10
@@ -8535,63 +8535,61 @@ else
                                             getlabel lockbox lockboxLabel
                                             if "items" in lockboxLabel
                                                 wait 500
-                                                overhead "*securing boards...*" 149
-                                                while findtype 'board%s' backpack as boardstostore
+                                            overhead "*securing boards...*" 149
+                                            while findtype 'board%s' backpack as boardstostore
                                                     if find boardstostore lockbox
-                                                        // Do nothing
+                                                        @ignore boardstostore
                                                     else 
                                                         clearsysmsg 
                                                         lift boardstostore 9999
+                                                        wait 150 
                                                         drop lockbox -1 -1 -1
-                                                        wait 350
+                                                        wait 250
                                                     endif
-                                                        @ignore boardstostore
                                                 endwhile 
-                                            
-                                                wait 1000
+
                                                 dclick key
-                                                wft 1000
+                                                wft 1500
                                                 target lockbox
-                                                overhead "[lockbox secured]" 84
+                                                overhead "[board box locked]" 69
                                                 @setvar! NeedtoSecureBoards 0                                            
                                             else 
-                                                overhead "[opening lockbox...]" 84
+                                                overhead "[board box unlocked]" 84
                                                 dclick key
                                                 wft 1500
                                                 target lockbox
                                                 overhead "*securing boards...*" 149
                                                 while findtype 'board%s' backpack as boardstostore
                                                     if find boardstostore lockbox
-                                                        // Do nothing
+                                                        @ignore boardstostore
                                                     else 
                                                         clearsysmsg 
                                                         lift boardstostore 9999
+                                                        wait 150
                                                         drop lockbox -1 -1 -1
-                                                        wait 350
+                                                        wait 250
                                                     endif
-                                                    @ignore boardstostore
                                                 endwhile 
                                            
                                                 dclick key
                                                 wft 1500
                                                 target lockbox
-                                                overhead "[lockbox secured]" 69
+                                                overhead "[board box locked]" 69
                                                 @setvar! NeedtoSecureBoards 0
                                             endif 
                                         endif 
-
-                                    getlabel lockbox lockboxLabel
+                                        
                                     wait 150 
+                                    getlabel lockbox lockboxLabel
                                     
                                         if "items" in lockboxLabel
                                             dclick key
                                             wft 1500
                                             target lockbox
-                                            overhead "[lockbox secured]" 84
                                             @setvar! NeedtoSecureBoards 0
                                         endif
                                     endif
-                                endif   
+                                endif 
                                 
                             elseif StackBoardsinBoardBag = 1
                                 for 10
@@ -8636,3 +8634,4 @@ replay
 # This script took me over a year of adjustments to get to this point (started with a a few simple lines of code on Dec 19, 2023).  
 # Though it is a constant work in progress, I feel like I can finally call this script COMPLETE!
 # I hope you all enjoy my work and that it helps break up the monotony of harvesting (and keeps your toon alive!) 
+

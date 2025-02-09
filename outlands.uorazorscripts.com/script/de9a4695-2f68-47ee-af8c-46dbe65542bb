@@ -1,0 +1,2796 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/de9a4695-2f68-47ee-af8c-46dbe65542bb for latest
+# Automation by Jaseowns
+## Script: Witcher Travel
+## Created by: nev0r#0
+#############################################
+
+#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#
+# KAL     '    Witcher  Travel     '    VAS #
+# ORT     '    for UO Outlands     '    REL #
+# POR     '       Version 1        '    POR #
+#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#
+
+#' 1) General information                   '
+
+//  UO Outlands has an inofficial 'rune travelling system created by Witcher'
+//  It has a high location density allowing us to get around the map very quickly
+//  You can find all marked spots on 'https://www.exploreoutlands.com/'
+//  Fast travel like a Witcher with this script by simply typing the rune number in-game
+
+//  WARNING: server system messages are needed to determine necessary actions, make sure they are not filtered for scripts: 
+//    Razor -> Filters -> Text&Messages ->
+//    - Uncheck 'Filter repeating system messages'
+//    - 'Enable text filter' and 'Filter system messages' (list entry sub-menu) can be checked, however 'Ignore filtered messages in overhead and scripts' (list entry sub-menu) has to be unchecked
+
+#' 2) How to set up                         '
+
+//  - Reference are the 14 rune tomes openly accessible at 'Cambria Rune Library (Coords: 1706, 3181)'
+//    o These tomes are set as default and will be detected automatically
+//    o Location shown in this post: 'https://forums.uooutlands.com/index.php?threads/witchers-updated-guide-to-tmaps-how-you-can-and-why-you-should-be-running-your-own-tmaps.3439/'
+//  - Other correctly named tomes on the ground, or held in your backpack, are also detected automatically
+//    o Tome names have to include (for tome 1 to 14 respectively): 1-24, 25-49, 50-75, 76-99, 100-123, 124-149, 150-175, 176-201, 202-227, 228-249, 250-275, 276-301, 302-327, 328-353
+//  - When using your own tomes, you can set their serials to increase speed (scroll down to manual setup -> Tome serial presets)
+//    o WARNING: You may be sent to the wrong location in case your runes are in a different order than they are in the reference library 
+//  - Custom locations (= not marked on exploreoutlands.com) are not supported, keep custom runes in a separate rune tome if you want to use this script
+
+//  'Minimal requirements':
+//  - Ability to recall, using magery or scrolls
+//  - Access to a 'witcher tome library' with correctly set up tomes (see info above)
+//  - A 'marked rune in backpack', a runebook in a secure container/bank box (locked down does not work), or a rune tome (backpack, secure container, or locked down with access rights to change the name)
+
+//  'Optimal setup':
+//  - Ability to recall and gate travel using magery
+//  - Access to correctly named 'witcher tomes in backpack or locked down' (see info above)
+//  - A 'blessed runebook or runetome in backpack', a runebook in a secure container/bank box (locked down does not work), or a rune tome (backpack, secure container, or locked down with access rights to change the name)
+//    o 'WARNING': Do not keep non blessed runebooks or tomes in your backpack, they can be stolen and drop to your corpse when killed
+
+#' 3) How to use                            '
+
+//  - 'Run the script'
+//    o In case there are multiple marked runes, runebooks or runetomes found as possible input source you will get a prompt to select the desired one
+//    o You can skip this by setting up the serial of the desired one (scroll down to manual setup -> Input source)
+//    o To use a runebook, runetome or witcher tomes stored in a secure container/bank you have to specify which containers have to be opened to get to the items (scroll down to manual setup -> Input source)
+//  - 'Type the desired rune number' when asked to do so
+//    o The script is going to rename your marked rune, runebook or runetome according to your input
+//    o Afterwards it reads the rune/book label and tries to find the correct witcher tome
+//  - If a tome containing the desired rune can be found you are either transported there, or the book page is opened (according to your preference, set in the manual setup section below)
+
+#' 4) How to find out item serials          '
+
+//  - Type '>info' ingame
+//  - Target the item you want to investigate and wait for the info-gump to open
+//  - Hit the little blue dot next to 'serial' to copy it
+//  - Paste to desired position
+//    o For a variable make it look like this:      'setvar! example 0x546B015F'
+//    o In case of a list it has to look like this: 'pushlist exampleList 0x546B015F'
+
+##############' MANUAL  SETUP '##############
+
+// AutoTravel: Do you want to automatically initiate the cast, or only open the tome page?
+// 0 ... Open tome page, manually click the cast button
+// 1 ... Automatically recall or gate
+setvar! AutoTravel 0
+
+// UseGateTravel: Set which mode of travel you prefer
+// 0 ... Recall
+// 1 ... Gate Travel
+setvar! UseGateTravel 0
+
+// UseScrolls: Set if you want to exclusively use scrolls
+// 0 ... Recall/gate using magery and reagents whenever possible (only use scrolls if out of regs or magery too low)
+// 1 ... Exclusively use scrolls to recall/gate
+setvar! UseScrolls 0
+
+//AutoRefillScrolls: Resupply rune tome with a scroll when no charges left (only works if AutoTravel is set to 1)
+// 0 ... Do not put charges to tome
+// 1 ... Charge tome if needed and scroll available (backpack and storage shelf within 2 tiles range are going to be searched for scrolls)
+setvar! AutoRefillScrolls 0
+
+            // ' INPUT SOURCE ' //
+
+//UseBook: Do you want to use marked runes, or a runebook/tome
+// 0 ... Marked rune in backpack
+// 1 ... Runebook in backpack or bank/container
+// 2 ... Runetome in backpack, bank/container or locked down (with access rights to rename it)
+// NOTE: Add container serials to RunebookContainerList down below when using a runebook/tome stored in your bank or secure container
+//       Books as input source also accept partial matches (i.e. typing 555 would match rune number 55)
+setvar! UseBook 0
+    
+//MarkedRuneSerial: Add the serial of your marked rune, has to be in your backpack
+//NOTE:             Only needs to be set if you use marked runes and carry multiple
+//WARNING:          Runes can be stolen and drop to your corpse when killed 
+setvar! MarkedRuneSerial 0x
+
+//BookOrTomeSerial: Add the serial of your desired runebook/tome
+//NOTE:             Only needs to be set if you carry multiple, or you are using it from your bank/container
+//WARNING:          Do not keep non blessed runebooks or -tomes in your backpack, they can be stolen and drop to your corpse when killed
+setvar! BookOrTomeSerial 0x
+
+//RunebookContainerList: Add all container serials in the correct order they need to be opened to get to your runebook/tome
+//                       Write 'Bank' if you want to use your bank box
+//NOTE:                  For runebooks only secured containers and bank are going to work
+
+//Do not edit the next two lines
+removelist RunebookContainerList
+createlist RunebookContainerList
+
+//Put your container serials here (max. 18, add/remove # to comment/uncomment):
+#pushlist RunebookContainerList "Bank"
+#pushlist RunebookContainerList 0x
+
+            // ' TOME SERIAL PRESETS ' //
+
+//WitcherTomeContainerList: Add all container 'serials' in the correct order they need to be opened to get to your witcher rune tomes
+//                          Write 'Bank' if you want to use your bank box
+//NOTE:                     Not needed if your witcher tomes are in the same container as the input runebook/tome
+
+//Do not edit the next two lines
+removelist WitcherTomeContainerList
+createlist WitcherTomeContainerList
+
+//Put your container serials here (max. 18, add/remove # to comment/uncomment):
+#pushlist WitcherTomeContainerList "Bank"
+#pushlist WitcherTomeContainerList 0x
+
+//Add your own witcher tome 'serials' here to increase performance
+setvar! myWitcherTome_01 0x
+setvar! myWitcherTome_02 0x
+setvar! myWitcherTome_03 0x
+setvar! myWitcherTome_04 0x
+setvar! myWitcherTome_05 0x
+setvar! myWitcherTome_06 0x
+setvar! myWitcherTome_07 0x
+setvar! myWitcherTome_08 0x
+setvar! myWitcherTome_09 0x
+setvar! myWitcherTome_10 0x
+setvar! myWitcherTome_11 0x
+setvar! myWitcherTome_12 0x
+setvar! myWitcherTome_13 0x
+setvar! myWitcherTome_14 0x
+
+//Rune library serials - South of cambria moongate (Loc: 1706, 3181)
+setvar! libWitcherTome_01 0x546B015F
+setvar! libWitcherTome_02 0x546AF790
+setvar! libWitcherTome_03 0x43757C23
+setvar! libWitcherTome_04 0x43756325
+setvar! libWitcherTome_05 0x43755561
+setvar! libWitcherTome_06 0x43752730
+setvar! libWitcherTome_07 0x437548AB
+setvar! libWitcherTome_08 0x43751C83
+setvar! libWitcherTome_09 0x43752E07
+setvar! libWitcherTome_10 0x43755E41
+setvar! libWitcherTome_11 0x4B99B20C
+setvar! libWitcherTome_12 0x546ACD06
+setvar! libWitcherTome_13 0x4374EB77
+setvar! libWitcherTome_14 0x4374E53D
+
+#############################################
+#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#
+##############'  END   SETUP  '##############
+#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#-~-#
+#############################################
+
+//Output debug info
+setvar! witDebugMode 0
+
+//Colors
+setvar! cGreen           68
+setvar! cLightBlue      100
+setvar! cLightOrange    145
+setvar! cRed             33
+setvar! cYellow          55
+
+//Variables and Timers
+setvar! globalWaitForServerResponse     500
+setvar! globalMaxWaitForServerResponse 1000
+
+if not timerexists globalObjectDelayTimer
+    setvar! globalWaitForObjectDelay 600
+    settimer globalObjectDelayTimer globalWaitForObjectDelay
+endif
+
+setvar! witRuneBookGumpID       1551740969
+setvar! witRuneTomeGumpID       167090027
+setvar! witRuneTomeRenameGumpID 1263030975
+setvar! witSearchRange          18
+setvar! witNPCMenuMaxRange      12
+
+if not timerexists witWaitTimer
+    settimer witWaitTimer globalMaxWaitForServerResponse
+endif
+if not timerexists witOverheadTimer
+    setvar! witOverheadCD 3000
+    settimer witOverheadTimer witOverheadCD
+endif
+
+if not listexists RunebookContainerList
+    createlist RunebookContainerList
+endif
+if not listexists WitcherTomeContainerList
+    createlist WitcherTomeContainerList
+endif
+
+//Main loop, only used for flow control
+while not dead
+
+    //Mana check
+    if UseGateTravel = 1 and mana < 40 or mana < 11
+        overhead "|* Not enough mana *|" cRed
+        break
+    endif
+
+    //Skill check
+    if UseGateTravel = 1 and skill "Magery" < 50
+        overhead "|* Magery skill too low *|"     cRed
+        overhead "Need 50 Magery for gate charge" cRed
+        break
+    elseif UseGateTravel = 1 and UseScrolls = 0 and skill "Magery" < 90
+        overhead "|* Magery skill low *|"  cLightOrange
+        overhead "Using gate charge"       cLightOrange
+        setvar! UseScrolls 1
+    elseif UseGateTravel = 0 and UseScrolls = 0 and skill "Magery" < 60
+        overhead "|* Magery skill low *|"  cLightOrange
+        overhead "Using recall charge"     cLightOrange
+        setvar! UseScrolls 1
+    endif
+
+    //Reg check
+    @clearignore
+    if UseGateTravel = 1 and UseScrolls = 0
+        if not findtype 3962 self or not findtype 3974 self or not findtype 3980 self
+            overhead "|* Regs missing *|"  cLightOrange
+            overhead "Using gate charge"   cLightOrange
+            setvar! UseScrolls 1
+        endif
+    elseif UseScrolls = 0
+        if not findtype 3962 self or not findtype 3963 self or not findtype 3974 self
+            overhead "|* Regs missing *|"  cLightOrange
+            overhead "Using recall charge" cLightOrange
+            setvar! UseScrolls 1
+        endif
+    endif
+    
+    if witDebugMode > 0
+        settimer witRunTimer 0
+        sysmsg "< Witcher Travel >" cLightBlue
+    endif
+    
+    if insysmsg "Please enter a description for this marked object:" or insysmsg "Please enter a title for the runebook:" or insysmsg "The etching on the rune has been changed." or insysmsg "The book's title has been changed." or insysmsg "You rename the runetome." or insysmsg "world is saving"
+        //' Clear relevant system messages
+    endif
+
+    //Clear cursor
+    if targetexists
+        target cancel
+    endif
+
+    //Bank box management
+    if find libWitcherTome_01 ground -1 -1 witSearchRange or find libWitcherTome_02 ground -1 -1 witSearchRange or find libWitcherTome_03 ground -1 -1 witSearchRange or find libWitcherTome_04 ground -1 -1 witSearchRange or find libWitcherTome_05 ground -1 -1 witSearchRange or find libWitcherTome_06 ground -1 -1 witSearchRange or find libWitcherTome_07 ground -1 -1 witSearchRange or find libWitcherTome_08 ground -1 -1 witSearchRange or find libWitcherTome_09 ground -1 -1 witSearchRange or find libWitcherTome_10 ground -1 -1 witSearchRange or find libWitcherTome_11 ground -1 -1 witSearchRange or find libWitcherTome_12 ground -1 -1 witSearchRange or find libWitcherTome_13 ground -1 -1 witSearchRange or find libWitcherTome_14 ground -1 -1 witSearchRange
+
+        clearlist RunebookContainerList
+        clearlist WitcherTomeContainerList
+    
+    elseif inlist RunebookContainerList "bank" or inlist RunebookContainerList "Bank" or inlist WitcherTomeContainerList "bank" or inlist WitcherTomeContainerList "Bank"
+
+        if witDebugMode > 0
+            sysmsg "[Witcher Travel] Searching banker npc ... ({{witRunTimer}} ms)" cLightBlue
+        endif
+        
+        setvar! witBankerSerial 0
+
+        if findtype "Alligra|Alphonse|Becca|Brandi|Britta|Corbin|Daryl|Duane|Errol|Feronia|Fielding|Ganesa|Ingmar|Len|Orlantha|Osmond|Rafferty|Renee|Roi|Stanton|Stephan|Sun|Susan|Tano|Trind|Zakia" ground -1 -1 witNPCMenuMaxRange as localBanker
+            getlabel localBanker localBankerLabel
+            if "the banker" in localBankerLabel
+                setvar! witBankerSerial localBanker
+            endif
+        endif
+
+        if witBankerSerial = 0
+            removelist witNPCList
+            createlist witNPCList
+            settimer witWaitTimer 0
+            hotkey 'Next Monster Target'
+            wait 10
+            setvar! witNPCSerial lasttarget
+
+            while not inlist witNPCList witNPCSerial and timer witWaitTimer < 5000
+                pushlist witNPCList witNPCSerial
+                if noto witNPCSerial != "invulnerable"
+                    //Skip
+                elseif find witNPCSerial ground -1 -1 witNPCMenuMaxRange
+                    getlabel witNPCSerial witNPCLabel
+                    if "the banker" in witNPCLabel
+                        setvar! witBankerSerial witNPCSerial
+                        break
+                    endif
+                endif
+                hotkey 'Next Monster Target'
+                wait 10
+                setvar! witNPCSerial lasttarget
+            endwhile
+
+            removelist witNPCList
+            unsetvar witNPCSerial
+        endif
+
+        if witBankerSerial > 0
+            menu witBankerSerial 3
+        else
+            if inlist RunebookContainerList "bank" or inlist RunebookContainerList "Bank"
+                clearlist RunebookContainerList
+            endif
+            if inlist WitcherTomeContainerList "bank" or inlist WitcherTomeContainerList "Bank"
+                clearlist WitcherTomeContainerList
+            endif
+        endif
+
+        if witDebugMode > 0
+            if witBankerSerial > 0
+                sysmsg "[Witcher Travel] Banker found ... ({{witRunTimer}} ms)" cLightBlue
+                overhead "< Banker >" cGreen witBankerSerial
+                overhead "    ¼    "  cGreen witBankerSerial
+            elseif timer witWaitTimer > 5000
+                sysmsg "[Witcher Travel] Banker search timeout ... ({{witRunTimer}} ms)" cLightBlue
+            else
+                sysmsg "[Witcher Travel] No banker found ... ({{witRunTimer}} ms)" cLightBlue
+            endif
+        endif
+
+        unsetvar witBankerSerial
+    endif
+
+    //Set user input source
+    setvar! witParentContainer 0
+    setvar! witSharedParentContainer 0
+
+    if UseBook > 0
+        //Runebook
+        
+        if witDebugMode > 0
+            sysmsg "[Witcher Travel] Searching runebook ... ({{witRunTimer}} ms)" cLightBlue
+        endif
+
+        if list RunebookContainerList > 0 and list WitcherTomeContainerList > 0
+        //Convert hex serials to dec for comparison
+
+            removelist witConvertList
+            createlist witConvertList
+
+            if inlist WitcherTomeContainerList "bank" or inlist WitcherTomeContainerList "Bank"
+                poplist WitcherTomeContainerList "bank"
+                poplist WitcherTomeContainerList "Bank"
+                pushlist witConvertList "Bank"
+            endif
+            while list WitcherTomeContainerList > 0
+                if poplist WitcherTomeContainerList front as localDecSerial
+                    pushlist witConvertList localDecSerial
+                endif
+            endwhile
+            
+            if inlist witConvertList "Bank"
+                poplist witConvertList "Bank"
+                pushlist WitcherTomeContainerList "Bank"            
+            endif
+            while list witConvertList > 0
+                if poplist witConvertList front as localDecSerial
+                    pushlist WitcherTomeContainerList localDecSerial
+                endif
+            endwhile
+
+            removelist witConvertList
+
+        endif
+
+        //Open all containers specified by the user
+        while list RunebookContainerList > 0
+
+            if inlist RunebookContainerList "bank" or inlist RunebookContainerList "Bank"
+                setvar! witParentContainer self
+                poplist RunebookContainerList "bank"
+                poplist RunebookContainerList "Bank"
+                if inlist WitcherTomeContainerList "Bank"
+                    setvar! witSharedParentContainer 1
+                    poplist WitcherTomeContainerList "Bank"
+                endif
+            elseif poplist RunebookContainerList front as localContainer
+                while timer globalObjectDelayTimer < globalWaitForObjectDelay
+                endwhile
+                if witParentContainer = 0
+                    //Main-container
+                    if find localContainer ground -1 -1 2
+                        dclick localContainer
+                        settimer globalObjectDelayTimer 0
+                        setvar! witParentContainer localContainer
+                        if inlist WitcherTomeContainerList localContainer
+                            setvar! witSharedParentContainer 1
+                        endif                    
+                    elseif find localContainer backpack
+                        break
+                    elseif witDebugMode > 0
+                        if UseBook = 1
+                            sysmsg "[Witcher Travel] Runebook-Container not found ... ({{witRunTimer}} ms)" cLightOrange
+                        elseif UseBook = 2
+                            sysmsg "[Witcher Travel] Runetome-Container not found ... ({{witRunTimer}} ms)" cLightOrange
+                        endif
+                        break
+                    endif
+                else
+                    //Sub-container
+                    settimer witWaitTimer 0
+                    while not find localContainer witParentContainer and timer witWaitTimer < globalMaxWaitForServerResponse
+                    endwhile
+                    if not find localContainer witParentContainer
+                        if witDebugMode > 0
+                            if UseBook = 1
+                                sysmsg "[Witcher Travel] Runebook-Subcontainer not found ... ({{witRunTimer}} ms)" cLightOrange
+                            elseif UseBook = 2
+                                sysmsg "[Witcher Travel] Runetome-Subcontainer not found ... ({{witRunTimer}} ms)" cLightOrange
+                            endif
+                        endif
+                        break
+                    endif
+                    dclick localContainer
+                    settimer globalObjectDelayTimer 0
+                endif
+                if inlist WitcherTomeContainerList localContainer
+                    poplist WitcherTomeContainerList localContainer
+                endif
+            endif
+
+            if list RunebookContainerList = 0
+                settimer witWaitTimer 0
+                while timer witWaitTimer < globalMaxWaitForServerResponse 
+                    if find BookOrTomeSerial witParentContainer
+                        if witDebugMode > 0
+                            sysmsg "[Witcher Travel] All containers opened ... ({{witRunTimer}} ms)" cLightBlue
+                        endif
+                        break
+                    endif
+                endwhile
+                if witDebugMode > 0 and timer witWaitTimer > globalMaxWaitForServerResponse
+                    if UseBook = 1
+                        sysmsg "[Witcher Travel] Runebook search timeout ... ({{witRunTimer}} ms)" cRed
+                    elseif UseBook = 2
+                        sysmsg "[Witcher Travel] Runetome search timeout ... ({{witRunTimer}} ms)" cRed
+                    endif                    
+                    
+                endif
+            endif            
+
+        endwhile
+
+        setvar! witRunebookFound 0
+        if witParentContainer = 0
+            if find BookOrTomeSerial backpack
+                setvar! witRunebookFound 1
+            elseif UseBook = 1 and counttype "runebook" backpack = 1 and findtype "runebook" backpack as localRunebookSerial
+                setvar! BookOrTomeSerial localRunebookSerial
+                setvar! witRunebookFound 1
+            elseif UseBook = 2 and counttype "runetome" backpack = 1 and findtype "runetome" backpack as localRunetomeSerial
+                setvar! BookOrTomeSerial localRunetomeSerial
+                setvar! witRunebookFound 1
+            endif
+        else
+            if find BookOrTomeSerial witParentContainer
+                setvar! witRunebookFound 1
+            elseif UseBook = 1 and counttype "runebook" witParentContainer = 1 and findtype "runebook" witParentContainer as localRunebookSerial
+                setvar! BookOrTomeSerial localRunebookSerial
+                setvar! witRunebookFound 1
+            elseif UseBook = 1 and counttype "runebook" backpack = 1 and findtype "runebook" backpack as localRunebookSerial
+                setvar! BookOrTomeSerial localRunebookSerial
+                setvar! witRunebookFound 1
+            elseif UseBook = 2 and counttype "runetome" witParentContainer = 1 and findtype "runetome" witParentContainer as localRunetomeSerial
+                setvar! BookOrTomeSerial localRunetomeSerial
+                setvar! witRunebookFound 1            
+            elseif UseBook = 2 and counttype "runetome" backpack = 1 and findtype "runetome" backpack as localRunetomeSerial
+                setvar! BookOrTomeSerial localRunetomeSerial
+                setvar! witRunebookFound 1
+            else
+                hotkey "Set Last Target"
+                wft globalWaitForServerResponse                
+            endif
+        endif
+        
+        if witRunebookFound = 0
+            hotkey "Set Last Target"
+            wft globalWaitForServerResponse
+        endif
+        unsetvar witRunebookFound
+
+        if targetexists
+            settimer witOverheadTimer witOverheadCD
+            while targetexists
+                if timer witOverheadTimer > witOverheadCD
+                    if UseBook = 1
+                        overhead "|* Target your runebook *|"   cYellow
+                        overhead "Backpack or secure container" cLightOrange
+                        overhead "Ground is not a valid source" cLightOrange
+                    elseif UseBook = 2
+                        overhead "|* Target your runetome *|"   cYellow
+                        overhead "Need access right to rename" cLightOrange
+                    else
+                        overhead "|* Target runebook or tome *|"   cYellow
+                    endif
+                    settimer witOverheadTimer 0
+                endif
+            endwhile        
+            setvar! BookOrTomeSerial lasttarget
+        endif
+
+        getlabel BookOrTomeSerial witRunebookLabel
+        if "runebook" in witRunebookLabel
+            setvar! UseBook 1
+            if find BookOrTomeSerial ground
+                overhead "|* No usable Runebook found *|" cRed
+                break
+            endif
+            if witDebugMode > 0
+                sysmsg "[Witcher Travel] Runebook set ... ({{witRunTimer}} ms)" cGreen
+            endif
+            overhead "< Using this runebook >" cGreen BookOrTomeSerial
+            overhead "           ¼           " cGreen BookOrTomeSerial
+        elseif "rune tome" in witRunebookLabel
+            setvar! UseBook 2
+            if insysmsg "You do not have access rights to do that."
+            endif
+            if witDebugMode > 0
+                sysmsg "[Witcher Travel] Runetome set ... ({{witRunTimer}} ms)" cGreen
+            endif
+            overhead "< Using this runetome >" cGreen BookOrTomeSerial
+            overhead "           ¼           " cGreen BookOrTomeSerial
+
+            //Warn if selection has a witcher tome label, do we really want to rename this?
+            if "1-24" in witRunebookLabel or "1 - 24" in witRunebookLabel or "25-49" in witRunebookLabel or "25 - 49" in witRunebookLabel or "50-75" in witRunebookLabel or "50 - 75" in witRunebookLabel or "76-99" in witRunebookLabel or "76 - 99" in witRunebookLabel or "100-123" in witRunebookLabel or "100 - 123" in witRunebookLabel or "124-149" in witRunebookLabel or "124 - 149" in witRunebookLabel or "150-175" in witRunebookLabel or "150 - 175" in witRunebookLabel or "176-201" in witRunebookLabel or "176 - 201" in witRunebookLabel or "202-227" in witRunebookLabel or "202 - 227" in witRunebookLabel or "228-249" in witRunebookLabel or "228 - 249" in witRunebookLabel or "250-275" in witRunebookLabel or "250 - 275" in witRunebookLabel or "276-301" in witRunebookLabel or "276 - 301" in witRunebookLabel or "302-327" in witRunebookLabel or "302 - 327" in witRunebookLabel or "328-353" in witRunebookLabel or "328 - 353" in witRunebookLabel
+                overhead "Book probably is a witcher tome" 33
+                overhead "?? Continue ??" 33
+                wait globalMaxWaitForServerResponse
+            endif
+        else
+            if find BookOrTomeSerial backpack
+                dclick BookOrTomeSerial
+                settimer globalWaitForObjectDelay 0
+                getlabel backpack waitForPing
+            endif
+            if not insysmsg! "Please enter a description for this marked object:"
+                overhead "|* Selected item invalid *|"    cRed
+                if witDebugMode > 0
+                    overhead "< Wrong source selection >" cRed BookOrTomeSerial
+                    overhead "           ¼           "    cRed BookOrTomeSerial
+                endif
+                break
+            endif
+            setvar! MarkedRuneSerial BookOrTomeSerial
+            setvar! UseBook 0
+        endif
+
+    else
+        //Marked rune
+        
+        if witDebugMode > 0
+            sysmsg "[Witcher Travel] Searching marked rune ... ({{witRunTimer}} ms)" cLightBlue
+        endif
+        
+        if not findtype "recall rune" backpack 0        
+            overhead "|** Rune not found **|" cRed
+            overhead "Need a marked rune in backpack" cLightOrange
+            break
+        elseif not find MarkedRuneSerial backpack and counttype "recall rune" backpack 0 = 1 and findtype "recall rune" backpack 0 as localRune
+            setvar! MarkedRuneSerial localRune
+        elseif MarkedRuneSerial > 0 and not find MarkedRuneSerial backpack or MarkedRuneSerial = 0
+            hotkey "Set Last Target"
+            settimer witOverheadTimer witOverheadCD
+            wft globalWaitForServerResponse
+            while targetexists
+                if timer witOverheadTimer > witOverheadCD
+                    overhead "|* Target marked rune *|" cYellow
+                    overhead "Must be in backpack" cLightOrange
+                    overhead "Ground is not a valid source" cLightOrange
+                    settimer witOverheadTimer 0
+                endif
+            endwhile
+            setvar! MarkedRuneSerial lasttarget
+        endif
+        
+        if hue MarkedRuneSerial != 0
+            overhead "|** Target a marked rune **|" cRed
+            continue
+        elseif not find MarkedRuneSerial backpack
+            overhead "|** Rune not found **|" cRed
+            overhead "Need a marked rune in backpack" cLightOrange
+            break
+        endif
+
+        if witDebugMode > 0
+            sysmsg "[Witcher Travel] Rune set ... ({{witRunTimer}} ms)" cGreen 
+        endif
+        overhead "< Using this rune >" cGreen MarkedRuneSerial
+        overhead "         ¼         " cGreen MarkedRuneSerial
+
+    endif
+
+    if witDebugMode > 0
+        sysmsg "[Witcher Travel] User input source set ... ({{witRunTimer}} ms)" cLightBlue
+    endif
+
+    //Prompt user for destination
+    while timer globalObjectDelayTimer < globalWaitForObjectDelay
+    endwhile
+    if UseBook = 1
+        dclick BookOrTomeSerial
+        setvar! witInputItemSerial BookOrTomeSerial
+        setvar! MarkedRuneSerial 0
+        settimer globalObjectDelayTimer 0
+        waitforgump witRuneBookGumpID globalWaitForServerResponse
+        if gumpexists witRuneBookGumpID
+            gumpresponse 1 witRuneBookGumpID
+            gumpclose witRuneBookGumpID
+        else
+            overhead "|* Failed to open prompt *|" cRed
+            break
+        endif
+    elseif UseBook = 2
+        dclick BookOrTomeSerial
+        setvar! witInputItemSerial BookOrTomeSerial
+        setvar! MarkedRuneSerial 0
+        settimer globalObjectDelayTimer 0
+        waitforgump witRuneTomeGumpID globalWaitForServerResponse
+        if gumpexists witRuneTomeGumpID
+            gumpresponse 2 witRuneTomeGumpID
+            getlabel backpack waitForPing
+            if insysmsg "You do not have access rights to do that."
+                overhead "|* Selected item invalid *|"    cRed
+                overhead "No access right to change name" cYellow
+                if witDebugMode > 0
+                    overhead "< Wrong source selection >" cRed BookOrTomeSerial
+                    overhead "           ¼           "    cRed BookOrTomeSerial
+                endif
+                break
+            endif
+            waitforgump witRuneTomeRenameGumpID globalWaitForServerResponse
+            gumpclose witRuneTomeGumpID
+        else
+            overhead "|* Failed to open prompt *|" cRed
+            break
+        endif
+    else
+        if not insysmsg! "Please enter a description for this marked object:"
+            dclick MarkedRuneSerial
+            settimer globalWaitForObjectDelay 0
+        endif
+        setvar! witInputItemSerial MarkedRuneSerial
+        setvar! BookOrTomeSerial 0
+    endif
+    settimer witWaitTimer 0
+    hotkey "Set Last Target"
+    overhead "|* Enter rune number *|" cGreen
+    overhead "or ESC to cancel"       cYellow
+    overhead "Please ignore target cursor" cYellow    
+    settimer witOverheadTimer 0
+
+    //Check if we can use the library preset
+    if find libWitcherTome_01 ground -1 -1 witSearchRange or find libWitcherTome_02 ground -1 -1 witSearchRange or find libWitcherTome_03 ground -1 -1 witSearchRange or find libWitcherTome_04 ground -1 -1 witSearchRange or find libWitcherTome_05 ground -1 -1 witSearchRange or find libWitcherTome_06 ground -1 -1 witSearchRange or find libWitcherTome_07 ground -1 -1 witSearchRange or find libWitcherTome_08 ground -1 -1 witSearchRange or find libWitcherTome_09 ground -1 -1 witSearchRange or find libWitcherTome_10 ground -1 -1 witSearchRange or find libWitcherTome_11 ground -1 -1 witSearchRange or find libWitcherTome_12 ground -1 -1 witSearchRange or find libWitcherTome_13 ground -1 -1 witSearchRange or find libWitcherTome_14 ground -1 -1 witSearchRange
+
+        setvar! witTome_01 libWitcherTome_01
+        setvar! witTome_02 libWitcherTome_02
+        setvar! witTome_03 libWitcherTome_03
+        setvar! witTome_04 libWitcherTome_04
+        setvar! witTome_05 libWitcherTome_05
+        setvar! witTome_06 libWitcherTome_06
+        setvar! witTome_07 libWitcherTome_07
+        setvar! witTome_08 libWitcherTome_08
+        setvar! witTome_09 libWitcherTome_09
+        setvar! witTome_10 libWitcherTome_10
+        setvar! witTome_11 libWitcherTome_11
+        setvar! witTome_12 libWitcherTome_12
+        setvar! witTome_13 libWitcherTome_13
+        setvar! witTome_14 libWitcherTome_14
+
+        if witDebugMode > 0
+            sysmsg "[Witcher Travel] Using library preset ... ({{witRunTimer}} ms)" cLightBlue
+        endif
+
+    //Check if we can use our own preset
+    else
+
+        if list WitcherTomeContainerList > 0 and witSharedParentContainer != 1
+            setvar! witParentContainer 0
+        endif
+
+        //Open all containers specified by the user
+        while list WitcherTomeContainerList > 0
+
+            if inlist WitcherTomeContainerList "Bank"
+                setvar! witParentContainer self
+                poplist WitcherTomeContainerList "Bank"
+            elseif poplist WitcherTomeContainerList front as localContainer
+                while timer globalObjectDelayTimer < globalWaitForObjectDelay
+                endwhile
+                //Main container
+                if witParentContainer = 0
+                    if find localContainer ground -1 -1 2
+                        dclick localContainer
+                        settimer globalObjectDelayTimer 0
+                        setvar! witParentContainer localContainer                    
+                    elseif find localContainer backpack
+                        setvar! witParentContainer backpack
+                        break
+                    endif
+                else
+                    //Sub-container
+                    settimer witWaitTimer 0
+                    while not find localContainer witParentContainer and timer witWaitTimer < globalMaxWaitForServerResponse
+                    endwhile
+                    if not find localContainer witParentContainer
+                        if witDebugMode > 0
+                            sysmsg "[Witcher Travel] Tome sub-container not found ... ({{witRunTimer}} ms)" cLightOrange
+                        endif
+                        break
+                    endif
+                    dclick localContainer
+                    settimer globalObjectDelayTimer 0
+                endif
+            endif
+
+            if list WitcherTomeContainerList = 0
+                settimer witWaitTimer 0
+                while timer witWaitTimer < globalMaxWaitForServerResponse 
+                    if find myWitcherTome_01 witParentContainer or find myWitcherTome_02 witParentContainer or find myWitcherTome_03 witParentContainer or find myWitcherTome_04 witParentContainer or find myWitcherTome_05 witParentContainer or find myWitcherTome_06 witParentContainer or find myWitcherTome_07 witParentContainer or find myWitcherTome_08 witParentContainer or find myWitcherTome_09 witParentContainer or find myWitcherTome_10 witParentContainer or find myWitcherTome_11 witParentContainer or find myWitcherTome_12 witParentContainer or find myWitcherTome_13 witParentContainer or find myWitcherTome_14 witParentContainer
+                        if witDebugMode > 0
+                            sysmsg "[Witcher Travel] Tomes found ... ({{witRunTimer}} ms)" cGreen
+                        endif
+                        break
+                    endif
+                endwhile
+                if witDebugMode > 0 and timer witWaitTimer > globalMaxWaitForServerResponse
+                    sysmsg "[Witcher Travel] Tome search timeout ... ({{witRunTimer}} ms)" cRed
+                endif
+            endif
+
+        endwhile
+
+        if find myWitcherTome_01 ground -1 -1 witSearchRange or find myWitcherTome_01 witParentContainer or find myWitcherTome_02 ground -1 -1 witSearchRange or find myWitcherTome_02 witParentContainer or find myWitcherTome_03 ground -1 -1 witSearchRange or find myWitcherTome_03 witParentContainer or find myWitcherTome_04 ground -1 -1 witSearchRange or find myWitcherTome_04 witParentContainer or find myWitcherTome_05 ground -1 -1 witSearchRange or find myWitcherTome_05 witParentContainer or find myWitcherTome_06 ground -1 -1 witSearchRange or find myWitcherTome_06 witParentContainer or find myWitcherTome_07 ground -1 -1 witSearchRange or find myWitcherTome_07 witParentContainer or find myWitcherTome_08 ground -1 -1 witSearchRange or find myWitcherTome_08 witParentContainer or find myWitcherTome_09 ground -1 -1 witSearchRange or find myWitcherTome_09 witParentContainer or find myWitcherTome_10 ground -1 -1 witSearchRange or find myWitcherTome_10 witParentContainer or find myWitcherTome_11 ground -1 -1 witSearchRange or find myWitcherTome_11 witParentContainer or find myWitcherTome_12 ground -1 -1 witSearchRange or find myWitcherTome_12 witParentContainer or find myWitcherTome_13 ground -1 -1 witSearchRange or find myWitcherTome_13 witParentContainer or find myWitcherTome_14 ground -1 -1 witSearchRange or find myWitcherTome_14 witParentContainer
+            //Set preset - own tome ids
+            setvar! witTome_01 myWitcherTome_01
+            setvar! witTome_02 myWitcherTome_02
+            setvar! witTome_03 myWitcherTome_03
+            setvar! witTome_04 myWitcherTome_04
+            setvar! witTome_05 myWitcherTome_05
+            setvar! witTome_06 myWitcherTome_06
+            setvar! witTome_07 myWitcherTome_07
+            setvar! witTome_08 myWitcherTome_08
+            setvar! witTome_09 myWitcherTome_09
+            setvar! witTome_10 myWitcherTome_10
+            setvar! witTome_11 myWitcherTome_11
+            setvar! witTome_12 myWitcherTome_12
+            setvar! witTome_13 myWitcherTome_13
+            setvar! witTome_14 myWitcherTome_14
+            
+            if witDebugMode > 0
+                sysmsg "[Witcher Travel] Using own preset ... ({{witRunTimer}} ms)" cLightBlue
+            endif
+        else
+            //No preset found - safety unset in case previous script run did not terminate correctly
+            unsetvar witTome_01
+            unsetvar witTome_02
+            unsetvar witTome_03
+            unsetvar witTome_04
+            unsetvar witTome_05
+            unsetvar witTome_06
+            unsetvar witTome_07
+            unsetvar witTome_08
+            unsetvar witTome_09
+            unsetvar witTome_10
+            unsetvar witTome_11
+            unsetvar witTome_12
+            unsetvar witTome_13
+            unsetvar witTome_14
+
+            if witDebugMode > 0
+                sysmsg "[Witcher Travel] No preset found... ({{witRunTimer}} ms)" cLightBlue
+            endif
+        endif
+
+    endif
+
+    //Wait until promptresponse is answered by user and new label is set
+    wft globalWaitForServerResponse
+    setvar! witWaitForInput 0
+    while not insysmsg "The etching on the rune has been changed." and not insysmsg "The book's title has been changed." and not insysmsg "You rename the runetome."
+        //'
+        if not targetexists
+            //User wants to cancel
+            removetimer witWaitTimer
+            waitforgump witRuneBookGumpID globalWaitForServerResponse
+            break
+        elseif timer witWaitTimer > 14000 and gumpexists witRuneTomeRenameGumpID
+            //Runetome rename gump still active - continue
+            settimer witWaitTimer 10000
+        elseif timer witWaitTimer > 15000
+            //Input timeout
+            overhead "|** No input detected **|" cRed
+            removetimer witWaitTimer
+            waitforgump witRuneBookGumpID globalWaitForServerResponse
+            break
+        elseif witWaitForInput = 0 and insysmsg "world is saving"
+            //World save
+            while timer witWaitTimer < 15000
+                if insysmsg "save complete"
+                    settimer witWaitTimer 0
+                    break
+                endif
+            endwhile
+        elseif witWaitForInput = 0 and timer witWaitTimer > globalMaxWaitForServerResponse 
+            //Prompt/gump did not open - break
+            if not insysmsg "Please enter a description for this marked object:" and not insysmsg "Please enter a title for the runebook:" and not gumpexists witRuneTomeRenameGumpID
+                overhead "|** No prompt found **|" cRed
+                removetimer witWaitTimer
+                waitforgump witRuneBookGumpID globalWaitForServerResponse
+                break
+            endif
+            setvar! witWaitForInput 1
+        elseif timer witOverheadTimer > witOverheadCD
+            overhead "|* Enter rune number *|" cGreen
+            overhead "or ESC to cancel"       cYellow
+            overhead "Please ignore target cursor" cYellow
+            settimer witOverheadTimer 0
+        endif
+    endwhile
+    unsetvar witWaitForInput
+
+    target cancel
+    if not timerexists witWaitTimer
+        break
+    elseif witDebugMode > 0
+        sysmsg "[Witcher Travel] User input set ... ({{witRunTimer}} ms)" cLightBlue
+    endif
+
+    //Check which destination we should travel to
+    getlabel witInputItemSerial inputLabel
+    removelist witUserInputList
+    createlist witUserInputList
+    if BookOrTomeSerial > 0
+        pushlist witUserInputList 0
+        gumpclose witRuneBookGumpID
+        gumpclose witRuneTomeGumpID
+        gumpclose witRuneTomeRenameGumpID
+    else
+        pushlist witUserInputList inputLabel
+    endif
+
+    //If/elseif chain to set tome and gump response
+        //Input by runebook or -tome uses partial matching, excluding wrong input does not seem to be reasonable, because we would need to exclude all digits > 353 and razor can only do this by checking each number with an if...
+        if ": 353" in inputLabel or "353 a r" in inputLabel or inlist witUserInputList "353"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "353 - Time (South)"
+        elseif ": 352" in inputLabel or "352 a r" in inputLabel or inlist witUserInputList "352"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "352 - Abandoned Jungle Dockyards"
+        elseif ": 351" in inputLabel or "351 a r" in inputLabel or inlist witUserInputList "351"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "351 - Murkmire Swamps"
+        elseif ": 350" in inputLabel or "350 a r" in inputLabel or inlist witUserInputList "350"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "350 - Whisperwood Cottage"
+        elseif ": 349" in inputLabel or "349 a r" in inputLabel or inlist witUserInputList "349"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "349 - Burnt Sage"
+        elseif ": 348" in inputLabel or "348 a r" in inputLabel or inlist witUserInputList "348"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "348 - Russetrock Cenote"
+        elseif ": 347" in inputLabel or "347 a r" in inputLabel or inlist witUserInputList "347"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "347 - Palmshade Trading Camp"
+        elseif ": 346" in inputLabel or "346 a r" in inputLabel or inlist witUserInputList "346"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "346 - Tidal Tomb"
+        elseif ": 345" in inputLabel or "345 a r" in inputLabel or inlist witUserInputList "345"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "345 - Ashenmire"
+        elseif ": 344" in inputLabel or "344 a r" in inputLabel or inlist witUserInputList "344"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "344 - Dragoncrest Plateau"
+        elseif ": 343" in inputLabel or "343 a r" in inputLabel or inlist witUserInputList "343"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "343 - Orange Island"
+        elseif ": 342" in inputLabel or "342 a r" in inputLabel or inlist witUserInputList "342"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "342 - Lavender Island"
+        elseif ": 341" in inputLabel or "341 a r" in inputLabel or inlist witUserInputList "341"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "341 - Hidden Jungle Bridge"
+        elseif ": 340" in inputLabel or "340 a r" in inputLabel or inlist witUserInputList "340"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "340 - Ponderosa Perch (East)"
+        elseif ": 339" in inputLabel or "339 a r" in inputLabel or inlist witUserInputList "339"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "339 - Ponderosa Perch"
+        elseif ": 338" in inputLabel or "338 a r" in inputLabel or inlist witUserInputList "338"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "338 - Papua Underdepths"
+        elseif ": 337" in inputLabel or "337 a r" in inputLabel or inlist witUserInputList "337"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "337 - Old Papua Inn"
+        elseif ": 336" in inputLabel or "336 a r" in inputLabel or inlist witUserInputList "336"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "336 - Windmill Waters Wagonworks"
+        elseif ": 335" in inputLabel or "335 a r" in inputLabel or inlist witUserInputList "335"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "335 - Arachnids Dominion"
+        elseif ": 334" in inputLabel or "334 a r" in inputLabel or inlist witUserInputList "334"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "334 - Dusty Mercantile"
+        elseif ": 333" in inputLabel or "333 a r" in inputLabel or inlist witUserInputList "333"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "333 - Ironsnake Retreat"
+        elseif ": 332" in inputLabel or "332 a r" in inputLabel or inlist witUserInputList "332"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "332 - Scorchborne Wastes"
+        elseif ": 331" in inputLabel or "331 a r" in inputLabel or inlist witUserInputList "331"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "331 - Kraul Frontier Excavation Site"
+        elseif ": 330" in inputLabel or "330 a r" in inputLabel or inlist witUserInputList "330"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "330 - Junglethread Crossing"
+        elseif ": 329" in inputLabel or "329 a r" in inputLabel or inlist witUserInputList "329"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "329 - Old Jhelom South Gate"
+        elseif ": 328" in inputLabel or "328 a r" in inputLabel or inlist witUserInputList "328"
+            setvar! witTargetTome 14
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "328 - Old Jhelom East Gate"
+        elseif ": 327" in inputLabel or "327 a r" in inputLabel or inlist witUserInputList "327"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "327 - Furys Caldera (North Entrance)"
+        elseif ": 326" in inputLabel or "326 a r" in inputLabel or inlist witUserInputList "326"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "326 - Furys Caldera Caravan"
+        elseif ": 325" in inputLabel or "325 a r" in inputLabel or inlist witUserInputList "325"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "325 - Tarsands Mine"
+        elseif ": 324" in inputLabel or "324 a r" in inputLabel or inlist witUserInputList "324"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "324 - Tarsands Tar Pits"
+        elseif ": 323" in inputLabel or "323 a r" in inputLabel or inlist witUserInputList "323"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "323 - Tarsands Lookout"
+        elseif ": 322" in inputLabel or "322 a r" in inputLabel or inlist witUserInputList "322"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "322 - Respite Spring"
+        elseif ": 321" in inputLabel or "321 a r" in inputLabel or inlist witUserInputList "321"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "321 - Desert Brew"
+        elseif ": 320" in inputLabel or "320 a r" in inputLabel or inlist witUserInputList "320"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "320 - Flooded Sunstone Temple"
+        elseif ": 319" in inputLabel or "319 a r" in inputLabel or inlist witUserInputList "319"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "319 - Flooded Sunstone Temple (East)"
+        elseif ": 318" in inputLabel or "318 a r" in inputLabel or inlist witUserInputList "318"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "318 - Old Papua (West)"
+        elseif ": 317" in inputLabel or "317 a r" in inputLabel or inlist witUserInputList "317"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "317 - Sandshear Quarry"
+        elseif ": 316" in inputLabel or "316 a r" in inputLabel or inlist witUserInputList "316"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "316 - Saltshore Barrier Islands"
+        elseif ": 315" in inputLabel or "315 a r" in inputLabel or inlist witUserInputList "315"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "315 - Saltshore Barrier Islands"
+        elseif ": 314" in inputLabel or "314 a r" in inputLabel or inlist witUserInputList "314"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "314 - Saltshore Barrier Islands"
+        elseif ": 313" in inputLabel or "313 a r" in inputLabel or inlist witUserInputList "313"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "313 - Saltshore Island Cluster"
+        elseif ": 312" in inputLabel or "312 a r" in inputLabel or inlist witUserInputList "312"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "312 - Saltshore Island Cluster"
+        elseif ": 311" in inputLabel or "311 a r" in inputLabel or inlist witUserInputList "311"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "311 - Saltshore Island Cluster"
+        elseif ": 310" in inputLabel or "310 a r" in inputLabel or inlist witUserInputList "310"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "310 - Saltshore Island Cluster"
+        elseif ": 309" in inputLabel or "309 a r" in inputLabel or inlist witUserInputList "309"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "309 - Saltshore Island Cluster"
+        elseif ": 308" in inputLabel or "308 a r" in inputLabel or inlist witUserInputList "308"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "308 - Saltshore Island Cluster"
+        elseif ": 307" in inputLabel or "307 a r" in inputLabel or inlist witUserInputList "307"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "307 - Saltshore Island Cluster"
+        elseif ": 306" in inputLabel or "306 a r" in inputLabel or inlist witUserInputList "306"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "306 - Saltshore Saltern"
+        elseif ": 305" in inputLabel or "305 a r" in inputLabel or inlist witUserInputList "305"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "305 - Shattered Nujelm (South)"
+        elseif ": 304" in inputLabel or "304 a r" in inputLabel or inlist witUserInputList "304"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "304 - Shattered Nujelm (East)"
+        elseif ": 303" in inputLabel or "303 a r" in inputLabel or inlist witUserInputList "303"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "303 - Shattered Nujelm (North)"
+        elseif ": 302" in inputLabel or "302 a r" in inputLabel or inlist witUserInputList "302"
+            setvar! witTargetTome 13
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "302 - Shattered Nujelm Cemetery"
+        elseif ": 301" in inputLabel or "301 a r" in inputLabel or inlist witUserInputList "301"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "301 - Pinecone Grove (South West)"
+        elseif ": 300" in inputLabel or "300 a r" in inputLabel or inlist witUserInputList "300"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "300 - Brigand Blind (South West Island)"
+        elseif ": 299" in inputLabel or "299 a r" in inputLabel or inlist witUserInputList "299"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "299 - Rickety Bridge (Eastern Island)"
+        elseif ": 298" in inputLabel or "298 a r" in inputLabel or inlist witUserInputList "298"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "298 - Darkmire Temple (Outside South)"
+        elseif ": 297" in inputLabel or "297 a r" in inputLabel or inlist witUserInputList "297"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "297 - Southern Island Cluster"
+        elseif ": 296" in inputLabel or "296 a r" in inputLabel or inlist witUserInputList "296"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "296 - Southern Island Cluster"
+        elseif ": 295" in inputLabel or "295 a r" in inputLabel or inlist witUserInputList "295"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "295 - Tribal Camp (South)"
+        elseif ": 294" in inputLabel or "294 a r" in inputLabel or inlist witUserInputList "294"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "294 - Sacrifice Shrine"
+        elseif ": 293" in inputLabel or "293 a r" in inputLabel or inlist witUserInputList "293"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "293 - Volcano 1 (East)"
+        elseif ": 292" in inputLabel or "292 a r" in inputLabel or inlist witUserInputList "292"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "292 - Cambria Moongate (East)"
+        elseif ": 291" in inputLabel or "291 a r" in inputLabel or inlist witUserInputList "291"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "291 - Hidden Valley (Outside South)"
+        elseif ": 290" in inputLabel or "290 a r" in inputLabel or inlist witUserInputList "290"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "290 - Volcano 2 (East)"
+        elseif ": 289" in inputLabel or "289 a r" in inputLabel or inlist witUserInputList "289"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "289 - Desert Daemon Altar"
+        elseif ": 288" in inputLabel or "288 a r" in inputLabel or inlist witUserInputList "288"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "288 - Desert Ruins"
+        elseif ": 287" in inputLabel or "287 a r" in inputLabel or inlist witUserInputList "287"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "287 - Lizardmen Scout Camp (North)"
+        elseif ": 286" in inputLabel or "286 a r" in inputLabel or inlist witUserInputList "286"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "286 - Midlands Ruins 1 (South)"
+        elseif ": 285" in inputLabel or "285 a r" in inputLabel or inlist witUserInputList "285"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "285 - Mausoleum (Outside South)"
+        elseif ": 284" in inputLabel or "284 a r" in inputLabel or inlist witUserInputList "284"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "284 - Umbermare Fort"
+        elseif ": 283" in inputLabel or "283 a r" in inputLabel or inlist witUserInputList "283"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "283 - Nusero Island (South)"
+        elseif ": 282" in inputLabel or "282 a r" in inputLabel or inlist witUserInputList "282"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "282 - Nusero Island (South East)"
+        elseif ": 281" in inputLabel or "281 a r" in inputLabel or inlist witUserInputList "281"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "281 - Nusero Island (South West)"
+        elseif ": 280" in inputLabel or "280 a r" in inputLabel or inlist witUserInputList "280"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "280 - Nusero Island (South West)"
+        elseif ": 279" in inputLabel or "279 a r" in inputLabel or inlist witUserInputList "279"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "279 - Andarian Scout Camp"
+        elseif ": 278" in inputLabel or "278 a r" in inputLabel or inlist witUserInputList "278"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "278 - Nusero Signal Fort"
+        elseif ": 277" in inputLabel or "277 a r" in inputLabel or inlist witUserInputList "277"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "277 - Terran Moongate"
+        elseif ": 276" in inputLabel or "276 a r" in inputLabel or inlist witUserInputList "276"
+            setvar! witTargetTome 12
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "276 - Prevalia Zoo (East)"
+        elseif ": 275" in inputLabel or "275 a r" in inputLabel or inlist witUserInputList "275"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "275 - Abandoned Docks Waypost"
+        elseif ": 274" in inputLabel or "274 a r" in inputLabel or inlist witUserInputList "274"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "274 - Farmlands Caravan (West)"
+        elseif ": 273" in inputLabel or "273 a r" in inputLabel or inlist witUserInputList "273"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "273 - Brigand Camp 3"
+        elseif ": 272" in inputLabel or "272 a r" in inputLabel or inlist witUserInputList "272"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "272 - Honor Shrine"
+        elseif ": 271" in inputLabel or "271 a r" in inputLabel or inlist witUserInputList "271"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "271 - Outpost"
+        elseif ": 270" in inputLabel or "270 a r" in inputLabel or inlist witUserInputList "270"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "270 - Cavernam (Outside South East)"
+        elseif ": 269" in inputLabel or "269 a r" in inputLabel or inlist witUserInputList "269"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "269 - Norse Settlement"
+        elseif ": 268" in inputLabel or "268 a r" in inputLabel or inlist witUserInputList "268"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "268 - Riverrun"
+        elseif ": 267" in inputLabel or "267 a r" in inputLabel or inlist witUserInputList "267"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "267 - Tanners Northern Fort (South)"
+        elseif ": 266" in inputLabel or "266 a r" in inputLabel or inlist witUserInputList "266"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "266 - Snow Northeast 2 Caravan"
+        elseif ": 265" in inputLabel or "265 a r" in inputLabel or inlist witUserInputList "265"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "265 - Andaria Ruins 2"
+        elseif ": 264" in inputLabel or "264 a r" in inputLabel or inlist witUserInputList "264"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "264 - Undermountain North Entrance"
+        elseif ": 263" in inputLabel or "263 a r" in inputLabel or inlist witUserInputList "263"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "263 - Andaria Sacrificial Ruins"
+        elseif ": 262" in inputLabel or "262 a r" in inputLabel or inlist witUserInputList "262"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "262 - Frozen Ruins Waypost (South)"
+        elseif ": 261" in inputLabel or "261 a r" in inputLabel or inlist witUserInputList "261"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "261 - Northwest Caravan (South)"
+        elseif ": 260" in inputLabel or "260 a r" in inputLabel or inlist witUserInputList "260"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "260 - Northwest Caravan"
+        elseif ": 259" in inputLabel or "259 a r" in inputLabel or inlist witUserInputList "259"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "259 - Snow Caves (North)"
+        elseif ": 258" in inputLabel or "258 a r" in inputLabel or inlist witUserInputList "258"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "258 - Frost Daemon Temple (South)"
+        elseif ": 257" in inputLabel or "257 a r" in inputLabel or inlist witUserInputList "257"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "257 - Snow Fortress"
+        elseif ": 256" in inputLabel or "256 a r" in inputLabel or inlist witUserInputList "256"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "256 - Hunters Blind 1"
+        elseif ": 255" in inputLabel or "255 a r" in inputLabel or inlist witUserInputList "255"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "255 - Western Ruins Caravan"
+        elseif ": 254" in inputLabel or "254 a r" in inputLabel or inlist witUserInputList "254"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "254 - Black Market Vendor (East)"
+        elseif ": 253" in inputLabel or "253 a r" in inputLabel or inlist witUserInputList "253"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "253 - Simple Palisade Fort (West)"
+        elseif ": 252" in inputLabel or "252 a r" in inputLabel or inlist witUserInputList "252"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "252 - Corpse Creek (South West)"
+        elseif ": 251" in inputLabel or "251 a r" in inputLabel or inlist witUserInputList "251"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "251 - Corpse Creek (Far West)"
+        elseif ": 250" in inputLabel or "250 a r" in inputLabel or inlist witUserInputList "250"
+            setvar! witTargetTome 11
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "250 - Corpse Creek Lookout (West)"
+        elseif ": 249" in inputLabel or "249 a r" in inputLabel or inlist witUserInputList "249"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "249 - Orc Rock"
+        elseif ": 248" in inputLabel or "248 a r" in inputLabel or inlist witUserInputList "248"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "248 - Botanical Disaster (South)"
+        elseif ": 247" in inputLabel or "247 a r" in inputLabel or inlist witUserInputList "247"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "247 - Botanical Disaster"
+        elseif ": 246" in inputLabel or "246 a r" in inputLabel or inlist witUserInputList "246"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "246 - Orc Rock (West)"
+        elseif ": 245" in inputLabel or "245 a r" in inputLabel or inlist witUserInputList "245"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "245 - Shanty Shack (Far South)"
+        elseif ": 244" in inputLabel or "244 a r" in inputLabel or inlist witUserInputList "244"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "244 - Shanty Shack"
+        elseif ": 243" in inputLabel or "243 a r" in inputLabel or inlist witUserInputList "243"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "243 - Shanty Shack (South)"
+        elseif ": 242" in inputLabel or "242 a r" in inputLabel or inlist witUserInputList "242"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "242 - Shanty Shack (West)"
+        elseif ": 241" in inputLabel or "241 a r" in inputLabel or inlist witUserInputList "241"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "241 - Shanty Shack (West)"
+        elseif ": 240" in inputLabel or "240 a r" in inputLabel or inlist witUserInputList "240"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "240 - Kudzu Tower"
+        elseif ": 239" in inputLabel or "239 a r" in inputLabel or inlist witUserInputList "239"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "239 - Mount Minotaur (East)"
+        elseif ": 238" in inputLabel or "238 a r" in inputLabel or inlist witUserInputList "238"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "238 - Mount Minotaur (West)"
+        elseif ": 237" in inputLabel or "237 a r" in inputLabel or inlist witUserInputList "237"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "237 - Mount Minotaur"
+        elseif ": 236" in inputLabel or "236 a r" in inputLabel or inlist witUserInputList "236"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "236 - Chaos Shrine"
+        elseif ": 235" in inputLabel or "235 a r" in inputLabel or inlist witUserInputList "235"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "235 - Chaos Shrine Island Cluster"
+        elseif ": 234" in inputLabel or "234 a r" in inputLabel or inlist witUserInputList "234"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "234 - Blood Cult Abbey"
+        elseif ": 233" in inputLabel or "233 a r" in inputLabel or inlist witUserInputList "233"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "233 - Blood Cult Abbey (South West)"
+        elseif ": 232" in inputLabel or "232 a r" in inputLabel or inlist witUserInputList "232"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "232 - Blood Cult Abbey (Outside North)"
+        elseif ": 231" in inputLabel or "231 a r" in inputLabel or inlist witUserInputList "231"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "231 - Western Camps"
+        elseif ": 230" in inputLabel or "230 a r" in inputLabel or inlist witUserInputList "230"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "230 - Abandoned Trading Post (West Road)"
+        elseif ": 229" in inputLabel or "229 a r" in inputLabel or inlist witUserInputList "229"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "229 - Chaos Shrine Island Cluster"
+        elseif ": 228" in inputLabel or "228 a r" in inputLabel or inlist witUserInputList "228"
+            setvar! witTargetTome 10
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "228 - Chaos Shrine Island Cluster"
+        elseif ": 227" in inputLabel or "227 a r" in inputLabel or inlist witUserInputList "227"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "227 - Chaos Shrine Island Cluster"
+        elseif ": 226" in inputLabel or "226 a r" in inputLabel or inlist witUserInputList "226"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "226 - Chaos Shrine Island Cluster"
+        elseif ": 225" in inputLabel or "225 a r" in inputLabel or inlist witUserInputList "225"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "225 - Chaos Shrine Island Cluster"
+        elseif ": 224" in inputLabel or "224 a r" in inputLabel or inlist witUserInputList "224"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "224 - Pinecone Grove (East Island)"
+        elseif ": 223" in inputLabel or "223 a r" in inputLabel or inlist witUserInputList "223"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "223 - Pinecone Grove"
+        elseif ": 222" in inputLabel or "222 a r" in inputLabel or inlist witUserInputList "222"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "222 - Pinecone Grove (North)"
+        elseif ": 221" in inputLabel or "221 a r" in inputLabel or inlist witUserInputList "221"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "221 - Pinecone Grove (North Island)"
+        elseif ": 220" in inputLabel or "220 a r" in inputLabel or inlist witUserInputList "220"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "220 - Mellow Retreat"
+        elseif ": 219" in inputLabel or "219 a r" in inputLabel or inlist witUserInputList "219"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "219 - Standing Stones"
+        elseif ": 218" in inputLabel or "218 a r" in inputLabel or inlist witUserInputList "218"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "218 - Southreach Inn"
+        elseif ": 217" in inputLabel or "217 a r" in inputLabel or inlist witUserInputList "217"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "217 - Haunted Manor"
+        elseif ": 216" in inputLabel or "216 a r" in inputLabel or inlist witUserInputList "216"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "216 - Chaos Viewpoint"
+        elseif ": 215" in inputLabel or "215 a r" in inputLabel or inlist witUserInputList "215"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "215 - Chaos Viewpoint (North)"
+        elseif ": 214" in inputLabel or "214 a r" in inputLabel or inlist witUserInputList "214"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "214 - Abandoned Trading Post (West)"
+        elseif ": 213" in inputLabel or "213 a r" in inputLabel or inlist witUserInputList "213"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "213 - Abandoned Trading Post"
+        elseif ": 212" in inputLabel or "212 a r" in inputLabel or inlist witUserInputList "212"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "212 - Vurte Tul Rru (East Entrance)"
+        elseif ": 211" in inputLabel or "211 a r" in inputLabel or inlist witUserInputList "211"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "211 - Vurte Tul Rru (South Entrance)"
+        elseif ": 210" in inputLabel or "210 a r" in inputLabel or inlist witUserInputList "210"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "210 - Vurte Tul Rru (West Entrance)"
+        elseif ": 209" in inputLabel or "209 a r" in inputLabel or inlist witUserInputList "209"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "209 - Vurte Tul Rru (South West)"
+        elseif ": 208" in inputLabel or "208 a r" in inputLabel or inlist witUserInputList "208"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "208 - Brigand Blind (South)"
+        elseif ": 207" in inputLabel or "207 a r" in inputLabel or inlist witUserInputList "207"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "207 - Brigand Blind"
+        elseif ": 206" in inputLabel or "206 a r" in inputLabel or inlist witUserInputList "206"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "206 - Granite Quarry"
+        elseif ": 205" in inputLabel or "205 a r" in inputLabel or inlist witUserInputList "205"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "205 - Wintertop (West)"
+        elseif ": 204" in inputLabel or "204 a r" in inputLabel or inlist witUserInputList "204"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "204 - Heartland Bog"
+        elseif ": 203" in inputLabel or "203 a r" in inputLabel or inlist witUserInputList "203"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "203 - Heartland Bog (West)"
+        elseif ": 202" in inputLabel or "202 a r" in inputLabel or inlist witUserInputList "202"
+            setvar! witTargetTome 9
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "202 - Shadowspire Cathedral (South)"
+        elseif ": 201" in inputLabel or "201 a r" in inputLabel or inlist witUserInputList "201"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "201 - Shadowspire Cathedral"
+        elseif ": 200" in inputLabel or "200 a r" in inputLabel or inlist witUserInputList "200"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "200 - Shadowspire Cathedral"
+        elseif ": 199" in inputLabel or "199 a r" in inputLabel or inlist witUserInputList "199"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "199 - Shadowspire Cathedral (North East)"
+        elseif ": 198" in inputLabel or "198 a r" in inputLabel or inlist witUserInputList "198"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "198 - Heartland Bog (North)"
+        elseif ": 197" in inputLabel or "197 a r" in inputLabel or inlist witUserInputList "197"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "197 - Secret Beach"
+        elseif ": 196" in inputLabel or "196 a r" in inputLabel or inlist witUserInputList "196"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "196 - Wintertop (South)"
+        elseif ": 195" in inputLabel or "195 a r" in inputLabel or inlist witUserInputList "195"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "195 - Wintertop (East)"
+        elseif ": 194" in inputLabel or "194 a r" in inputLabel or inlist witUserInputList "194"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "194 - Wintertop"
+        elseif ": 193" in inputLabel or "193 a r" in inputLabel or inlist witUserInputList "193"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "193 - Granite Docks"
+        elseif ": 192" in inputLabel or "192 a r" in inputLabel or inlist witUserInputList "192"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "192 - Shadowspire Cathedral (South West)"
+        elseif ": 191" in inputLabel or "191 a r" in inputLabel or inlist witUserInputList "191"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "191 - Shadowspire Cathedral (West)"
+        elseif ": 190" in inputLabel or "190 a r" in inputLabel or inlist witUserInputList "190"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "190 - Unmarked Grave (West)"
+        elseif ": 189" in inputLabel or "189 a r" in inputLabel or inlist witUserInputList "189"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "189 - Unmarked Grave"
+        elseif ": 188" in inputLabel or "188 a r" in inputLabel or inlist witUserInputList "188"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "188 - Unmarked Grave (North Cave)"
+        elseif ": 187" in inputLabel or "187 a r" in inputLabel or inlist witUserInputList "187"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "187 - Lightning Strike (South)"
+        elseif ": 186" in inputLabel or "186 a r" in inputLabel or inlist witUserInputList "186"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "186 - Lightning Strike (North)"
+        elseif ": 185" in inputLabel or "185 a r" in inputLabel or inlist witUserInputList "185"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "185 - Lightning Strike (South West)"
+        elseif ": 184" in inputLabel or "184 a r" in inputLabel or inlist witUserInputList "184"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "184 - Outpost East Gate (East)"
+        elseif ": 183" in inputLabel or "183 a r" in inputLabel or inlist witUserInputList "183"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "183 - Cedar Forest"
+        elseif ": 182" in inputLabel or "182 a r" in inputLabel or inlist witUserInputList "182"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "182 - Outpost East Gate"
+        elseif ": 181" in inputLabel or "181 a r" in inputLabel or inlist witUserInputList "181"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "181 - Picnic Blanket"
+        elseif ": 180" in inputLabel or "180 a r" in inputLabel or inlist witUserInputList "180"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "180 - Damned Bog"
+        elseif ": 179" in inputLabel or "179 a r" in inputLabel or inlist witUserInputList "179"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "179 - Rickety Bridge"
+        elseif ": 178" in inputLabel or "178 a r" in inputLabel or inlist witUserInputList "178"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "178 - Rickety Bridge (North East)"
+        elseif ": 177" in inputLabel or "177 a r" in inputLabel or inlist witUserInputList "177"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "177 - Fresh Catch"
+        elseif ": 176" in inputLabel or "176 a r" in inputLabel or inlist witUserInputList "176"
+            setvar! witTargetTome 8
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "176 - Camp Betrayal"
+        elseif ": 175" in inputLabel or "175 a r" in inputLabel or inlist witUserInputList "175"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "175 - Illuminated Springs (South)"
+        elseif ": 174" in inputLabel or "174 a r" in inputLabel or inlist witUserInputList "174"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "174 - Illuminated Springs (North)"
+        elseif ": 173" in inputLabel or "173 a r" in inputLabel or inlist witUserInputList "173"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "173 - Rickety Bridge (North West)"
+        elseif ": 172" in inputLabel or "172 a r" in inputLabel or inlist witUserInputList "172"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "172 - Rickety Bridge (North)"
+        elseif ": 171" in inputLabel or "171 a r" in inputLabel or inlist witUserInputList "171"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "171 - Fortune Teller (West Island)"
+        elseif ": 170" in inputLabel or "170 a r" in inputLabel or inlist witUserInputList "170"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "170 - Fortune Teller"
+        elseif ": 169" in inputLabel or "169 a r" in inputLabel or inlist witUserInputList "169"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "169 - Cedar Lookout (East)"
+        elseif ": 168" in inputLabel or "168 a r" in inputLabel or inlist witUserInputList "168"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "168 - Cedar Lookout (North West)"
+        elseif ": 167" in inputLabel or "167 a r" in inputLabel or inlist witUserInputList "167"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "167 - Winter Harbor (South)"
+        elseif ": 166" in inputLabel or "166 a r" in inputLabel or inlist witUserInputList "166"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "166 - Winter Harbor"
+        elseif ": 165" in inputLabel or "165 a r" in inputLabel or inlist witUserInputList "165"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "165 - Ivory Citadel (West)"
+        elseif ": 164" in inputLabel or "164 a r" in inputLabel or inlist witUserInputList "164"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "164 - Lily Bridge (East)"
+        elseif ": 163" in inputLabel or "163 a r" in inputLabel or inlist witUserInputList "163"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "163 - Ice Prison"
+        elseif ": 162" in inputLabel or "162 a r" in inputLabel or inlist witUserInputList "162"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "162 - Ice Prison (East)"
+        elseif ": 161" in inputLabel or "161 a r" in inputLabel or inlist witUserInputList "161"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "161 - Anchors Rest North Caravan (East)"
+        elseif ": 160" in inputLabel or "160 a r" in inputLabel or inlist witUserInputList "160"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "160 - Lily Bridge"
+        elseif ": 159" in inputLabel or "159 a r" in inputLabel or inlist witUserInputList "159"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "159 - Ice Prison (South West)"
+        elseif ": 158" in inputLabel or "158 a r" in inputLabel or inlist witUserInputList "158"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "158 - Leodcynings Burial Mound (East)"
+        elseif ": 157" in inputLabel or "157 a r" in inputLabel or inlist witUserInputList "157"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "157 - Frozen Nests"
+        elseif ": 156" in inputLabel or "156 a r" in inputLabel or inlist witUserInputList "156"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "156 - Leodcynings Burial Mound"
+        elseif ": 155" in inputLabel or "155 a r" in inputLabel or inlist witUserInputList "155"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "155 - Frozen Settlement"
+        elseif ": 154" in inputLabel or "154 a r" in inputLabel or inlist witUserInputList "154"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "154 - Frozen Settlement (East)"
+        elseif ": 153" in inputLabel or "153 a r" in inputLabel or inlist witUserInputList "153"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "153 - Frozen Excavation"
+        elseif ": 152" in inputLabel or "152 a r" in inputLabel or inlist witUserInputList "152"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "152 - Frozen Settlement (West)"
+        elseif ": 151" in inputLabel or "151 a r" in inputLabel or inlist witUserInputList "151"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "151 - Frozen Settlement (North)"
+        elseif ": 150" in inputLabel or "150 a r" in inputLabel or inlist witUserInputList "150"
+            setvar! witTargetTome 7
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "150 - Winterspire"
+        elseif ": 149" in inputLabel or "149 a r" in inputLabel or inlist witUserInputList "149"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "149 - Winterspire (North)"
+        elseif ": 148" in inputLabel or "148 a r" in inputLabel or inlist witUserInputList "148"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "148 - Winterspire (North West)"
+        elseif ": 147" in inputLabel or "147 a r" in inputLabel or inlist witUserInputList "147"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "147 - Ice Bridge"
+        elseif ": 146" in inputLabel or "146 a r" in inputLabel or inlist witUserInputList "146"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "146 - Smoking Pyre (East)"
+        elseif ": 145" in inputLabel or "145 a r" in inputLabel or inlist witUserInputList "145"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "145 - Ice Bridge (West)"
+        elseif ": 144" in inputLabel or "144 a r" in inputLabel or inlist witUserInputList "144"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "144 - Ice Bridge (North West)"
+        elseif ": 143" in inputLabel or "143 a r" in inputLabel or inlist witUserInputList "143"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "143 - Smugglers Dock"
+        elseif ": 142" in inputLabel or "142 a r" in inputLabel or inlist witUserInputList "142"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "142 - Smoke Pyre"
+        elseif ": 141" in inputLabel or "141 a r" in inputLabel or inlist witUserInputList "141"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "141 - Smoking Pyre Island"
+        elseif ": 140" in inputLabel or "140 a r" in inputLabel or inlist witUserInputList "140"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "140 - Savage Fort"
+        elseif ": 139" in inputLabel or "139 a r" in inputLabel or inlist witUserInputList "139"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "139 - Deserted Island and Ship"
+        elseif ": 138" in inputLabel or "138 a r" in inputLabel or inlist witUserInputList "138"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "138 - Tribal Camp"
+        elseif ": 137" in inputLabel or "137 a r" in inputLabel or inlist witUserInputList "137"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "137 - Jungle Baths"
+        elseif ": 136" in inputLabel or "136 a r" in inputLabel or inlist witUserInputList "136"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "136 - Terathan Point"
+        elseif ": 135" in inputLabel or "135 a r" in inputLabel or inlist witUserInputList "135"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "135 - Savage Fort (North)"
+        elseif ": 134" in inputLabel or "134 a r" in inputLabel or inlist witUserInputList "134"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "134 - Inferno (Outside)"
+        elseif ": 133" in inputLabel or "133 a r" in inputLabel or inlist witUserInputList "133"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "133 - Volcano 1"
+        elseif ": 132" in inputLabel or "132 a r" in inputLabel or inlist witUserInputList "132"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "132 - Drowned City (South)"
+        elseif ": 131" in inputLabel or "131 a r" in inputLabel or inlist witUserInputList "131"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "131 - Drowned City (Central)"
+        elseif ": 130" in inputLabel or "130 a r" in inputLabel or inlist witUserInputList "130"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "130 - Drowned City (West)"
+        elseif ": 129" in inputLabel or "129 a r" in inputLabel or inlist witUserInputList "129"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "129 - Drowned City (West)"
+        elseif ": 128" in inputLabel or "128 a r" in inputLabel or inlist witUserInputList "128"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "128 - Drowned City (Central North)"
+        elseif ": 127" in inputLabel or "127 a r" in inputLabel or inlist witUserInputList "127"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "127 - Drowned City (North)"
+        elseif ": 126" in inputLabel or "126 a r" in inputLabel or inlist witUserInputList "126"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "126 - Drowned City (North West)"
+        elseif ": 125" in inputLabel or "125 a r" in inputLabel or inlist witUserInputList "125"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "125 - Hidden Valley"
+        elseif ": 124" in inputLabel or "124 a r" in inputLabel or inlist witUserInputList "124"
+            setvar! witTargetTome 6
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "124 - Oasis"
+        elseif ": 123" in inputLabel or "123 a r" in inputLabel or inlist witUserInputList "123"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "123 - Savannah and Watering Hole"
+        elseif ": 122" in inputLabel or "122 a r" in inputLabel or inlist witUserInputList "122"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "122 - Desert Pyramid Ruins Monolith"
+        elseif ": 121" in inputLabel or "121 a r" in inputLabel or inlist witUserInputList "121"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "121 - Desert Pyramid Ruins"
+        elseif ": 120" in inputLabel or "120 a r" in inputLabel or inlist witUserInputList "120"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "120 - Compassion Shrine (North)"
+        elseif ": 119" in inputLabel or "119 a r" in inputLabel or inlist witUserInputList "119"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "119 - Deadman Isle"
+        elseif ": 118" in inputLabel or "118 a r" in inputLabel or inlist witUserInputList "118"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "118 - Volcano 2"
+        elseif ": 117" in inputLabel or "117 a r" in inputLabel or inlist witUserInputList "117"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "117 - Island Spring"
+        elseif ": 116" in inputLabel or "116 a r" in inputLabel or inlist witUserInputList "116"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "116 - Island Spring (North)"
+        elseif ": 115" in inputLabel or "115 a r" in inputLabel or inlist witUserInputList "115"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "115 - Island Dragon Roost"
+        elseif ": 114" in inputLabel or "114 a r" in inputLabel or inlist witUserInputList "114"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "114 - Brigand Camp 2"
+        elseif ": 113" in inputLabel or "113 a r" in inputLabel or inlist witUserInputList "113"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "113 - Cambrian Excavation"
+        elseif ": 112" in inputLabel or "112 a r" in inputLabel or inlist witUserInputList "112"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "112 - Desert Manor (East)"
+        elseif ": 111" in inputLabel or "111 a r" in inputLabel or inlist witUserInputList "111"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "111 - Desert Manor"
+        elseif ": 110" in inputLabel or "110 a r" in inputLabel or inlist witUserInputList "110"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "110 - Beached Ship"
+        elseif ": 109" in inputLabel or "109 a r" in inputLabel or inlist witUserInputList "109"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "109 - Nomad Desert Camp"
+        elseif ": 108" in inputLabel or "108 a r" in inputLabel or inlist witUserInputList "108"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "108 - Desert Outpost (South)"
+        elseif ": 107" in inputLabel or "107 a r" in inputLabel or inlist witUserInputList "107"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "107 - Desert Outpost"
+        elseif ": 106a" in inputLabel or "106a a r" in inputLabel or inlist witUserInputList "106a"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "106a - Prevalia Signal Outpost"
+        elseif ": 106" in inputLabel or "106 a r" in inputLabel or inlist witUserInputList "106"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "106 - Desert Outpost (North)"
+        elseif ": 105" in inputLabel or "105 a r" in inputLabel or inlist witUserInputList "105"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "105 - Prevalia Gate Caravan"
+        elseif ": 104a" in inputLabel or "104a a r" in inputLabel or inlist witUserInputList "104a"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "104a - Cathedral and Inn (East)"
+        elseif ": 104" in inputLabel or "104 a r" in inputLabel or inlist witUserInputList "104"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "104 - Ogre Valley (South East)"
+        elseif ": 103" in inputLabel or "103 a r" in inputLabel or inlist witUserInputList "103"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "103 - Ogre Valley (South West)"
+        elseif ": 102" in inputLabel or "102 a r" in inputLabel or inlist witUserInputList "102"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "102 - Ogre Valley (East)"
+        elseif ": 101" in inputLabel or "101 a r" in inputLabel or inlist witUserInputList "101"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "101 - Ogre Valley (West)"
+        elseif ": 100" in inputLabel or "100 a r" in inputLabel or inlist witUserInputList "100"
+            setvar! witTargetTome 5
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "100 - Ogre Valley (North East)"
+        elseif ": 99" in inputLabel or "99 a r" in inputLabel or inlist witUserInputList "99"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "99 - Ogre Valley (North)"
+        elseif ": 98" in inputLabel or "98 a r" in inputLabel or inlist witUserInputList "98"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "98 - Signal Fort 1"
+        elseif ": 97" in inputLabel or "97 a r" in inputLabel or inlist witUserInputList "97"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "97 - Mausoleum (Outside North)"
+        elseif ": 96" in inputLabel or "96 a r" in inputLabel or inlist witUserInputList "96"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "96 - Humility Swamps (North)"
+        elseif ": 95" in inputLabel or "95 a r" in inputLabel or inlist witUserInputList "95"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "95 - Lizardmen Fort"
+        elseif ": 94" in inputLabel or "94 a r" in inputLabel or inlist witUserInputList "94"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "94 - Lizardmen Fort (North)"
+        elseif ": 93" in inputLabel or "93 a r" in inputLabel or inlist witUserInputList "93"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "93 - Swamp Point Ruins (South)"
+        elseif ": 92" in inputLabel or "92 a r" in inputLabel or inlist witUserInputList "92"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "92 - Signal Fort 1 (North)"
+        elseif ": 91" in inputLabel or "91 a r" in inputLabel or inlist witUserInputList "91"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "91 - Lizardmen Caravan (North)"
+        elseif ": 90" in inputLabel or "90 a r" in inputLabel or inlist witUserInputList "90"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "90 - Mountain Meeting Spot"
+        elseif ": 89" in inputLabel or "89 a r" in inputLabel or inlist witUserInputList "89"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "89 - Cathedral St Francis Ruins"
+        elseif ": 88" in inputLabel or "88 a r" in inputLabel or inlist witUserInputList "88"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "88 - Ruined Lycaeum (Docks)"
+        elseif ": 87" in inputLabel or "87 a r" in inputLabel or inlist witUserInputList "87"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "87 - Cathedral St Francis"
+        elseif ": 86" in inputLabel or "86 a r" in inputLabel or inlist witUserInputList "86"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "86 - Swamp Point Ruins"
+        elseif ": 85" in inputLabel or "85 a r" in inputLabel or inlist witUserInputList "85"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "85 - Signal Fort 2"
+        elseif ": 84" in inputLabel or "84 a r" in inputLabel or inlist witUserInputList "84"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "84 - Sacred Pools and Ruins"
+        elseif ": 83" in inputLabel or "83 a r" in inputLabel or inlist witUserInputList "83"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "83 - Ruins and Underground Lair"
+        elseif ": 82" in inputLabel or "82 a r" in inputLabel or inlist witUserInputList "82"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "82 - Midlands Ruins 2"
+        elseif ": 81a" in inputLabel or "81a a r" in inputLabel or inlist witUserInputList "81a"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "81a - Ruins and Underground Lair"
+        elseif ": 81" in inputLabel or "81 a r" in inputLabel or inlist witUserInputList "81"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "81 - Daemon Keep"
+        elseif ": 80a" in inputLabel or "80a a r" in inputLabel or inlist witUserInputList "80a"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "80a - Prevalia Bog"
+        elseif ": 80" in inputLabel or "80 a r" in inputLabel or inlist witUserInputList "80"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "80 - Daemon Keep (North)"
+        elseif ": 79" in inputLabel or "79 a r" in inputLabel or inlist witUserInputList "79"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "79 - Ruined Lycaeum (Entrance)"
+        elseif ": 78" in inputLabel or "78 a r" in inputLabel or inlist witUserInputList "78"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "78 - Ruined Lycaeum (East)"
+        elseif ": 77" in inputLabel or "77 a r" in inputLabel or inlist witUserInputList "77"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "77 - Ruined Lycaeum (North Bridge)"
+        elseif ": 76" in inputLabel or "76 a r" in inputLabel or inlist witUserInputList "76"
+            setvar! witTargetTome 4
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "76 - Ruined Lycaeum (South Bridge)"
+        elseif ": 75" in inputLabel or "75 a r" in inputLabel or inlist witUserInputList "75"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "75 - Ruined Lycaeum (North West)"
+        elseif ": 74" in inputLabel or "74 a r" in inputLabel or inlist witUserInputList "74"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "74 - Ruined Lycaeum (Beach)"
+        elseif ": 73" in inputLabel or "73 a r" in inputLabel or inlist witUserInputList "73"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "73 - Morthuna"
+        elseif ": 72" in inputLabel or "72 a r" in inputLabel or inlist witUserInputList "72"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "72 - Morthuna (South)"
+        elseif ": 71" in inputLabel or "71 a r" in inputLabel or inlist witUserInputList "71"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "71 - Orc Fort 3"
+        elseif ": 70" in inputLabel or "70 a r" in inputLabel or inlist witUserInputList "70"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "70 - Orc Fort 3 (South)"
+        elseif ": 69" in inputLabel or "69 a r" in inputLabel or inlist witUserInputList "69"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "69 - Orc Fort 3 (Inside)"
+        elseif ": 68" in inputLabel or "68 a r" in inputLabel or inlist witUserInputList "68"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "68 - Lizardmen Scout Camp"
+        elseif ": 67" in inputLabel or "67 a r" in inputLabel or inlist witUserInputList "67"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "67 - Hunters Cabin"
+        elseif ": 66" in inputLabel or "66 a r" in inputLabel or inlist witUserInputList "66"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "66 - Druid Cabin"
+        elseif ": 65" in inputLabel or "65 a r" in inputLabel or inlist witUserInputList "65"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "65 - Brigand Headquarters (South)"
+        elseif ": 64" in inputLabel or "64 a r" in inputLabel or inlist witUserInputList "64"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "64 - Brigand Headquarters (North East)"
+        elseif ": 63" in inputLabel or "63 a r" in inputLabel or inlist witUserInputList "63"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "63 - Noxious Earth"
+        elseif ": 62" in inputLabel or "62 a r" in inputLabel or inlist witUserInputList "62"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "62 - Citadel"
+        elseif ": 61" in inputLabel or "61 a r" in inputLabel or inlist witUserInputList "61"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "61 - Hollow Hills"
+        elseif ": 60" in inputLabel or "60 a r" in inputLabel or inlist witUserInputList "60"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "60 - Druid Circle (South)"
+        elseif ": 59" in inputLabel or "59 a r" in inputLabel or inlist witUserInputList "59"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "59 - Druid Circle (East)"
+        elseif ": 58" in inputLabel or "58 a r" in inputLabel or inlist witUserInputList "58"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "58 - Druid Circle (West)"
+        elseif ": 57" in inputLabel or "57 a r" in inputLabel or inlist witUserInputList "57"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "57 - Hollow Hills (North)"
+        elseif ": 56" in inputLabel or "56 a r" in inputLabel or inlist witUserInputList "56"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "56 - Forsaken Keep Waypost"
+        elseif ": 55" in inputLabel or "55 a r" in inputLabel or inlist witUserInputList "55"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "55 - Forsaken Keep (West)"
+        elseif ": 54" in inputLabel or "54 a r" in inputLabel or inlist witUserInputList "54"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "54 - Shipwreck"
+        elseif ": 53" in inputLabel or "53 a r" in inputLabel or inlist witUserInputList "53"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "53 - Sacrificial Cliffs"
+        elseif ": 52" in inputLabel or "52 a r" in inputLabel or inlist witUserInputList "52"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "52 - Midlands Ruins 1"
+        elseif ": 51" in inputLabel or "51 a r" in inputLabel or inlist witUserInputList "51"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "51 - Ship in Cave"
+        elseif ": 50" in inputLabel or "50 a r" in inputLabel or inlist witUserInputList "50"
+            setvar! witTargetTome 3
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "50 - Owens Cabin"
+        elseif ": 49" in inputLabel or "49 a r" in inputLabel or inlist witUserInputList "49"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "49 - Orc Fort 2"
+        elseif ": 48" in inputLabel or "48 a r" in inputLabel or inlist witUserInputList "48"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "48 - Urukton Bluffs"
+        elseif ": 47" in inputLabel or "47 a r" in inputLabel or inlist witUserInputList "47"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "47 - Tanners Northern Fort (North)"
+        elseif ": 46" in inputLabel or "46 a r" in inputLabel or inlist witUserInputList "46"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "46 - Tanners Northern Fort"
+        elseif ": 45" in inputLabel or "45 a r" in inputLabel or inlist witUserInputList "45"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "45 - Andaria Rolling Hills"
+        elseif ": 44a" in inputLabel or "44a a r" in inputLabel or inlist witUserInputList "44a"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "44a - Andaria Rolling Hills (North)"
+        elseif ": 44" in inputLabel or "44 a r" in inputLabel or inlist witUserInputList "44"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "44 - Andaria Ruined Tower"
+        elseif ": 43" in inputLabel or "43 a r" in inputLabel or inlist witUserInputList "43"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "43 - Andraia Rolling Hills (South)"
+        elseif ": 42" in inputLabel or "42 a r" in inputLabel or inlist witUserInputList "42"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "42 - Andaria Rolling Hills (South Swamp)"
+        elseif ": 41" in inputLabel or "41 a r" in inputLabel or inlist witUserInputList "41"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "41 - Ruined Lighthouse"
+        elseif ": 40" in inputLabel or "40 a r" in inputLabel or inlist witUserInputList "40"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "40 - Ruined Cabin"
+        elseif ": 39" in inputLabel or "39 a r" in inputLabel or inlist witUserInputList "39"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "39 - Bonfire"
+        elseif ": 38" in inputLabel or "38 a r" in inputLabel or inlist witUserInputList "38"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "38 - Ruined House"
+        elseif ": 37" in inputLabel or "37 a r" in inputLabel or inlist witUserInputList "37"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "37 - Outside Pulma"
+        elseif ": 36" in inputLabel or "36 a r" in inputLabel or inlist witUserInputList "36"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "36 - Prevalia Kings Manor"
+        elseif ": 35" in inputLabel or "35 a r" in inputLabel or inlist witUserInputList "35"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "35 - Prevalia Kings Manor Cabin"
+        elseif ": 34" in inputLabel or "34 a r" in inputLabel or inlist witUserInputList "34"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "34 - Andaria Gate (West)"
+        elseif ": 33" in inputLabel or "33 a r" in inputLabel or inlist witUserInputList "33"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "33 - Dragon Roost"
+        elseif ": 32" in inputLabel or "32 a r" in inputLabel or inlist witUserInputList "32"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "32 - Gate Fortress"
+        elseif ": 31" in inputLabel or "31 a r" in inputLabel or inlist witUserInputList "31"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "31 - Gate Fortress (West)"
+        elseif ": 30" in inputLabel or "30 a r" in inputLabel or inlist witUserInputList "30"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "30 - Andarian Lumberyard Waypost"
+        elseif ": 29" in inputLabel or "29 a r" in inputLabel or inlist witUserInputList "29"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "29 - Logging Camp"
+        elseif ": 28" in inputLabel or "28 a r" in inputLabel or inlist witUserInputList "28"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "28 - Necromancers Swamp"
+        elseif ": 27" in inputLabel or "27 a r" in inputLabel or inlist witUserInputList "27"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "27 - Justice Shrine (West)"
+        elseif ": 26" in inputLabel or "26 a r" in inputLabel or inlist witUserInputList "26"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "26 - Andaria Sacrificial Ruins"
+        elseif ": 25" in inputLabel or "25 a r" in inputLabel or inlist witUserInputList "25"
+            setvar! witTargetTome 2
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "25 - Ruined Snow Fortress (East)"
+        elseif ": 24" in inputLabel or "24 a r" in inputLabel or inlist witUserInputList "24"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 225
+            pushlist witUserInputList "24 - Ruined Snow Fortress (North)"
+        elseif ": 23" in inputLabel or "23 a r" in inputLabel or inlist witUserInputList "23"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 224
+            pushlist witUserInputList "23 - Ruined Snow Fortress (West)"
+        elseif ": 22a" in inputLabel or "22a a r" in inputLabel or inlist witUserInputList "22a"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 223
+            pushlist witUserInputList "22a - Ratman Hovel"
+        elseif ": 22" in inputLabel or "22 a r" in inputLabel or inlist witUserInputList "22"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 222
+            pushlist witUserInputList "22 - Ratman Hovel (South)"
+        elseif ": 21" in inputLabel or "21 a r" in inputLabel or inlist witUserInputList "21"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 221
+            pushlist witUserInputList "21 - Ratman Hovel (North)"
+        elseif ": 20" in inputLabel or "20 a r" in inputLabel or inlist witUserInputList "20"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 220
+            pushlist witUserInputList "20 - Prevalia Keep (South)"
+        elseif ": 19" in inputLabel or "19 a r" in inputLabel or inlist witUserInputList "19"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 219
+            pushlist witUserInputList "19 - Brigand Camp 1 (South)"
+        elseif ": 18" in inputLabel or "18 a r" in inputLabel or inlist witUserInputList "18"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 218
+            pushlist witUserInputList "18 - Brigand Camp 1 (West)"
+        elseif ": 17" in inputLabel or "17 a r" in inputLabel or inlist witUserInputList "17"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 217
+            pushlist witUserInputList "17 - Prevalia Keep"
+        elseif ": 16" in inputLabel or "16 a r" in inputLabel or inlist witUserInputList "16"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 216
+            pushlist witUserInputList "16 - Western Ruins Brigands 1"
+        elseif ": 15" in inputLabel or "15 a r" in inputLabel or inlist witUserInputList "15"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 215
+            pushlist witUserInputList "15 - Western Ruins Brigands 2"
+        elseif ": 14" in inputLabel or "14 a r" in inputLabel or inlist witUserInputList "14"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 214
+            pushlist witUserInputList "14 - Western Ruins Brigands 3"
+        elseif ": 13" in inputLabel or "13 a r" in inputLabel or inlist witUserInputList "13"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 213
+            pushlist witUserInputList "13 - Zebra Falls"
+        elseif ": 12" in inputLabel or "12 a r" in inputLabel or inlist witUserInputList "12"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 212
+            pushlist witUserInputList "12 - Urk Fort/Smugglers Den"
+        elseif ": 11" in inputLabel or "11 a r" in inputLabel or inlist witUserInputList "11"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 211
+            pushlist witUserInputList "11 - Pool of  Power"
+        elseif ": 10" in inputLabel or "10 a r" in inputLabel or inlist witUserInputList "10"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 210
+            pushlist witUserInputList "10 - Western Ruins"
+        elseif ": 9" in inputLabel or "9 a r" in inputLabel or inlist witUserInputList "9"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 209
+            pushlist witUserInputList "9 - Vine Covered Cave"
+        elseif ": 8" in inputLabel or "8 a r" in inputLabel or inlist witUserInputList "8"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 208
+            pushlist witUserInputList "8 - Black Market Vendor"
+        elseif ": 7" in inputLabel or "7 a r" in inputLabel or inlist witUserInputList "7"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 207
+            pushlist witUserInputList "7 - Black Market Vendor (West)"
+        elseif ": 6" in inputLabel or "6 a r" in inputLabel or inlist witUserInputList "6"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 206
+            pushlist witUserInputList "6 - Necromancers Cathedral"
+        elseif ": 5" in inputLabel or "5 a r" in inputLabel or inlist witUserInputList "5"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 205
+            pushlist witUserInputList "5 - Hollow Snow Tower"
+        elseif ": 4a" in inputLabel or "4a a r" in inputLabel or inlist witUserInputList "4a"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 204
+            pushlist witUserInputList "4a - Simple Palisade Fort"
+        elseif ": 4" in inputLabel or "4 a r" in inputLabel or inlist witUserInputList "4"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 203
+            pushlist witUserInputList "4 - Telescope Island"
+        elseif ": 3" in inputLabel or "3 a r" in inputLabel or inlist witUserInputList "3"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 202
+            pushlist witUserInputList "3 - Corpse Creek/Chaos Hill"
+        elseif ": 2" in inputLabel or "2 a r" in inputLabel or inlist witUserInputList "2"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 201
+            pushlist witUserInputList "2 - Corpse Creek North Entrance"
+        elseif ": 1" in inputLabel or "1 a r" in inputLabel or inlist witUserInputList "1"
+            setvar! witTargetTome 1
+            setvar! witGumpResponse 200
+            pushlist witUserInputList "1 - Corpse Creek Lookout"
+        else
+            setvar! witTargetTome 0
+            setvar! witGumpResponse 0
+            pushlist witUserInputList "Unknown target tome number"
+        endif
+
+    gumpclose witRuneTomeGumpID
+    poplist witUserInputList front
+
+    if witDebugMode > 0 
+        foreach info in witUserInputList
+            sysmsg "[Witcher Travel] Tome: {{witTargetTome}}, Rune: {{info}} ... ({{witRunTimer}} ms)" cLightBlue
+        endfor
+    endif
+
+    //Use preset tomes if available 
+    if witTargetTome = 0
+        overhead "|* Can't find rune to location *|" cRed
+        //'
+        break
+    elseif witTargetTome = 1 and varexist witTome_01
+        setvar! witTargetTome witTome_01
+    elseif witTargetTome = 2 and varexist witTome_02
+        setvar! witTargetTome witTome_02
+    elseif witTargetTome = 3 and varexist witTome_03
+        setvar! witTargetTome witTome_03
+    elseif witTargetTome = 4 and varexist witTome_04
+        setvar! witTargetTome witTome_04
+    elseif witTargetTome = 5 and varexist witTome_05
+        setvar! witTargetTome witTome_05
+    elseif witTargetTome = 6 and varexist witTome_06
+        setvar! witTargetTome witTome_06
+    elseif witTargetTome = 7 and varexist witTome_07
+        setvar! witTargetTome witTome_07
+    elseif witTargetTome = 8 and varexist witTome_08
+        setvar! witTargetTome witTome_08
+    elseif witTargetTome = 9 and varexist witTome_09
+        setvar! witTargetTome witTome_09
+    elseif witTargetTome = 10 and varexist witTome_10
+        setvar! witTargetTome witTome_10
+    elseif witTargetTome = 11 and varexist witTome_11
+        setvar! witTargetTome witTome_11
+    elseif witTargetTome = 12 and varexist witTome_12
+        setvar! witTargetTome witTome_12
+    elseif witTargetTome = 13 and varexist witTome_13
+        setvar! witTargetTome witTome_13
+    elseif witTargetTome = 14 and varexist witTome_14
+        setvar! witTargetTome witTome_14
+    else
+
+        //Scan bank box, preset tome container, ground and backpack for correctly labeled witcher tomes
+        removelist witSourceList
+        createlist witSourceList
+        if witParentContainer > 0
+            pushlist witSourceList witParentContainer
+        endif
+        pushlist witSourceList "ground"
+        setvar! witSelfSerial     self
+        setvar! witBackpackSerial backpack
+        if witParentContainer != witSelfSerial and witParentContainer != witBackpackSerial
+            pushlist witSourceList "backpack"
+        endif
+        unsetvar witSelfSerial
+        unsetvar witBackpackSerial
+        settimer witOverheadTimer witOverheadCD
+
+        foreach localSource in witSourceList
+
+            if 999 < witTargetTome
+                //witTargetTome already set to a serial
+                break
+            endif
+            
+            while findtype "runetome" localSource -1 -1 witSearchRange as localTome
+                getlabel localTome localTomeLabel
+            
+                if witTargetTome = 1
+                    if "1-24" in localTomeLabel or "1 - 24" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 2
+                    if "25-49" in localTomeLabel or "25 - 49" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 3
+                    if "50-75" in localTomeLabel or "50 - 75" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 4
+                    if "76-99" in localTomeLabel or "76 - 99" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 5
+                    if "100-123" in localTomeLabel or "100 - 123" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 6
+                    if "124-149" in localTomeLabel or "124 - 149" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 7
+                    if "150-175" in localTomeLabel or "150 - 175" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 8
+                    if "176-201" in localTomeLabel or "176 - 201" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 9
+                    if "202-227" in localTomeLabel or "202 - 227" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 10
+                    if "228-249" in localTomeLabel or "228 - 249" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 11
+                    if "250-275" in localTomeLabel or "250 - 275" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 12
+                    if "276-301" in localTomeLabel or "276 - 301" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 13
+                    if "302-327" in localTomeLabel or "302 - 327" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                elseif witTargetTome = 14
+                    if "328-353" in localTomeLabel or "328 - 353" in localTomeLabel
+                        setvar! witTargetTome localTome
+                        break
+                    endif
+                endif
+                if witDebugMode > 0
+                    overhead "< Checking >" cLightBlue localTome
+                    overhead "     ¼     "  cLightBlue localTome
+                endif
+                @ignore localTome
+                if timer witOverheadTimer > witOverheadCD
+                    overhead "|* Searching tome *|" cLightOrange
+                    settimer witOverheadTimer 0
+                endif
+            endwhile
+
+        endfor
+        @clearignore
+    endif
+
+    if witDebugMode > 0
+        sysmsg "[Witcher Travel] Tome definition done ... ({{witRunTimer}} ms)" cLightBlue
+    endif
+
+    //Click target tome if located
+    if 999 > witTargetTome
+        overhead "|* Can't find rune to location *|" cRed
+        //'
+        break
+    elseif witParentContainer > 0 and find witTargetTome witParentContainer or find witTargetTome backpack
+        while timer globalObjectDelayTimer < globalWaitForObjectDelay
+        endwhile
+        dclick witTargetTome
+        settimer globalObjectDelayTimer 0
+    else 
+        settimer witOverheadTimer witOverheadCD
+        while find witTargetTome ground -1 -1 witSearchRange
+            if find witTargetTome ground -1 -1 2
+                while timer globalObjectDelayTimer < globalWaitForObjectDelay
+                endwhile
+                dclick witTargetTome
+                settimer globalObjectDelayTimer 0
+                break
+            elseif timer witOverheadTimer > witOverheadCD
+                overhead "|* Move closer *|" cLightOrange
+                overhead "  Tome  "  cLightOrange witTargetTome
+                overhead "    ¼    " cLightOrange witTargetTome
+                settimer witOverheadTimer 0
+            endif        
+        endwhile
+    endif
+
+    waitforgump witRuneTomeGumpID globalMaxWaitForServerResponse
+    if not gumpexists witRuneTomeGumpID
+        overhead "|* Can't find rune to location *|" cRed
+        //'
+        break
+    endif
+
+    //Left page of the tome gump (even numbers)
+    if 200 = witGumpResponse or 202 = witGumpResponse or 204 = witGumpResponse or 206 = witGumpResponse or 208 = witGumpResponse or 210 = witGumpResponse or 212 = witGumpResponse or 214 = witGumpResponse or 216 = witGumpResponse or 218 = witGumpResponse or 220 = witGumpResponse or 222 = witGumpResponse or 224 = witGumpResponse
+        if UseGateTravel = 1
+            if UseScrolls > 0
+                // gumpresponse 13 -> left gate scroll button
+                setvar! witSubMenuButton 13
+            else
+                // gumpresponse 12 -> left gate cast button
+                setvar! witSubMenuButton 12
+            endif
+        else
+            if UseScrolls > 0
+                // gumpresponse 11 -> left recall scroll button
+                setvar! witSubMenuButton 11
+            else
+                // gumpresponse 10 -> left recall button
+                setvar! witSubMenuButton 10
+            endif
+        endif
+    //Right page of the tome gump (odd numbers)
+    elseif 201 = witGumpResponse or 203 = witGumpResponse or 205 = witGumpResponse or 207 = witGumpResponse or 209 = witGumpResponse or 211 = witGumpResponse or 213 = witGumpResponse or 215 = witGumpResponse or 217 = witGumpResponse or 219 = witGumpResponse or 221 = witGumpResponse or 223 = witGumpResponse or 225 = witGumpResponse
+        if UseGateTravel = 1
+            if UseScrolls > 0
+                // gumpresponse 23 -> right gate scroll button
+                setvar! witSubMenuButton 23
+            else
+                // gumpresponse 22 -> right gate cast button
+                setvar! witSubMenuButton 22
+            endif
+        else
+            if UseScrolls > 0
+                // gumpresponse 21 -> right recall scroll button
+                setvar! witSubMenuButton 21
+            else
+                // gumpresponse 20 -> right recall button
+                setvar! witSubMenuButton 20
+            endif
+        endif
+    else
+        //getting here should be impossible
+        if witDebugMode > 0
+            sysmsg "[Witcher Travel] Wrong gump button set ... ({{witRunTimer}} ms)" cRed
+        endif
+        break
+    endif
+
+    //Overhead destination info
+    foreach localDest in witUserInputList
+        if AutoTravel = 0
+            overhead "Opening: {{localDest}}"   cGreen
+        elseif UseGateTravel = 1
+            overhead "Gating: {{localDest}}"    cGreen
+        else
+            overhead "Recalling: {{localDest}}" cGreen
+        endif
+    endfor
+
+    if witDebugMode > 0
+        if AutoTravel > 0
+            sysmsg "[Witcher Travel] Recalling/Gating ... ({{witRunTimer}} ms)"  cLightBlue
+        else
+            sysmsg "[Witcher Travel] Opening tome page ... ({{witRunTimer}} ms)" cLightBlue
+        endif
+    endif
+
+    if insysmsg "That rune tome is out of recall charges." or insysmsg "That rune tome is out of gate charges."
+        //Clear relevant system messages
+    endif
+
+    //Open rune tome page to selected destination
+    gumpresponse witGumpResponse witRuneTomeGumpID
+    if AutoTravel > 0
+        //Initiate cast
+        waitforgump witRuneTomeGumpID globalMaxWaitForServerResponse
+        gumpresponse witSubMenuButton witRuneTomeGumpID
+    endif
+
+    //Scroll management
+    if UseScrolls > 0 and AutoTravel > 0
+        
+        setvar! witShelfGumpID 3232825965
+        getlabel backpack waitForPing
+        
+        if not insysmsg! "That rune tome is out of recall charges." and not insysmsg! "That rune tome is out of gate charges."
+            //Scroll travel success
+            break
+        elseif not findtype "Recall|Gate Travel Scroll" self and not findtype "storage shelf" ground -1 -1 2 or AutoRefillScrolls = 0
+            //Tome empty, no scroll in backpack, no shelf to restock, or no restock wanted by user
+            overhead "|** Out of scrolls **|" cRed
+            break
+        endif
+
+        if insysmsg "charges to the rune tome." or insysmsg "That item is unavailable."
+            //Clear relevant system messages
+        endif
+
+        if insysmsg "That rune tome is out of recall charges." 
+        //Restock recall charge    
+
+            if witDebugMode > 0
+                sysmsg "[Witcher Travel] Restocking recall scrolls ... ({{witRunTimer}} ms)" cLightBlue
+            endif
+
+            if not findtype "Recall" self and findtype "storage shelf" ground -1 -1 2 as localShelf
+                while timer globalObjectDelayTimer < globalWaitForObjectDelay
+                endwhile
+                dclick localShelf
+                settimer globalObjectDelayTimer 0
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpresponse 21 witShelfGumpID
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpresponse 56 witShelfGumpID
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpresponse 23 witShelfGumpID
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpresponse 237 witShelfGumpID
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpclose witShelfGumpID
+                while timer globalObjectDelayTimer < globalMaxWaitForServerResponse and not findtype "Recall" self and not insysmsg "That item is unavailable."
+                endwhile
+            endif
+            if findtype "Recall" self as localScroll
+                while timer globalObjectDelayTimer < globalWaitForObjectDelay
+                endwhile
+                @drop backpack -1 -1 -1
+                lift localScroll
+                settimer globalObjectDelayTimer 0
+                @drop witTargetTome -1 -1 -1
+                while find localScroll self and timer globalObjectDelayTimer < globalMaxWaitForServerResponse
+                endwhile
+                if timer globalObjectDelayTimer > globalMaxWaitForServerResponse
+                    //Restock timeout
+                    overhead "|** Restock failed **|" cRed
+                    break
+                endif
+            else
+                //Restock failed
+                overhead "|** Restock failed **|" cRed
+                break
+            endif
+
+        elseif insysmsg "That rune tome is out of gate charges."
+        //Restock gate charge    
+            
+            if witDebugMode > 0
+                sysmsg "[Witcher Travel] Restocking gate scrolls ... ({{witRunTimer}} ms)" cLightBlue
+            endif
+
+            if not findtype "Gate Travel Scroll" self and findtype "storage shelf" ground -1 -1 2 as localShelf
+                while timer globalObjectDelayTimer < globalWaitForObjectDelay
+                endwhile
+                dclick localShelf
+                settimer globalObjectDelayTimer 0
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpresponse 21 witShelfGumpID
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpresponse 21 witShelfGumpID
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse            
+                gumpresponse 50 witShelfGumpID
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpresponse 23 witShelfGumpID
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpresponse 133 witShelfGumpID
+                waitforgump witShelfGumpID globalMaxWaitForServerResponse
+                gumpclose witShelfGumpID
+                while timer globalObjectDelayTimer < globalMaxWaitForServerResponse and not findtype "Gate Travel Scroll" self and not insysmsg "That item is unavailable."
+                endwhile
+            endif
+            if findtype "Gate Travel Scroll" self as localScroll
+                while timer globalObjectDelayTimer < globalWaitForObjectDelay
+                endwhile
+                @drop backpack -1 -1 -1
+                lift localScroll
+                settimer globalObjectDelayTimer 0
+                @drop witTargetTome -1 -1 -1
+                while find localScroll self and timer globalObjectDelayTimer < globalMaxWaitForServerResponse
+                endwhile
+                if timer globalObjectDelayTimer > globalMaxWaitForServerResponse
+                    //Restock timeout
+                    overhead "|** Restock failed **|" cRed
+                    break
+                endif                
+            else
+                //Restock failed
+                overhead "|** Restock failed **|" cRed
+                break
+            endif
+
+        endif
+
+        while not insysmsg "charges to the rune tome." and timer globalObjectDelayTimer < globalMaxWaitForServerResponse
+        endwhile
+
+        gumpresponse witSubMenuButton witRuneTomeGumpID
+        unsetvar witShelfGumpID
+
+    elseif UseScrolls > 0 and AutoTravel = 0
+
+        overhead "  Tome  "  cLightOrange witTargetTome
+        overhead "    ¼    " cLightOrange witTargetTome
+
+    endif
+
+    break
+
+endwhile
+
+gumpclose witRuneBookGumpID
+gumpclose witRuneTomeRenameGumpID
+if AutoTravel = 0
+    gumpclose witRuneTomeGumpID
+endif
+
+//Clean up
+removelist RunebookContainerList
+removelist WitcherTomeContainerList
+removelist witUserInputList
+removelist witSourceList
+
+removetimer witWaitTimer
+removetimer witOverheadTimer
+
+unsetvar AutoTravel
+unsetvar UseGateTravel
+unsetvar UseScrolls
+unsetvar AutoRefillScrolls
+unsetvar UseBook
+unsetvar MarkedRuneSerial
+unsetvar BookOrTomeSerial
+
+unsetvar witRuneBookGumpID
+unsetvar witRuneTomeGumpID
+unsetvar witRuneTomeRenameGumpID
+unsetvar witSearchRange
+unsetvar witNPCMenuMaxRange
+unsetvar witOverheadCD
+
+unsetvar witInputItemSerial
+unsetvar witParentContainer
+unsetvar witSharedParentContainer
+unsetvar witTargetTome
+unsetvar witGumpResponse
+unsetvar witSubMenuButton
+
+unsetvar witTome_01
+unsetvar witTome_02
+unsetvar witTome_03
+unsetvar witTome_04
+unsetvar witTome_05
+unsetvar witTome_06
+unsetvar witTome_07
+unsetvar witTome_08
+unsetvar witTome_09
+unsetvar witTome_10
+unsetvar witTome_11
+unsetvar witTome_12
+unsetvar witTome_13
+unsetvar witTome_14
+
+unsetvar myWitcherTome_01
+unsetvar myWitcherTome_02
+unsetvar myWitcherTome_03
+unsetvar myWitcherTome_04
+unsetvar myWitcherTome_05
+unsetvar myWitcherTome_06
+unsetvar myWitcherTome_07
+unsetvar myWitcherTome_08
+unsetvar myWitcherTome_09
+unsetvar myWitcherTome_10
+unsetvar myWitcherTome_11
+unsetvar myWitcherTome_12
+unsetvar myWitcherTome_13
+unsetvar myWitcherTome_14
+
+unsetvar libWitcherTome_01
+unsetvar libWitcherTome_02
+unsetvar libWitcherTome_03
+unsetvar libWitcherTome_04
+unsetvar libWitcherTome_05
+unsetvar libWitcherTome_06
+unsetvar libWitcherTome_07
+unsetvar libWitcherTome_08
+unsetvar libWitcherTome_09
+unsetvar libWitcherTome_10
+unsetvar libWitcherTome_11
+unsetvar libWitcherTome_12
+unsetvar libWitcherTome_13
+unsetvar libWitcherTome_14
+
+if witDebugMode > 0
+    sysmsg "[Witcher Travel] Script done ... ({{witRunTimer}} ms)" cLightBlue
+    unsetvar witDebugMode
+    removetimer witRunTimer
+endif

@@ -1,0 +1,264 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/2b6d631d-77a0-413d-a21e-7c9493979ff6 for latest
+# Automation by Jaseowns
+## Script: Easy Animal Taming
+## Created by: dilvid#0
+#############################################
+
+# Breakdown of mobs:
+# min 30 skill
+    # a mongbat
+    # a giant rat
+# min 40 skill
+    # a guar
+    # a wolf
+# min 50 skill
+    # a familiar
+    # a giant frog
+    # a primordial whelp
+    # a colossal frog
+    # a giant bat
+    # a monitor hatchling
+# min 55 skill
+    # a corpse eater
+# min 60 skill 
+    # a primordial
+    # a cave bear
+# min 75 skill 
+    # a drake whelp
+    # a chameleon
+
+###########################
+####Only Adjust These######
+###########################    
+@setvar! haveTankPet 1
+
+###########################
+#####Leave these alone#####
+###########################
+@setvar! isTaming 0
+@setvar! isHealing 0
+@setvar! tankPet 0
+@setvar! tamingCooldownInterval 15000
+@setvar! healTankTimerInterval 10000
+@setvar! messageInterval 1000
+@setvar! globalMessageInterval 5000
+@setvar! commandInterval 2550
+@setvar! tamingTarget 0
+
+###########################
+########Messages###########
+###########################
+@setvar! tooFarAwayMessageSeen 0
+@setvar! cannotSeeTargetMessageSeen 0
+@setvar! tamingStartedMessageSeen 0
+@setvar! tamingFailedMessageSeen 0
+@setvar! tamingTargetDeadMessageSeen 0
+@setvar! tamingCooldownMessageSeen 0
+@setvar! tamingSuccessReleaseMesssageSeen 0
+###########################
+#####Script Starting#######
+###########################
+
+clearignore
+clearsysmsg
+
+if not timerexists tamingCooldown
+    createtimer tamingCooldown
+endif
+
+if not timerexists messageTimer
+    createtimer messageTimer
+endif
+
+if not timerexists globalMessageTimer
+    createtimer globalMessageTimer
+endif
+
+if not timerexists commandTimer
+    createtimer commandTimer
+endif
+
+if not timerexists healTankTimer and haveTankPet = 1
+    createtimer healTankTimer
+endif
+
+if skill "Animal Taming" < 50
+    overhead "Go train to 50 skill" 88
+    stop
+endif
+
+if haveTankPet = 1
+    if followers > 0 and haveTankPet = 1
+        sysmsg "Select your tank pet"
+        @setvar! 'tankPet'
+    endif
+    
+    if tankPet = 0
+        sysmsg "You need to tame a pet to use as a tank"
+        stop
+    endif
+endif
+
+while 1 = 1
+    if timer 'globalMessageTimer' > globalMessageInterval
+        @setvar! tooFarAwayMessageSeen 0
+        @setvar! cannotSeeTargetMessageSeen 0
+        @setvar! tamingStartedMessageSeen 0
+        @setvar! tamingFailedMessageSeen 0
+        @setvar! tamingTargetDeadMessageSeen 0
+        @setvar! tamingCooldownMessageSeen 0
+        @setvar! tamingSuccessReleaseMesssageSeen 0
+        
+        settimer globalMessageTimer 0
+    endif
+
+    if timer 'healTankTimer' > healTankTimerInterval
+        if find tankPet ground -1 -1 2
+            if not bandaging and findtype "clean bandage%s%" backpack as bandages
+                dclick bandages
+                waitfortarget 200
+                target tankPet
+                settimer healTankTimer 0
+                if targetexists 
+                    hotkey "Cancel current target"
+                endif
+            endif
+        endif      
+    endif
+    
+    if followers = 0 and haveTankPet = 1
+        overhead "Your tank pet has died, get another!"
+        break
+    endif
+    
+    if tamingTarget = 0
+        if skill "Animal Taming" < 60
+            while findtype "a mongbat|a giant rat|a guar|a wolf|a familiar|a giant frog|a primordial whelp|a colossal frog|a giant bat|a monitor hatchling" ground -1 -1 2 as foundTarget
+                getlabel foundTarget desc
+                if "released" in desc or "tame" in desc or "bonded" in desc
+                    // ignore them
+                    @ignore foundTarget
+                else
+                    @setvar! tamingTarget foundTarget
+                    overhead "Taming Target!" 98 foundTarget
+                    break
+                endif
+            endwhile
+        elseif skill "Animal Taming" < 75
+            while findtype "a primordial|a cave bear|a corpse eater|a familiar|a guar|a wolf|a giant frog|a primordial whelp|a colossal frog|a giant bat|a monitor hatchling" ground -1 -1 2 as foundTarget
+                getlabel foundTarget desc
+                if "released" in desc or "tame" in desc or "bonded" in desc
+                    // ignore them
+                    @ignore foundTarget
+                else
+                    @setvar! tamingTarget foundTarget
+                    overhead "Taming Target!" 98 foundTarget
+                    break
+                endif
+            endwhile
+        elseif skill "Animal Taming" >= 75
+            while findtype "a corpse eater|a primordial|a cave bear|a drake whelp|a chameleon" ground -1 -1 2 as foundTarget
+                getlabel foundTarget desc
+                if "released" in desc or "tame" in desc or "bonded" in desc
+                    // ignore them
+                    @ignore foundTarget
+                else
+                    @setvar! tamingTarget foundTarget
+                    overhead "Taming Target!" 98 foundTarget
+                    break
+                endif
+            endwhile
+        endif
+    else
+        if isTaming = 0
+            if not find tamingTarget ground -1 -1 2
+                if tooFarAwayMessageSeen = 0
+                    sysmsg "You are too far away, move closer!"
+                    @setvar tooFarAwayMessageSeen 1
+                endif
+            else
+                if not cooldown 'skill'
+                    if haveTankPet = 1 and followers > 0
+                        say "all kill"
+                        waitfortarget 
+                        target tamingTarget
+                        settimer commandTimer 0
+                        while timer commandTimer < commandInterval
+                        endwhile
+                        say "all follow me"
+                        wait 1000
+                        warmode off
+                    endif
+
+                    if not dead tamingTarget
+                        useskill "Taming"
+                        waitfortarget 
+                        target tamingTarget
+                        settimer tamingCooldown 0
+                        
+                        if insysmsg "That is too far away."
+                             if tooFarAwayMessageSeen = 0
+                                sysmsg "You are too far away, move closer!"
+                                @setvar tooFarAwayMessageSeen 1
+                            endif
+                            @setvar! isTaming 0
+                        elseif insysmsg "Target cannot be seen."
+                            if cannotSeeTargetMessageSeen = 0
+                                sysmsg "You cannot see that target, move closer!"
+                                @setvar cannotSeeTargetMessageSeen 1
+                            endif
+                            @setvar! isTaming 0
+                        else
+                            if tamingStartedMessageSeen = 0
+                                sysmsg "Taming started, stay close!!"
+                                @setvar tamingStartedMessageSeen 1
+                            endif
+                            @setvar! isTaming 1
+                            settimer tamingPause 0
+                        endif
+                    else
+                         if tamingTargetDeadMessageSeen = 0
+                            sysmsg "Your target is not alive, pick a live one!"
+                            @setvar tamingTargetDeadMessageSeen 1
+                        endif
+                        @ignore tamingTarget
+                        @setvar! tamingTarget 0
+                    endif
+                else
+                     if tamingCooldownMessageSeen = 0
+                        sysmsg "Waiting for taming cooldown!"
+                        @setvar tamingCooldownMessageSeen 1
+                    endif
+                endif
+            endif
+        else
+            if timer tamingCooldown > tamingCooldownInterval
+                getlabel tamingTarget desc
+                if "tame" in desc
+                    if tamingSuccessReleaseMesssageSeen = 0
+                    sysmsg "Taming successful, releasing..."
+                        @setvar tamingSuccessReleaseMesssageSeen 1
+                    endif
+                    while not gumpexists 2426193729
+                        menu tamingTarget 9
+                    wait 200
+                    endwhile
+                    while gumpexists 2426193729
+                        gumpresponse 1 2426193729
+                        wait 200
+                    endwhile
+                    @setvar! tamingTarget 0
+                    @setvar! isTaming 0
+                else
+                    if tamingFailedMessageSeen = 0
+                        sysmsg "Taming failed, retrying..."
+                        @setvar tamingFailedMessageSeen 1
+                    endif
+                    @setvar! isTaming 0
+                endif
+                settimer tamingCooldown 0
+            endif
+        endif    
+    endif
+
+endwhile

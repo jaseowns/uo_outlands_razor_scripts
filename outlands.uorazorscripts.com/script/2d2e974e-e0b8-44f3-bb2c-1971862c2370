@@ -4,55 +4,1280 @@
 ## Created by: barryroser#0
 #############################################
 
-# BOOM BOOM by Bapeth
+# "Bapeths Trapper Background"
+# Name the script exactly as "shown" above and it will be looped into other Bapeth Trapper Scripts
 #
-# Update : Jan 14th 2025  (Bug fix + added logic)
+# This script works well with Arc Trapper and Summoner Trapper
 #
-# This is a one button Trap placer and detonator, Bind to a hotkey
+# Update: March 2 2025 loot list + misc
+# 
+# Keep this script playing at all times
+# If you use another script, such as "BOOM BOOM by Bapeth"
+# Loop this background script at the end of your other script(s)
 #
-# If you want to remove a trap, go into warmode near the trap and play script 
-# If you are not close enough to remove the trap (within the purple square), the script will now place a new trap
+# "Required Cooldowns"
+#
+# "Move" Cooldown should be set to "0.3 seconds"
+# "Bandage" cooldown can be blank - Script assumes 3 points in "Self Treatment"
+#
+# "What it does"
+#
+# Bandage
+# Cure
+# Cleansing Brew (only while in warmode)
+# Warn when str/resist/reflect/reactive are needed
+# Shield Codex - Shield bash, Warding, Bulwark
+# Note on Bullwark : "BOOM BOOM" hotkey script required to activate auto-bullwark
+#
+# "Time Sense Container Search"
+# Enable this option to display and loot containers in "Time Dungeon"
+# The "Time Codex" acts like a switch to turn this setting on/off, open your codex while the script is playing to activate switch
+# Stop the script if you need to interact with the Time Codex normally
+#
+# "Auto Switch Flipper"
+# This is for green wall switches in "Time Dungeon" - Requires "Time Sense to be turned on"
+# Go into warmode when standing near a wall switch and the script will flip the switch and return to peacemode
+#
+# "Auto-Recycler"
+# This feature will auto recycle bad items and keep the good ones - To use this feature:
+# You must be carrying at least one "item identification wand" and at least one "recycler tool" type (Tinker Tools, Sewing Kit, Saw, Tongs, or Scribes Pen)
+# The recycle will happen when the player begins picking a fresh chest (Double Click Scissors to activate auto recycle manually)
+#
+# "Loot-Sense & Vacuum Mode"
+# This function will overhead display *loot* above items on the ground and pick them up as you pass by (2 tiles)
+# Be aware that this may make you overweight from large gold piles from time to time
+# To toggle this feature on/off (default is off) "Double click a Wizard Grimoire"
+#
+# "Gold Sacker"
+# To toggle this feature on/off and set a new sack bag open the "Atlas" while the script it playing
+# This feature will set a ground bag to drop gold into
+# Check out another script by Bapeth called "Bapeths Object Drag & Dropper" searchable on Jases site - This will help you move heavy bags
 #
 # Script starts here...
-
-if not timerexists baptrapcombat
-    createtimer baptrapcombat
-elseif timerexists baptrapcombat
-    settimer baptrapcombat 0
-endif
-
-if warmode and findtype "metal trap" ground -1 -1 2 as removetrap
-    menu removetrap 0
-    warmode off
-    hotkey "Attack Last Combatant"
-elseif warmode and findtype "metal trap" ground -1 -1
-    say "[PlaceTrap"
-    warmode off
-endif
-
-if not findtype 51163 ground
-    getlabel backpack ping
-endif
-
-if not warmode and findtype "metal trap" ground -1 -1 8 and findtype "music box" backpack as boom
-    clearsysmsg
-    say "[DetonateTrap"
-    getlabel backpack ping
-    if insysmsg "You detonate a ground trap"
-        overhead "BOOM!" 88
-    elseif insysmsg "You must wait another"
-        // do nothing
-    elseif insysmsg "You are too far away"
-        overhead "Gotta get closer..." 45
-    elseif insysmsg "You do not have an active floor trap."
-        say "[PlaceTrap"
-    endif
-elseif not warmode
-    if findtype "metal trap" backpack
-        say "[PlaceTrap"
+if skill "Arcane" >= 80 and not casting and not targetexists and not cooldown "Move"
+    if timerexists baptrapcombat
+        if timer baptrapcombat <= 2000
+            clearsysmsg 
+            if not varexist "currentbaptarget"
+                hotkey 'Target Closest Grey Monster'
+                if insysmsg "No one matching"
+                    //donothing
+                else
+                    @setvar "currentbaptarget" lasttarget 
+                endif
+                hotkey "Cancel Current Target"
+            elseif not find "currentbaptarget" ground -1 -1 8
+                hotkey 'Target Closest Grey Monster'
+                if insysmsg "No one matching"
+                    //donothing
+                else
+                    @setvar "currentbaptarget" lasttarget 
+                endif
+                hotkey "Cancel Current Target"
+            elseif find "currentbaptarget" ground -1 -1 8
+                if not timerexists usearcaneability
+                    createtimer usearcaneability
+                    settimer usearcaneability 31000
+                elseif timer usearcaneability >= 31000
+                    settimer usearcaneability 0
+                    say "[WeaponAbility3"
+                endif
+                attack "currentbaptarget"
+            endif
+        endif
     endif
 endif
-
-if skill "Tinkering" >= 80
-    script "Bapeths Trapper Background"
+if insysmsg "100%"
+    settimer usearcaneability 0
 endif
+
+if skill "Parrying" >= 80 and mana >= 6
+    if not timerexists checkshieldcodex
+        createtimer checkshieldcodex
+        settimer checkshieldcodex 13000
+        elseif timer checkshieldcodex >= 13000
+        settimer checkshieldcodex 0
+        if findtype "shield codex" backpack as scodex
+            getlabel scodex desc
+            if "Shield Bash" in desc
+                overhead "--Shield Bash Active--" 2490
+            elseif "Warding" in desc
+                overhead "--Warding Active--" 2087
+                if not findbuff "Bleed" and not findbuff "Diseased"
+                    say "[ShieldsStance1" 45
+                    getlabel backpack ping
+                    say "[ShieldsFinisher1" 45
+                endif
+            elseif "Testudo" in desc
+                overhead "--Testudo Active--" 2503
+            elseif "Mirror" in desc
+                overhead "--Mirror Active--" 2615
+            elseif "Bulwark" in desc
+                overhead "--Bulwark Active--" 2767
+            else 
+                overhead "No Stance Active" 45
+                overhead "Defaulting to Shield Bash" 45
+                say "[ShieldsStance1"
+            endif
+        endif
+    endif
+    if not timerexists bleedbuffcheck and findbuff "Bleed" and not findbuff "Diseased"
+        removetimer bullwarkactive
+        createtimer bleedbuffcheck
+        say "[ShieldsStance2" 45
+        getlabel backpack ping
+        say "[ShieldsFinisher2" 45
+    elseif timerexists bleedbuffcheck and not findbuff "Bleed" and not findbuff "Diseased"
+        removetimer bleedbuffcheck
+        pause 800
+        getlabel backpack ping
+        say "[ShieldsStance1" 45
+        getlabel backpack ping
+        say "[ShieldsFinisher1" 45
+    endif
+    if not timerexists diseasebuffcheck and findbuff "Diseased" and not findbuff "Bleed"
+        removetimer bullwarkactive
+        createtimer diseasebuffcheck
+        say "[ShieldsStance2" 45
+        getlabel backpack ping
+        say "[ShieldsFinisher2" 45
+    elseif timerexists diseasebuffcheck and not findbuff "Diseased" and not findbuff "Bleed"
+        removetimer diseasebuffcheck
+        pause 800
+        getlabel backpack ping
+        say "[ShieldsStance1" 45
+        getlabel backpack ping
+        say "[ShieldsFinisher1" 45
+    endif
+    if timerexists baptrapcombat
+        if not findbuff "Diseased" and not findbuff "Bleed" and not timerexists defaultstance and timer baptrapcombat <= 10000
+            if not timerexists "bullwarktime"
+                createtimer bullwarktime
+            endif    
+            if cooldown "Move"
+                settimer bullwarktime 0
+            endif
+            if not timerexists bullwarkactive and timer bullwarktime >= 3000
+                say "[ShieldsStance5" 45
+                createtimer bullwarkactive
+            endif
+        endif
+    endif
+    if cooldown "Move"
+        settimer bullwarktime 0
+    endif
+    if timerexists bullwarkactive
+        if timer bullwarktime < 3000
+            say "[ShieldsStance1" 45
+            removetimer bullwarkactive
+        endif
+    endif
+endif
+
+if skill "Arcane" >= 80 and not gumpexists 3954121934
+    say '[abilityhotbar'
+    waitforgump 3954121934 500
+endif
+
+if not timerexists frostshelltimer
+    createtimer frostshelltimer
+    settimer frostshelltimer 5000
+endif
+if timerexists frostshellswitch and timer frostshelltimer > 5000 and not cooldown "Aspect" and hp <= 35
+    say "[AspectArmor Frost"
+    getlabel backpack ping
+    if insysmsg "Your armor is already of that aspect"
+        //donothing
+    else
+        cooldown "Aspect" 30000
+        overhead "--Frost Shell Primed--" 2234
+    endif
+    settimer frostshelltimer 0
+endif
+
+if not timerexists frostshellswitch
+    if gumpexists 3527489586
+        gumpclose 3527489586
+        createtimer frostshellswitch
+        overhead "--Auto Shell Enabled--" 2085
+    endif
+endif
+if timerexists frostshellswitch
+    if gumpexists 3527489586
+        gumpclose 3527489586
+        removetimer frostshellswitch
+        overhead "--Auto Shell Disabled--" 1779
+    endif
+endif
+
+if not timerexists goldsacker
+    if gumpexists 341416395
+        gumpclose 341416395
+        createtimer goldsacker
+        overhead "--Gold Sacker Enabled--" 2085
+        hotkey "Set Last Target"
+        wft 500
+        overhead "Target Gold Drop Bag" 88
+        while targetexists 
+            //donothing
+        endwhile
+        @setvar "bgoldbag" lasttarget 
+        overhead "Gold Drop Bag Set" 78
+    endif
+elseif timerexists goldsacker
+    if gumpexists 341416395
+        gumpclose 341416395
+        removetimer goldsacker
+        overhead "--Gold Sacker Disabled--" 1779
+    endif
+endif
+if not timerexists sacktracker
+    createtimer sacktracker
+    settimer sacktracker 5000
+elseif timer sacktracker >= 5000 and find "bgoldbag" ground
+    overhead "*gold sack*" 2843 "bgoldbag"
+    settimer sacktracker 0
+endif
+if find "bgoldbag" ground -1 -1 2
+    while findtype "gold coin" backpack as fatcoins
+        while queued
+            //donothing
+        endwhile
+        drop backpack
+        lift fatcoins 60000
+        drop bgoldbag -1 -1
+        pause 500
+        getlabel backpack ping
+    endwhile
+endif
+
+if not find "bsummon1" ground and findtype "an earth elemental|a fire elemental|a water elemental|an air elemental|a daemon" ground -1 -1 1 as sum1  
+    if noto sum1 = "friend"
+        # Name your summon if you like (no spaces must be unique)
+        rename sum1 "Bapith"
+    endif
+elseif not find "bsummon1" ground and findtype "Bapith" ground as sum1
+    @setvar "bsummon1" sum1
+endif
+if not find "bsummon2" ground and findtype "an earth elemental|a fire elemental|a water elemental|an air elemental|a daemon" ground -1 -1 1 as sum2  
+    if noto sum2 = "friend"
+        # Name your summon if you like (no spaces must be unique)
+        rename sum2 "Bapath"
+    endif
+elseif not find "bsummon2" gorund and findtype "Bapath" ground as sum2
+    @setvar "bsummon2" sum2
+endif
+
+if findtype "a primordial whelp|an aegis rat|a cougar|a wolf|a grizzly bear|a brown bear|a corpse eater|a familiar|a rock guar|a flamehound|a sand crab|a monitor hatchling|a firebat|a black bear|a muck|a polar bear|shallow water|a scorpion|a swamp spider|a searing lizard|a minion|a fire salamander|a fire ant|a silverback|a jaguar|an aegis mongbat|a cave bat|a primordial|a monitor|an asp|an imp|a winter wolf|a cave bear|a giant swamp slug|an aegis slime|a trapdoor spider|a chameleon|a searing imp|a dragon whelp|a drake whelp|a devilbat|a wolfhound|a blood ape|an army ant|a molten mongbat|a stinger|a rime guar|an aegis scorpion|a skulker|a komodo|a shade wolf|a husk crab|an aegis imp|a fire minion|a snowdrift|a spitting viper|a vampire bat" as csum
+    if noto csum = "friend"
+        # Name your summon if you like (no spaces must be unique)
+        rename csum "Bapesh"
+    endif
+endif
+
+if not timerexists bapactive
+    createtimer bapactive
+    settimer bapactive 5000
+elseif timer bapactive >= 5000
+    overhead "Boom time..." 78
+    settimer bapactive 0
+endif
+
+if not timerexists rptimer
+    createtimer rptimer
+    settimer rptimer 1200
+endif
+
+if not find "placedtrap" ground and findtype 51163 ground -1 -1 8 as smokingtrap
+    @setvar "placedtrap" smokingtrap
+endif
+
+if not timerexists armedtimer
+    createtimer armedtimer
+    settimer armedtimer 3000
+endif
+if find "placedtrap" ground -1 -1 8 as smokingtrap and timer armedtimer >= 1500
+    overhead "*Armed*" 38 smokingtrap
+    settimer armedtimer 0
+elseif find "placedtrap" ground as smokingtrap and timer armedtimer >= 1500
+    overhead "*Too Far*" 45 smokingtrap
+    settimer armedtimer 0
+endif
+
+if skill "healing" >= 20 and not casting and not targetexists 
+    if hp = maxhp
+        //donothing
+    elseif not bandaging and findtype 3617 backpack
+        hotkey "Bandage Self"
+        cooldown "Bandage" 7000
+    endif
+endif
+
+if skill "Magery" >= 80
+    if timerexists reflect and not findbuff "Magic Reflection"
+        if timer reflect > 30000
+            overhead "--Cast Reflect--" 2122
+            settimer reflect 12000
+        endif
+    endif
+    if findbuff "Magic Reflection" and timerexists reflect
+        removetimer reflect
+    endif
+    if not findbuff "Magic Reflection" and not timerexists reflect
+        createtimer reflect
+    endif
+endif
+if skill "Magery" >= 20
+    if timerexists reactive and not findbuff "Reactive Armor"
+        if timer reactive > 30000
+            overhead "--Cast Reactive--" 2122
+            settimer reactive 13500
+        endif
+    endif
+    if findbuff "Reactive Armor" and timerexists reactive
+        removetimer reactive
+    endif
+    if not findbuff "Reactive Armor" and not timerexists reactive
+        createtimer reactive
+    endif
+endif
+if skill "Magery" >= 40
+    if timerexists protection and not findbuff "Protection"
+        if timer protection > 30000
+            overhead "--Cast Protection--" 2122
+            settimer protection 9000
+        endif
+    endif
+    if findbuff "Protection" and timerexists protection
+        removetimer protection
+    endif
+    if not findbuff "Protection" and not timerexists protection
+        createtimer protection
+    endif
+endif
+if warmode and not hidden and not timerexists brew and not targetexists and findbuff "Bleed" and findtype 50675 backpack as cbrew
+    clearsysmsg 
+    while queued
+        //donothing
+    endwhile
+    dclick cbrew
+    getlabel backpack ping
+    if insysmsg "You drink a cleansing brew"
+        createtimer brew
+    endif
+elseif warmode and not hidden and not timerexists brew and not targetexists and findbuff "Diseased" and findtype 50675 backpack as cbrew
+    while queued
+        //donothing
+    endwhile
+    dclick cbrew
+    getlabel backpack ping
+    if insysmsg "You drink a cleansing brew"
+        createtimer brew
+    endif
+endif
+if timerexists brew
+    if timer brew >= 120000
+        removetimer brew
+    endif
+endif
+if not hidden and not casting and findbuff "Weaken" and not targetexists and findtype "White Potion" backpack as stpot
+    while queued
+        //donothing
+    endwhile
+    dclick stpot
+endif
+if not timerexists topupstr
+    createtimer topupstr
+    settimer topupstr 30000
+elseif timer topupstr >= 30000 and not hidden and not casting and str = 100 and findtype "White Potion" backpack as stpot
+    while queued
+        //donothing
+    endwhile
+    overhead "--Drink Strength--" 2041
+    settimer topupstr 0
+endif
+if not timerexists topupres
+    createtimer topupres
+    settimer topupres 30000
+elseif timer topupres >= 30000 and not hidden and not casting and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as respot
+    while queued
+        //donothing
+    endwhile
+    overhead "--Drink Resist--" 2031
+    settimer topupres 0
+endif
+if not targetexists and not hidden and not casting and stam <= 4 and findtype "Red Potion" backpack as redpot
+    while queued
+        //donothing
+    endwhile
+    dclick redpot
+endif
+if not hidden and paralyzed and not targetexists and findtype "pouch" backpack 38
+    say "[Pouch"
+endif
+if not hidden and not casting and poisoned and not targetexists and findtype "Orange Potion" backpack as curepot
+    while queued
+        //donothing
+    endwhile
+    dclick curepot
+endif
+
+if insysmsg "What should I use these scissors on?" and findtype "sewing kit|saw|pen and ink|tongs|tool kit" backpack as breakdowntool
+    hotkey "Cancel Current Target"
+    if not find "ContainerIDWand" and findtype 20495 backpack as contIDwand
+        @setvar "ContainerIDWand" contIDwand
+    endif
+    if find "ContainerIDWand" backpack
+        clearsysmsg 
+        while queued
+            //donothing
+        endwhile
+        dclick "ContainerIDWand"
+        wft 500
+        overhead "Select Container to ID..." 88
+        while targetexists 
+            //donothing
+        endwhile
+        getlabel backpack ping
+        overhead "Attempting recycle..." 88
+        if insysmsg "No unidentified items found."
+            overhead "Nothing fresh to ID..." 45
+        elseif insysmsg "That is not a container." 
+            overhead "Invalid container, try again.." 45
+        endif
+        if findtype 3834 backpack 0 as bbook
+            @ignore bbook
+        endif
+        while findtype 5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|5101|5103|5105|5106|5129|5131|5132|5135|5138|5139|5142|5143|5144|5146|5201|5203|5204|5205|5207|7169|7170|7173|7175|7177|7179|7181|7610|7947|31003|31004|31005|31006|31007|31008|31009|31010|31011|31012|31015|31191|31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037|31038|31041|31043|31045|31047|31049|31051|31053|31055|3834|3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130|3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|30999|31000|31001|31014|31178|31180|31182|3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|5187|30988|31128|31190|22187|31141|31142|31169|31172 backpack as IDitem
+            getlabel IDitem desc
+            if "aspect" in desc or "training" in desc or "vanquishing" in desc or "supremely" in desc or "slaying" in desc or "enticement" in desc or "invulnerability" in desc or "power" in desc or "exceedingly accurate force" in desc or "exceedingly potent" in desc or "valorite" in desc or "valehide" in desc or "valewood" in desc or "avarite" in desc or "avarhide" in desc or "avarwood" in desc or "verite" in desc or "verehide" in desc or "verewood" in desc or "agapite" in desc or "rosehide" in desc or "rosewood" in desc or "fortification" in desc
+                @ignore IDitem
+                overhead "*strong magic*" 2091 IDitem
+            elseif "durable" in desc or "substantial" in desc or "massive" in desc or "fortified" in desc or "indestructible" in desc or "exceptional" in desc or "accurate" in desc or "surpassingly" in desc or "eminently" in desc or "exceedingly" in desc or "ruin" in desc or "might" in desc or "force" in desc or "power" in desc or "mastercrafted" in desc or "defense" in desc or "guarding" in desc or "hardening" in desc or "potent" in desc or "melodious" in desc
+                overhead "*trash*" 1779 IDitem
+                while not gumpexists 949095101
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick breakdowntool
+                    waitforgump 949095101 1000
+                endwhile
+                while not ingump "Recycle Single Item" 949095101
+                    gumpresponse 2
+                    waitforgump 949095101 1000
+                endwhile                                
+                gumpresponse 3
+                waitforgump 949095101 1000
+                target IDitem
+                getlabel backpack ping
+                pause 250
+                gumpclose 949095101
+            else
+                @ignore IDitem
+            endif
+            if not find "ContainerIDWand" backpack
+                break
+            endif
+        endwhile
+        if gumpexists 949095101
+            gumpclose 949095101
+        endif
+    else
+        overhead "No Container ID Wand..." 38
+    endif
+    if targetexists 
+        hotkey "Cancel Current Target"
+    endif
+    overhead "Recycle Complete." 88
+endif
+
+if not timerexists timesenseswitch
+    if gumpexists 3352257441
+        gumpclose 3352257441
+        createtimer timesenseswitch
+        overhead "--Time Sense Enabled--" 88
+    endif
+endif
+if timerexists timesenseswitch
+    if gumpexists 3352257441
+        gumpclose 3352257441
+        removetimer timesenseswitch
+        overhead "--Time Sense Disabled--" 38
+    endif
+endif
+if timerexists timesenseswitch and not targetexists and not casting
+    if not timerexists bappykeytimer
+        createtimer bappykeytimer
+        settimer bappykeytimer 5500
+    elseif timer bappykeytimer >= 5500 and findtype "4112" backpack as bappykey
+        overhead "*key*" 78 bappykey
+        settimer bappykeytimer 0
+    endif
+    if not timerexists timesensecontainer
+        createtimer timesensecontainer
+        settimer timesensecontainer 1000
+    endif
+    if not findtype 4239|4240 ground -1 -1 2 and timer timesensecontainer >= 1000
+        for 18
+            if index > 0 and findtype "wooden shelf|wooden box|armoire|dead|chest of drawers|3712|2712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 index as dungeonfloorcontainers
+                getlabel dungeonfloorcontainers desc
+                overhead "*search*" 88 dungeonfloorcontainers
+                @ignore dungeonfloorcontainers
+            endif
+            if findtype "wooden shelf|wooden box|armoire|dead|chest of drawers|3712|2712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 2
+                break
+            endif
+            if warmode and findtype "barred metal door|metal door|iron gate" ground -1 -1 2
+                break
+            endif
+            if warmode and findtype 4239|4240 ground -1 -1 2
+                break
+            endif
+            if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
+                if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bwiz"
+                    while queued
+                        //donothing
+                    endwhile
+                    pause 30
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+                if not targetexists and not casting and not findlayer self head and find "bmain" self
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+            if varexist "bwiz" and find "bmain" self
+                if not targetexists and not casting and not find "bwiz" backpack
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+        endfor
+        @clearignore
+        settimer timesensecontainer 0
+    endif
+    if not timerexists switchandstufftimer
+        createtimer switchandstufftimer
+        settimer switchandstufftimer 1000
+    endif
+    if timer switchandstufftimer >= 1000
+        for 18
+            if index > 0 and findtype 4239|4240  ground -1 -1 index as switchandstuff
+                getlabel switchandstuff desc
+                overhead "*switch*" 78 switchandstuff
+                @ignore switchandstuff
+            endif
+            if warmode and findtype 4239|4240 ground -1 -1 2
+                break
+            endif 
+        endfor
+        @clearignore
+        settimer switchandstufftimer 0
+    endif
+    if warmode and findtype 4239|4240 ground -1 -1 2 as timewallswitch
+        dclick timewallswitch
+        warmode off
+        getlabel backpack ping
+    endif
+    @clearignore 
+    while findtype "wooden box|armoire|dead|chest of drawers|wooden shelf|3712|2712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" ground -1 -1 2 as timecontainer
+        if warmode and findtype 4239|4240 ground -1 -1 2
+            break
+        endif
+        if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
+            if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+                while queued
+                    //donothing
+                endwhile
+                dclick "bwiz"
+                while queued
+                    //donothing
+                endwhile
+                pause 30
+                dclick "bmain"
+                pause 500
+                getlabel backpack ping
+            endif
+            if not targetexists and not casting and not findlayer self head and find "bmain" self
+                while queued
+                    //donothing
+                endwhile
+                dclick "bmain"
+                pause 500
+                getlabel backpack ping
+            endif
+        endif
+        if varexist "bwiz" and find "bmain" self
+            if not targetexists and not casting and not find "bwiz" backpack
+                while queued
+                    //donothing
+                endwhile
+                dclick "bmain"
+                pause 500
+                getlabel backpack ping
+            endif
+        endif        
+        @setvar "bapcontaineroftime" timecontainer
+        while queued
+            //donothing
+        endwhile
+        getlabel timecontainer desc
+        if "the remains of" in desc
+            overhead "*avatar corpse*" 45 timecontainer
+        else
+            dclick timecontainer
+            pause 500
+            getlabel backpack ping
+            if gumpexists 736038070
+                @ignore timecontainer
+                gumpclose 736038070
+            endif
+# This seems to have been broken by Tranq in the last update - check again later to see if it gets fixed
+#            @ignore timecontainer
+#            while findtype "wooden shelf|wooden box|armoire|dead|chest of drawers|3712|2712|3651|3649|3648|3650|3708|2475|2713|2637|2474|3647|3710|3645|3703|3702|2472|3701|2473|2639|3788|3791|3786|2711|3709|3789|3646|3705|27284|27287|27289|27286|27288|3793|3787|3794|3790|3792|2643|3644" timecontainer -1 -1 2 as innercontainer
+#                while queued
+#                    //donothing
+#                endwhile
+#                dclick innercontainer
+#                pause 500
+#                getlabel backpack ping
+#                @ignore innercontainer
+#            endwhile
+#            @unignore timecontainer
+        endif
+        while findtype 5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|5101|5103|5105|5106|5129|5131|5132|5135|5138|5139|5142|5143|5144|5146|5201|5203|5204|5205|5207|7169|7170|7173|7175|7177|7179|7181|7610|7947|31003|31004|31005|31006|31007|31008|31009|31010|31011|31012|31015|31191|31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037|31038|31041|31043|31045|31047|31049|31051|31053|31055|3834|3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130|3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3922|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|30999|31000|31001|31014|31178|31180|31182|3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|5187|30988|31128|31190|22187|31141|31142|31169|31172 timecontainer as checkunid
+            getlabel checkunid desc
+            if "unidentified" in desc
+                hotkey 'Grab Item' 
+                target checkunid
+                overhead "*looting*" 2091 timecontainer
+                if insysmsg "Invalid or inaccessible item."
+                    @ignore checkunid
+                endif
+                while queued
+                    //donothing
+                endwhile
+            else 
+                @ignore checkunid
+            endif
+            if insysmsg "That container cannot hold more weight."
+                break
+            endif
+            if not find "bapcontaineroftime" ground -1 -1 2
+                break
+            endif
+            if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
+                if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bwiz"
+                    while queued
+                        //donothing
+                    endwhile
+                    pause 30
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+                if not targetexists and not casting and not findlayer self head and find "bmain" self
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+            if varexist "bwiz" and find "bmain" self
+                if not targetexists and not casting and not find "bwiz" backpack
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+        endwhile
+        while findtype 3827 timecontainer 0 as zeroscroll
+            @ignore zeroscroll
+        endwhile
+        while findtype 7154 timecontainer 0 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 timecontainer 0 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 timecontainer 0 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 timecontainer 2419 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 timecontainer 2419 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 timecontainer 2419 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 timecontainer 2406 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 timecontainer 2406 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 timecontainer 2406 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 timecontainer 2413 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 timecontainer 2413 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 timecontainer 2413 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 timecontainer 2418 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 timecontainer 2418 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 timecontainer 2418 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 timecontainer 2213 as zeroingot  
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 timecontainer 2213 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 timecontainer 2213 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 22326 timecontainer 2401 as badseed
+            @ignore badseed
+        endwhile
+        while findtype 22326 timecontainer 2882 as badseed
+            @ignore badseed
+        endwhile
+        while findtype 22326 timecontainer 2451 as badseed
+            @ignore badseed
+        endwhile
+        while findtype 22326 timecontainer 63 as badseed
+            @ignore badseed
+        endwhile
+        while findtype 5901|5899|5903|5905 timecontainer as timefootwear
+            getlabel timefootwear desc
+            if "(hue" in desc
+                break
+            else 
+                @ignore timefootwear
+            endif
+        endwhile
+        while findtype "54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|shattered weapon|bird cage|widows grief|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|43423|7154|4225|7127" timecontainer as bitem
+            hotkey 'Grab Item' 
+            target bitem
+            overhead "*looting*" 2091 timecontainer
+            if insysmsg "Invalid or inaccessible item."
+                @ignore bitem
+            endif
+            while queued
+                //donothing
+            endwhile
+            if insysmsg "That container cannot hold more weight."
+                break
+            endif
+            if not find "bapcontaineroftime" ground -1 -1 2
+                break
+            endif
+            if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
+                if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bwiz"
+                    while queued
+                        //donothing
+                    endwhile
+                    pause 30
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+                if not targetexists and not casting and not findlayer self head and find "bmain" self
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+            if varexist "bwiz" and find "bmain" self
+                if not targetexists and not casting and not find "bwiz" backpack
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+        endwhile
+        @ignore timecontainer
+    endwhile
+endif
+if skill "Lockpicking" >= 20 and timerexists timesenseswitch and warmode and findtype "barred metal door|metal door|iron gate" ground -1 -1 2
+    if findtype 5373 backpack as picks
+        clearsysmsg 
+        overhead "Which door shall I pick?" 88
+        hotkey "Set Last Target"
+        wft 1000
+        while targetexists 
+            if not findtype "barred metal door|metal door|iron gate" ground -1 -1 2
+                break
+            endif
+        endwhile
+        @setvar "bapdoorpick" lasttarget 
+        overhead "Time is of the essence..." 88
+        for 2000
+            if not timerexists doorpicktimer
+                createtimer doorpicktimer
+                settimer doorpicktimer 3150
+            endif
+            if timer doorpicktimer >= 3150
+                dclick picks
+                wft 1000
+                target bapdoorpick
+                overhead "*picking*" 1060 bapdoorpick
+                getlabel backpack ping
+                settimer doorpicktimer 0
+            endif
+            if insysmsg "That is not locked"
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            if insysmsg "Target cannot be seen"
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            if insysmsg "You pick the lock!"
+                overhead "What lay beyond this door..." 87
+                dclick bapdoorpick
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            if not findtype 5373 backpack
+                overhead "Argh, it was my last pick..." 38
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            if not findtype "barred metal door" ground -1 -1 2
+                warmode "off"
+                getlabel backpack ping
+                break
+            endif
+            if not warmode 
+                break
+            endif
+            if insysmsg "You have worn out your tool"
+                overhead "This tool is worn out!" 805
+            endif
+            if not findtype 5373 backpack
+                break
+            endif
+            if timerexists frostshellswitch and timer frostshelltimer > 5000 and not cooldown "Aspect" and hp <= 35
+                say "[AspectArmor Frost"
+                getlabel backpack ping
+                if insysmsg "Your armor is already of that aspect"
+                    //donothing
+                else
+                    cooldown "Aspect" 30000
+                    overhead "--Frost Shell Primed--" 2234
+                endif
+                settimer frostshelltimer 0
+            endif
+            if not cooldown "Move" and not hidden and not cooldown "Hiding" and not cooldown "Stealth" and not cooldown "Stealing" and skill "Hiding" >= 80
+                skill "Hiding"
+                warmode on
+                getlabel backpack ping
+                if hidden
+                    getlabel backpack ping
+                    cooldown "Hiding" 10000
+                endif
+            endif
+            if not cooldown "Move" and findbuff "Invisibility" and not cooldown "Hiding" and not cooldown "Stealth" and not cooldown "Stealing" and skill "Hiding" >= 80
+                skill "Hiding"
+                warmode on
+                getlabel backpack ping
+                if hidden
+                    getlabel backpack ping
+                    cooldown "Hiding" 10000
+                    removetimer ots
+                endif
+            endif
+            if hidden and not cooldown "Hiding" and not cooldown "Stealth" and not timerexists ots and skill "Stealth" >= 80
+                skill "Stealth"
+                getlabel backpack ping
+                if not timerexists ots
+                    createtimer ots
+                endif
+            endif
+            if insysmsg "move quietly"
+                getlabel backpack ping
+                cooldown "Stealth" 10000
+            endif
+            if not cooldown "Move" and hidden and not cooldown "Hiding" and not cooldown "Stealth" and insysmsg "hide first" and skill "Hiding" >= 80
+                pause 1000
+                getlabel backpack ping
+                skill "Hiding"
+                getlabel backpack ping
+                if hidden
+                    getlabel backpack ping
+                    cooldown "Hiding" 10000
+                endif
+                removetimer ots
+            endif
+            if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
+                if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bwiz"
+                    while queued
+                        //donothing
+                    endwhile
+                    pause 30
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+                if not targetexists and not casting and not findlayer self head and find "bmain" self
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+            if varexist "bwiz" and find "bmain" self
+                if not targetexists and not casting and not find "bwiz" backpack
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "bmain"
+                    pause 500
+                    getlabel backpack ping
+                endif
+            endif
+        endfor
+     else 
+         overhead "I am out of lockpicks!" 38
+         warmode "off"
+         getlabel backpack ping
+     endif
+endif
+
+if not timerexists lootvacuumswitch
+    if gumpexists 1281623709
+        gumpclose 1281623709
+        createtimer lootvacuumswitch
+        settimer lootvacuumswitch 15000
+        overhead "--Loot Vacuum Enabled--" 2085
+    endif
+endif
+if timerexists lootvacuumswitch
+    if gumpexists 1281623709
+        gumpclose 1281623709
+        removetimer lootvacuumswitch
+        overhead "--Loot Vacuum Disabled--" 1779
+    endif
+endif
+while diffweight <= 0 and findtype "gold coin" backpack as dropgold
+    if not hidden and stam <= 4 and findtype "Red Potion" backpack as redpot
+        while queued
+            //donothing
+        endwhile
+        dclick redpot
+    endif
+    overhead "My cup runneth over..." 1194
+    if findtype 4225 backpack 0 as garbleather
+        drop backpack
+        lift garbleather 59999
+        drop 0
+        while queued
+            //donothing
+        endwhile
+    endif
+    drop backpack
+    lift dropgold 444
+    drop 0
+    while queued
+        //donothing
+    endwhile
+    settimer lootvacuumswitch 0
+endwhile
+if timerexists lootvacuumswitch
+    if timer lootvacuumswitch >= 9000
+        if not timerexists lootsensetimer
+            createtimer lootsensetimer
+            settimer lootsensetimer 1000
+        endif
+        if not findtype 4239|4240 ground -1 -1 2 and timer lootsensetimer >= 1000
+            for 18
+                while findtype 3827 ground 0 as zeroscroll
+                    @ignore zeroscroll
+                endwhile
+                while findtype 7154 ground 0 as zeroingot
+                    @ignore zeroingot
+                endwhile
+                while findtype 4225 ground 0 as zeroleather
+                    @ignore zeroleather
+                endwhile
+                while findtype 7127 ground 0 as zeroboard
+                    @ignore zeroboard
+                endwhile
+                while findtype 7154 ground 2419 as zeroingot
+                    @ignore zeroingot
+                endwhile
+                while findtype 4225 ground 2419 as zeroleather
+                    @ignore zeroleather
+                endwhile
+                while findtype 7127 ground 2419 as zeroboard
+                    @ignore zeroboard
+                endwhile
+                while findtype 7154 ground 2406 as zeroingot
+                    @ignore zeroingot
+                endwhile
+                while findtype 4225 ground 2406 as zeroleather
+                    @ignore zeroleather
+                endwhile
+                while findtype 7127 ground 2406 as zeroboard
+                    @ignore zeroboard
+                endwhile
+                while findtype 7154 ground 2413 as zeroingot
+                    @ignore zeroingot
+                endwhile
+                while findtype 4225 ground 2413 as zeroleather
+                    @ignore zeroleather
+                endwhile
+                while findtype 7127 ground 2413 as zeroboard
+                    @ignore zeroboard
+                endwhile
+                while findtype 7154 ground 2418 as zeroingot
+                    @ignore zeroingot
+                endwhile
+                while findtype 4225 ground 2418 as zeroleather
+                    @ignore zeroleather
+                endwhile
+                while findtype 7127 ground 2418 as zeroboard
+                    @ignore zeroboard
+                endwhile
+                while findtype 7154 ground 2213 as zeroingot  
+                    @ignore zeroingot
+                endwhile
+                while findtype 4225 ground 2213 as zeroleather
+                    @ignore zeroleather
+                endwhile
+                while findtype 7127 ground 2213 as zeroboard
+                    @ignore zeroboard
+                endwhile
+                while findtype 22326 ground 2401 as badseed
+                    @ignore badseed
+                endwhile
+                while findtype 22326 ground 2882 as badseed
+                    @ignore badseed
+                endwhile
+                while findtype 22326 ground 2451 as badseed
+                    @ignore badseed
+                endwhile
+                while findtype 22326 ground 63 as badseed
+                    @ignore badseed
+                endwhile
+                if index > 0 and findtype "54230|44985|glass display|20049|Pig Iron|blackrock fragment|gargish fragment|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|bird cage|widows grief|54684|27612|49223|54591|54601|54718|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|43423|7154|4225|7127|3861" ground -1 -1 index as lootlocation
+                    overhead "*loot*" 2091 lootlocation
+                    @ignore lootlocation
+                endif
+                if warmode and findtype 4239|4240 ground -1 -1 2
+                    break
+                endif
+            endfor
+            @clearignore 
+            settimer lootsensetimer 0
+        endif
+        while findtype 3827 ground 0 as zeroscroll
+            @ignore zeroscroll
+        endwhile
+        while findtype 7154 ground 0 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 ground 0 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 ground 0 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 ground 2419 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 ground 2419 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 ground 2419 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 ground 2406 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 ground 2406 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 ground 2406 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 ground 2413 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 ground 2413 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 ground 2413 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 ground 2418 as zeroingot
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 ground 2418 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 ground 2418 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 7154 ground 2213 as zeroingot  
+            @ignore zeroingot
+        endwhile
+        while findtype 4225 ground 2213 as zeroleather
+            @ignore zeroleather
+        endwhile
+        while findtype 7127 ground 2213 as zeroboard
+            @ignore zeroboard
+        endwhile
+        while findtype 22326 ground 2401 as badseed
+            @ignore badseed
+        endwhile
+        while findtype 22326 ground 2882 as badseed
+            @ignore badseed
+        endwhile
+        while findtype 22326 ground 2451 as badseed
+            @ignore badseed
+        endwhile
+        while findtype 22326 ground 63 as badseed
+            @ignore badseed
+        endwhile
+        while not casting and not targetexists and findtype "54230|44985|glass display|20049|Pig Iron|blackrock fragment|gargish fragment|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|bird cage|widows grief|54684|27612|49223|54591|54601|54718|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|43423|7154|4225|7127|3861" ground -1 -1 2 as eatloot
+            hotkey 'Grab Item' 
+            target eatloot
+            if insysmsg "Invalid or inaccessible item."
+                @ignore eatloot
+            endif            
+            while queued
+                //donothing
+            endwhile 
+        endwhile
+    endif
+endif
+
+if findtype 5912 self and not varexist "bwiz" and findlayer self head as regularhat
+    getlabel regularhat desc
+    if "magical" in desc
+        dclick regularhat
+        pause 500
+        getlabel backpack ping
+        replay
+    endif
+endif
+if not find "bwiz" self and findtype 5912 backpack as wizhat
+    getlabel wizhat desc
+    if "restyled" in desc
+        @ignore wizhat
+        replay
+    elseif "armored" in desc
+        @setvar "bwiz" wizhat
+    elseif "magical" in desc
+        @setvar "bwiz" wizhat
+        @setvar "nonaspectedwiz" wizhat
+    endif
+endif
+if varexist "bwiz" and find "bwiz" backpack
+    if not find "bmain" self and findlayer self head as hat
+        @setvar "bmain" hat
+    endif
+    if not varexist "bmain"
+        overhead "I need a primary hat or helm to wear.." 88
+        pause 2000
+        overhead "Anything will do, just not a magical wizard hat..." 88
+        stop
+    endif
+endif
+
+if varexist "bwiz" and find "bwiz" backpack and find "bmain" self
+    if not targetexists and not casting and skill "Stealth" >= 80 and hidden and stam = maxstam
+        while queued
+            //donothing
+        endwhile
+        dclick "bwiz"
+        while queued
+            //donothing
+        endwhile
+        pause 30
+        dclick "bmain"
+        pause 500
+        getlabel backpack ping
+    endif
+    if not targetexists and not casting and not findlayer self head and find "bmain" self
+        while queued
+            //donothing
+        endwhile
+        dclick "bmain"
+        pause 500
+        getlabel backpack ping
+    endif
+endif
+if varexist "bwiz" and find "bmain" self
+    if not targetexists and not casting and not find "bwiz" backpack
+        while queued
+            //donothing
+        endwhile
+        dclick "bmain"
+        pause 500
+        getlabel backpack ping
+    endif
+endif
+
+if dead     
+    overhead "I need a new body..." 88
+    stop
+endif
+loop

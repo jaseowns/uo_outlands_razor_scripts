@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.13
+#Auto-mage attack 3.14
 
 #********** INFORMATION **********# 
 
@@ -26,6 +26,7 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.14 Added ability to use explosion potions
 # Ver 3.13 Fixes to followers and weapon ability
 # Ver 3.12 Minor adjustments and changes to followers commands
 # Ver 3.11.2 Fixes to weapon ability and followers commands
@@ -219,7 +220,7 @@ pushlist animalsIgnoreList "a death adder"
 @setvar! airElementals 0
 @setvar! fireElementals 0
 @setvar! summonDaemons 0
-@setvar! summonCreature 1
+@setvar! summonCreature 0
 
 @setvar! breakCastingWhenFollowersBelow 4
 
@@ -248,6 +249,9 @@ pushlist animalsIgnoreList "a death adder"
 @setvar! drinkRefresh 1
 @setvar! staminaLowerThan 15
 
+@setvar! drinkExplosionPotion 1
+@setvar! prioritizeExplosionWhenTimerAbove 14500
+
 #--- Auto healing hp diffs ---#
 #--- All variables refer to hit points differences ---#
 #--- When below certain hit points it will trigger ---#
@@ -268,7 +272,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 0
+@setvar! useMeditationSkill 1
 @setvar! meditateWhenManaBelow 50
 @setvar! meditateUntilManaReach 65
 
@@ -276,7 +280,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Arcane Weapon Ability ---#
 
-@setvar! useWeaponAbility 2
+@setvar! useWeaponAbility 0
 @setvar useAbilityWhenManaLowerThan 135
 
 #--- Drop Gold When Overweight ---#
@@ -294,6 +298,8 @@ pushlist animalsIgnoreList "a death adder"
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
 
 clearsysmsg
+
+@setvar! isExplosionPotReady 0 
 
 @setvar! missingRegs 0
 
@@ -396,6 +402,10 @@ endif
 
 #--- Script msgs timers ---#
 
+if not timerexists explosionPotionTimer 
+    settimer explosionPotionTimer 0
+endif
+
 @setvar! overweightMessageCD 3000
 settimer overweightMessageTimer overweightMessageCD
 
@@ -478,6 +488,11 @@ endif
 @setvar! meditationCD 10500
 if not timerexists meditationTimer
     settimer meditationTimer meditationCD
+endif
+
+@setvar! meditationMessageCD 2777
+if not timerexists meditationMessageTimer
+    settimer meditationMessageTimer meditationMessageCD
 endif
 
 @setvar! carveCD 650
@@ -829,7 +844,7 @@ while not dead
             settimer allGuardTimer 0
         endif
         
-        sysmsg "auto-healing activated" 11      
+        sysmsg "auto-healing" 88      
     
         if not findbuff "food" 
             if findtype "tray" backpack as fody    
@@ -1458,13 +1473,16 @@ while not dead
             if not findbuff 'meditating'
                 settimer meditationTimer 7500
             elseif findbuff 'meditating'
-                overhead '* meditating *' 88
                 warmode on
                 warmode off
                 settimer meditationTimer 0
                 while mana < 50 and diffhits < activateAutoHealDiff
                     if not findbuff 'meditating'
                         break
+                    endif
+                    if timer meditationMessageTimer > meditationMessageCD
+                        overhead "* actively meditating *" 11
+                        settimer meditationMessageTimer 0
                     endif
                 endwhile
             endif
@@ -2630,12 +2648,13 @@ while not dead
             elseif not dead lasttarget
                 @setvar! tempTarget lasttarget
                 while diffhits < activateAutoHealDiff
-                  if timer searchingMessageTimer > searchingTargetMessageCD
+                    if timer searchingMessageTimer > searchingTargetMessageCD
                         overhead '* Searching target *' 90
                         settimer searchingMessageTimer 0
                     endif
                     if maxFollowers > 0
-                        if followers < breakCastingWhenFollowersBelow
+                        if followers < breakCastingWhenFollowersBelow  and useMeditationSkill = 1
+                            sysmsg "breaking search to cast elementals" 11
                             break
                         endif
                     endif
@@ -2958,13 +2977,16 @@ while not dead
             if not findbuff 'meditating'
                 settimer meditationTimer 7500
             elseif findbuff 'meditating'
-                overhead '* meditating *' 88
                 warmode on
                 warmode off
                 settimer meditationTimer 0
                 while mana < meditateUntilManaReach and diffhits < activateAutoHealDiff
                     if not findbuff 'meditating'
                         break
+                    endif
+                    if timer meditationMessageTimer > meditationMessageCD
+                        overhead "* actively meditating *" 11
+                        settimer meditationMessageTimer 0
                     endif
                 endwhile
             endif
@@ -3150,10 +3172,54 @@ while not dead
         else 
             @setvar unholyPoints 0
         endif 
-
+        
+        if drinkExplosionPotion = 1 
+            if findtype 'purple potion' self as explotPot 
+                getlabel explotPot potLabel
+                if "(" in potLabel
+                    if timer explosionPotionTimer > prioritizeExplosionWhenTimerAbove
+                        @setvar! isExplosionPotReady 1
+                    else
+                        @setvar! isExplosionPotReady 0
+                    endif
+                else
+                    @setvar! isExplosionPotReady 1    
+                endif
+            endif
+        endif
+        
+#********** DRINK EXPLO POT  **********#    
+        
+        if isExplosionPotReady = 1 and not dead currentTarget and find currentTarget ground -1 -1 12
+            @setvar! isExplosionPotReady 0
+            
+            if insysmsg "Where should i throw this potion?"
+            endif              
+            
+            while not insysmsg "Where should i throw this potion?"
+                potion 'explosion'
+            endwhile
+            
+            sysmsg " ExploPot {{explosionPotionTimer}}" 124
+            settimer explosionPotionTimer 0
+            
+            while not targetexists 
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    @setvar! castingInterrupted 1
+                    hotkey 'cancel current target'
+                    break
+                endif
+                sysmsg index
+            endwhile
+            if 0 = castingInterrupted
+                target currentTarget
+                getlabel backpack xxx
+                wait 200
+            endif
+            
 #********** CAST POISON  **********#          
          
-        if repeatCastingPoison = 1 and diffhits < activateAutoHealDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12 and findtype 3976 self
+        elseif repeatCastingPoison = 1 and diffhits < activateAutoHealDiff and mana >= 9 and not dead currentTarget and find currentTarget ground -1 -1 12 and findtype 3976 self
             
             if insysmsg "Your concentration is disturbed"
             endif       
@@ -3206,15 +3272,17 @@ while not dead
                 endif
             endif
             
-            target currentTarget
-            getlabel backpack xxx
-            wait 200 
-            
-            if insysmsg "target cannot be seen"
-                sysmsg "Poison - resetting target" 11
-                @setvar! foundTarget 0
-                @setvar! currentTarget 0
-                break
+            if 0 = castingInterrupted
+                target currentTarget
+                getlabel backpack xxx
+                wait 200 
+                
+                if insysmsg "target cannot be seen"
+                    sysmsg "Poison - resetting target" 11
+                    @setvar! foundTarget 0
+                    @setvar! currentTarget 0
+                    break
+                endif
             endif
 
 #********* CAST NECRO POISON STRIKE *********   
@@ -3576,6 +3644,7 @@ while not dead
 #********** CAST MAGIC ARROW  **********#
 
         elseif castMagicArrow = 1 and timer magicArrowTimer > magicArrowCD and diffhits < activateAutoHealDiff and mana >= 4 and mana < activateMagicArrowWhenManaBelow and not dead currentTarget and find currentTarget ground -1 -1 12 and findtype 3980 self
+            sysmsg "ExploPot {{explosionPotionTimer}}" 55
             if insysmsg "Your concentration is disturbed"
             endif       
             if insysmsg "target cannot be seen"
@@ -3627,6 +3696,7 @@ while not dead
             if insysmsg "target cannot be seen"
             endif  
             sysmsg "harm" 11
+            sysmsg "ExploPot {{explosionPotionTimer}}" 55
             cast 'harm'           
             while not casting    
                 if targetexists
@@ -3669,6 +3739,7 @@ while not dead
 
         elseif castFireball = 1 and timer fireballTimer > fireballCD and diffhits < activateAutoHealDiff and mana >= 9 and mana < activateFireballWhenManaBelow and not dead currentTarget and find currentTarget ground -1 -1 12 and findtype 3962 self
             sysmsg "fireball" 11
+            sysmsg "ExploPot {{explosionPotionTimer}}" 55
             if insysmsg "Your concentration is disturbed"
             endif       
             if insysmsg "target cannot be seen"
@@ -3715,6 +3786,7 @@ while not dead
 
         elseif castLightning = 1 and timer lightningTimer > lightningCD and diffhits < activateAutoHealDiff and mana >= 11 and mana < activateLightningWhenManaBelow and not dead currentTarget and find currentTarget ground -1 -1 12 and findtype 3974 self and findtype 3980 self
             sysmsg "lightning" 11
+            sysmsg "ExploPot {{explosionPotionTimer}}" 55
             if insysmsg "Your concentration is disturbed"
             endif       
             if insysmsg "target cannot be seen"
@@ -3823,8 +3895,8 @@ while not dead
 
 #********** CAST BIG SPELLS  **********# 
 
-        elseif 1 = castingBigSpellsEnabled and mana > minimumManaToCastBigSpellsOnly
-            
+        elseif 1 = castingBigSpellsEnabled and mana > minimumManaToCastBigSpellsOnly and diffhits < activateAutoHealDiff and not dead currentTarget and find currentTarget ground -1 -1 12
+            sysmsg "ExploPot {{explosionPotionTimer}}" 44
             if diffhits < activateAutoHealDiff
                 if insysmsg "Your concentration is disturbed"
                 endif       
@@ -3986,7 +4058,7 @@ while not dead
         
  #********** USE WEAPON ABILITY **********# 
  
-        if skill "Arcane" >= 80
+        if skill "Arcane" >= 80 and useWeaponAbility != 0
             if timer weaponAbilityTimer > weaponAbilityCD
                 if insysmsg "You cannot perform that ability yet"
                 endif

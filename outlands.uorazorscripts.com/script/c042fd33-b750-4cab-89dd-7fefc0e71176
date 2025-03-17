@@ -4,7 +4,11 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-lumber ver.6.01
+#SUPER Auto-lumber ver.6.10
+
+#ver.6.10 - Recalling logic fixes
+#ver.6.01 - Auto summoning and auto healing re-make
+#ver.6.00 - Added more variables and minor changes
 
 #********** INFORMATION **********# 
 
@@ -17,19 +21,23 @@
 #IMPORTANT: You will need to create an in-game options cooldown named `Danger`. 
 #Options -> Cooldowns -> New Entry -> Name: `Danger` -> Cooldown Type -> `PvP Timer` -> Done
 
-#My Gathering template (Anti PK):
-#Lumber - 120
-#Mining - 120
-#Magery - 100
-#Healing - 80
-#Resist - 80
-#Tracking -80
-#Wrestling - 80
-#Spirit - 40
-#Alchemy - 20
+#IMPORTANT: Do NOT use the check mark for text and messages filter in razor. 
+#           Instead click on check-mark Enable text filter, click ADD button, then type the message you want to filter individually. CLick on the first check-mark and click okay.
 
-#ver.6.01 - Auto summoning and auto healing re-make
-#ver.6.00 - Added more variables and minor changes
+# Recommended individual filter messages:
+    
+# `You are already casting a spell`
+# `You are frozen and cannot move` 
+# `You have not yet recovered from casting a spell`
+# `You do not see any harvestable resources nearby`
+
+# My Gathering template (Anti PK):
+    
+# Lumber - 120   # Mining - 120
+# Magery - 100   # Resist - 80
+# Healing - 80   # Tracking -80
+# Wrestling - 80 # Spirit - 40
+# Alchemy - 20
 
 #********** SET YOUR SETTINGS **********# 
 
@@ -38,15 +46,15 @@
 # 0 - will auto recall when PKs are 40 steps or closer (medioum risk)
 # 1 - will auto recall when detect PKs at any distance (low risk)
 
-@setvar! autoRecall 1
+@setvar! autoRecall 0
 
 #-- Set recall type --#
-# 0 - using regs
-# 1 - using scroll
+# 0 - using regs (target the book)
+# 1 - using scroll (target the book)
 # 2 - using charge recall from first rune in book
 # 3 - using charge recall from last rune in book
 
-@setvar! recallType 0
+@setvar! recallType 3
 
 #--- Set recall object ---#
 # 0 - carry one runebook | carry one rune | if multiple runes name the one you recall `home`
@@ -81,12 +89,10 @@
 @setvar! summonDaemons 0
 @setvar! summonCreature 0
 
-@setvar! breakCastingWhenFollowersBelow 4
-
 #--- Set mushrooms ---#
 
-@setvar! mushroomCount 0
-@setvar! eatMushWhenManaLowerThan 0
+@setvar! mushroomCount 3
+@setvar! eatMushWhenManaLowerThan 50
 @setvar! mushroomTimerCD 60000
 
 #--- Set potions ---#
@@ -129,11 +135,11 @@
 #--- Set Mage Buffs ---#
 
 @setvar! magicReflect 1
-@setvar! blessSpell 1
+@setvar! blessSpell 0
 @setvar! armorReflect 1
 @setvar! protectionSpell 1
 
-@setvar! miniumManaToBuff 50
+@setvar! miniumManaToBuff 75
 
 #--- Meditation ---#
 
@@ -141,14 +147,12 @@
 @setvar! meditateWhenManaBelow 50
 @setvar! meditateUntilManaReach 65
 
-@setvar! lowManaWarningMessageWhenBelow 40
-
 #--- Set Cooldowns ---#
 
 @setvar! storeTimerCD 100000
 settimer storeTimer storeTimerCD
 
-#** Weight trigger **
+#--- Weight diff limit  ---#
 
 @setvar! myWeightDiff 41
 
@@ -189,7 +193,13 @@ settimer storeTimer storeTimerCD
 
 @setvar! myHarvestingTool 3908
 
-#** elementals lists and variables **#
+#-- elementals variables --#
+
+removelist maxFollowersList
+createlist maxFollowersList
+
+@setvar! maxFollowers 0
+@setvar! currentFollowers 0
 
 if not varexist castingEarth or followers = 0 
     @setvar! castingEarth 0
@@ -209,14 +219,6 @@ endif
 if not varexist castingCreature or followers = 0 
     @setvar! castingCreature 0
 endif
-
-#-- elementals variables --#
-
-@setvar! maxFollowers 0
-@setvar! currentFollowers 0
-
-removelist maxFollowersList
-createlist maxFollowersList
     
 if earthElementals  = 1
     pushlist maxFollowersList x 
@@ -506,21 +508,39 @@ endif
 
 #********* CREATE MUSHROOMS *********
     
-if counttype 29012 backpack = 0
-    while counttype 29012 backpack < mushroomCount
-        cast 'create food'
-        wait 100
-    endwhile
+if insysmsg "You create"
 endif  
+
+while counttype 29012 backpack < mushroomCount and findtype 3963 self and findtype 3976 self and mana > 3
+    cast 'create food'
+    while not casting 
+        cast 'create food'
+    endwhile
+    while casting
+    endwhile
+    wait 200
+    getlabel backpack xxx
+    if insysmsg! "you create"
+        if insysmsg "you create a magic"
+        else
+            sysmsg "Wizard's Grimoire `create food` not found" 34
+            @setvar! mushroomCount 0
+            break 
+        endif
+    endif
+endwhile
+ 
 
 if not findbuff "tracking"
     
     while not gumpexists 4267467659
+        sysmsg "opening tracking..." 11
         skill "tracking"
         wait maxwaittimeinms
     endwhile
 
     while not insysmsg "You will now hunt all hostile players"
+        sysmsg "setting track to hostile players..." 11
         gumpresponse 8
         wait 500
         waitforgump 4267467659 maxwaittimeinms
@@ -535,7 +555,7 @@ if not findbuff "tracking"
         wait 100
     endif
 
-    sysmsg "* tracking ON *" 66
+    sysmsg "* Now tracking hostile players *" 66
 endif
 
 #********** AUTO SPLIT REAGENTS **********# 
@@ -1977,8 +1997,8 @@ while not dead
         clearignore
         if targetexists
             hotkey 'cancel current target'  
+            wait 250
         endif
-        wait 200
         
         while mana <= 10 and diffhits < activateAutoHealDiff
             overhead "* low mana to recall *" 44
@@ -1987,56 +2007,61 @@ while not dead
         
 #********** USING REAGENTS OR RECALL SCROLL ********** 
 
+        if insysmsg "that location is blocked"
+        endif
+        if insysmsg "charges"
+        endif
+        if insysmsg "Your concentration is disturbed"
+        endif
+        if insysmsg "marked"
+        endif
+
         if recallType = 0 or recallType = 1
         
-            while diffhits < activateAutoHealDiff and not targetexists
-                
+            while not casting
                 if recallType = 0
                     cast 'recall'
-                    sysmsg "recalling using regs" 11
+                    #sysmsg "recalling using regs" 11
                 else 
                     dclicktype "recall" self
-                    sysmsg "recalling using scroll" 11
+                    #sysmsg "recalling using scroll" 11
                 endif
-                
-                while not casting   
-                    if recallType = 0
-                        cast 'recall'  
-                    else 
-                        dclicktype "recall" self
-                    endif    
-                endwhile  
-                
-                while not targetexists and casting
-                    if insysmsg "your concentration"
-                        break;
-                    endif
-                endwhile
-                
-                waitfortarget maxwaittimeinms
-                
-            endwhile     
+            endwhile 
+            
+            while not targetexists
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    break                
+                endif            
+            endwhile
             
             if targetexists and findtype "runebook|runetome" backpack as obj
                 
                 while findtype "runebook|runetome" backpack as book 
-                    if hue book = recallBookHue or recallBookHue = 0                           
+                    if hue book = recallBookHue                          
                         target book
+                        wait 250
                         break
                     endif                              
                     @ignore book                           
                 endwhile
                 
-                @clearignore
-                wait 200
+                clearignore
                 
                 if insysmsg "marked"
-                    overhead "Runebook is not marked! Mark the book NOW!" 34
+                    sysmsg "Runebook is not marked! Mark the book NOW!" 16
+                elseif insysmsg "blocked"
+                    sysmsg "Location Blocked! Now using book charge first rune!" 16
+                    @setvar! recallType 2
+                elseif not findtype 3974 self or not findtype 3962 self or not findtype 3963 self 
+                    sysmsg "No reagents! Now using book charge first rune!"
+                    @setvar! recallType 2
                 elseif targetexists
-                    overhead "Recall Book not found. Switching hue type to 0" 34
+                    sysmsg "Hued Book not found. Switching to any book hue" 16
                     @setvar! recallBookHue 0
                 else 
-                    overhead "Finished!" 65
+                    overhead "Successful" 65 
+                    sysmsg "Lumberjacking Completed!" 65 
                     stop  
                 endif                    
                 
@@ -2058,23 +2083,22 @@ while not dead
                 endwhile
                 
                 @clearignore
-                wait 200
-                    
-                if targetexists and tempRune != 0
-                    target tempRune
-                    overhead "Finished!"
-                elseif tempRune = 0
-                    overhead "No recalleable rune found" 34
-                    hotkey "cancel current target"
+                wait 250
+                
+                if tempRune = 0 
+                    sysmsg "No recalleable rune found" 34
+                    hotkey "cancel current target"                
                 elseif insysmsg "blocked" 
-                    overhead "Location blocked" 34
+                    sysmsg "Location Blocked!" 34
                 else
-                    overhead "Finished!"     
+                    overhead "Successful" 65 
+                    sysmsg "Lumberjacking Completed!" 65    
+                    stop
                 endif                                     
-                stop
                                                      
             elseif targetexists
-                overhead "No recall book or rune found" 34
+                sysmsg "No recall book or rune found" 34
+                stop
             endif
 
         elseif recallType = 2 or recallType = 3
@@ -2105,10 +2129,9 @@ while not dead
                     endwhile
                     
                     while foundBook = 0 and findtype "runetome" backpack as book
-                        
                         if gumpexists 167090027
                             gumpclose 167090027
-                            wait 200
+                            wait 250
                         endif
                         
                         if hue book = recallBookHue or recallBookHue = 0
@@ -2128,45 +2151,40 @@ while not dead
                         endif
                     endwhile
                     
-                    wait 200
-                    @clearignore
+                    wait 250
+                    clearignore
+                    
+                    while casting
+                    endwhile
+                    
+                    wait 250
                     
                     if foundBook = 0 
-                        overhead "Recall book not found!" 34    
+                        sysmsg "Recall book not found!" 34   
+                        sysmsg "Switching to type 0 using reagents" 55
                     elseif insysmsg "charges"
-                        overhead "No recall charges!" 34
+                        sysmsg "No recall charges!" 34
+                        sysmsg "Switching to type 0 using reagents" 55
                     elseif insysmsg "This book"
-                        overhead "Recall book cooldown!" 34
-                    elseif casting
-                        while casting
-                        endwhile 
-                        
-                        wait 200
-                            
+                        sysmsg "Recall book cooldown!" 34
+                    else
                         if insysmsg "concentration"
-                            overhead "Interrupted!" 34
+                            sysmsg "Interrupted!" 34
                         elseif insysmsg "location"
-                            overhead "Location blocked!" 
+                            sysmsg "Location blocked!" 
+                            if recallType = 2 
+                                @setvar! recallType 3 
+                                sysmsg "Switching to type 3 last rune charge" 55
+                            else
+                                @setvar! recallType 2
+                                sysmsg "Switching to type 2 first rune charge" 55
+                            endif
                         else
                             overhead "Successful" 65 
                             sysmsg "Lumberjacking Completed!" 65
                             stop
                         endif
-                    else 
-                        if insysmsg "concentration"
-                            overhead "Interrupted!" 34
-                        else 
-                            if recallType = 2 
-                                overhead "First rune not found" 34    
-                            else
-                                overhead "Last rune not found" 34
-                                overhead "Changing to first rune.." 34
-                                @setvar! recallType 2
-                            endif                                
-                        endif
                     endif
-                    
-                    wait maxwaittimeinms
                 endwhile
             else 
                 overhead "No runebook or runetome found to use charge!" 34
@@ -2772,14 +2790,28 @@ while not dead
         endif
         
         #--- Create mushroom ---#
-    
-        if counttype 29012 backpack = 0 and missingRegs = 0
-            while counttype 29012 backpack < mushroomCount and mana > 3 and diffhits < activateAutoHealDiff
-                if not casting
-                    cast 'create food'
-                endif
+        
+        if insysmsg "You create"
+        endif   
+        
+        while counttype 29012 backpack < mushroomCount and findtype 3963 self and findtype 3976 self and mana > 3
+            cast 'create food'
+            while not casting 
+                cast 'create food'
             endwhile
-        endif  
+            while casting
+            endwhile
+            wait 200
+            getlabel backpack xxx
+            if insysmsg! "you create"
+                if insysmsg "you create a magic"
+                else
+                    sysmsg "Wizard's Grimoire `create food` not found" 34
+                    @setvar! mushroomCount 0
+                    break 
+                endif
+            endif
+        endwhile
         
         #--- Eat Mushroom ---#
      
@@ -3209,6 +3241,7 @@ while not dead
                     interrupt
                     @setvar! isWorldSaving 1
                     @setvar! wasInterrupted 1 
+                    break
                 endif        
                 
                 if diffhits >= interruptCastingDiff
@@ -3272,7 +3305,7 @@ while not dead
                     endif
                 endwhile
                 
-                @clearignore
+                clearignore
                 @setvar! castingEarth 0
             endif
             
@@ -3299,6 +3332,7 @@ while not dead
                     interrupt
                     @setvar! isWorldSaving 1
                     @setvar! wasInterrupted 1 
+                    break
                 endif                 
 
                 if diffhits >= interruptCastingDiff
@@ -3361,7 +3395,7 @@ while not dead
                     endif
                 endwhile
                 
-                @clearignore
+                clearignore
                 @setvar! castingWater 0
             endif
         
@@ -3387,7 +3421,8 @@ while not dead
                  if insysmsg "world is saving"
                     interrupt
                     @setvar! isWorldSaving 1
-                    @setvar! wasInterrupted 1 
+                    @setvar! wasInterrupted 1
+                    break
                 endif 
                 
                 if diffhits >= interruptCastingDiff
@@ -3449,7 +3484,7 @@ while not dead
                         @ignore ele
                     endif
                 endwhile
-                @clearignore
+                clearignore
                 @setvar! castingAir 0
             endif
         
@@ -3476,6 +3511,7 @@ while not dead
                     interrupt
                     @setvar! isWorldSaving 1
                     @setvar! wasInterrupted 1 
+                    break
                 endif 
                 
                 if diffhits >= interruptCastingDiff
@@ -3537,7 +3573,7 @@ while not dead
                         @ignore ele
                     endif
                 endwhile
-                @clearignore
+                clearignore
                 @setvar! castingFire 0
             endif
             
@@ -3564,6 +3600,7 @@ while not dead
                     interrupt
                     @setvar! isWorldSaving 1
                     @setvar! wasInterrupted 1 
+                    break
                 endif 
                 
                 if diffhits >= interruptCastingDiff
@@ -3625,7 +3662,7 @@ while not dead
                         @ignore ele
                     endif
                 endwhile
-                @clearignore
+                clearignore
                 @setvar! castingDaemon 0
             endif
             
@@ -3652,6 +3689,7 @@ while not dead
                     interrupt
                     @setvar! isWorldSaving 1
                     @setvar! wasInterrupted 1 
+                    break
                 endif 
                 
                 if diffhits >= interruptCastingDiff
@@ -3725,7 +3763,7 @@ while not dead
                     endif
                 endwhile
                 
-                @clearignore
+                clearignore
                 @setvar! castingCreature 0
             endif
             
@@ -3764,7 +3802,7 @@ while not dead
             
             settimer beginChopTimer 0
 
-            while not insysmsg "you chop" and not insysmsg "you hack" and not insysmsg! "you do not see" and not insysmsg! "you have recently" and diffhits < activateAutoHealDiff
+            while not insysmsg! "harvesting is not allowed" and not insysmsg "you chop" and not insysmsg "you hack" and not insysmsg! "you do not see" and not insysmsg! "you have recently" and diffhits < activateAutoHealDiff
                 if enemyFound = 0
                     if insysmsg! "Now tracking" or insysmsg! "Distance to"
                         @setvar! enemyFound 1
@@ -3783,9 +3821,13 @@ while not dead
             
             if insysmsg "you do not see any"
                 overhead "* move to other tree *" 44
+                wait 500
             elseif insysmsg "you have recently"
                 overhead "* travel cooldown *" 901
-                wait 800
+                wait 500
+            elseif insysmsg "harvesting is not allowed"
+                overhead "* Harvest NOT allowed! *" 33
+                wait 500
             else
                 #overhead "* tree chopped *" 11    
             endif    

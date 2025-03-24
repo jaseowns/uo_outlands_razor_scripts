@@ -8,8 +8,7 @@
 #
 # Sept 30th (preliminary pooner code addition, may be buggy its unfinished)
 #
-# Script is desinged for Necromancers
-# Best aspect is "Madness" but many other spell focused aspects work as well
+# Script is desinged for Necro and Chiv  (Mage or Pooner)
 #
 # SCRIPT MUST BE NAMED "Master Background" OR IT WONT LINK TO OTHER SCRIPTS
 #
@@ -42,35 +41,75 @@
 #
 # Script starts here
 
-if skill "Tactics" >= 100    
+if skill "Healing" >= 20 
     if hp = maxhp
         //donothing
     elseif not bandaging and findtype 3617 backpack
         hotkey "Bandage Self"
+        cooldown "Bandage" 7000
     endif
-    while poisoned and not targetexists 
-        if findtype "Orange Potion" backpack as curepot
-            dclick curepot
-            pause 500
-            getlabel backpack ping
+endif
+
+while poisoned and not targetexists 
+    if findtype "Orange Potion" backpack as curepot
+        dclick curepot
+        pause 500
+        getlabel backpack ping
+    endif
+endwhile
+
+if skill "Fishing" >= 80
+    if not varexist "MainPoon"
+        if findlayer self lefthand as pooninhand
+            @setvar "MainPoon" pooninhand
         endif
+    endif
+    if varexist "MainPoon" and not findlayer self lefthand
+        dclick "MainPoon"
+    endif
+endif
+    
+if skill "Alchemy" >= 0 and not hidden and not targetexists 
+    if not findbuff "Strength" and findtype "White Potion" backpack as wpot
+        dclick wpot
+        pause 500
+        getlabel backpack ping
+    endif
+    if not findbuff "Agility" and findtype "Blue Potion" backpack as bpot
+        dclick bpot
+        pause 500
+        getlabel backpack ping
+    endif
+    if not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as mpot
+        dclick mpot
+        pause 500
+        getlabel backpack ping
+    endif
+endif
+
+if hp < 77 and not hidden and not timerexists brew and not targetexists and findbuff "Bleed" and findtype 50675 backpack as cbrew
+    clearsysmsg 
+    while queued
+        //donothing
     endwhile
-    if skill "Alchemy" >= 0 and not hidden
-        if not findbuff "Strength" and findtype "White Potion" backpack as wpot
-            dclick wpot
-            pause 500
-            getlabel backpack ping
-        endif
-        if not findbuff "Agility" and findtype "Blue Potion" backpack as bpot
-            dclick bpot
-            pause 500
-            getlabel backpack ping
-        endif
-        if not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as mpot
-            dclick mpot
-            pause 500
-            getlabel backpack ping
-        endif
+    dclick cbrew
+    getlabel backpack ping
+    if insysmsg "You drink a cleansing brew"
+        createtimer brew
+    endif
+elseif hp < 77 and not hidden and not timerexists brew and not targetexists and findbuff "Diseased" and findtype 50675 backpack as cbrew
+    while queued
+        //donothing
+    endwhile
+    dclick cbrew
+    getlabel backpack ping
+    if insysmsg "You drink a cleansing brew"
+        createtimer brew
+    endif
+endif
+if timerexists brew
+    if timer brew >= 120000
+        removetimer brew
     endif
 endif
 
@@ -83,11 +122,11 @@ endif
 if gumpexists 341416395 and not timerexists changetarget
     gumpclose 341416395
     createtimer changetarget
-    overhead "Single Target Enabled" 1288
+    overhead "Closest Target Enabled" 1288
 elseif gumpexists 341416395 and timerexists changetarget
     gumpclose 341416395
     removetimer changetarget
-    overhead "Multi Target Enabled" 2085
+    overhead "Random Target Enabled" 2085
 endif
 
 if not timerexists oceanscan
@@ -106,6 +145,28 @@ if timerexists changetarget and timer checktarget >= 18000
 elseif not timerexists changetarget and timer checktarget >= 18000
     overhead "Multi Target Enabled" 2085
     settimer checktarget 0
+endif
+
+if not timerexists sacredjourncheck
+    createtimer sacredjourncheck
+    settimer sacredjourncheck 27000
+endif
+
+if skill "Chivalry" >= 80 and timer sacredjourncheck >= 27000
+    if not findbuff "Sacred Journey"
+        overhead "It is time I took a Sacred Jounrey..." 201
+    endif
+    settimer sacredjourncheck 0
+endif
+
+if skill "Arcane" >= 80 and not gumpexists 3954121934
+    say '[abilityhotbar'
+    waitforgump 3954121934 500
+endif
+
+if skill "Chivalry" >= 80 and not gumpexists 3954121934
+    say '[abilityhotbar'
+    waitforgump 3954121934 500
 endif
 
 if insysmsg "repaired"
@@ -141,6 +202,7 @@ if not warmode
         say "all guard me" 45
         settimer petguard 0
     endif
+    
     if skill "Magery" >= 80
         if timerexists reflect
             if timer reflect > 30000
@@ -245,6 +307,10 @@ if not warmode
         say [necromancyhotbar
         pause 250
     endif
+    if skill "Chivalry" >= 80 and not gumpexists 1387930325
+        say [chivalryhotbar
+        pause 250
+    endif
     if findtype "5188" ground -1 -1 2 as bomb
         dclick bomb
     endif
@@ -254,6 +320,9 @@ if not warmode
        
     if timer oceanscan >= 600 and skill "Arcane" >= 80 and cooldown "Fray"
         clearsysmsg 
+        if varexist "oceantarget"
+            @unsetvar "oceantarget"
+        endif
         hotkey "Next Grey Monster Target"
         if not insysmsg "No one matching"
             @setvar "oceantarget" lasttarget 
@@ -265,6 +334,9 @@ if not warmode
         settimer oceanscan 0
     elseif timer oceanscan >= 600 and skill "Fishing" >= 80 and cooldown "Fray"
         clearsysmsg 
+        if varexist "oceantarget"
+            @unsetvar "oceantarget"
+        endif
         hotkey "Next Grey Monster Target"
         if not insysmsg "No one matching"
             @setvar "oceantarget" lasttarget 
@@ -276,17 +348,12 @@ if not warmode
         settimer oceanscan 0
     endif
     if not timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and cooldown "Fray"
-        if varexist "Manual Override"
-            attack "Manual Override"
-        endif
         attack "oceantarget"
     elseif timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and cooldown "Fray"
-        if varexist "Manual Override"
-            attack "Manual Override"
-        endif
         hotkey 'Target Closest Grey Monster'
         hotkey 'Target Closest Murderer Monster'
         attack lasttarget 
+        hotkey "Cancel Current Target"
     endif
     
     if find "shiphold" ground -1 -1 1
@@ -300,13 +367,23 @@ if not warmode
         endwhile
     endif
 elseif warmode 
-    if not timerexists leylinetimer 
-        createtimer leylinetimer
-        settimer leylinetimer 3000
+    if skill "Healing" >= 20 
+        if hp = maxhp
+            //donothing
+        elseif not bandaging and findtype 3617 backpack
+            hotkey "Bandage Self"
+        endif
     endif
-    if skill "Arcane" >= 80 and mana <= 80 and timer leylinetimer >= 3000 and find "oceantarget" ground -1 -1 12
-        say "[weaponability2"
-        settimer leylinetimer 0
+
+    if skill "Arcane" >= 80
+        if not timerexists leylinetimer 
+            createtimer leylinetimer
+            settimer leylinetimer 3000
+        endif
+        if mana <= 80 and timer leylinetimer >= 3000 and find "oceantarget" ground -1 -1 12
+            say "[weaponability2"
+            settimer leylinetimer 0
+        endif
     endif
     
     if gumpexists 341416395 and not timerexists changetarget
@@ -321,6 +398,9 @@ elseif warmode
     
     if timer oceanscan >= 600 and skill "Arcane" >= 80
         clearsysmsg 
+        if varexist "oceantarget"
+            @unsetvar "oceantarget"
+        endif
         hotkey "Next Grey Monster Target"
         if not insysmsg "No one matching"
             @setvar "oceantarget" lasttarget 
@@ -332,6 +412,9 @@ elseif warmode
         settimer oceanscan 0
     elseif timer oceanscan >= 600 and skill "Fishing" >= 80
         clearsysmsg 
+        if varexist "oceantarget"
+            @unsetvar "oceantarget"
+        endif
         hotkey "Next Grey Monster Target"
         if not insysmsg "No one matching"
             @setvar "oceantarget" lasttarget 
@@ -343,20 +426,15 @@ elseif warmode
         settimer oceanscan 0
     endif
     if not timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating"
-        if varexist "Manual Override"
-            attack "Manual Override"
-        endif
         attack "oceantarget"
     elseif timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating"
-        if varexist "Manual Override"
-            attack "Manual Override"
-        endif
         hotkey 'Target Closest Grey Monster'
         hotkey 'Target Closest Murderer Monster'
         attack lasttarget 
+        hotkey "Cancel Current Target"
     endif
     
-    if not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 66 and findtype "spyglass" backpack as bspy
+    if not poisoned and not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 77 and findtype "spyglass" backpack as bspy
         gumpclose 2890020940
         dclick bspy
         wft 500
@@ -410,13 +488,25 @@ elseif warmode
                 hotkey 'Cancel Current Target'
             endif
         endwhile
-        if not hidden and not timerexists brew and findbuff "Bleed" and findtype 50675 backpack as cbrew
-            pause 1200
+        if hp < 77 and not hidden and not timerexists brew and not targetexists and findbuff "Bleed" and findtype 50675 backpack as cbrew
+            clearsysmsg 
+            while queued
+                //donothing
+            endwhile
             dclick cbrew
-            createtimer brew
-        elseif not hidden and not timerexists brew and findbuff "Diseased" and findtype 50675 backpack as cbrew
+            getlabel backpack ping
+            if insysmsg "You drink a cleansing brew"
+                createtimer brew
+            endif
+        elseif hp < 77 and not hidden and not timerexists brew and not targetexists and findbuff "Diseased" and findtype 50675 backpack as cbrew
+            while queued
+                //donothing
+            endwhile
             dclick cbrew
-            createtimer brew
+            getlabel backpack ping
+            if insysmsg "You drink a cleansing brew"
+                createtimer brew
+            endif
         endif
         if timerexists brew
             if timer brew >= 120000
@@ -430,6 +520,11 @@ elseif warmode
     
     if skill "Necromancy" >= 80 and not gumpexists 622436516
         say [necromancyhotbar
+        pause 250
+    endif
+    if skill "Chivalry" >= 80 and not gumpexists 1387930325
+        say [chivalryhotbar
+        pause 250
     endif
     
     if findtype "5188" ground -1 -1 22 as bomb
@@ -605,26 +700,28 @@ elseif warmode
             endif
             hotkey "Cancel Current Target"
         endif
-        if skill "Necromancy" >= 80 and ingump '20/' 622436516
-            createtimer necroab
-        elseif ingump '19/' 622436516
-            createtimer necroab
-        elseif ingump '18/' 622436516
-            createtimer necroab
-        elseif ingump '17/' 622436516
-            createtimer necroab
-        elseif ingump '16/' 622436516
-            createtimer necroab
-        elseif ingump '15/' 622436516
-            createtimer necroab
-        elseif ingump '14/' 622436516
-            createtimer necroab
-        elseif ingump '13/' 622436516
-            createtimer necroab
-        elseif ingump '12/' 622436516
-            createtimer necroab
+        if skill "Necromancy" >= 80 and find "oceantarget" ground -1 -1 12
+            if ingump '20/' 622436516
+                createtimer necroab
+            elseif ingump '19/' 622436516
+                createtimer necroab
+            elseif ingump '18/' 622436516
+                createtimer necroab
+            elseif ingump '17/' 622436516
+                createtimer necroab
+            elseif ingump '16/' 622436516
+                createtimer necroab
+            elseif ingump '15/' 622436516
+                createtimer necroab
+            elseif ingump '14/' 622436516
+                createtimer necroab
+            elseif ingump '13/' 622436516
+                createtimer necroab
+            elseif ingump '12/' 622436516
+                createtimer necroab
+            endif
         endif
-        if skill "Necromancy" >= 80 and timerexists necroab
+        if skill "Necromancy" >= 80 and timerexists necroab and find "oceantarget" ground -1 -1 12
             if not cooldown "Strangle"
                 pause 550
                 say '[Strangle'
@@ -643,6 +740,50 @@ elseif warmode
             endif
             removetimer necroab
         endif
+        
+        if skill "Chivalry" >= 80 and find "oceantarget" ground -1 -1 12
+            if ingump '20/' 1387930325
+                createtimer chivab
+            elseif ingump '19/' 1387930325
+                createtimer chivab
+            elseif ingump '18/' 1387930325
+                createtimer chivab
+            elseif ingump '17/' 1387930325
+                createtimer chivab
+            elseif ingump '16/' 1387930325
+                createtimer chivab
+            elseif ingump '15/' 1387930325
+                createtimer chivab
+            elseif ingump '14/' 1387930325
+                createtimer chivab
+            elseif ingump '13/' 1387930325
+                createtimer chivab
+            elseif ingump '12/' 1387930325
+                createtimer chivab
+            elseif ingump '11/' 1387930325
+                createtimer chivab
+            elseif ingump '10/' 1387930325
+                createtimer chivab
+            elseif ingump '9/' 1387930325
+                createtimer chivab
+            endif
+        endif
+        if skill "Chivalry" >= 80 and timerexists chivab and find "oceantarget" ground -1 -1 12
+            if not findbuff "Divine Fury"
+                say '[DivineFury'
+                pause 550
+            endif
+            if not findbuff "Enemy of One"
+                say '[EnemyofOne'
+                pause 550
+            endif
+            if not findbuff "Consecrate Weapon"
+                say '[ConsecrateWeapon'
+                pause 550
+            endif
+            removetimer chivab
+        endif        
+        
         if skill "Magery" >= 80
             if not cooldown "Magic Arrow" and mana >= 4
                 hotkey 'Cancel Current Target'

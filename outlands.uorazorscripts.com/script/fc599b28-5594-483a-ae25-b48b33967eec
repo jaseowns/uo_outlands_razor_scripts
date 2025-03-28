@@ -6,7 +6,7 @@
 
 # Bapeths One Tile Item Dump & Restock
 #
-# October 4th 2024 (added footwear logic/cutter for cloth storage)
+# March 28th 2025
 #
 # This script will quickly dump and sort all items you acquire while adventuring in Outlands.
 # If you ever need to reset storage items, tomes, containers etc... simply delete the varibles in Script Options
@@ -35,7 +35,7 @@
 # "A skinning map tome"
 # "A lumber map tome"
 # "A fishing map tome"
-# "A storeage shelf"
+# "A storage shelf"
 # "A bank deposit box"
 # "A garden shelf"
 # "A resource stockpile"
@@ -48,6 +48,7 @@
 #
 # Script starts here...
 
+@clearignore 
 if not varexist lootchestdump
     overhead "Set Main Loot Container" 88
     hotkey "Cancel Current Target"
@@ -202,9 +203,6 @@ if not warmode
         clearsysmsg 
         gumpresponse 100
         getlabel backpack ping
-        if insysmsg "encumbered"
-            overhead "IM TOO FAT TO RECALL" 45
-        endif
         pause 2500
     endif
     if skill "Magery" >= 60
@@ -212,12 +210,11 @@ if not warmode
         waitforgump 167090027 500
         gumpresponse 10
         getlabel backpack ping
-        if insysmsg "encumbered"
-            overhead "IM TOO FAT TO RECALL" 45
-        endif
         pause 2500
     endif
 endif
+
+warmode off
 
 if skill "Magery" >= 30 and mana >= 4 and not findbuff "Reactive Armor"
     cast 'Reactive Armor'
@@ -225,6 +222,8 @@ endif
 
 //Repair Bench
 dclick repbench
+pause 2000
+getlabel backpack ping
 
 while findtype "iron ore" backpack as ore
     dclick ore
@@ -259,6 +258,15 @@ while findtype 5901|5899|5903|5905 backpack as footwear
     endif
 endwhile
 
+//Dumping Gear
+hotkey "Cancel Current Target"
+menu myshelf 0
+wft 500
+target self
+pause 500
+getlabel backpack ping
+gumpclose 3232825965
+
 //Dumping all items
 menu respile 0
 waitfortarget 1000
@@ -278,7 +286,7 @@ menu skinningmaptome 0
 menu lumbermaptome 0
 menu fishingmaptome 0
 menu magicrecycler 1
-if skill "Lockpicking" >= 120 and skill "Tactics" <= 75 and skill "Discordance" <= 50 and skill "Peacemaking" <= 50 and skill "Provocation" <= 50
+if skill "Discordance" <= 50 and skill "Peacemaking" <= 50 and skill "Provocation" <= 50 and skill "Tactics" <= 50
     menu magicchest 0
     wft 500
     target self
@@ -325,12 +333,25 @@ while findtype "spell hue deed" backpack as bdeed
     endwhile
 endwhile
 
-while findtype "bag of gems" backpack as bpirateboot
+while findtype "bag of gems|17619|17617|2508|7710|3712|3648|3650|3708|3648|2475|3649|29833|29832|2463" backpack as bpirateboot
     lift bpirateboot 60000
     drop lootchestdump2 -1 -1 0
     while queued
         //donothing
     endwhile
+endwhile
+
+while findtype "3530" backpack as bspecialnets
+    getlabel bspecialnets desc
+    if "mastercrafted" in desc
+        @ignore bspecialnets
+    else
+        lift bspecialnets 60000
+        drop lootchestdump2 -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endif
 endwhile
 
 while findtype "black market goods" backpack as bmg
@@ -365,7 +386,7 @@ while findtype "15178" backpack as battlecommloot
     endwhile
 endwhile
 
-while findtype "card" backpack as eventitem
+while findtype "card|soul jar|candy corn|colonial marks|27612|eggplant seeds" backpack as eventitem
     lift eventitem 60000
     drop lootchestdump2 -1 -1 0
     while queued
@@ -375,17 +396,54 @@ endwhile
 
 //Resupply
 hotkey "Cancel Current Target"
-menu myshelf 0
-wft 500
-target self
-pause 500
-getlabel backpack ping
 menu myshelf 1
-gumpclose 3232825965
+
 
 if skill "Magery" >= 80 and mana >= 14 and not findbuff "Magic Reflection"
     cast 'Magic Reflection'
 endif
 
+if counttype "wand" >= 2 backpack
+    //do nothing
+else 
+    dclick 0x53D6C58E
+    pause 500
+    getlabel backpack ping
+    dclick 0x504D1D7A
+    pause 500
+    getlabel backpack ping
+    if skill "lockpicking" = 120
+        while counttype "wand" < 2
+            if findtype "20496" 0x504D1D7A as newwand
+                drop backpack
+                lift newwand
+                if findtype "bag" backpack as wandbag
+                    drop wandbag
+                else
+                    drop backpack
+                endif
+                pause 500
+                getlabel backpack ping
+            endif
+        endwhile
+    else
+        while counttype "wand" < 2
+            if findtype "20496" 0x504D1D7A as newwand
+                drop backpack
+                lift newwand
+                if findtype "bag" backpack as wandbag
+                    drop wandbag
+                else
+                    drop backpack
+                endif
+                pause 500
+                getlabel backpack ping
+            endif
+        endwhile
+    endif
+endif
+
 clearall
-overhead 'My Dump is Complete' 181
+overhead '********************' 181
+overhead '**DUMP COMPLETE**' 181
+overhead '********************' 181

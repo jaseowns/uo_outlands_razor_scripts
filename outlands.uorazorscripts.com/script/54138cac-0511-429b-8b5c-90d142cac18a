@@ -6,11 +6,9 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# March 28th 2025 - Pooner update - Added Auto eat food (create cooldown "Food" or reinstall cooldown XML) and fixed auto weapon equip
+# March 30th 2025 - Pooner Update - Added Auto Net Caster / Fishing Spot Glasser
 # 
-# Script is desinged for Necro and Chiv  (Mage or Pooner)
-#
-# Use Bapeths "Manual Override" script to force any target priority
+# Script is designed for Necro and Chiv  (Mage or Pooner)
 #
 # SCRIPT MUST BE NAMED "Master Background" OR IT WONT LINK TO OTHER SCRIPTS
 #
@@ -19,22 +17,25 @@
 # "COPY" Link to get Bapeths Cooldowns "https://outlands.uorazorscripts.com/script/f1e41e2d-411e-461e-9fd0-c4fc2dc234b1"
 # "PASTE" FILE PATH : C:\Program Files (x86)\Ultima Online Outlands\ClassicUO\Data\Profiles\"YOUR-ACCOUNT-NAME"\UO Outlands\"YOUR-CHARACTER" Open file in notepad
 # The cooldowns with "Tigger Text" Must be adjusted to "your ships stats" and "your Wizard Grimoire upgrades" in the UO in game Options
-# Set spyglass cooldown to your perferred radar inverval (default 7 is fastest possible) in the UO in game Options
+# Set spyglass cooldown to your preferred radar interval (default 7 is fastest possible) in the UO in game Options
 #
-# This script is the defaut backround script that should be running most of the time
+# This script is the default background script that should be running most of the time
 # In defensive mode (peace mode) it will auto heal, auto cure, top up bard buffs, auto spyglass, auto drop loot to hold, and auto pick up bombs on your own deck
-# In offensive mode (war mode) it will use necro abilities, auto spell cast, auto skin corpses, auto heal, auto cure, auto cleanse, auto explode pot, and auto loot enemy holds
-#
-# This script has a phase shift from Offensive to Defensive
+# In offensive mode (war mode) it will use necro/chiv abilities, auto spell cast, auto heal, auto cure, auto cleanse, auto explode pot, and auto loot enemy holds
 # Generally you should be in peace mode when on your own ship and in war mode when on an enemy ship
 # Use warmode on your own ship for fighting mobs on your own ship (bosses and fishing)
 # Toggle "war mode on" for offensive stance and "war mode off" for defensive stance
 #
-# This script can "phase shift" into single-target focus or multi-target focus
-# Default is always multi-target focus
+# "Target Scheme"
+# This script can change into Target Closest or Target Random - default is Target Random
 # Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
-# Double click the atlas while this script is playing to "phase shift"
+# Double click the atlas while this script is playing to switch between "Closest and Random"
 # Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
+#
+# "Auto Net Caster and Fishing Spot Glasser"
+# Open the "Party Menu" while the script is playing to toggle this feature on/off
+# When its on it will replace the ship glassing routine with a fishing spot glass routine
+# The script will auto throw nets on fishing spots when nearby
 #
 # "Auto Loot Control"
 # This script uses razor "Auto-Queue Object Delay" setting
@@ -207,8 +208,41 @@ if insysmsg "repaired"
     say "[Repair"
 endif
 
+if not timerexists autonetcast
+    if gumpexists 3527489586
+        gumpclose 3527489586
+        createtimer autonetcast
+        overhead "--Auto Net Cast Enabled--" 2085
+    endif
+endif
+if timerexists autonetcast
+    if gumpexists 3527489586
+        gumpclose 3527489586
+        removetimer autonetcast
+        overhead "--Auto Net Cast Disabled--" 1779
+    endif
+endif
+if timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|2646|18824|441|25769|39434|27641|3707|29230|25769 ground -1 -1 12
+    if not timerexists netwait
+        createtimer netwait
+        settimer netwait 4000
+    endif
+    if not queued and timer netwait >= 3400 and findtype "fishing net" backpack as net
+        dclick net
+        wft 500
+        target net
+        getlabel backpack ping
+        settimer netwait 0
+    endif
+    if insysmsg "You have completely fished out that location."
+        overhead "Fishing spot depleated..." 88
+        script "Master Background"
+        stop
+    endif
+endif
+
 if not warmode
-    if not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 66 and findtype "spyglass" backpack as bspy
+    if not timerexists autonetcast and not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 66 and findtype "spyglass" backpack as bspy
         gumpclose 2890020940
         dclick bspy
         wft 500
@@ -222,7 +256,24 @@ if not warmode
         if gumpexists 2890020940
             overhead 'Yarr!' 67
         endif        
+    elseif timerexists autonetcast and not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 66 and findtype "spyglass" backpack as bspy
+        gumpclose 2890020940
+        dclick bspy
+        wft 500
+        target self
+        hotkey "Cancel Current Target"
+        waitforgump 2890020940 500
+        if gumpexists 2890020940
+            gumpresponse 11
+            waitforgump 2890020940 500
+            gumpresponse 4
+            waitforgump 2890020940 500
+        endif
+        if gumpexists 2890020940
+            overhead 'Yarr!' 67
+        endif        
     endif
+    
     
     if findtype 3834 backpack 0 as bbook
         @ignore bbook
@@ -537,7 +588,7 @@ elseif warmode
         endif        
     endif
     
-    if not poisoned and not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 77 and findtype "spyglass" backpack as bspy
+    if not poisoned and not timerexists autonetcast and not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 66 and findtype "spyglass" backpack as bspy
         gumpclose 2890020940
         dclick bspy
         wft 500
@@ -545,6 +596,22 @@ elseif warmode
         hotkey "Cancel Current Target"
         waitforgump 2890020940 500
         if gumpexists 2890020940
+            gumpresponse 4
+            waitforgump 2890020940 500
+        endif
+        if gumpexists 2890020940
+            overhead 'Yarr!' 67
+        endif        
+    elseif not poisoned and timerexists autonetcast and not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 66 and findtype "spyglass" backpack as bspy
+        gumpclose 2890020940
+        dclick bspy
+        wft 500
+        target self
+        hotkey "Cancel Current Target"
+        waitforgump 2890020940 500
+        if gumpexists 2890020940
+            gumpresponse 11
+            waitforgump 2890020940 500
             gumpresponse 4
             waitforgump 2890020940 500
         endif

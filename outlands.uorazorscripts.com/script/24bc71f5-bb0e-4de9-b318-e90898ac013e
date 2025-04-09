@@ -1,0 +1,438 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/24bc71f5-bb0e-4de9-b318-e90898ac013e for latest
+# Automation by Jaseowns
+## Script: Melee Auto Attack (works with both Sword & Fencing together with Parry codex)
+## Created by: abysmal_xx#0
+#############################################
+
+# Originally Lazy Ass Dexxer Script by SingSingFan Revised by Emperorx
+# UO Outlands
+# One Script Fits All OSFA
+
+#If you want to auto attack next target, set this to 1
+@setvar! SeekNextTarget 1
+
+#Select your Offensive Chiv Skills
+@setvar! useRemoveCurse 0
+@setvar! useDispelEvil 0
+@setvar! useConsecrateWeapon 1
+@setvar! useEnemyofOne 0
+@setvar! useDivineFury 1
+
+#Select your Defensive Chiv Skills
+@setvar! useCloseWounds 1
+@setvar! useCleansebyFire 1
+
+#Set Default Shield Codex Stance
+#Shieldbash as 1
+#Warding as 2
+#Testudo as 3
+#Mirror as 4
+#Bulwark as 5
+@setvar! defaultCodex 5
+
+#Misc Variables
+@setvar! chivCD 30000
+@setvar! useCurePotionBelowHp 50
+@setvar! cdStance 10000
+
+#Timers
+if not timerexists "RedPot"
+    createtimer "RedPot"
+    settimer "RedPot" 1500
+endif
+if not timerexists "Uneq"
+    createtimer "Uneq"
+    settimer "Uneq" 1500
+endif
+if not timerexists "Eq"
+    createtimer "Eq"
+    settimer "Eq" 1500
+endif
+if not timerexists "HPots"
+    createtimer "HPots"
+    settimer "HPots" 10000
+endif
+
+if not timerexists "CloseWounds"
+    createtimer "CloseWounds"
+    settimer "CloseWounds" 30000
+endif
+
+if not timerexists "CleanseFire"
+    createtimer "CleanseFire"
+    settimer "CleanseFire" 30000
+endif
+
+#Chiv Timers
+if not timerexists chivRemoveCurse
+    createtimer chivRemoveCurse
+    settimer chivRemoveCurse chivCD
+endif
+
+if not timerexists chivDispelEvil
+    createtimer chivDispelEvil
+    settimer chivDispelEvil chivCD
+endif
+
+if not timerexists chivCleansebyFire
+    createtimer chivCleansebyFire
+    settimer chivCleansebyFire chivCD
+endif
+
+if not timerexists chivConsecrateWeapon
+    createtimer chivConsecrateWeapon
+    settimer chivConsecrateWeapon chivCD
+endif
+
+if not timerexists chivCloseWounds
+    createtimer chivCloseWounds
+    settimer chivCloseWounds chivCD
+endif
+
+if not timerexists chivEnemyofOne
+    createtimer chivEnemyofOne
+    settimer chivEnemyofOne chivCD
+endif
+
+if not timerexists chivDivineFury
+    createtimer chivDivineFury
+    settimer chivDivineFury chivCD
+endif
+
+if not timerexists "ChivHeal1"
+    createtimer "ChivHeal1"
+    settimer "ChivHeal1" 30000
+endif
+
+if not timerexists "ChivHeal2"
+    createtimer "ChivHeal2"
+    settimer "ChivHeal2" 30000
+endif
+
+
+
+//Initialize Setup
+    
+#Finding Your Weapons and Shield
+    if findlayer self righthand as item
+        @setvar! rightEquip item
+    endif
+
+    if findlayer self lefthand as item
+        @setvar! leftEquip item
+    endif
+
+
+
+  //initiate Combat and attack closest
+  //non friendly with priority to PVP
+    warmode "on"
+    hotkey "Set Last Target"
+    hotkey "Target Closest Non-Friendly Monster"
+    hotkey "Attack Last Target"
+    hotkey "Attack Last Combatant"
+    wait 250
+  
+    if targetexists 
+        hotkey "Cancel Current Target"
+        hotkey "Clear Target Queue"
+    endif
+    
+    @setvar! myKillTarget lasttarget
+    
+#ShowTarget
+
+    if not find myKillTarget ground -1 -1 10
+        overhead "No Target Found"
+        wait 500
+    else 
+        overhead " Target " 38 myKillTarget 
+        overhead " “““©" 38 myKillTarget
+    endif
+
+while hp > 0
+
+    //*****GEAR AND BUFF CHECK MODULE*****
+    
+
+    #check for low stamina
+        if diffstam > 10 and findtype "Red Potion" backpack
+        
+            if not lhandempty and skill 'alchemy' < 79 and timer "Uneq" > 2000 and timer "RedPot" > 1000
+                hotkey "Arm/Disarm Left Hand"
+                settimer "Uneq" 0
+                wait 550
+            endif
+            
+            hotkey 'Drink Refresh'
+            settimer "RedPot" 0
+            wait 550
+            
+        endif
+
+    #if overweight use str pot
+        if weight > maxweight and findtype "White Potion" backpack and not findbuff "Strength" 
+        
+            if not lhandempty and skill 'alchemy' < 79 and timer "Uneq" > 2000
+                hotkey "Arm/Disarm Left Hand"
+                settimer "Uneq" 0
+                wait 550
+            endif
+
+            hotkey 'Drink Strength'
+            wait 550
+            
+        endif
+
+    #Check and Equip all gear
+        if rhandempty and find rightEquip backpack as item
+            dclick item
+            wait 750
+        endif
+        
+        if lhandempty and find leftEquip backpack as item
+            dclick item
+            wait 750
+        endif
+        
+        if targetexists 
+            hotkey "Cancel Current Target"
+            hotkey "Clear Target Queue"
+        endif
+        
+        
+    #check for food buffs
+        if not findbuff "food satisfaction" and findtype "tray" backpack as food
+            dclick food
+            wait 500
+        endif
+
+    //*****GEAR AND BUFF CHECK MODULE*****
+
+    //*****COMBAT MODULE*****
+
+    #Remove Para
+        if insysmsg 'you cannot move' or insysmsg 'You must wait before using this command again'
+           say '[pouch'
+        endif
+     
+    //*****COMBAT MODULE*****
+    
+    //*****START OF HEALING MODULE*****
+    #Bandaging
+        if not bandaging and hp < maxhp and not targetexists and count 'bandages' > 0
+            hotkey 'Bandage Self'
+            wait 300
+        endif
+    
+    #poison removal sequence
+        if poisoned and hp > useCurePotionBelowHp and timer "chivCleansebyFire" > chivCD and useCleansebyFire > 0
+          
+          overhead "Cleansing Poison With Fire"
+          wait 250
+          say '[CleanseByFire'
+        if insysmsg "Holy symbols remaining:"
+            settimer "chivCleansebyFire" 0
+        endif
+
+        endif
+
+        if poisoned and hp <= useCurePotionBelowHp 
+          
+            overhead "Emergency Poison Removal Activated"
+          
+            if not findbuff "I cannot gate travel" and timer "ChivHeal1" > 30000
+                say '[HolyLight'
+                if insysmsg "Holy symbols remaining:"
+                    settimer "ChivHeal1" 0
+                endif
+            endif
+              
+            wait 250
+            
+            if not lhandempty and skill 'alchemy' < 79 and timer "Uneq" > 2000
+                hotkey "Arm/Disarm Left Hand"
+                settimer "Uneq" 0
+                wait 550
+            endif
+              
+                wait 250
+                
+            while poisoned
+                hotkey "Drink Cure"
+            endwhile
+        
+        endif
+
+    //Reduce Bleed Damage
+    
+        if findbuff "bleed" and timer "chivCloseWounds" > chivCD and useCloseWounds > 0
+            
+            overhead "Bleed Detected. Closing wounds."
+            say '[closewounds'
+            wait 500
+            if insysmsg "Holy symbols remaining:"
+                settimer "chivCloseWounds" 0
+                wait 350
+                
+            else 
+                settimer "chivCloseWounds" 27000
+            endif
+            
+        endif
+
+    //Reduce Disease Damage
+        if findbuff "disease" and timer "chivCloseWounds" > 30000 and useCloseWounds > 0
+            
+            say '[closewounds'
+            overhead "You got diseased. Closing Wounds."
+            if insysmsg "Holy symbols remaining:"
+                settimer "chivCloseWounds" 0
+                wait 350
+            else 
+                settimer "chivCloseWounds" 27000
+            endif
+            
+        endif
+
+    //Emergency Heal Sequence
+        if diffhits > 40
+            
+            if timer "ChivHeal1" > 30000 
+                say '[holylight'
+                wait 250
+                if insysmsg "Holy symbols remaining:"
+                    settimer "ChivHeal1" 0
+                endif
+
+            endif  
+            wait 350
+            if diffhits > 50
+            
+                if timer "ChivHeal2" > 30000
+                    
+                    say '[NobleSacrifice'
+                    wait 350
+                    target self
+                    wait 350
+
+                    if targetexists
+                      hotkey 'cancel current target'
+                      hotkey 'clear target queue'
+                    endif
+
+                    if insysmsg "Holy symbols remaining:"
+                        settimer "ChivHeal2" 0
+                    endif
+                        
+                endif
+                    
+                if diffhits > 50 and timer "HPots" > 10000
+                      
+                    if not lhandempty and skill 'alchemy' < 79 and timer "Uneq" > 2000
+                        hotkey "Arm/Disarm Left Hand"
+                        settimer "Uneq" 0
+                        wait 550
+                    endif
+                      
+                    wait 250
+                    hotkey 'Drink Heal'
+                    overhead "Healing Pot Used"
+                    settimer "HPots" 0
+                    wait 550
+                    
+                endif
+                
+            endif
+        endif
+    //*****END OF HEALING MODULE*****
+    
+    //*****CHIVALRY MODULE         
+    
+    if find myKillTarget ground -1 -1 2
+
+        if useDivineFury > 0 and timer chivDivineFury > chivCD
+        
+            say "[DivineFury"
+            wait 250
+            if insysmsg "Holy symbols remaining:"
+                settimer "chivDivineFury" 0
+            endif
+            
+        endif
+        
+        if useEnemyofOne > 0 and timer chivEnemyofOne > chivCD
+        
+            say "[EnemyofOne"
+            wait 250
+            if insysmsg "Holy symbols remaining:"
+                settimer "chivEnemyofOne" 0
+            endif
+            
+        endif
+        
+
+        
+        if useConsecrateWeapon > 0 and timer chivConsecrateWeapon > chivCD
+        
+            say "[ConsecrateWeapon"
+            wait 250
+            if insysmsg "Holy symbols remaining:"
+                settimer "chivConsecrateWeapon" 0
+            endif
+            
+        endif
+        
+        if useDispelEvil > 0 and timer chivDispelEvil > chivCD
+        
+            say "[DispelEvil"
+            wait 250
+            if insysmsg "Holy symbols remaining:"
+                settimer "chivDispelEvil" 0
+            endif
+            
+        endif
+        
+        if useRemoveCurse > 0 and timer chivRemoveCurse > chivCD
+        
+            say "[RemoveCurse"
+            wait 250
+            if insysmsg "Holy symbols remaining:"
+                settimer "chivRemoveCurse" 0
+            endif
+            
+        endif
+        
+    endif
+
+    //*****CHIVALRY MODULE*****
+    
+    //*****CODEX MODULE*****
+    @setvar! switchWarding 0
+    
+    
+    //*****RETARGETING MODULE*****
+    if not dead myKillTarget
+      //nothing
+    elseif dead myKillTarget and SeekNextTarget > 0
+        hotkey "Target Closest Non-Friendly Monster"
+        @setvar myNextTarget lasttarget 
+        wait 250
+        
+        if not find myNextTarget ground -1 -1 10
+            overhead "No Target Found"
+            wait 500
+        else 
+            overhead " Target " 38 myNextTarget 
+            overhead " “““ " 38 myNextTarget
+        endif
+        
+        if find myNextTarget ground -1 -1 2
+            @setvar myKillTarget myNextTarget
+            hotkey "Attack Last Target"
+            wait 250
+        endif
+    endif
+    //*****END OF RETARGETING MODULE*****
+    
+endwhile

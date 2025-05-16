@@ -137,7 +137,7 @@
 @setvar! EnableRefreshPotion 1
 @setvar! EnableStrengthPotion 1
 @setvar! EnableResistPotion 1
-@setvar! EnableAgilityPotion 1
+@setvar! EnableAgilityPotion 0
 @setvar! EnableAutoExplosionPots 0
 
 @setvar! HealPotionHPdiff  35
@@ -211,12 +211,12 @@
 @setvar! EnableCastGreaterHeal 1
 @setvar! EnableCastCure 1
 
-@setvar! ActivateAutoHealHPdiff 40
-@setvar! CastGreaterHealHPdiff 50
+@setvar! ActivateAutoHealHPdiff 45
+@setvar! CastGreaterHealHPdiff 45
 @setvar! CastHealHPdiff 60
-@setvar! CastEmergencyHealHPdiff 70
+@setvar! CastEmergencyHealHPdiff 75
 
-@setvar! MiniumManaToApplyBuffs 80
+@setvar! MiniumManaToApplyBuffs 90
 @setvar! EnableMagicReflection 1
 @setvar! EnableBless 1
 @setvar! EnableReactiveArmour 1
@@ -3088,7 +3088,7 @@ while not dead
     // BEGIN HEALING LOOP //
     ////////////////////////
 
-    while diffhits >= ActivateAutoHealHPdiff or paralyzed or poisoned
+    while diffhits >= ActivateAutoHealHPdiff or poisoned
         if dead
             replay
         endif
@@ -3237,25 +3237,6 @@ while not dead
             endif
         endif
 
-        if diffhits >= 1 and not bandaging
-            if skill 'healing' >= 30 or skill "veterinary" >= 50
-                if findtype 'clean bandage%s%' backpack
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    dclicktype 'clean bandage%s%'
-                    wft 1000
-                    target 'self'
-                    wait 500
-                else
-                    if timer aidsMessageTimer > 5000 and EnableOverheadMessages = 1
-                        overhead "[ OUT OF BANDAGES! ]" 337
-                        settimer aidsMessageTimer 0
-                    endif
-                endif
-            endif
-        endif
-
         if EnableCurePotion = 1 or EnableCastCure = 1
             while poisoned
                 if findtype "Orange Potion" self
@@ -3324,7 +3305,9 @@ while not dead
             endif
         endif
 
-        if skill 'magery' >= 40 and diffhits >= CastHealHPdiff and diffhits < 5 and mana >= 4 and EnableCastHeal = 1 and not casting
+        @setvar! SpellInterrupted 0
+        
+        if skill 'magery' >= 40 and diffhits >= CastHealHPdiff and mana >= 4 and EnableCastHeal = 1 and not casting
             cast 'heal'
             while not casting
                 if targetexists
@@ -3364,7 +3347,7 @@ while not dead
             if SpellInterrupted = 0
                 target 'self'
             endif
-        elseif skill 'magery' >= 60 and diffhits >= CastGreaterHealHPdiff and diffhits < 5 and mana >= 11 and EnableCastGreaterHeal = 1 and not casting
+        elseif skill 'magery' >= 60 and diffhits >= CastGreaterHealHPdiff and mana >= 11 and EnableCastGreaterHeal = 1 and not casting
             cast 'greater heal'
             while not casting
                 if targetexists
@@ -3835,27 +3818,6 @@ while not dead
                 endif
             endif
 
-            if mana < 40 and not findbuff 'meditating' and EnableMeditation = 2
-                skill 'meditation'
-                getlabel backpack packdesc
-                wait 500
-                if not findbuff 'meditating'
-                    settimer MeditationTimer 7500
-                elseif findbuff 'meditating'
-                    warmode on
-                    warmode off
-                    settimer MeditationTimer 0
-                    while mana < 50 and diffhits < ActivateAutoHealHPdiff
-                        if not findbuff 'meditating'
-                            break
-                        elseif timer MeditationOverheadTimer > 4500 and EnableOverheadMessages = 1
-                            overhead "[ MEDITATING... ]" 11
-                            settimer MeditationOverheadTimer 0
-                        endif
-                    endwhile
-                endif
-            endif
-
             while EnableAutoCarving = 1 and findtype "corpse" ground -1 -1 2 as deadbody and diffhits < ActivateAutoHealHPdiff and findtype 11552 backpack
                if timer SkinningTimer > 5000
                     if targetexists
@@ -4028,27 +3990,6 @@ while not dead
                         wait 500
                         settimer "PotionSatchelTimer" 0
                     endif
-                endif
-            endif
-
-            if mana < 40 and not findbuff 'meditating' and EnableMeditation = 2
-                skill 'meditation'
-                getlabel backpack packdesc
-                wait 500
-                if not findbuff 'meditating'
-                    settimer MeditationTimer 7500
-                elseif findbuff 'meditating'
-                    warmode on
-                    warmode off
-                    settimer MeditationTimer 0
-                    while mana < 50 and diffhits < ActivateAutoHealHPdiff
-                        if not findbuff 'meditating'
-                            break
-                        elseif timer MeditationOverheadTimer > 4500 and EnableOverheadMessages = 1
-                            overhead "[ MEDITATING... ]" 11
-                            settimer MeditationOverheadTimer 0
-                        endif
-                    endwhile
                 endif
             endif
 
@@ -4316,6 +4257,10 @@ while not dead
             settimer "TargetChecker" 0
             replay
         endif
+        
+        if diffhits > ActivateAutoHealHPdiff 
+            break
+        endif
 
         if EnablePKradar = 1
             if timer "PKRadar" > 1000
@@ -4533,12 +4478,6 @@ while not dead
             endif
         endif
 
-        @setvar! SpellInterrupted 0
-
-        if targetexists
-            hotkey 'cancel current target'
-        endif
-
         if counttype 29012 backpack = 0 and EnableMushroomMaker = 1
             while counttype 29012 backpack < MakeMushroomAmount and mana > 3 and diffhits < ActivateAutoHealHPdiff
                 if not casting
@@ -4625,6 +4564,16 @@ while not dead
                     @setvar! PurplePotionReady 1
                 endif
             endif
+        endif
+
+        @setvar! SpellInterrupted 0
+
+        if targetexists
+            hotkey 'cancel current target'
+        endif
+        
+        if diffhits > ActivateAutoHealHPdiff 
+            break
         endif
 
         if PurplePotionReady = 1 and not dead ClosestTarget and find ClosestTarget ground -1 -1 12
@@ -5223,7 +5172,7 @@ while not dead
                         @setvar! SpellInterrupted 1
                         break
                     endif
-                    if diffhits >= 40
+                    if diffhits >= ActivateAutoHealHPdiff
                         interrupt
                         @setvar! SpellInterrupted 1
                         break
@@ -5306,7 +5255,7 @@ while not dead
             endif
         endif
 
-        if EnableDungeonCleanup = 1
+        if EnableDungeonCleanup = 1 and diffhits < ActivateAutoHealHPdiff 
             while findtype "gold coin|iron ingot%s|board%s|cut up leather|3972|3962|3963|3980|3976|3973|3974|3981" ground -1 -1 2 as item and timer "DungeonCleanup" > 1000
                 if EnableOverheadMessages = 1
                     overhead '[ CLEANUP... ]' 420
@@ -5333,7 +5282,7 @@ while not dead
             endif
         endif
 
-        if EnableArcaneCodexStances != 0 or EnableArcaneCodexFinisher != 0
+        if EnableArcaneCodexStances != 0 or EnableArcaneCodexFinisher != 0 and diffhits < ActivateAutoHealHPdiff 
             if skill 'Arcane' >= 80 and mana > SwitchArcaneCodexManaMinimum
                 if findtype "arcane codex" backpack as MyCodex
                     if not gumpexists 2016719803 and EnableArcaneCodexHotbar = 1
@@ -5577,7 +5526,7 @@ while not dead
             endif
         endif
 
-        if EnableShieldCodexStances != 0 and mana > SwitchShieldCodexManaMinimum
+        if EnableShieldCodexStances != 0 and mana > SwitchShieldCodexManaMinimum and diffhits < ActivateAutoHealHPdiff 
             if skill "Parrying" >= 80 and findtype "shield codex" backpack as ShieldCodex
                 if not gumpexists 2016719803 and EnableShieldCodexHotbar = 1
                     while not gumpexists 1066647553
@@ -5821,7 +5770,7 @@ while not dead
             endif
         endif
 
-        if skill "Arcane" >= 80 and EnableArcaneWeaponAbility = 1
+        if skill "Arcane" >= 80 and EnableArcaneWeaponAbility = 1 and diffhits < ActivateAutoHealHPdiff 
             if skill "Arcane" >= 80 and EnableArcaneWeaponAbility = 1
                 settimer ArcaneWeaponAbilityTimer 10000
                 if EnableArcaneCodexAbilityHotbar = 1
@@ -5882,6 +5831,10 @@ while not dead
             overhead "[ LOW MANA! ]" 34
             settimer ManaOverheadTimer 0
         endif
+        
+         if diffhits > ActivateAutoHealHPdiff 
+             break
+         endif
     endwhile
 
     @setvar! NeedtoSecureLoot 1

@@ -1,0 +1,233 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/bd53e1c6-4960-469a-9ff5-7d1aa96d5b19 for latest
+# Automation by Jaseowns
+## Script: Dabiri's Harpooner Background Script
+## Created by: dabiri#0
+#############################################
+
+//There are probably more elegant scripts out there, but this one works for me
+overhead 'Harpooner Background Script'
+if not findtype 'Orange Potion' backpack
+    overhead 'Out of cure pots' 28
+endif
+
+if not findtype 'White Potion' backpack
+    overhead 'Out of strength pots' 28
+endif
+
+if not findtype 'Black Potion' backpack
+    overhead 'Out of resist pots' 28
+endif
+
+if not findtype 'Blue Potion' backpack
+    overhead 'Out of agility pots' 28
+endif
+
+if not findtype 'Yellow Potion' backpack
+    overhead 'Out of heal pots' 28
+endif
+
+// Check for Boat Chain
+//Chains
+#Arcane chain 0x4586D194
+#Boat chain 0x4A0D5F94
+#Land melee 0x4B819E5F
+@setvar! equipThisChain 0x4A0D5F94
+getlabel equipThisChain chainlabel
+if 'active' in chainlabel
+    overhead 'Mastery chain - good'
+else 
+    overhead 'Wrong mastery chain - switching' 48
+    menu equipThisChain 0
+endif
+
+overhead 'Main pooner loop'
+
+if not timerexists 'bombsticking'
+ createtimer 'bombsticking'
+endif
+
+while not dead
+    if lhandempty
+        overhead 'Left hand empty'
+        if findtype 31169 backpack as jarpoon
+            overhead 'Equipping harpoon'
+            dclick jarpoon
+            getlabel backpack pingCheck
+        endif
+    endif
+
+    # Eat food if we need it
+    if not findbuff 'food' and findtype 'tray' backpack as jood
+        dclick jood
+        getlabel backpack pingCheck
+    endif
+
+    if diffweight < 30
+        overhead 'Warning: weight getting high!' 34
+    endif
+
+    if timer 'bombsticking' > 1500
+        if findtype '5188' ground -1 -1 18 as bomb
+            overhead 'BOMBS TICKING' '1360' 
+            overhead 'BOMBS TICKING' '1360' 
+            settimer 'bombsticking' 0
+        endif
+    endif
+
+    if weight >= maxweight and not findbuff 'strength' and findtype 'white potion' backpack as pot
+        dclick pot
+        wait 200
+    endif
+
+
+    //Heals & Cures
+    //Bandage Self
+    if not bandaging and hp < maxhp
+        overhead 'Bandaging self'
+        hotkey 'Bandage Self'
+        wait 200
+    endif
+
+    //Potion heal
+    if diffhits >= 30 
+        if findtype 'Yellow Potion' backpack as pot 
+            getlabel pot desc
+            if 'next usable' in desc
+                // do nothing
+            else
+                overhead 'Drinking heal'
+                dclick pot
+                overhead 'Heal Potion' 48
+                wait 250
+            endif
+        endif
+    endif
+
+    //Chivalry heal
+    if diffhits >= 50 and skill 'Chivalry' > 95 and not cooldown 'Holy Light'
+        overhead 'Using holy light!'
+        say '[Holylight'
+        getlabel backpack pingCheck
+        if insysmsg 'Holy symbols remaining:'
+            cooldown 'Holy Light' 31000
+        endif
+    endif
+
+    if diffhits >= 70 and not cooldown 'Snacking'
+        if findtype 28865 backpack as 'snackfood'
+            dclick snackfood
+            getlabel backpack pingCheck
+            cooldown 'Snacking' 60000
+        else
+            overhead 'Out of Snackfood' 28
+            cooldown 'Snacking' 10000
+        endif
+    endif
+
+    if poisoned
+        // Potion cure
+        if findtype 'Orange Potion' backpack as pot 
+            overhead 'Drinking cure potion' 48
+            dclick pot
+            wait 250
+        endif
+    endif
+
+    // Auto Pouch
+    if paralyzed 
+        if findtype 'pouch' backpack 38 
+            say '[pouch'
+            getlabel backpack pingCheck
+        else
+            overhead 'Out of Pouches!' 34
+        endif
+    endif
+
+    // Drink Red Pot
+    if diffstam >= 5
+        overhead 'drink a red pot'
+        if findtype 'Red Potion' backpack as redPot
+            overhead ' Drinking refresh potion'
+            dclick redPot
+            wait 250
+        else
+            overhead 'Out of refresh pots' 34
+        endif
+    endif
+
+    //Change target routine
+    if not cooldown 'Change Target'
+        @hotkey 'Target Closest Non-Friendly Monster'
+        getlabel backpack pingCheck
+
+        if insysmsg 'No one matching that was found'
+            // overhead 'No target found'
+        else
+            @setvar! killTarget lasttarget
+            getlabel backpack pingCheck
+        endif
+
+        if find killTarget -1 -1 20
+            attack killTarget
+            //overhead 'Ï ¼¼ HERE ¼¼ Ï' 38 killTarget
+            getlabel backpack pingCheck
+            //say '[WeaponAbility3'
+        endif
+        unsetvar killTarget
+        cooldown 'Change Target' 4700
+    endif
+    
+    // Drink str pot
+    if not findbuff 'Strength'
+        if findtype 'White Potion' backpack as jPot
+            overhead 'Drinking strength potion'
+            dclick jPot
+            wait 200
+        endif
+    endif
+
+    // Drink resist pot
+    if not findbuff 'Magic Resist Potion'
+        if findtype 'Black Potion' backpack as jPot
+            overhead 'Drinking resist potion'
+            dclick jPot
+            wait 200
+        endif
+    endif
+
+    // Drink agility pot
+    if not findbuff 'Agility'
+        if findtype 'Blue Potion' backpack as jPot
+            overhead 'Drinking agility potion'
+            dclick jPot
+            wait 200
+        endif
+     endif
+
+
+    //Spyglass Routine
+    if not findtype 5365 backpack
+        overhead 'No spyglass'
+        script 'LandHarpooner'
+    endif
+
+    if not cooldown 'Spyglass' and not queued
+        if targetexists
+            overhead 'Skipping spyglass' 15
+            cooldown 'Spyglass' 2000
+        else
+            gumpclose 2890020940
+            dclicktype 5365
+            wft 500
+            if targetexists neutral
+                target 'self'
+                waitforgump 2890020940
+                gumpresponse 4 2890020940
+                waitforgump 2890020940
+                cooldown 'Spyglass' 6300
+            endif
+        endif
+    endif
+
+
+endwhile

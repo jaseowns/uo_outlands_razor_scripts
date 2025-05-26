@@ -1,0 +1,235 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/20839f63-c8be-4654-acb4-91c876a28129 for latest
+# Automation by Jaseowns
+## Script: D20's Resisting Spells trainer using Flamestrike
+## Created by: dnd20#0
+#############################################
+
+// This script will level Resisting Spells using self cast Flamestrikes!
+//
+// If you are a scribe please set useScrolls variable to 1
+//  otherwise youll just need to keep your regs stocked up
+//
+// Im new and dont have a shelf yet but will update to restock once I have one
+// 
+// Using Bless or Buff pots kind of mess up my guess math so if you use them it
+// works just fine but will be less efficent since it just sits around more often.
+//
+// This script values your life over your mana and time, keep that in mind.
+//
+//  D20s  Resisting Spells trainer.
+
+@setvar! isSafetoStrike 0
+@setvar! eatMushrooms 1
+@setvar! ManaThreshold 40
+@setvar! useScrolls 1
+
+if diffhits > 1
+    overhead "Whoa buddy, that's dangerous"
+    overhead "Let's heal up a bit"
+    wait 500
+    cast "Greater Heal"
+    waitfortarget 
+    target self
+    wait 500
+endif
+
+while not dead
+   if skill "Resisting Spells" < 100
+
+        # Checking HP and Mana for safety sake
+        if diffhits = 0
+            overhead  "HP Full" 68
+            @setvar! isSafetoStrike 1
+            wait 1000
+        endif
+        if diffmana > 80
+            overhead "Need Mana" 12
+            @setvar! isSafetoStrike 0
+            wait 1000
+        endif
+        
+       # Lets meditate if we have low mana.
+       if mana < ManaThreshold
+            while diffmana > 3
+                if not findbuff "actively meditating"
+                    @setvar! isSafetoStrike 0
+                    overhead "*Meditating*" 24
+                    hotkey "Meditation"
+                endif
+                wait 500
+            endwhile
+        endif
+
+        if insysmsg "You are at peace." and diffhits > 16
+            cast "Greater Heal"
+            waitfortarget 
+            target self
+            wait 500
+        endif
+        
+        # HPs less than 99 gets a heal
+        if hp < 99 and hp > 83 and not findbuff "actively meditating" 
+                @setvar! isSafetoStrike 0
+            
+            # If using scrolls
+                if useScrolls = 1 
+                    if findtype 7985 backpack
+                        overhead "*Heal*" 20
+                        cast "Heal"
+                        waitfortarget 
+                        target self
+                        pause 800
+                    else
+                        overhead "Out of Heal Scrolls"
+                    stop
+                    endif
+                 endif
+                # If using regs        
+                if useScrolls = 0
+                    if counttype "Garlic" < 1 or counttype "Spider's Silk" < 1 or counttype "Ginseng" < 1
+                    overhead "*Heal*" 20
+                        cast "Heal"
+                        waitfortarget 
+                        target self
+                        pause 800
+                    else
+                        overhead "Out of regs: Heal"
+                    stop
+                    endif
+                endif
+            endif
+
+        # HPs less than 70 gets a greater heal
+        if hp < 70  and not findbuff "actively meditating"
+                @setvar! isSafetoStrike 0
+            
+            # If using scrolls
+                if useScrolls = 1 
+                    if findtype 8009 backpack
+                        overhead "*Greater Heal*" 20
+                        cast "Greater Heal"
+                        waitfortarget 
+                        target self
+                        pause 800
+                    else
+                        overhead "Out of Greater Heal Scrolls" 33
+                    stop
+                    endif
+                 endif
+                # If using regs        
+                if useScrolls = 0
+                    if counttype "Garlic" < 10 or counttype "Spider's Silk" < 1 or counttype "Mandrake Root%s%" < 1 or counttype "Ginseng" < 1
+                        overhead "*Greater heal*" 20
+                        cast "Greater Heal"
+                        waitfortarget 
+                        target self
+                        pause 800
+                    else
+                        overhead "Out of regs: Greater Heal" 33
+                    stop
+                    endif
+                endif
+            endif
+        
+        #if you want to eat mushrooms
+    if eatMushrooms = 1
+        # Set mushroom cooldown if it somehow gets out of sync.
+        if insysmsg "You may now use another magic mushroom."
+            cooldown "mushroom" 0
+        endif
+        # Make mushrooms if you run out.
+    if not findtype 29012 backpack 2963
+
+        if useScrolls = 1
+            if findtype 7983 backpack
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800   
+               cast "Create Food"
+               pause 800 
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800   
+               cast "Create Food"
+               pause 800
+              else
+                  overhead "Out of Mushroom Scrolls"
+               endif
+            endif
+        if useScrolls = 0
+            if counttype "Garlic" < 1 or counttype "Mandrake Root%s%" < 1 or counttype "Ginseng" < 1
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800   
+               cast "Create Food"
+               pause 800 
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800
+               cast "Create Food"
+               pause 800   
+               cast "Create Food"
+               pause 800
+              else
+                 overhead "Out of Mushroom regs"
+               endif 
+           endif
+       endif
+           
+            if not cooldown "mushroom" and mana < 76 and not findbuff "actively meditating"
+                if findtype 29012 backpack 2963 as item
+                    dclick item
+                    getlabel backpack PingCheck 
+                    overhead "I ate a mushroom" 12
+                    pause 1000
+                endif
+            endif
+       endif
+        
+        # Cast Flamestrike on yourself
+        if isSafetoStrike = 1 and mana > 40 and hp > 50
+            if useScrolls = 1
+                if findtype 8031 backpack
+                    overhead "Flamestrike, hold on bois!" 48
+                    cast "Flamestrike"
+                    waitfortarget 
+                    target self
+                    pause 1000
+                 else
+                     overhead "Out of Flamestrike scrolls, better check inscription skill!"
+                 endif
+             endif
+            if useScrolls = 0
+                if counttype "Sulfurous Ash" < 1 or counttype "Spider's Silk" < 1
+                    overhead "Flamestrike, hold on bois!" 48
+                    cast "Flamestrike"
+                    waitfortarget 
+                    target self
+                    pause 1000
+                 else
+                     overhead "Out of Flamestrike Regs!"
+                 stop
+                 endif
+             endif
+        endif
+            
+    endif
+endwhile

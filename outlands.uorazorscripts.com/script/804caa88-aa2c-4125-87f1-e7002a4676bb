@@ -11,22 +11,23 @@
 @setvar! castLightning 1
 
 #Potions
-@setvar! useHealthPotion 1
 @setvar! useCurePotion 1
 @setvar! useStrengthPotion 1
 @setvar! useDexterityPotion 1
 @setvar! useResistPotion 1
+@setvar! useStaminaPotion 1
 @setvar! Panacea 1
-@setvar! useExplosion 1
-@setvar! cdExplosionPvE 15000
-    
+@setvar! Freedom 1
+@setvar! useExplosion 0
+
 #Misc
 @setvar! castLeyline 1
 @setvar! cdLeyline 5000
-@setvar! useTaunt 1
+@setvar! useTaunt 0
+@setvar! GoldDrop 0
 
 
-#The first 5 parts are about healing and curing.
+#Curing
 
 if useCurePotion = 1 and poisoned
     if findtype "Orange Potion" backpack as pot
@@ -46,18 +47,41 @@ if Panacea = 1 and findbuff 'Bleed' and not cooldown Panacea
     endif
 endif
 
-if useHealthPotion = 1 and diffhits > 30
-    if findtype "Yellow Potion" backpack as pot
+if diffstam > 8
+    if findtype "Red Potion" backpack as pot
         dclick pot
     endif
 endif
 
-if diffhits > 50
-    hotkey 'Play Script: Smarter Heal'
+if Freedom = 1 and findbuff 'Hinder' and not cooldown Freedom
+    if findtype "Red Potion" backpack as pot
+        dclick pot
+        overhead 'Hinder Removed'
+    endif
 endif
 
-#These next 5 parts will rebuff your magic armor, potions and food.
+if Freedom = 1 and findbuff 'Entangle' and not cooldown Freedom
+    if findtype "Red Potion" backpack as pot
+        dclick pot
+        overhead 'Entangle Removed'
+    endif
+endif
 
+#Healing
+if diffhits > 35
+    if findtype "Yellow Potion" backpack as pot
+        getlabel pot potlabel
+        if 'next usable' in potlabel
+            hotkey 'Play Script: Smarter Heal'
+        else
+        dclick pot
+        endif
+    else
+        hotkey 'Play Script: Smarter Heal'
+    endif
+endif
+
+#Buffing
 if not findbuff "Reactive Armor" and mana >= 5
     cast "Reactive Armor"
 endif
@@ -74,7 +98,7 @@ if useDexterityPotion = 1 and not findbuff 'Agility'
     endif
 endif
 
-if useHealthPotion = 1 and not findbuff 'Magic Resist Potion'
+if useResistPotion = 1 and not findbuff 'Magic Resist Potion'
     if findtype "Black Potion" backpack as pot
         dclick pot
     endif
@@ -99,25 +123,50 @@ if diffmana > 30 and not cooldown Leyline and castLeyline = 1
     cooldown Leyline cdLeyline
 endif
 
+#Codex Hotbar
+if not gumpexists 2016719803 and skill 'Parrying' >= 80
+    dclick 0x4199F522
+    waitforgump 3835665787
+    gumpresponse 2
+    waitforgump 2016719803
+    gumpclose 3835665787
+endif
 
-#If you have a target witin 12 tiles, this will use an explosion potion on last target.
-#You will need an ingame cooldown called ExplosionPvE for this to work.
+#If you have a target witin 12 tiles, this will try to check LOS with arms lore and then use an explosion potion on last target.
+#You will need an ingame cooldown called LOS for this to work.
+#You will need an ingame cooldown called ExplosionPotion for this to work.
 #WARNING: There is no way to check for Line of Sight. If you are out of LOS this will explode on you.
 #WARNING: Explosion potions run the risk of exploding on blue characters and may turn you grey.
-if find lasttarget ground -1 -1 12
-    if skill 'Alchemy' > 79 and not cooldown 'ExplosionPvE' and useExplosion = 1 and findtype '3853' > 0
-        if findtype "Purple Potion" backpack as pot
-            dclick pot
-        endif
+if find lasttarget ground -1 -1 12 and skill 'Alchemy' >= 80 and not cooldown 'ExplosionPotion' and findtype '3853' > 0
+    hotkey 'Arms Lore'
     wft
     lasttarget
-    cooldown ExplosionPvE cdExplosionPvE
+    getlabel backpack PingCheck
+    if cooldown LOS and findtype "Purple Potion" backpack as pot
+        dclick pot
+        wft
+        lasttarget 
+        cooldown ExplosionPotion 12200
     endif
 endif
 
+#Gold Drop
+if findtype "gold coin" backpack as item and GoldDrop = 1
+    lift item 2000
+        droprelloc 0 0
+endif
+
+
+#Move looted reagents to satchel
+
+if findtype 3963|3980|3974|3973|3981|3962|3976|3972 backpack
+    if findtype "reagent satchel" self as 'WizardSatchel'
+        menu 'WizardSatchel' 0
+    endif
+endif
 
 #Damage spells begin here:
-if mana >= 64
+if mana >= 60
     cast 'Flamestrike'
     stop
 endif

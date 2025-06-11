@@ -4,54 +4,103 @@
 ## Created by: golfinh0#0
 #############################################
 
-# Author: golfinho
-
-# Check for hatchet
-if lhandempty and findtype 'hatchet' backpack as _hatchet
-    dclick _hatchet
-elseif not findlayer self lefthand 
-    sysmsg "No hatchet found!" 38
-    stop
+# author: golfinho
+# SETUP:
+# Have a trap pouch in your bag
+# On Razor: 
+#   Agents -> "Organizer 20"; 
+#   Add Target -> in game click on any Log
+#   Right click on the Logs and select by Type
+# Change the below line to adjust with your recall setup: i.e.:
+#   [RecallCharge <rune-name> 
+#   call script with `script <script-name>`
+ 
+# Recall home
+if recall = 1
+    clearignore
+    @setvar! recall 0
+    # script 'recall'
+    say '[Recall Wagon' 
 endif
 
-# Track PKs if you have tracking
+
+if not timerexists 'logs_organizer'
+    createtimer 'logs_organizer'
+
+    if findtype 'pouch' backpack 38 -1 -1 as _pouch
+        organizer 20 set 
+        wft
+        target _pouch
+    endif
+endif
+
+// Reset every 10 seconds
+if timer 'logs_organizer' > 10000
+    organizer 20
+    wait 1000
+    settimer 'logs_organizer' 0
+endif
+
+
+# If hand is empty grab a hatchet in the bag
+if lhandempty and findtype 'hatchet' backpack as _hatchet
+    dclick _hatchet
+elseif not findlayer self lefthand
+    sysmsg "No hatchet found!" 38
+    @setvar! recall 1
+    loop
+endif
+
 if skill 'Tracking' > 0 and not findbuff 'Tracking Hunting'
     @setvar! tracking_gump 4267467659
 
     while not gumpexists tracking_gump
         useskill 'Tracking'
-        waitforgump tracking_gump 500       
+        waitforgump tracking_gump 500
     endwhile
 
     while not insysmsg "You will now hunt all hostile players."
         gumpresponse 8 tracking_gump
         waitforgump tracking_gump 500
     endwhile
-
+    
     gumpresponse 6 tracking_gump
+    waitforgump tracking_gump 500
+    gumpclose tracking_gump
+    @setvar! now_tracking_pk 0
 endif
 
-# In case a PK is seen, just notify. It is up to you what to do
-if insysmsg "Now tracking:"
-   overhead "**PK SEEN**" 38
+if not hidden
+    hotkey 'use item in hand'
+    wft 5000
+    target self
 endif
 
-# I use Hiding as my stop condition, so if I see any PK I hide myself and the script stop
-# Feel free to remove this
-if hidden
-    stop
-endif
-
-hotkey 'use item in hand'
-wft 300
-target self
-
-while not insysmsg "You chop some" and not insysmsg "You hack at" 
+while not insysmsg "You chop some" and not insysmsg "You hack at"
+    if insysmsg "Now tracking:"
+        overhead "**PK**" 38
+        @setvar! recall 1
+        loop
+    endif
+    
+    if findtype 'map' backapck 
+        wait 500
+        loop
+    endif
+    
     if insysmsg "You do not see any" or hidden
-        wait 1000
+        wait 250
         break
     endif
-    wait 1000
+    
+    if findtype 'pouch' backpack 38 -1 -1 as _pouch
+    else
+        overhead "**ATTENTION PICKPOCKET**" 38
+        skill 'Hiding'
+        @setvar! recall 1
+        break
+    endif
+    wait 500
 endwhile
 
 loop

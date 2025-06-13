@@ -4,9 +4,10 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-lumber ver.6.12
+#SUPER Auto-lumber ver.6.13
 
-#ver.6.12 - Added detect hidden skill use
+#ver.6.13 - Fixed bug not recalling when summoning
+#ver.6.12 - Removed air, fire and daemon elementals / added detect hidden skill use
 #ver.6.11 - Minor fixes
 #ver.6.10 - Recalling logic fixes
 #ver.6.01 - Auto summoning and auto healing re-make
@@ -48,7 +49,7 @@
 # 0 - will auto recall when PKs are 40 steps or closer (medioum risk)
 # 1 - will auto recall when detect PKs at any distance (low risk)
 
-@setvar! autoRecall 0
+@setvar! autoRecall 1
 
 #-- Set recall type --#
 # 0 - using regs (target the book)
@@ -84,12 +85,9 @@
 
 #--- Set Elementals Count ---#
 
-@setvar! earthElementals 1
+@setvar! earthElementals 0
 @setvar! waterElementals 0
-@setvar! airElementals 0
-@setvar! fireElementals 0
-@setvar! summonDaemons 0
-@setvar! summonCreature 0
+@setvar! summonCreature 3
 
 #--- Set mushrooms ---#
 
@@ -217,15 +215,7 @@ endif
 if not varexist castingWater or followers = 0 
     @setvar! castingWater 0
 endif
-if not varexist castingFire or followers = 0 
-    @setvar! castingFire 0
-endif
-if not varexist castingAir or followers = 0 
-    @setvar! castingAir 0
-endif
-if not varexist castingDaemon or followers = 0 
-    @setvar! castingDaemon 0
-endif
+
 if not varexist castingCreature or followers = 0 
     @setvar! castingCreature 0
 endif
@@ -244,36 +234,6 @@ if waterElementals = 1
     pushlist maxFollowersList x 
     pushlist maxFollowersList x 
 elseif waterElementals = 2
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x
-endif
-
-if airElementals  = 1
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x 
-elseif airElementals  = 2
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x
-endif
-
-if fireElementals  = 1
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x 
-elseif fireElementals  = 2
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x
-endif
-
-if summonDaemons  = 1
-    pushlist maxFollowersList x 
-    pushlist maxFollowersList x 
-elseif summonDaemons  = 2
     pushlist maxFollowersList x 
     pushlist maxFollowersList x 
     pushlist maxFollowersList x 
@@ -336,30 +296,6 @@ if not varexist waterSecondly or followers = 0
     @setvar! waterSecondly 0
 endif
 
-if not varexist airFirsty or followers = 0
-    @setvar! airFirsty 0
-endif
-
-if not varexist airSecondly or followers = 0
-    @setvar! airSecondly 0
-endif
-
-if not varexist fireFirsty or followers = 0
-    @setvar! fireFirsty 0
-endif
-
-if not varexist fireSecondly or followers = 0
-    @setvar! fireSecondly 0
-endif
-
-if not varexist daemonFirsty or followers = 0
-    @setvar! daemonFirsty 0
-endif
-
-if not varexist daemonSecondly or followers = 0
-    @setvar! daemonSecondly 0
-endif
-
 if not varexist creatureFirsty or followers = 0
     @setvar! creatureFirsty 0
 endif
@@ -390,21 +326,6 @@ endif
 if not listexists waterListy or followers = 0
     removelist waterListy
     createlist waterListy
-endif
-
-if not listexists airListy or followers = 0
-    removelist airListy
-    createlist airListy
-endif
-
-if not listexists fireListy or followers = 0
-    removelist fireListy
-    createlist fireListy
-endif
-
-if not listexists daemonListy or followers = 0
-    removelist daemonListy
-    createlist daemonListy
 endif
 
 if not listexists creatureListy or followers = 0
@@ -2713,1079 +2634,709 @@ while not dead
             wait maxwaittimeinms
             overhead "[chest locked]" 55
         endif
-    
-        #Check if we want to cast
-        
-        if enemyFound = 0 or autoRecall = 0
 
 #********** START AUTO SUMMONING **********# 
 
-            while followers < maxFollowers and diffhits < activateAutoHealDiff
-                
-                #--- Eat Food ---#
+        while followers < maxFollowers and diffhits < activateAutoHealDiff
         
-                if not findbuff "food" 
-                    if findtype "tray" backpack as fody    
-                        dclick fody
-                        wait 200
-                    else 
-                        if timer foodMessageTimer > foodMessageCD
-                            overhead "No food found!" 34
-                            settimer foodMessageTimer 0
-                        endif
-                    endif
-                endif
-                
-                #--- Drink str pot ---#
-                
-                if drinkStr = 1 and str < strengthLowerThan
-                    if not findbuff "Strength" 
-                        if findtype "White Potion" self
-                            dclicktype "White Potion"
-                            wait 200
-                        else
-                            if timer whiteMessageTimer > whiteMessageCD
-                                overhead "Out of str pots" 34
-                                settimer whiteMessageTimer 0 
-                            endif
-                        endif
-                    endif
-                endif
-                
-                #--- Drink agility pot ---#
-                
-                if drinkAgility = 1
-                    if not findbuff "Agility" 
-                        if findtype "Blue Potion" self
-                            dclicktype "Blue Potion"
-                            wait 200
-                        else
-                            if timer blueMessageTimer > blueMessageCD
-                                overhead "Out of agility pots" 34
-                                settimer blueMessageTimer 0 
-                            endif
-                        endif
-                    endif
-                endif
-                    
-                #--- Drink magic resist pot ---#
+            if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                break
+            endif  
             
-                if drinkMagicResist = 1
-                    if not findbuff "Magic Resist" 
-                        if findtype "Black Potion" self
-                            dclicktype "Black Potion"
-                            wait 200
-                        else
-                            if timer blackMessageTimer > blackMessageCD
-                                overhead "Out of resist pots" 34
-                                settimer blackMessageTimer 0
-                            endif
-                        endif
+            #--- Eat Food ---#
+    
+            if not findbuff "food" 
+                if findtype "tray" backpack as fody    
+                    dclick fody
+                    wait 200
+                else 
+                    if timer foodMessageTimer > foodMessageCD
+                        overhead "No food found!" 34
+                        settimer foodMessageTimer 0
                     endif
                 endif
-                
-                #--- Drink red pot ---#
-                
-                if diffstam > drinkWhenMissingStamina and 1 = drinkRefresh
-                    if findtype "Red Potion" self
-                        dclicktype "Red Potion"
+            endif
+            
+            #--- Drink str pot ---#
+            
+            if drinkStr = 1 and str < strengthLowerThan
+                if not findbuff "Strength" 
+                    if findtype "White Potion" self
+                        dclicktype "White Potion"
                         wait 200
                     else
-                        if timer redMessageTimer > redMessageCD
-                            overhead "Out of refresh pots" 34
-                            settimer redMessageTimer 0 
+                        if timer whiteMessageTimer > whiteMessageCD
+                            overhead "Out of str pots" 34
+                            settimer whiteMessageTimer 0 
                         endif
                     endif
                 endif
-                
-                #--- Create mushroom ---#
-                
-                if insysmsg "You create"
-                endif   
-                
-                while counttype 29012 backpack < mushroomCount and findtype 3963 self and findtype 3976 self and mana > 3
-                    cast 'create food'
-                    while not casting 
-                        cast 'create food'
-                    endwhile
-                    while casting
-                    endwhile
-                    wait 200
-                    getlabel backpack xxx
-                    if insysmsg! "you create"
-                        if insysmsg "you create a magic"
-                        else
-                            sysmsg "Wizard's Grimoire `create food` not found" 34
-                            @setvar! mushroomCount 0
-                            break 
+            endif
+            
+            #--- Drink agility pot ---#
+            
+            if drinkAgility = 1
+                if not findbuff "Agility" 
+                    if findtype "Blue Potion" self
+                        dclicktype "Blue Potion"
+                        wait 200
+                    else
+                        if timer blueMessageTimer > blueMessageCD
+                            overhead "Out of agility pots" 34
+                            settimer blueMessageTimer 0 
                         endif
                     endif
-                endwhile
+                endif
+            endif
                 
-                #--- Eat Mushroom ---#
-             
-                if mana < eatMushWhenManaLowerThan and mushroomCount > 0 and timer mushroomTimer > mushroomTimerCD
-                    if counttype 29012 backpack
-                        if insysmsg "You consume a magic mushroom"
+            #--- Drink magic resist pot ---#
+        
+            if drinkMagicResist = 1
+                if not findbuff "Magic Resist" 
+                    if findtype "Black Potion" self
+                        dclicktype "Black Potion"
+                        wait 200
+                    else
+                        if timer blackMessageTimer > blackMessageCD
+                            overhead "Out of resist pots" 34
+                            settimer blackMessageTimer 0
                         endif
-                        sysmsg "Eating mush." 44
-                        dclicktype 29012 backpack
+                    endif
+                endif
+            endif
+            
+            #--- Drink red pot ---#
+            
+            if diffstam > drinkWhenMissingStamina and 1 = drinkRefresh
+                if findtype "Red Potion" self
+                    dclicktype "Red Potion"
+                    wait 200
+                else
+                    if timer redMessageTimer > redMessageCD
+                        overhead "Out of refresh pots" 34
+                        settimer redMessageTimer 0 
+                    endif
+                endif
+            endif
+            
+            #--- Create mushroom ---#
+            
+            if insysmsg "You create"
+            endif   
+            
+            while counttype 29012 backpack < mushroomCount and findtype 3963 self and findtype 3976 self and mana > 3
+                cast 'create food'
+                while not casting 
+                    cast 'create food'
+                endwhile
+                while casting
+                endwhile
+                wait 200
+                getlabel backpack xxx
+                if insysmsg! "you create"
+                    if insysmsg "you create a magic"
+                    else
+                        sysmsg "Wizard's Grimoire `create food` not found" 34
+                        @setvar! mushroomCount 0
+                        break 
+                    endif
+                endif
+            endwhile
+            
+            #--- Eat Mushroom ---#
+         
+            if mana < eatMushWhenManaLowerThan and mushroomCount > 0 and timer mushroomTimer > mushroomTimerCD
+                if counttype 29012 backpack
+                    if insysmsg "You consume a magic mushroom"
+                    endif
+                    sysmsg "Eating mush." 44
+                    dclicktype 29012 backpack
+                    getlabel backpack xxx
+                    wait 200
+                    
+                    if insysmsg "You consume a magic mushroom"
+                        settimer mushroomTimer 0
+                    endif
+                else 
+                    overhead "No mushrooms found!" 34
+                endif
+            endif
+            
+            #--- Use Meditation ---#
+            
+            if 0 = useMeditationSkill and mana < 50 
+                break
+            elseif 1 = useMeditationSkill and mana < 50 and not findbuff "meditating" and timer meditationTimer > meditationCD
+                if insysmsg "you are at peace"
+                endif
+                if insysmsg "you enter a meditative trance"
+                endif
+                if insysmsg "You must wait a few moments to use another skill."
+                endif
+                
+                skill 'meditation'
+                getlabel backpack xxx
+                wait 200
+                if not findbuff 'meditating'
+                    settimer meditationTimer 7500
+                elseif findbuff 'meditating'
+                    warmode on
+                    warmode off
+                    settimer meditationTimer 0
+                    while mana < 50 and diffhits < activateAutoHealDiff
+                        if not findbuff 'meditating'
+                            break
+                        endif
+                        if timer meditationMessageTimer > meditationMessageCD
+                            overhead "* actively meditating *" 11
+                            settimer meditationMessageTimer 0
+                        endif
+                    endwhile
+                endif
+            endif 
+            
+            #--- Check for new elementals ---#
+            
+            if 1 = castingEarth and followers > 1
+                sysmsg "fixing earth" 44
+                while findtype 158|14 ground -1 -1 12 as ele 
+                    menu ele 1
+                    waitfortarget maxwaittimeinms
+                    if targetexists 
+                        if ele != earthFirsty and ele != earthSecondly
+                            hotkey 'cancel current target'
+                            
+                            if earthFirsty = 0 
+                                @setvar! earthFirsty ele
+                                sysmsg "add earth 1" 11
+                                overhead "Earth 1" 634 ele
+                            else 
+                                @setvar! earthSecondly ele
+                                sysmsg "add earth 2" 11
+                                overhead "Earth 2" 634 ele
+                            endif
+                            
+                            break
+                        endif
+                    endif
+                    @ignore ele
+                endwhile    
+                @clearignore
+                @setvar! castingEarth 0
+                
+            elseif 1 = castingWater and followers > 1
+                sysmsg "fixing water" 44
+                while findtype 740|16 ground -1 -1 12 as ele 
+                    menu ele 1
+                    waitfortarget maxwaittimeinms
+                    if targetexists 
+                        if ele != waterFirsty and ele != waterSecondly
+                            hotkey 'cancel current target'
+                            
+                            if waterFirsty = 0 
+                                @setvar! waterFirsty ele
+                                sysmsg "add water 1" 11
+                                overhead "Water 1" 399 ele
+                            else 
+                                @setvar! waterSecondly ele
+                                sysmsg "add water 2" 11
+                                overhead "Water 2" 399 ele
+                            endif
+                            
+                            break
+                        endif
+                    endif
+                    @ignore ele
+                endwhile
+                @clearignore
+                @setvar! castingWater 0
+                
+            elseif 1 = castingCreature and followers > 0
+                sysmsg "fixing creature" 44
+                while findtype 215|211|302|317|225|212|202|213|716|729|51|74|214|206|776|737|718|739|718|29|776|317|302|39|56|26|3|57|50|382|717|736|270 ground -1 -1 12 as ele 
+                    menu ele 1
+                    waitfortarget maxwaittimeinms
+                    if targetexists 
+                        if ele != creatureFirsty and ele != creatureSecondly and ele != creatureThirdy and ele != creatureFourthy and ele != creatureFithy
+                            hotkey 'cancel current target'
+                            wait 50
+                            menu ele 3
+                            if creatureFirsty = 0 
+                                @setvar! creatureFirsty ele
+                                sysmsg "Creature 1" 11
+                                overhead "Creature 1" 11 ele
+                            elseif creatureSecondly = 0 
+                                @setvar! creatureSecondly ele
+                                sysmsg "add creature 2" 11
+                                overhead "Creature 2" 11 ele
+                            elseif creatureThirdy = 0 
+                                @setvar! creatureThirdy ele
+                                sysmsg "add creature 3" 11
+                                overhead "Creature 3" 11 ele
+                            elseif creatureFourthy = 0 
+                                @setvar! creatureFourthy ele
+                                sysmsg "add creature 4" 11
+                                overhead "Creature 4" 11 ele
+                            elseif creatureFithy = 0 
+                                @setvar! creatureFithy ele
+                                sysmsg "add creature 5" 11
+                                overhead "Creature 5" 11 ele
+                            endif
+                            
+                            break
+                        endif
+                    endif
+                    @ignore ele
+                endwhile 
+                @clearignore
+                @setvar! castingCreature 0
+            endif
+            
+            #--- Check for dead elementals ---#
+            
+            if earthFirsty != 0 and dead earthFirsty
+                if list earthListy != 0
+                    poplist earthListy 'front' 
+                    sysmsg "pop earth 1"
+                endif 
+                @setvar! earthFirsty 0
+            endif
+                
+            if earthSecondly != 0 and dead earthSecondly
+                if list earthListy != 0
+                    poplist earthListy 'front'  
+                    sysmsg "pop earth 2"
+                endif  
+                @setvar! earthSecondly 0
+            endif
+                
+            if waterFirsty != 0 and dead waterFirsty
+                if list waterListy != 0
+                    poplist waterListy 'front'  
+                    sysmsg "pop water 1"
+                endif
+                @setvar! waterFirsty 0
+            endif
+                
+            if waterSecondly != 0 and dead waterSecondly
+                if list waterListy != 0
+                    poplist waterListy 'front' 
+                    sysmsg "pop water 2"
+                endif
+                @setvar! waterSecondly 0
+            endif
+                
+            if creatureFirsty != 0 and dead creatureFirsty 
+                if list creatureListy != 0
+                    poplist creatureListy 'front'
+                    sysmsg "pop creature 1"
+                endif 
+                @setvar! creatureFirsty 0
+            endif
+                
+            if creatureSecondly != 0 and dead creatureSecondly 
+                if list creatureListy != 0
+                    poplist creatureListy 'front'
+                    sysmsg "pop creature 2"
+                endif 
+                @setvar! creatureSecondly 0
+            endif
+                
+            if creatureThirdy != 0 and dead creatureThirdy 
+                if list creatureListy != 0
+                    poplist creatureListy 'front'
+                    sysmsg "pop creature 3"
+                endif 
+                @setvar! creatureThirdy 0
+            endif
+                
+            if creatureFourthy != 0 and dead creatureFourthy 
+                if list creatureListy != 0
+                    poplist creatureListy 'front'
+                    sysmsg "pop creature 4"
+                endif 
+                @setvar! creatureFourthy 0
+            endif
+                
+            if creatureFithy != 0 and dead creatureFithy 
+                if list creatureListy != 0
+                    poplist creatureListy 'front'
+                    sysmsg "pop creature 5"
+                endif 
+                @setvar! creatureFithy 0
+            endif
+            
+            @clearsysmsg
+            @setvar! wasInterrupted 0
+            
+            if list earthListy = 0 
+                #sysmsg "Earth List = 0"
+            elseif list earthListy = 1
+                #sysmsg "Earth List = 1"
+            elseif list earthListy = 2
+                #sysmsg "Earth List = 2"
+            endif
+            
+            if list waterListy = 0 
+                #sysmsg "Water List = 0"
+            elseif list waterListy = 1
+                #sysmsg "Water List = 1"
+            elseif list waterListy = 2
+                #sysmsg "Water List = 2"
+            endif
+            
+            if list creatureListy = 0 
+                #sysmsg "Creature List = 0"
+            elseif list creatureListy = 1
+                #sysmsg "Creature List = 1"
+            elseif list creatureListy = 2
+                #sysmsg "Creature List = 2"
+            elseif list creatureListy = 2
+                #sysmsg "Creature List = 2"
+            elseif list creatureListy = 2
+                #sysmsg "Creature List = 2"
+            endif
+            
+            @setvar! missingSummonRegs 0
+            @setvar! summoningSucessful 0
+            
+            if not findtype 3963 self or not findtype 3974 self or not findtype 3981 self
+                @setvar! missingSummonRegs 1
+                if timer noRegsMessageTimer > noRegsMessageCD
+                    overhead 'No regs to summon!' 34
+                    sysmsg 'No regs to summon!' 34
+                    settimer noRegsMessageTimer 0
+                endif
+                wait noRegsMessageCD
+            elseif mana < 50
+                if timer noRegsMessageTimer > noRegsMessageCD
+                    overhead "* low mana to summon *" 34
+                    settimer noRegsMessageTimer 0
+                endif
+            endif
+            
+                
+    #********** CAST EARTH ELEMENTAL **********# 
+        
+            if earthElementals != 0 and list earthListy < earthElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49
+                if insysmsg "world is saving"
+                endif
+                
+                @setvar! isWorldSaving 0
+                
+                cast 'Earth Elemental'
+                @setvar! castingEarth 1
+                while not casting                   
+                    cast 'Earth Elemental'  
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                endwhile  
+                
+                while not dead
+                
+                    if enemyFound = 0
+                        if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                            @setvar! enemyFound 1
+                        endif
+                    endif
+                    
+                    if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                        interrupt
+                        @setvar! wasInterrupted 1 
+                        break
+                    endif  
+                
+                     if insysmsg "world is saving"
+                        interrupt
+                        @setvar! isWorldSaving 1
+                        @setvar! wasInterrupted 1 
+                        break
+                    endif        
+                    
+                    if diffhits >= interruptCastingDiff
+                        @setvar! wasInterrupted 1 
+                        sysmsg "interrupted low health" 33
+                        interrupt
+                        break
+                    endif
+                    
+                    if not casting
                         getlabel backpack xxx
                         wait 200
                         
-                        if insysmsg "You consume a magic mushroom"
-                            settimer mushroomTimer 0
+                        if insysmsg "Your concentration"
+                            @setvar! wasInterrupted 1 
+                            sysmsg "interrupted concentration" 33   
+                        else 
+                            sysmsg "casting finished" 11
                         endif
-                    else 
-                        overhead "No mushrooms found!" 34
+                        
+                        break
                     endif
+                    
+                    if timer summonMsgTimer > summonMsgCD
+                        overhead "* summoning earth... *" 634
+                        sysmsg "* summoning earth... *" 634
+                        settimer summonMsgTimer 0
+                    endif
+                    
+                endwhile
+    
+                if 0 = wasInterrupted
+                    @setvar! summoningSucessful 1
+                    sysmsg "Summon Earth Successful" 
+                    pushlist earthListy 'x' 'front'
+                    
+                    while not dead
+                        if findtype 158|14 ground -1 -1 12 as ele 
+                            menu ele 1
+                            waitfortarget maxwaittimeinms
+                            if targetexists 
+                                if ele != earthFirsty and ele != earthSecondly
+                                    hotkey 'cancel current target'
+                                    wait 50
+                                    menu ele 3 
+                                    
+                                    if earthFirsty = 0 
+                                        @setvar! earthFirsty ele
+                                        sysmsg "add earth 1" 11
+                                        overhead "Earth 1" 634 ele
+                                    else 
+                                        @setvar! earthSecondly ele
+                                        sysmsg "add earth 2" 11
+                                        overhead "Earth 2" 634 ele
+                                    endif
+                                    
+                                    break
+                                endif
+                            endif
+                            @ignore ele
+                        endif
+                    endwhile
+                    
+                    clearignore
+                    @setvar! castingEarth 0
                 endif
                 
-                #--- Use Meditation ---#
+    #********** CAST WATER ELEMENTAL **********# 
+            
+            elseif waterElementals != 0 and list waterListy < waterElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49
+                if insysmsg "world is saving"
+                endif
                 
-                if 0 = useMeditationSkill and mana < 50 
-                    break
-                elseif 1 = useMeditationSkill and mana < 50 and not findbuff "meditating" and timer meditationTimer > meditationCD
-                    if insysmsg "you are at peace"
+                @setvar! isWorldSaving 0
+                
+                cast 'Water Elemental'
+                @setvar! castingWater 1
+                while not casting                   
+                    cast 'Water Elemental'  
+                    if targetexists
+                        hotkey 'cancel current target'
                     endif
-                    if insysmsg "you enter a meditative trance"
-                    endif
-                    if insysmsg "You must wait a few moments to use another skill."
+                endwhile 
+                
+                while not dead
+                
+                    if enemyFound = 0
+                        if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                            @setvar! enemyFound 1
+                        endif
                     endif
                     
-                    skill 'meditation'
-                    getlabel backpack xxx
-                    wait 200
-                    if not findbuff 'meditating'
-                        settimer meditationTimer 7500
-                    elseif findbuff 'meditating'
-                        warmode on
-                        warmode off
-                        settimer meditationTimer 0
-                        while mana < 50 and diffhits < activateAutoHealDiff
-                            if not findbuff 'meditating'
-                                break
-                            endif
-                            if timer meditationMessageTimer > meditationMessageCD
-                                overhead "* actively meditating *" 11
-                                settimer meditationMessageTimer 0
-                            endif
-                        endwhile
+                    if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                        interrupt
+                        @setvar! wasInterrupted 1 
+                        break
+                    endif          
+    
+                     if insysmsg "world is saving"
+                        interrupt
+                        @setvar! isWorldSaving 1
+                        @setvar! wasInterrupted 1 
+                        break
+                    endif                 
+    
+                    if diffhits >= interruptCastingDiff
+                        @setvar! wasInterrupted 1 
+                        sysmsg "interrupted low health" 33
+                        interrupt
+                        break
                     endif
-                endif 
-                
-                #--- Check for new elementals ---#
-                
-                if 1 = castingEarth and followers > 1
-                    sysmsg "fixing earth" 44
-                    while findtype 158|14 ground -1 -1 12 as ele 
-                        menu ele 1
-                        waitfortarget maxwaittimeinms
-                        if targetexists 
-                            if ele != earthFirsty and ele != earthSecondly
-                                hotkey 'cancel current target'
-                                
-                                if earthFirsty = 0 
-                                    @setvar! earthFirsty ele
-                                    sysmsg "add earth 1" 11
-                                    overhead "Earth 1" 634 ele
-                                else 
-                                    @setvar! earthSecondly ele
-                                    sysmsg "add earth 2" 11
-                                    overhead "Earth 2" 634 ele
-                                endif
-                                
-                                break
-                            endif
-                        endif
-                        @ignore ele
-                    endwhile    
-                    @clearignore
-                    @setvar! castingEarth 0
                     
-                elseif 1 = castingWater and followers > 1
-                    sysmsg "fixing water" 44
-                    while findtype 740|16 ground -1 -1 12 as ele 
-                        menu ele 1
-                        waitfortarget maxwaittimeinms
-                        if targetexists 
-                            if ele != waterFirsty and ele != waterSecondly
-                                hotkey 'cancel current target'
-                                
-                                if waterFirsty = 0 
-                                    @setvar! waterFirsty ele
-                                    sysmsg "add water 1" 11
-                                    overhead "Water 1" 399 ele
-                                else 
-                                    @setvar! waterSecondly ele
-                                    sysmsg "add water 2" 11
-                                    overhead "Water 2" 399 ele
-                                endif
-                                
-                                break
-                            endif
+                    if not casting
+                        getlabel backpack xxx
+                        wait 200
+                        
+                        if insysmsg "Your concentration"
+                            @setvar! wasInterrupted 1 
+                            sysmsg "interrupted concentration" 33   
+                        else 
+                            sysmsg "casting finished" 11
                         endif
-                        @ignore ele
+                        
+                        break
+                    endif
+                    
+                    if timer summonMsgTimer > summonMsgCD
+                        overhead "* summoning water... *" 399
+                        sysmsg "* summoning water... *" 399
+                        settimer summonMsgTimer 0
+                    endif
+                    
+                endwhile
+    
+                if 0 = wasInterrupted
+                    @setvar! summoningSucessful 1
+                    sysmsg "Summon Water Successful" 
+                    pushlist waterListy 'x' 'front'
+                    
+                    while not dead
+                        if findtype 740|16 ground -1 -1 12 as ele 
+                            menu ele 1
+                            waitfortarget maxwaittimeinms
+                            if targetexists 
+                                if ele != waterFirsty and ele != waterSecondly
+                                    hotkey 'cancel current target'
+                                    wait 50
+                                    menu ele 3 
+                                    if waterFirsty = 0 
+                                        @setvar! waterFirsty ele
+                                        sysmsg "add water 1" 11
+                                        overhead "Water 1" 399 ele
+                                    else 
+                                        @setvar! waterSecondly ele
+                                        sysmsg "add water 2" 11
+                                        overhead "Water 2" 399 ele
+                                    endif
+                                    
+                                    break
+                                endif
+                            endif
+                            @ignore ele
+                        endif
                     endwhile
-                    @clearignore
+                    
+                    clearignore
                     @setvar! castingWater 0
-                    
-                elseif 1 = castingAir and followers > 1
-                    sysmsg "fixing air" 44
-                    while findtype 306|13 ground -1 -1 12 as ele 
-                        menu ele 1
-                        waitfortarget maxwaittimeinms
-                        if targetexists 
-                            if ele != airFirsty and ele != airSecondly
-                                hotkey 'cancel current target'
-                                
-                                if airFirsty = 0 
-                                    @setvar! airFirsty ele
-                                    sysmsg "add air 1" 11
-                                    overhead "Air 1" 933 ele
-                                else 
-                                    @setvar! airSecondly ele
-                                    sysmsg "add air 2" 11
-                                    overhead "Air 2" 933 ele
-                                endif
-                                
-                                break
-                            endif
+                endif
+                
+    #********** CAST SUMMON CREATURE **********# 
+            
+            elseif summonCreature != 0 and list creatureListy < summonCreature and followers < 5 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 13                   
+                if insysmsg "world is saving"
+                endif
+                
+                @setvar! isWorldSaving 0
+                
+                cast 'Summ. Creature'
+                @setvar! castingCreature 1
+                while not casting                   
+                    cast 'Summ. Creature'  
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                endwhile  
+                
+                while not dead
+
+                    if enemyFound = 0
+                        if insysmsg! "Now tracking" or insysmsg! "Distance to"
+                            @setvar! enemyFound 1
                         endif
-                        @ignore ele
-                    endwhile    
-                    @clearignore
-                    @setvar! castingAir 0
+                    endif
                     
-                elseif 1 = castingFire and followers > 1
-                    sysmsg "fixing fire" 44
-                    while findtype 24|15 ground -1 -1 12 as ele 
-                        menu ele 1
-                        waitfortarget maxwaittimeinms
-                        if targetexists 
-                            if ele != fireFirsty and ele != fireSecondly
-                                hotkey 'cancel current target'
-                                
-                                if fireFirsty = 0 
-                                    @setvar! fireFirsty ele
-                                    sysmsg "add fire 1" 11
-                                    overhead "Fire 1" 353 ele
-                                else 
-                                    @setvar! fireSecondly ele
-                                    sysmsg "add fire 2" 11
-                                    overhead "Fire 2" 353 ele
-                                endif
-                                
-                                break
-                            endif
+                    if autoRecall = 1 and enemyFound = 1 or cooldown 'Danger' > 0
+                        interrupt
+                        @setvar! wasInterrupted 1 
+                        break
+                    endif  
+                    
+                     if insysmsg "world is saving"
+                        interrupt
+                        @setvar! isWorldSaving 1
+                        @setvar! wasInterrupted 1 
+                        break
+                    endif 
+                    
+                    if diffhits >= interruptCastingDiff
+                        @setvar! wasInterrupted 1 
+                        sysmsg "interrupted low health" 33
+                        interrupt
+                        break
+                    endif
+                    
+                    if not casting
+                        getlabel backpack xxx
+                        wait 200
+                        
+                        if insysmsg "Your concentration"
+                            @setvar! wasInterrupted 1 
+                            sysmsg "interrupted concentration" 33   
+                        else 
+                            sysmsg "casting finished" 11
                         endif
-                        @ignore ele
+                        
+                        break
+                    endif
+                    
+                    if timer summonMsgTimer > summonMsgCD
+                        overhead "* summon creature... *" 881
+                        sysmsg "* summon creature... *" 881
+                        settimer summonMsgTimer 0
+                    endif
+                    
+                endwhile
+    
+                if 0 = wasInterrupted
+                    @setvar! summoningSucessful 1
+                    sysmsg "Summon Creature Successful" 
+                    pushlist creatureListy 'x' 'front'
+                    while not dead
+                        if findtype 215|211|302|317|225|212|202|213|716|729|51|74|214|206|776|737|718|739|718|29|776|317|302|39|56|26|3|57|50|382|717|736|270 ground -1 -1 12 as ele 
+                            menu ele 1
+                            waitfortarget maxwaittimeinms
+                            if targetexists 
+                                if ele != creatureFirsty and ele != creatureSecondly and ele != creatureThirdy and ele != creatureFourthy and ele != creatureFithy
+                                    hotkey 'cancel current target'
+                                    wait 50
+                                    menu ele 3                                
+                                    if creatureFirsty = 0 
+                                        @setvar! creatureFirsty ele
+                                        sysmsg "add creature 1" 11 
+                                        overhead "Creature 1" 11 ele
+                                    elseif creatureSecondly = 0 
+                                        @setvar! creatureSecondly ele
+                                        sysmsg "add creature 2" 11
+                                        overhead "Creature 2" 11 ele
+                                    elseif creatureThirdy = 0 
+                                        @setvar! creatureThirdy ele
+                                        sysmsg "add creature 3" 11
+                                        overhead "Creature 3" 11 ele
+                                    elseif creatureFourthy = 0 
+                                        @setvar! creatureFourthy ele
+                                        sysmsg "add creature 4" 11
+                                        overhead "Creature 4" 11 ele
+                                    elseif creatureFithy = 0 
+                                        @setvar! creatureFithy ele
+                                        sysmsg "add creature 5" 11
+                                        overhead "Creature 5" 11 ele
+                                    endif
+                                    
+                                    break
+                                endif
+                            endif
+                            @ignore ele
+                        endif
                     endwhile
-                    @clearignore
-                    @setvar! castingFire 0
                     
-                elseif 1 = castingDaemon and followers > 1
-                    sysmsg "fixing daemon" 44
-                    while findtype 9|722 ground -1 -1 12 as ele 
-                        menu ele 1
-                        waitfortarget maxwaittimeinms
-                        if targetexists 
-                            if ele != daemonFirsty and ele != daemonSecondly
-                                hotkey 'cancel current target'
-                                
-                                if daemonFirsty = 0 
-                                    @setvar! daemonFirsty ele
-                                    sysmsg "add daemon 1" 11
-                                    overhead "Daemon 1" 11 ele
-                                else 
-                                    @setvar! daemonSecondly ele
-                                    sysmsg "add daemon 2" 235
-                                    overhead "Daemon 2" 235 ele
-                                endif
-                                
-                                break
-                            endif
-                        endif
-                        @ignore ele
-                    endwhile     
-                    @clearignore
-                    @setvar! castingDaemon 0
-                    
-                elseif 1 = castingCreature and followers > 0
-                    sysmsg "fixing creature" 44
-                    while findtype 215|211|302|317|225|212|202|213|716|729|51|74|214|206|776|737|718|739|718|29|776|317|302|39|56|26|3|57|50|382|717|736|270 ground -1 -1 12 as ele 
-                        menu ele 1
-                        waitfortarget maxwaittimeinms
-                        if targetexists 
-                            if ele != creatureFirsty and ele != creatureSecondly and ele != creatureThirdy and ele != creatureFourthy and ele != creatureFithy
-                                hotkey 'cancel current target'
-                                wait 50
-                                menu ele 3
-                                if creatureFirsty = 0 
-                                    @setvar! creatureFirsty ele
-                                    sysmsg "Creature 1" 11
-                                    overhead "Creature 1" 11 ele
-                                elseif creatureSecondly = 0 
-                                    @setvar! creatureSecondly ele
-                                    sysmsg "add creature 2" 11
-                                    overhead "Creature 2" 11 ele
-                                elseif creatureThirdy = 0 
-                                    @setvar! creatureThirdy ele
-                                    sysmsg "add creature 3" 11
-                                    overhead "Creature 3" 11 ele
-                                elseif creatureFourthy = 0 
-                                    @setvar! creatureFourthy ele
-                                    sysmsg "add creature 4" 11
-                                    overhead "Creature 4" 11 ele
-                                elseif creatureFithy = 0 
-                                    @setvar! creatureFithy ele
-                                    sysmsg "add creature 5" 11
-                                    overhead "Creature 5" 11 ele
-                                endif
-                                
-                                break
-                            endif
-                        endif
-                        @ignore ele
-                    endwhile 
-                    @clearignore
+                    clearignore
                     @setvar! castingCreature 0
                 endif
                 
-                #--- Check for dead elementals ---#
-                
-                if earthFirsty != 0 and dead earthFirsty
-                    if list earthListy != 0
-                        poplist earthListy 'front' 
-                        sysmsg "pop earth 1"
-                    endif 
-                    @setvar! earthFirsty 0
-                endif
-                    
-                if earthSecondly != 0 and dead earthSecondly
-                    if list earthListy != 0
-                        poplist earthListy 'front'  
-                        sysmsg "pop earth 2"
-                    endif  
-                    @setvar! earthSecondly 0
-                endif
-                    
-                if waterFirsty != 0 and dead waterFirsty
-                    if list waterListy != 0
-                        poplist waterListy 'front'  
-                        sysmsg "pop water 1"
-                    endif
-                    @setvar! waterFirsty 0
-                endif
-                    
-                if waterSecondly != 0 and dead waterSecondly
-                    if list waterListy != 0
-                        poplist waterListy 'front' 
-                        sysmsg "pop water 2"
-                    endif
-                    @setvar! waterSecondly 0
-                endif
-                    
-                if airFirsty != 0 and dead airFirsty
-                    if list airListy != 0
-                        poplist airListy 'front'
-                    endif
-                    @setvar! airFirsty 0
-                endif
-                    
-                if airSecondly != 0 and dead airSecondly 
-                    if list airListy != 0
-                        poplist airListy 'front'
-                    endif 
-                    @setvar! airSecondly 0
-                endif
-                    
-                if fireFirsty != 0 and dead fireFirsty 
-                    if list fireListy != 0
-                        poplist fireListy 'front'   
-                    endif
-                    @setvar! fireFirsty 0
-                endif
-                    
-                if fireSecondly != 0 and dead fireSecondly 
-                    if list fireListy != 0
-                        poplist fireListy 'front'   
-                    endif 
-                    @setvar! fireSecondly 0
-                endif
-                    
-                if daemonFirsty != 0 and dead daemonFirsty
-                    if list daemonListy != 0
-                        poplist daemonListy 'front'
-                    endif
-                    @setvar! daemonFirsty 0
-                endif
-                    
-                if daemonSecondly != 0 and dead daemonSecondly 
-                    if list daemonListy != 0
-                        poplist daemonListy 'front'
-                    endif 
-                    @setvar! daemonSecondly 0
-                endif
-                    
-                if creatureFirsty != 0 and dead creatureFirsty 
-                    if list creatureListy != 0
-                        poplist creatureListy 'front'
-                        sysmsg "pop creature 1"
-                    endif 
-                    @setvar! creatureFirsty 0
-                endif
-                    
-                if creatureSecondly != 0 and dead creatureSecondly 
-                    if list creatureListy != 0
-                        poplist creatureListy 'front'
-                        sysmsg "pop creature 2"
-                    endif 
-                    @setvar! creatureSecondly 0
-                endif
-                    
-                if creatureThirdy != 0 and dead creatureThirdy 
-                    if list creatureListy != 0
-                        poplist creatureListy 'front'
-                        sysmsg "pop creature 3"
-                    endif 
-                    @setvar! creatureThirdy 0
-                endif
-                    
-                if creatureFourthy != 0 and dead creatureFourthy 
-                    if list creatureListy != 0
-                        poplist creatureListy 'front'
-                        sysmsg "pop creature 4"
-                    endif 
-                    @setvar! creatureFourthy 0
-                endif
-                    
-                if creatureFithy != 0 and dead creatureFithy 
-                    if list creatureListy != 0
-                        poplist creatureListy 'front'
-                        sysmsg "pop creature 5"
-                    endif 
-                    @setvar! creatureFithy 0
-                endif
-                
-                @clearsysmsg
-                @setvar! wasInterrupted 0
-                
-                if list earthListy = 0 
-                    #sysmsg "Earth List = 0"
-                elseif list earthListy = 1
-                    #sysmsg "Earth List = 1"
-                elseif list earthListy = 2
-                    #sysmsg "Earth List = 2"
-                endif
-                
-                if list waterListy = 0 
-                    #sysmsg "Water List = 0"
-                elseif list waterListy = 1
-                    #sysmsg "Water List = 1"
-                elseif list waterListy = 2
-                    #sysmsg "Water List = 2"
-                endif
-                
-                if list creatureListy = 0 
-                    #sysmsg "Creature List = 0"
-                elseif list creatureListy = 1
-                    #sysmsg "Creature List = 1"
-                elseif list creatureListy = 2
-                    #sysmsg "Creature List = 2"
-                elseif list creatureListy = 2
-                    #sysmsg "Creature List = 2"
-                elseif list creatureListy = 2
-                    #sysmsg "Creature List = 2"
-                endif
-                
-                @setvar! missingSummonRegs 0
-                @setvar! summoningSucessful 0
-                
-                if not findtype 3963 self or not findtype 3974 self or not findtype 3981 self
-                    @setvar! missingSummonRegs 1
-                    if timer noRegsMessageTimer > noRegsMessageCD
-                        overhead 'No regs to summon!' 34
-                        sysmsg 'No regs to summon!' 34
-                        settimer noRegsMessageTimer 0
-                    endif
-                    wait noRegsMessageCD
-                elseif not findtype 3980 self 
-                    if fireElementals != 0 or summonDaemons != 0
-                        @setvar! missingSummonRegs 1
-                        if timer noRegsMessageTimer > noRegsMessageCD
-                            overhead 'No regs to summon!' 34
-                            sysmsg 'No regs to summon!' 34
-                            settimer noRegsMessageTimer 0
-                        endif
-                        wait noRegsMessageCD
-                    endif
-                elseif mana < 50
-                    if timer noRegsMessageTimer > noRegsMessageCD
-                        overhead "* low mana to summon *" 34
-                        settimer noRegsMessageTimer 0
-                    endif
-                endif
-                    
-        #********** CAST EARTH ELEMENTAL **********# 
-            
-                if earthElementals != 0 and list earthListy < earthElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49
-                    if insysmsg "world is saving"
-                    endif
-                    
-                    @setvar! isWorldSaving 0
-                    
-                    cast 'Earth Elemental'
-                    @setvar! castingEarth 1
-                    while not casting                   
-                        cast 'Earth Elemental'  
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                    endwhile  
-                    
-                    while not dead
-                    
-                         if insysmsg "world is saving"
-                            interrupt
-                            @setvar! isWorldSaving 1
-                            @setvar! wasInterrupted 1 
-                            break
-                        endif        
-                        
-                        if diffhits >= interruptCastingDiff
-                            @setvar! wasInterrupted 1 
-                            sysmsg "interrupted low health" 33
-                            interrupt
-                            break
-                        endif
-                        
-                        if not casting
-                            getlabel backpack xxx
-                            wait 200
-                            
-                            if insysmsg "Your concentration"
-                                @setvar! wasInterrupted 1 
-                                sysmsg "interrupted concentration" 33   
-                            else 
-                                sysmsg "casting finished" 11
-                            endif
-                            
-                            break
-                        endif
-                        
-                        if timer summonMsgTimer > summonMsgCD
-                            overhead "* summoning earth... *" 634
-                            sysmsg "* summoning earth... *" 634
-                            settimer summonMsgTimer 0
-                        endif
-                        
-                    endwhile
+            endif
         
-                    if 0 = wasInterrupted
-                        @setvar! summoningSucessful 1
-                        sysmsg "Summon Earth Successful" 
-                        pushlist earthListy 'x' 'front'
-                        
-                        while not dead
-                            if findtype 158|14 ground -1 -1 12 as ele 
-                                menu ele 1
-                                waitfortarget maxwaittimeinms
-                                if targetexists 
-                                    if ele != earthFirsty and ele != earthSecondly
-                                        hotkey 'cancel current target'
-                                        wait 50
-                                        menu ele 3 
-                                        
-                                        if earthFirsty = 0 
-                                            @setvar! earthFirsty ele
-                                            sysmsg "add earth 1" 11
-                                            overhead "Earth 1" 634 ele
-                                        else 
-                                            @setvar! earthSecondly ele
-                                            sysmsg "add earth 2" 11
-                                            overhead "Earth 2" 634 ele
-                                        endif
-                                        
-                                        break
-                                    endif
-                                endif
-                                @ignore ele
-                            endif
-                        endwhile
-                        
-                        clearignore
-                        @setvar! castingEarth 0
-                    endif
-                    
-        #********** CAST WATER ELEMENTAL **********# 
-                
-                elseif waterElementals != 0 and list waterListy < waterElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49
-                    if insysmsg "world is saving"
-                    endif
-                    
-                    @setvar! isWorldSaving 0
-                    
-                    cast 'Water Elemental'
-                    @setvar! castingWater 1
-                    while not casting                   
-                        cast 'Water Elemental'  
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                    endwhile 
-                    
-                    while not dead
-        
-                         if insysmsg "world is saving"
-                            interrupt
-                            @setvar! isWorldSaving 1
-                            @setvar! wasInterrupted 1 
-                            break
-                        endif                 
-        
-                        if diffhits >= interruptCastingDiff
-                            @setvar! wasInterrupted 1 
-                            sysmsg "interrupted low health" 33
-                            interrupt
-                            break
-                        endif
-                        
-                        if not casting
-                            getlabel backpack xxx
-                            wait 200
-                            
-                            if insysmsg "Your concentration"
-                                @setvar! wasInterrupted 1 
-                                sysmsg "interrupted concentration" 33   
-                            else 
-                                sysmsg "casting finished" 11
-                            endif
-                            
-                            break
-                        endif
-                        
-                        if timer summonMsgTimer > summonMsgCD
-                            overhead "* summoning water... *" 399
-                            sysmsg "* summoning water... *" 399
-                            settimer summonMsgTimer 0
-                        endif
-                        
-                    endwhile
-        
-                    if 0 = wasInterrupted
-                        @setvar! summoningSucessful 1
-                        sysmsg "Summon Water Successful" 
-                        pushlist waterListy 'x' 'front'
-                        
-                        while not dead
-                            if findtype 740|16 ground -1 -1 12 as ele 
-                                menu ele 1
-                                waitfortarget maxwaittimeinms
-                                if targetexists 
-                                    if ele != waterFirsty and ele != waterSecondly
-                                        hotkey 'cancel current target'
-                                        wait 50
-                                        menu ele 3 
-                                        if waterFirsty = 0 
-                                            @setvar! waterFirsty ele
-                                            sysmsg "add water 1" 11
-                                            overhead "Water 1" 399 ele
-                                        else 
-                                            @setvar! waterSecondly ele
-                                            sysmsg "add water 2" 11
-                                            overhead "Water 2" 399 ele
-                                        endif
-                                        
-                                        break
-                                    endif
-                                endif
-                                @ignore ele
-                            endif
-                        endwhile
-                        
-                        clearignore
-                        @setvar! castingWater 0
-                    endif
-                
-        #********** CAST AIR ELEMENTAL **********# 
-                
-                elseif airElementals != 0 and list airListy < airElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49                    
-                    if insysmsg "world is saving"
-                    endif
-                    
-                    @setvar! isWorldSaving 0
-                    
-                    cast 'Air Elemental'
-                    @setvar! castingAir 1
-                    while not casting                   
-                        cast 'Air Elemental'  
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                    endwhile  
-                    
-                    while not dead
-        
-                         if insysmsg "world is saving"
-                            interrupt
-                            @setvar! isWorldSaving 1
-                            @setvar! wasInterrupted 1
-                            break
-                        endif 
-                        
-                        if diffhits >= interruptCastingDiff
-                            @setvar! wasInterrupted 1 
-                            sysmsg "interrupted low health" 33
-                            interrupt
-                            break
-                        endif
-                        
-                        if not casting
-                            getlabel backpack xxx
-                            wait 200
-                            
-                            if insysmsg "Your concentration"
-                                @setvar! wasInterrupted 1 
-                                sysmsg "interrupted concentration" 33   
-                            else 
-                                sysmsg "casting finished" 11
-                            endif
-                            
-                            break
-                        endif
-                        
-                        if timer summonMsgTimer > summonMsgCD
-                            overhead "* summoning air... *" 933
-                            sysmsg "* summoning air... *" 933
-                            settimer summonMsgTimer 0
-                        endif
-                        
-                    endwhile
-                    
-                    if 0 = wasInterrupted
-                        @setvar! summoningSucessful 1
-                        sysmsg "Summon Air Successful" 
-                        pushlist airListy 'x' 'front'
-                        
-                        while not dead
-                            if findtype 306|13 ground -1 -1 12 as ele 
-                                menu ele 1
-                                waitfortarget maxwaittimeinms
-                                if targetexists 
-                                    if ele != airFirsty and ele != airSecondly
-                                        hotkey 'cancel current target'
-                                        wait 50
-                                        menu ele 3 
-                                        if airFirsty = 0 
-                                            @setvar! airFirsty ele
-                                            sysmsg "add air 1" 11
-                                            overhead "Air 1" 933 ele
-                                        else 
-                                            @setvar! airSecondly ele
-                                            sysmsg "add air 2" 11
-                                            overhead "Air 2" 933 ele
-                                        endif
-                                        
-                                        break
-                                    endif
-                                endif
-                                @ignore ele
-                            endif
-                        endwhile
-                        clearignore
-                        @setvar! castingAir 0
-                    endif
-                
-        #********** CAST FIRE ELEMENTAL **********# 
-                
-                elseif fireElementals != 0 and list fireListy < fireElementals and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49                      
-                    if insysmsg "world is saving"
-                    endif
-                    
-                    @setvar! isWorldSaving 0
-                    
-                    cast 'Fire Elemental'
-                    @setvar! castingFire 1
-                    while not casting                   
-                        cast 'Fire Elemental'  
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                    endwhile  
-                    
-                    while not dead
-        
-                         if insysmsg "world is saving"
-                            interrupt
-                            @setvar! isWorldSaving 1
-                            @setvar! wasInterrupted 1 
-                            break
-                        endif 
-                        
-                        if diffhits >= interruptCastingDiff
-                            @setvar! wasInterrupted 1 
-                            sysmsg "interrupted low health" 33
-                            interrupt
-                            break
-                        endif
-                        
-                        if not casting
-                            getlabel backpack xxx
-                            wait 200
-                            
-                            if insysmsg "Your concentration"
-                                @setvar! wasInterrupted 1 
-                                sysmsg "interrupted concentration" 33   
-                            else 
-                                sysmsg "casting finished" 11
-                            endif
-                            
-                            break
-                        endif
-                        
-                        if timer summonMsgTimer > summonMsgCD
-                            overhead "* summoning fire... *" 353
-                            sysmsg "* summoning fire... *" 353
-                            settimer summonMsgTimer 0
-                        endif
-                        
-                    endwhile
-                    
-                    if 0 = wasInterrupted
-                        @setvar! summoningSucessful 1
-                        sysmsg "Summon Fire Successful" 
-                        pushlist fireListy 'x' 'front'
-                        
-                        while not dead
-                            if findtype 24|15 ground -1 -1 12 as ele 
-                                menu ele 1
-                                waitfortarget maxwaittimeinms
-                                if targetexists 
-                                    if ele != fireFirsty and ele != fireSecondly
-                                        hotkey 'cancel current target'
-                                        wait 50
-                                        menu ele 3 
-                                        if fireFirsty = 0 
-                                            @setvar! fireFirsty ele
-                                            sysmsg "add fire 1" 11
-                                            overhead "Fire 1" 353 ele
-                                        else 
-                                            @setvar! fireSecondly ele
-                                            sysmsg "add fire 2" 11
-                                            overhead "Fire 2" 353 ele
-                                        endif
-                                        
-                                        break
-                                    endif
-                                endif
-                                @ignore ele
-                            endif
-                        endwhile
-                        clearignore
-                        @setvar! castingFire 0
-                    endif
-                    
-        #********** CAST DAEMON **********# 
-                
-                elseif summonDaemons != 0 and list daemonListy < summonDaemons and followers < 4 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 49                        
-                    if insysmsg "world is saving"
-                    endif
-                    
-                    @setvar! isWorldSaving 0
-                    
-                    cast 'Summon Daemon'
-                    @setvar! castingDaemon 1
-                    while not casting                   
-                        cast 'Summon Daemon'  
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                    endwhile  
-                    
-                    while not dead
-                    
-                         if insysmsg "world is saving"
-                            interrupt
-                            @setvar! isWorldSaving 1
-                            @setvar! wasInterrupted 1 
-                            break
-                        endif 
-                        
-                        if diffhits >= interruptCastingDiff
-                            @setvar! wasInterrupted 1 
-                            sysmsg "interrupted low health" 33
-                            interrupt
-                            break
-                        endif
-                        
-                        if not casting
-                            getlabel backpack xxx
-                            wait 200
-                            
-                            if insysmsg "Your concentration"
-                                @setvar! wasInterrupted 1 
-                                sysmsg "interrupted concentration" 33   
-                            else 
-                                sysmsg "casting finished" 11
-                            endif
-                            
-                            break
-                        endif
-                        
-                        if timer summonMsgTimer > summonMsgCD
-                            overhead "* summoning daemon... *" 235
-                            sysmsg "* summoning daemon... *" 235
-                            settimer summonMsgTimer 0
-                        endif
-                        
-                    endwhile
-                    
-                    if 0 = wasInterrupted
-                        @setvar! summoningSucessful 1
-                        sysmsg "Summon Daemon Successful" 
-                        pushlist daemonListy 'x' 'front'
-                        while not dead
-                            if findtype 9|722 ground -1 -1 12 as ele 
-                                menu ele 1
-                                waitfortarget maxwaittimeinms
-                                if targetexists 
-                                    if ele != daemonFirsty and ele != daemonSecondly
-                                        hotkey 'cancel current target'
-                                        wait 50
-                                        menu ele 3 
-                                        
-                                        if daemonFirsty = 0 
-                                            @setvar! daemonFirsty ele
-                                            sysmsg "add daemon 1" 11
-                                            overhead "Daemon 1" 11 ele
-                                        else 
-                                            @setvar! daemonSecondly ele
-                                            sysmsg "add daemon 2" 235
-                                            overhead "Daemon 2" 235 ele
-                                        endif
-                                        
-                                        break
-                                    endif
-                                endif
-                                @ignore ele
-                            endif
-                        endwhile
-                        clearignore
-                        @setvar! castingDaemon 0
-                    endif
-                    
-        #********** CAST SUMMON CREATURE **********# 
-                
-                elseif summonCreature != 0 and list creatureListy < summonCreature and followers < 5 and diffhits < activateAutoHealDiff and not casting and missingSummonRegs = 0 and mana > 13                   
-                    if insysmsg "world is saving"
-                    endif
-                    
-                    @setvar! isWorldSaving 0
-                    
-                    cast 'Summ. Creature'
-                    @setvar! castingCreature 1
-                    while not casting                   
-                        cast 'Summ. Creature'  
-                        if targetexists
-                            hotkey 'cancel current target'
-                        endif
-                    endwhile  
-                    
-                    while not dead
-        
-                         if insysmsg "world is saving"
-                            interrupt
-                            @setvar! isWorldSaving 1
-                            @setvar! wasInterrupted 1 
-                            break
-                        endif 
-                        
-                        if diffhits >= interruptCastingDiff
-                            @setvar! wasInterrupted 1 
-                            sysmsg "interrupted low health" 33
-                            interrupt
-                            break
-                        endif
-                        
-                        if not casting
-                            getlabel backpack xxx
-                            wait 200
-                            
-                            if insysmsg "Your concentration"
-                                @setvar! wasInterrupted 1 
-                                sysmsg "interrupted concentration" 33   
-                            else 
-                                sysmsg "casting finished" 11
-                            endif
-                            
-                            break
-                        endif
-                        
-                        if timer summonMsgTimer > summonMsgCD
-                            overhead "* summon creature... *" 881
-                            sysmsg "* summon creature... *" 881
-                            settimer summonMsgTimer 0
-                        endif
-                        
-                    endwhile
-        
-                    if 0 = wasInterrupted
-                        @setvar! summoningSucessful 1
-                        sysmsg "Summon Creature Successful" 
-                        pushlist creatureListy 'x' 'front'
-                        while not dead
-                            if findtype 215|211|302|317|225|212|202|213|716|729|51|74|214|206|776|737|718|739|718|29|776|317|302|39|56|26|3|57|50|382|717|736|270 ground -1 -1 12 as ele 
-                                menu ele 1
-                                waitfortarget maxwaittimeinms
-                                if targetexists 
-                                    if ele != creatureFirsty and ele != creatureSecondly and ele != creatureThirdy and ele != creatureFourthy and ele != creatureFithy
-                                        hotkey 'cancel current target'
-                                        wait 50
-                                        menu ele 3                                
-                                        if creatureFirsty = 0 
-                                            @setvar! creatureFirsty ele
-                                            sysmsg "add creature 1" 11 
-                                            overhead "Creature 1" 11 ele
-                                        elseif creatureSecondly = 0 
-                                            @setvar! creatureSecondly ele
-                                            sysmsg "add creature 2" 11
-                                            overhead "Creature 2" 11 ele
-                                        elseif creatureThirdy = 0 
-                                            @setvar! creatureThirdy ele
-                                            sysmsg "add creature 3" 11
-                                            overhead "Creature 3" 11 ele
-                                        elseif creatureFourthy = 0 
-                                            @setvar! creatureFourthy ele
-                                            sysmsg "add creature 4" 11
-                                            overhead "Creature 4" 11 ele
-                                        elseif creatureFithy = 0 
-                                            @setvar! creatureFithy ele
-                                            sysmsg "add creature 5" 11
-                                            overhead "Creature 5" 11 ele
-                                        endif
-                                        
-                                        break
-                                    endif
-                                endif
-                                @ignore ele
-                            endif
-                        endwhile
-                        
-                        clearignore
-                        @setvar! castingCreature 0
-                    endif
-                    
-                endif
-                
-                if 1 = summoningSucessful and followers != maxFollowers
-                    hotkey 'target closest grey monster'
-                    attack lasttarget
-                endif
-            
-            endwhile
-            
-        endif
+        endwhile
         
  #********** BEGING HARVESTING **********  
  
@@ -3909,7 +3460,7 @@ while not dead
         
     endif
     
-     if useDetectHidden = 1 and timer detectTimer > detectTimerCD
+    if useDetectHidden = 1 and timer detectTimer > detectTimerCD
         if insysmsg "where"
         endif
         

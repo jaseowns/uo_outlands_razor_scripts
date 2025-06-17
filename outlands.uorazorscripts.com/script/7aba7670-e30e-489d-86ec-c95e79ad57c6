@@ -5,9 +5,9 @@
 #############################################
 
 /////////
-////////                    Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.0.1
+////////                    Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.0.2
 ///////
-//////                          UO Outlands Razor script - Released Feb 18, 2025 - Last Updated Jun 15, 2025
+//////                          UO Outlands Razor script - Released Feb 18, 2025 - Last Updated Jun 17, 2025
 /////                               Compiled by DanStock. (aka. Glacier)
 ////
 ///
@@ -60,7 +60,7 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
-
+    #       June 17, 2025 - version 2.0.2:  Fixed error in AutoExplosionPots section and tweaked the order of a few things in the combat loop
     #       June 15, 2025 - version 2.0.1:  Public re-release of updated script (no more required cooldowns, improved target and healing systems, more features, etc.)
 
 
@@ -302,7 +302,7 @@ endif
         # '4' for 'Fourth Stance'
         # '5' for 'Fifth Stance'
         # '6' for 'Auto Stance Switching'
-            // Auto: PEACE = ' Stance'  WAR = ' Stance'  BLEED/POISON/LOWHP = ' Stance'
+            // Auto:  PEACE = 'Flaying/Wildswing/Blackguard/Arcane/Dragon Stances'  WAR = 'Cleave/Testudo Stances'  FROST/BLEED/POISON/LOWHP = 'Defensive Stance'
             // Must set 'EnableWeaponCodexSwitching' to '1' in order use 'Auto Stance Switching'
 
 @setvar! EnableShieldCodexHotbar 0
@@ -317,7 +317,7 @@ endif
         # '4' for 'Mirror Stance'
         # '5' for 'Bulwark Stance'
         # '6' for 'Auto Shield Stance Switching'
-            // Auto:  PEACE = 'Shield Bash Stance'  WAR = 'Bulwark Stance'  BLEED/POISON/LOWHP = 'Warding Stance'
+            // Auto:  PEACE = 'Bulwark Stance'  WAR = 'Testudo Stance'  BLEED/POISON/LOWHP = 'Warding Stance'
             // Must set 'EnableShieldCodexSwitching' to '1' in order use 'Auto Shield Stance Switching'
 
     if EnableWeaponCodexSwitching = 1 or EnableShieldCodexSwitching = 1
@@ -1159,9 +1159,9 @@ endif
 if not dead
     if not varexist DexxerAutoPilot
         overhead "Lord Glaciers Chill Dexxer Auto Pilot Script" 77
-        overhead "version 2.0.1"
+        overhead "version 2.0.2"
         wait 1000
-        overhead "Last Updated June 15, 2025" 84
+        overhead "Last Updated June 17, 2025" 84
         wait 2500
         overhead "Thank you for trying my Dexxer AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
@@ -5456,6 +5456,40 @@ while not dead
                     endif
                 endif
 
+                if diffhits >= HealPotionHPdiff and EnableHealPotion = 1
+                    if findtype "Yellow Potion" self as hPot
+                        getlabel hPot potLabel
+                        if "next" in potLabel
+                            #do nothing
+                        else
+                            @setvar! ch 0
+
+                            if counttype 3852 self as c
+                                @setvar! ch c
+                            endif
+                            if insysmsg "potion satchel used"
+                            endif
+
+                            dclicktype 3852
+                            getlabel backpack packdesc
+                            wait 250
+
+                            if ch != counttype 3852 self or insysmsg "potion satchel used"
+                                settimer 'HealPotionTimer' 0
+                                cooldown "Healing Potion" HealingPotionCooldown
+                                if EnableOverheadMessages = 1
+                                    overhead "[ HEAL POTION ]" 253
+                                endif
+                            endif
+                        endif
+                    else
+                        if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                            overhead "[ NO HEAL POTS! ]" 337
+                            settimer 'yellowMessageTimer' 0
+                        endif
+                    endif
+                endif
+
                 if EnableFrostAspect = 1
                     if insysmsg "Frost Shell activated"
                         cooldown "Frost Shell Active" 5000
@@ -5688,6 +5722,391 @@ while not dead
                             settimer aidsMessageTimer 0
                         endif
                     endif
+                endif
+            endif
+
+            if diffhits >= HealPotionHPdiff and EnableHealPotion = 1
+                if findtype "Yellow Potion" self as hPot
+                    getlabel hPot potLabel
+                    if "next" in potLabel
+                        #do nothing
+                    else
+                        @setvar! ch 0
+
+                        if counttype 3852 self as c
+                            @setvar! ch c
+                        endif
+                        if insysmsg "potion satchel used"
+                        endif
+
+                        dclicktype 3852
+                        getlabel backpack packdesc
+                        wait 250
+
+                        if ch != counttype 3852 self or insysmsg "potion satchel used"
+                            settimer 'HealPotionTimer' 0
+                            cooldown "Healing Potion" HealingPotionCooldown
+                            if EnableOverheadMessages = 1
+                                overhead "[ HEAL POTION ]" 253
+                            endif
+                        endif
+                    endif
+                else
+                    if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                        overhead "[ NO HEAL POTS! ]" 337
+                        settimer 'yellowMessageTimer' 0
+                    endif
+                endif
+            endif
+
+            if EnableAlwaysTargetClosest = 1 and diffhits < ActivateAutoHealHPdiff
+                if timer "TargetChecker" > 1000
+                    hotkey 'Target Closest Grey Monster'
+                    wait 250
+                    @setvar! TargetCheck lasttarget
+                    if ClosestTarget != TargetCheck
+                        replay
+                    else
+                        settimer "TargetChecker" 0
+                    endif
+                endif
+            endif
+
+            if EnablePKradar = 1
+                if timer "PKRadar" > 1000
+                    hotkey 'Next Murderer Player Target'
+                    wait 250
+                    if insysmsg "No one matching that was found"
+                        settimer "PKRadar" 0
+                        clearsysmsg
+                    else
+                        hotkey 'Toggle War Only'
+                        @setvar! RedTargetFound 1
+                        @setvar! TimeToGo 1
+                        @setvar! MurdererTarget lasttarget
+                        replay
+                    endif
+                endif
+            endif
+
+            if EnableAutoParalyzePouch = 1
+                if paralyzed
+                    if findtype "pouch" self
+                        yell "[pouch"
+                        hotkey 'Toggle War Only'
+                        replay
+                    else
+                        if EnableOverheadMessages = 1
+                            overhead "[ NO MORE POUCHES! ]" 337
+                        endif
+                    endif
+                endif
+            endif
+
+            ///////////////////////
+            //  CHIVALRY BUFFS:  //
+            ///////////////////////
+
+            while not gumpexists 1387930325
+                say "[ChivalryHotbar"
+            endwhile
+
+            if gumpexists 1387930325
+                if ingump "12/" 1387930325
+                    @setvar! HolySymbols 12
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "13/" 1387930325
+                    @setvar! HolySymbols 13
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "14/" 1387930325
+                    @setvar! HolySymbols 14
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "15/" 1387930325
+                    @setvar! HolySymbols 15
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "16/" 1387930325
+                    @setvar! HolySymbols 16
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "17/" 1387930325
+                    @setvar! HolySymbols 17
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "18/" 1387930325
+                    @setvar! HolySymbols 18
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "19/" 1387930325
+                    @setvar! HolySymbols 19
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "20/" 1387930325
+                    @setvar! HolySymbols 20
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "21/" 1387930325
+                    @setvar! HolySymbols 21
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "11/" 1387930325
+                    @setvar! HolySymbols 11
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "10/" 1387930325
+                    @setvar! HolySymbols 10
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "9/" 1387930325
+                    @setvar! HolySymbols 9
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "8/" 1387930325
+                    @setvar! HolySymbols 8
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 1
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "7/" 1387930325
+                    @setvar! HolySymbols 7
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 1
+                    @setvar! CloseWoundsAvailable 1
+                    @setvar! DivineFuryAvailable 1
+                    @setvar! EnemyOfOneAvailable 0
+                    @setvar! ConsecrateWeaponAvailable 1
+                elseif ingump "6/" 1387930325
+                    @setvar! HolySymbols 6
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 0
+                    @setvar! CloseWoundsAvailable 0
+                    @setvar! DivineFuryAvailable 0
+                    @setvar! EnemyOfOneAvailable 0
+                    @setvar! ConsecrateWeaponAvailable 0
+                elseif ingump "5/" 1387930325
+                    @setvar! HolySymbols 5
+                    @setvar! HolyLightAvailable 1
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 0
+                    @setvar! CloseWoundsAvailable 0
+                    @setvar! DivineFuryAvailable 0
+                    @setvar! EnemyOfOneAvailable 0
+                    @setvar! ConsecrateWeaponAvailable 0
+                elseif ingump "4/" 1387930325
+                    @setvar! HolySymbols 4
+                    @setvar! HolyLightAvailable 0
+                    @setvar! NobleSacrificeAvailable 1
+                    @setvar! CleanseByFireAvailable 0
+                    @setvar! CloseWoundsAvailable 0
+                    @setvar! DivineFuryAvailable 0
+                    @setvar! EnemyOfOneAvailable 0
+                    @setvar! ConsecrateWeaponAvailable 0
+                elseif ingump "3/" 1387930325
+                    @setvar! HolySymbols 3
+                    @setvar! HolyLightAvailable 0
+                    @setvar! NobleSacrificeAvailable 0
+                    @setvar! CleanseByFireAvailable 0
+                    @setvar! CloseWoundsAvailable 0
+                    @setvar! DivineFuryAvailable 0
+                    @setvar! EnemyOfOneAvailable 0
+                    @setvar! ConsecrateWeaponAvailable 0
+                elseif ingump "2/" 1387930325
+                    @setvar! HolySymbols 2
+                    @setvar! HolyLightAvailable 0
+                    @setvar! NobleSacrificeAvailable 0
+                    @setvar! CleanseByFireAvailable 0
+                    @setvar! CloseWoundsAvailable 0
+                    @setvar! DivineFuryAvailable 0
+                    @setvar! EnemyOfOneAvailable 0
+                    @setvar! ConsecrateWeaponAvailable 0
+                elseif ingump "1/" 1387930325
+                    @setvar! HolySymbols 1
+                    @setvar! HolyLightAvailable 0
+                    @setvar! NobleSacrificeAvailable 0
+                    @setvar! CleanseByFireAvailable 0
+                    @setvar! CloseWoundsAvailable 0
+                    @setvar! DivineFuryAvailable 0
+                    @setvar! EnemyOfOneAvailable 0
+                    @setvar! ConsecrateWeaponAvailable 0
+                elseif ingump "0/" 1387930325
+                    @setvar! HolySymbols 0
+                    @setvar! HolyLightAvailable 0
+                    @setvar! NobleSacrificeAvailable 0
+                    @setvar! CleanseByFireAvailable 0
+                    @setvar! CloseWoundsAvailable 0
+                    @setvar! DivineFuryAvailable 0
+                    @setvar! EnemyOfOneAvailable 0
+                    @setvar! ConsecrateWeaponAvailable 0
+                endif
+            endif
+
+            if EnableDivineFury = 1
+                if timer "DivineFuryTimer" > 31000 and timer "ChivalryPrevented" > 5000 and DivineFuryAvailable = 1
+                    clearsysmsg
+                    yell "[DivineFury"
+                    wait 250
+                    if not insysmsg "You do not have enough holy"
+                        settimer "DivineFuryTimer" 0
+                        settimer "ChivalryPrevented" 4000
+                        cooldown "Divine Fury" 31000
+                        if EnableOverheadMessages = 1
+                            overhead "[ DIVINE FURY! ]" 2117
+                        endif
+                    else
+                        settimer "ChivalryPrevented" 0
+                    endif
+                    wait 250
+                endif
+            endif
+
+            if EnableEnemyOfOne = 1
+                if timer "EnemyOfOneTimer" > 31000 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and EnemyOfOneAvailable = 1
+                    yell "[EnemyOfOne"
+                    wait 250
+                    if not insysmsg "You do not have enough holy"
+                        settimer "EnemyOfOneTimer" 0
+                        settimer "ChivalryPrevented" 4000
+                        cooldown "Enemy Of One" 31000
+                        if EnableOverheadMessages = 1
+                            overhead "[ ENEMY OF ONE! ]" 332
+                        endif
+                    else
+                        settimer "ChivalryPrevented" 0
+                    endif
+                    wait 250
+                endif
+            endif
+
+            if EnableConsecrateWeapon = 1
+                if timer "ConsecrateWeaponTimer" > 3100 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and ConsecrateWeaponAvailable = 1
+                    yell "[ConsecrateWeapon"
+                    wait 250
+                    if not insysmsg "You do not have enough holy" and not insysmsg "You must wait a moment"
+                        settimer "ConsecrateWeaponTimer" 0
+                        settimer "ChivalryPrevented" 4000
+                        cooldown "Consecrate Weapon" 31000
+                        if EnableOverheadMessages = 1
+                            overhead "[ CONSECRATE WEAPON! ]" 2206
+                        endif
+                    else
+                        settimer "ChivalryPrevented" 0
+                    endif
+                    wait 250
+                endif
+            endif
+
+            if EnableCloseWounds = 1
+                if findbuff "bleed" or findbuff "disease"
+                    if skill "chivalry" >= 70 and timer "CloseWoundsTimer" > 31000 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and CloseWoundsAvailable = 1
+                        clearsysmsg
+                        yell "[CloseWounds"
+                        wait 250
+                        if insysmsg "You do not have enough holy"
+                            settimer "ChivalryPrevented" 0
+                            clearsysmsg
+                        else
+                            settimer "CloseWoundsTimer" 0
+                            settimer "ChivalryPrevented" 4000
+                            cooldown "Close Wounds" 31000
+                            if EnableOverheadMessages = 1
+                                overhead "[ CLOSE WOUNDS! ]" 48
+                            endif
+                        endif
+                        wait 250
+                    endif
+                endif
+            endif
+
+            if EnableCleanseByFire = 1
+                if diffhits > CleanseByFireHPdiff and poisoned and timer "CleanseByFireTimer" > 31000 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and CleanseByFireAvailable = 1
+                    clearsysmsg
+                    yell "[CleanseByFire"
+                    wait 250
+                    if insysmsg "You do not have enough holy"
+                        settimer "ChivalryPrevented" 0
+                        clearsysmsg
+                    else
+                        settimer "CleanseByFireTimer" 0
+                        settimer "ChivalryPrevented" 4000
+                        cooldown "Cleanse By Fire" 31000
+                        if EnableOverheadMessages = 1
+                            overhead "[ CLEANSE BY FIRE! ]" 43
+                        endif
+                    endif
+                    wait 250
                 endif
             endif
 
@@ -6174,7 +6593,7 @@ while not dead
                     if skill "Peacemaking" >= 50 and EnablePeacemaking = 1 and diffhits <= ActivateAutoHealHPdiff 
                         if NeedtoPacify = 1
                             clearsysmsg
-                    if timer "Pacified" > 30000 and timer "Peacemaking" > 11000 and timer "Musicianship" > 5000
+                            if timer "Pacified" > 30000 and timer "Peacemaking" > 11000 and timer "Musicianship" > 5000
                                 skill "Peacemaking"
                                 wft 1500
                                 if insysmsg "What instrument shall you play?"
@@ -6381,312 +6800,9 @@ while not dead
                 endif
 
 
-            ///////////////////////
-            //  CHIVALRY BUFFS:  //
-            ///////////////////////
-
-            while not gumpexists 1387930325
-                say "[ChivalryHotbar"
-            endwhile
-
-            if gumpexists 1387930325
-                if ingump "12/" 1387930325
-                    @setvar! HolySymbols 12
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "13/" 1387930325
-                    @setvar! HolySymbols 13
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "14/" 1387930325
-                    @setvar! HolySymbols 14
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "15/" 1387930325
-                    @setvar! HolySymbols 15
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "16/" 1387930325
-                    @setvar! HolySymbols 16
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "17/" 1387930325
-                    @setvar! HolySymbols 17
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "18/" 1387930325
-                    @setvar! HolySymbols 18
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "19/" 1387930325
-                    @setvar! HolySymbols 19
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "20/" 1387930325
-                    @setvar! HolySymbols 20
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "21/" 1387930325
-                    @setvar! HolySymbols 21
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "11/" 1387930325
-                    @setvar! HolySymbols 11
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "10/" 1387930325
-                    @setvar! HolySymbols 10
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "9/" 1387930325
-                    @setvar! HolySymbols 9
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "8/" 1387930325
-                    @setvar! HolySymbols 8
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 1
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "7/" 1387930325
-                    @setvar! HolySymbols 7
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 1
-                    @setvar! CloseWoundsAvailable 1
-                    @setvar! DivineFuryAvailable 1
-                    @setvar! EnemyOfOneAvailable 0
-                    @setvar! ConsecrateWeaponAvailable 1
-                elseif ingump "6/" 1387930325
-                    @setvar! HolySymbols 6
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 0
-                    @setvar! CloseWoundsAvailable 0
-                    @setvar! DivineFuryAvailable 0
-                    @setvar! EnemyOfOneAvailable 0
-                    @setvar! ConsecrateWeaponAvailable 0
-                elseif ingump "5/" 1387930325
-                    @setvar! HolySymbols 5
-                    @setvar! HolyLightAvailable 1
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 0
-                    @setvar! CloseWoundsAvailable 0
-                    @setvar! DivineFuryAvailable 0
-                    @setvar! EnemyOfOneAvailable 0
-                    @setvar! ConsecrateWeaponAvailable 0
-                elseif ingump "4/" 1387930325
-                    @setvar! HolySymbols 4
-                    @setvar! HolyLightAvailable 0
-                    @setvar! NobleSacrificeAvailable 1
-                    @setvar! CleanseByFireAvailable 0
-                    @setvar! CloseWoundsAvailable 0
-                    @setvar! DivineFuryAvailable 0
-                    @setvar! EnemyOfOneAvailable 0
-                    @setvar! ConsecrateWeaponAvailable 0
-                elseif ingump "3/" 1387930325
-                    @setvar! HolySymbols 3
-                    @setvar! HolyLightAvailable 0
-                    @setvar! NobleSacrificeAvailable 0
-                    @setvar! CleanseByFireAvailable 0
-                    @setvar! CloseWoundsAvailable 0
-                    @setvar! DivineFuryAvailable 0
-                    @setvar! EnemyOfOneAvailable 0
-                    @setvar! ConsecrateWeaponAvailable 0
-                elseif ingump "2/" 1387930325
-                    @setvar! HolySymbols 2
-                    @setvar! HolyLightAvailable 0
-                    @setvar! NobleSacrificeAvailable 0
-                    @setvar! CleanseByFireAvailable 0
-                    @setvar! CloseWoundsAvailable 0
-                    @setvar! DivineFuryAvailable 0
-                    @setvar! EnemyOfOneAvailable 0
-                    @setvar! ConsecrateWeaponAvailable 0
-                elseif ingump "1/" 1387930325
-                    @setvar! HolySymbols 1
-                    @setvar! HolyLightAvailable 0
-                    @setvar! NobleSacrificeAvailable 0
-                    @setvar! CleanseByFireAvailable 0
-                    @setvar! CloseWoundsAvailable 0
-                    @setvar! DivineFuryAvailable 0
-                    @setvar! EnemyOfOneAvailable 0
-                    @setvar! ConsecrateWeaponAvailable 0
-                elseif ingump "0/" 1387930325
-                    @setvar! HolySymbols 0
-                    @setvar! HolyLightAvailable 0
-                    @setvar! NobleSacrificeAvailable 0
-                    @setvar! CleanseByFireAvailable 0
-                    @setvar! CloseWoundsAvailable 0
-                    @setvar! DivineFuryAvailable 0
-                    @setvar! EnemyOfOneAvailable 0
-                    @setvar! ConsecrateWeaponAvailable 0
-                endif
-            endif
-
-            if EnableDivineFury = 1
-                if timer "DivineFuryTimer" > 31000 and timer "ChivalryPrevented" > 5000 and DivineFuryAvailable = 1
-                    clearsysmsg
-                    yell "[DivineFury"
-                    wait 250
-                    if not insysmsg "You do not have enough holy"
-                        settimer "DivineFuryTimer" 0
-                        settimer "ChivalryPrevented" 4000
-                        cooldown "Divine Fury" 31000
-                        if EnableOverheadMessages = 1
-                            overhead "[ DIVINE FURY! ]" 2117
-                        endif
-                    else
-                        settimer "ChivalryPrevented" 0
-                    endif
-                    wait 250
-                endif
-            endif
-
-            if EnableEnemyOfOne = 1
-                if timer "EnemyOfOneTimer" > 31000 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and EnemyOfOneAvailable = 1
-                    yell "[EnemyOfOne"
-                    wait 250
-                    if not insysmsg "You do not have enough holy"
-                        settimer "EnemyOfOneTimer" 0
-                        settimer "ChivalryPrevented" 4000
-                        cooldown "Enemy Of One" 31000
-                        if EnableOverheadMessages = 1
-                            overhead "[ ENEMY OF ONE! ]" 332
-                        endif
-                    else
-                        settimer "ChivalryPrevented" 0
-                    endif
-                    wait 250
-                endif
-            endif
-
-            if EnableConsecrateWeapon = 1
-                if timer "ConsecrateWeaponTimer" > 3100 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and ConsecrateWeaponAvailable = 1
-                    yell "[ConsecrateWeapon"
-                    wait 250
-                    if not insysmsg "You do not have enough holy" and not insysmsg "You must wait a moment"
-                        settimer "ConsecrateWeaponTimer" 0
-                        settimer "ChivalryPrevented" 4000
-                        cooldown "Consecrate Weapon" 31000
-                        if EnableOverheadMessages = 1
-                            overhead "[ CONSECRATE WEAPON! ]" 2206
-                        endif
-                    else
-                        settimer "ChivalryPrevented" 0
-                    endif
-                    wait 250
-                endif
-            endif
-
-            if EnableCloseWounds = 1
-                if findbuff "bleed" or findbuff "disease"
-                    if skill "chivalry" >= 70 and timer "CloseWoundsTimer" > 31000 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and CloseWoundsAvailable = 1
-                        clearsysmsg
-                        yell "[CloseWounds"
-                        wait 250
-                        if insysmsg "You do not have enough holy"
-                            settimer "ChivalryPrevented" 0
-                            clearsysmsg
-                        else
-                            settimer "CloseWoundsTimer" 0
-                            settimer "ChivalryPrevented" 4000
-                            cooldown "Close Wounds" 31000
-                            if EnableOverheadMessages = 1
-                                overhead "[ CLOSE WOUNDS! ]" 48
-                            endif
-                        endif
-                        wait 250
-                    endif
-                endif
-            endif
-
-            if EnableCleanseByFire = 1
-                if diffhits > CleanseByFireHPdiff and poisoned and timer "CleanseByFireTimer" > 31000 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and CleanseByFireAvailable = 1
-                    clearsysmsg
-                    yell "[CleanseByFire"
-                    wait 250
-                    if insysmsg "You do not have enough holy"
-                        settimer "ChivalryPrevented" 0
-                        clearsysmsg
-                    else
-                        settimer "CleanseByFireTimer" 0
-                        settimer "ChivalryPrevented" 4000
-                        cooldown "Cleanse By Fire" 31000
-                        if EnableOverheadMessages = 1
-                            overhead "[ CLEANSE BY FIRE! ]" 43
-                        endif
-                    endif
-                    wait 250
-                endif
-            endif
+            //////////////////////
+            //     POTIONS:     //
+            //////////////////////
 
             if EnableStrengthPotion = 1 and not findbuff "Strength"
                 if findtype "White Potion" self
@@ -6861,7 +6977,7 @@ while not dead
                 hotkey 'cancel current target'
                 endif
 
-                if PurplePotionReady = 1 and not dead ClosestTarget and find ClosestTarget ground -1 -1 12
+                if PurplePotionReady = 1 and not dead ClosestTarget and find ClosestTarget ground -1 -1 PurplePotionTargetRange
                     while not insysmsg "Where should i throw this potion?"
                         potion 'explosion'
                     endwhile
@@ -6870,7 +6986,7 @@ while not dead
                     settimer PurplePotionTimer 0
 
                     while not targetexists
-                        if dead ClosestTarget and not find ClosestTarget ground -1 -1 12
+                        if dead ClosestTarget and not find ClosestTarget ground -1 -1 PurplePotionTargetRange
                             if warmode on
                                 hotkey "Toggle Peace Only"
                             endif
@@ -7016,50 +7132,6 @@ while not dead
                         endif
                     endif
                 endwhile
-            endif
-
-            if EnableAlwaysTargetClosest = 1 and diffhits < ActivateAutoHealHPdiff
-                if timer "TargetChecker" > 1000
-                    hotkey 'Target Closest Grey Monster'
-                    wait 250
-                    @setvar! TargetCheck lasttarget
-                    if ClosestTarget != TargetCheck
-                        replay
-                    else
-                        settimer "TargetChecker" 0
-                    endif
-                endif
-            endif
-
-            if EnablePKradar = 1
-                if timer "PKRadar" > 1000
-                    hotkey 'Next Murderer Player Target'
-                    wait 250
-                    if insysmsg "No one matching that was found"
-                        settimer "PKRadar" 0
-                        clearsysmsg
-                    else
-                        hotkey 'Toggle War Only'
-                        @setvar! RedTargetFound 1
-                        @setvar! TimeToGo 1
-                        @setvar! MurdererTarget lasttarget
-                        replay
-                    endif
-                endif
-            endif
-
-            if EnableAutoParalyzePouch = 1
-                if paralyzed
-                    if findtype "pouch" self
-                        yell "[pouch"
-                        hotkey 'Toggle War Only'
-                        replay
-                    else
-                        if EnableOverheadMessages = 1
-                            overhead "[ NO MORE POUCHES! ]" 337
-                        endif
-                    endif
-                endif
             endif
                             
             if insysmsg "your target to bleed"
@@ -7765,28 +7837,28 @@ while not dead
                         
                         if SetCodexStance = 6
                             if cooldown "Frost Shell Cooldown"
-                                @setvar! SwitchToFlayingStance 0
-                                @setvar! SwitchToDefensiveStance 1
-                                @setvar! SwitchToWarriorStance 0
+                                @setvar! SwitchToSunderStance 0
+                                @setvar! SwitchToWildSwingStance 0
                                 @setvar! SwitchToCleaveStance 0
+                                @setvar! SwitchToDefensiveStance 1
                                 @setvar! SwitchToAgressiveStance 0
                             elseif poisoned or findbuff "bleed" or findbuff "disease"
-                                @setvar! SwitchToFlayingStance 0
-                                @setvar! SwitchToDefensiveStance 1
-                                @setvar! SwitchToWarriorStance 0
+                                @setvar! SwitchToSunderStance 0
+                                @setvar! SwitchToWildSwingStance 0
                                 @setvar! SwitchToCleaveStance 0
+                                @setvar! SwitchToDefensiveStance 1
                                 @setvar! SwitchToAgressiveStance 0
                             elseif warmode
-                                @setvar! SwitchToFlayingStance 0
-                                @setvar! SwitchToDefensiveStance 0
-                                @setvar! SwitchToWarriorStance 0
+                                @setvar! SwitchToSunderStance 0
+                                @setvar! SwitchToWildSwingStance 0
                                 @setvar! SwitchToCleaveStance 1
+                                @setvar! SwitchToDefensiveStance 0
                                 @setvar! SwitchToAgressiveStance 0
                             else
-                                @setvar! SwitchToFlayingStance 1
-                                @setvar! SwitchToDefensiveStance 0
-                                @setvar! SwitchToWarriorStance 0
+                                @setvar! SwitchToSunderStance 0
+                                @setvar! SwitchToWildSwingStance 1
                                 @setvar! SwitchToCleaveStance 0
+                                @setvar! SwitchToDefensiveStance 0
                                 @setvar! SwitchToAgressiveStance 0
                             endif
                         elseif SetCodexStance = 5
@@ -7994,11 +8066,11 @@ while not dead
                         
                         if SetCodexStance = 6
                             if cooldown "Frost Shell Cooldown"
-                                @setvar! SwitchToFlayingStance 0
+                                @setvar! SwitchToAggressiveStance 0
                                 @setvar! SwitchToDefensiveStance 1
-                                @setvar! SwitchToWarriorStance 0
                                 @setvar! SwitchToCleaveStance 0
-                                @setvar! SwitchToAgressiveStance 0
+                                @setvar! SwitchToBlackguardStance 0
+                                @setvar! SwitchToFangStance 0
                             elseif poisoned or findbuff "bleed" or findbuff "disease"
                                 @setvar! SwitchToAggressiveStance 0
                                 @setvar! SwitchToDefensiveStance 1
@@ -8223,11 +8295,11 @@ while not dead
                         
                         if SetCodexStance = 6
                             if cooldown "Frost Shell Cooldown"
-                                @setvar! SwitchToFlayingStance 0
-                                @setvar! SwitchToDefensiveStance 1
-                                @setvar! SwitchToWarriorStance 0
-                                @setvar! SwitchToCleaveStance 0
-                                @setvar! SwitchToAgressiveStance 0
+                                @setvar! SwitchToArcaneStance 0
+                                @setvar! SwitchToFowlingStance 1
+                                @setvar! SwitchToIncendiaryStance 0
+                                @setvar! SwitchToLongshotStance 0
+                                @setvar! SwitchToMaimingStance 0
                             elseif poisoned or findbuff "bleed" or findbuff "disease"
                                 @setvar! SwitchToArcaneStance 0
                                 @setvar! SwitchToFowlingStance 1
@@ -8235,15 +8307,15 @@ while not dead
                                 @setvar! SwitchToLongshotStance 0
                                 @setvar! SwitchToMaimingStance 0
                             elseif warmode
-                                @setvar! SwitchToArcaneStance 1
-                                @setvar! SwitchToFowlingStance 0
-                                @setvar! SwitchToIncendiaryStance 0
-                                @setvar! SwitchToLongshotStance 0
-                                @setvar! SwitchToMaimingStance 0
-                            else
                                 @setvar! SwitchToArcaneStance 0
                                 @setvar! SwitchToFowlingStance 0
                                 @setvar! SwitchToIncendiaryStance 1
+                                @setvar! SwitchToLongshotStance 0
+                                @setvar! SwitchToMaimingStance 0
+                            else
+                                @setvar! SwitchToArcaneStance 1
+                                @setvar! SwitchToFowlingStance 0
+                                @setvar! SwitchToIncendiaryStance 0
                                 @setvar! SwitchToLongshotStance 0
                                 @setvar! SwitchToMaimingStance 0
                             endif
@@ -8452,11 +8524,11 @@ while not dead
                         
                         if SetCodexStance = 6
                             if cooldown "Frost Shell Cooldown"
-                                @setvar! SwitchToFlayingStance 0
-                                @setvar! SwitchToDefensiveStance 1
-                                @setvar! SwitchToWarriorStance 0
-                                @setvar! SwitchToCleaveStance 0
-                                @setvar! SwitchToAgressiveStance 0
+                                @setvar! SwitchToDragonStance 0
+                                @setvar! SwitchToCrabStance 1
+                                @setvar! SwitchToSpiderStance 0
+                                @setvar! SwitchToMonkeyStance 0
+                                @setvar! SwitchToCraneStance 0
                             elseif poisoned or findbuff "bleed" or findbuff "disease"
                                 @setvar! SwitchToDragonStance 0
                                 @setvar! SwitchToCrabStance 1
@@ -8688,11 +8760,11 @@ while not dead
 
                         if SetShieldCodexStance = 6
                             if cooldown "Frost Shell Cooldown"
-                                @setvar! SwitchToFlayingStance 0
-                                @setvar! SwitchToDefensiveStance 1
-                                @setvar! SwitchToWarriorStance 0
-                                @setvar! SwitchToCleaveStance 0
-                                @setvar! SwitchToAgressiveStance 0
+                                @setvar! SwitchToBulwarkStance 0
+                                @setvar! SwitchToWardingStance 1
+                                @setvar! SwitchToMirrorStance 0
+                                @setvar! SwitchToShieldBashStance 0
+                                @setvar! SwitchToTestudoStance 0
                             elseif poisoned or findbuff "bleed" or findbuff "disease"
                                 @setvar! SwitchToBulwarkStance 0
                                 @setvar! SwitchToWardingStance 1
@@ -9537,7 +9609,6 @@ replay
     ################
    ###  THE END!  ###
     ################
-    
-    
-    
-    
+
+
+

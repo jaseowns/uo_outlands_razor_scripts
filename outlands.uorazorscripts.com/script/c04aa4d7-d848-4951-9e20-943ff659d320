@@ -1,15 +1,17 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/c04aa4d7-d848-4951-9e20-943ff659d320 for latest
 # Automation by Jaseowns
-## Script: Ore / Lumber / Skinning Map Helper
+## Script: Ressource Map Helper (Lumber, Mining, Skinning, Fishing)
 ## Created by: special_sy#0
 #############################################
 
 # Script by [DoS] Chumber
+# !! For fishing create a dress called Fishing with your pole equiped !!
+# !! Uses script 'Routines\Miner Recall' to recall afterwards !!
 # Works with a SINGLE ressource map in your backpack
 # Just go to the spot (or near it) and start the script 
 # It will equip the right tool and start looking for the cart
-@setvar option_dropMap 0
-
+@setvar option_dropMap 1
+clearignore 
 clearsysmsg
 @setvar! myMap 0
 if findtype 'map' self 2799 as myCurrentMap
@@ -47,20 +49,36 @@ elseif findtype 'map' self 2651 as myCurrentMap
         overhead "No skinning blade found, i cant work like this!" 32
         stop
     endif
+elseif findtype 'map' self 2904 as myCurrentMap
+    overhead "Fishing Map" 2651
+    @setvar! myMap myCurrentMap
+    if lhandempty
+        if findtype 'fishing pole' self as myTool
+            overhead "Equiping fishing pole"
+            dress 'Fisher'
+        else
+            overhead "No fishing pole found, i cant work like this!" 32
+            stop
+        endif
+        # long wait for queue and stuff
+        wait 2000
+    endif
+    @setvar! whichHand lefthand
 endif
 
+if myMap = 0
+    overhead "You got no map on you!" 31
+    stop
+endif
 # look for the right spot
 dclick whichHand
 wft 500
 target self
 wait 2000
 
-if findtype 'cart|stretched hide' 'ground' -1 -1 6 as cart
+if findtype 'cart|stretched hide|hanging fish' 'ground' -1 -1 7 as cart
     overhead "You found it, lets go!" 2207
     while not insysmsg 'You have completely exhausted'
-        if not hidden and skill 'hiding' >= 80
-            useskill 'hiding'
-        endif
         dclick whichHand
         wft 500
         target self
@@ -68,12 +86,8 @@ if findtype 'cart|stretched hide' 'ground' -1 -1 6 as cart
     endwhile
     dclick cart
     overhead "Map done" 2207
-    if option_dropMap = 1
-        lift myMap
-        wait 250
-        droprelloc 0 0
-    endif
     @setvar! myMap 0
+    script 'Routines\Miner Recall'
 endif
 
 if myMap > 0

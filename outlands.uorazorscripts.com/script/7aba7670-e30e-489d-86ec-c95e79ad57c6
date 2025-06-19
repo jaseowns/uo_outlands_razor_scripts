@@ -5,9 +5,9 @@
 #############################################
 
 /////////
-////////                    Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.0.2
+////////                    Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.0.3
 ///////
-//////                          UO Outlands Razor script - Released Feb 18, 2025 - Last Updated Jun 17, 2025
+//////                          UO Outlands Razor script - Released Feb 18, 2025 - Last Updated Jun 19, 2025
 /////                               Compiled by DanStock. (aka. Glacier)
 ////
 ///
@@ -36,16 +36,16 @@
                                         #     120  Chivalry                                 Book of Chivalry
                                         #     100  Tactics                                  Healers Codex
                                         #     100  Focus                                    Potion Codex
-                                        #      80  Weapon Skill                             Weapon Codex
+                                        #      80  Weapon Skill                             Weapon/Shield Codex
                                         #      80  Anatomy                                  Clean Bandages
                                         #      80  Healing                                  Potion Satchel (w/ potions)
-                                        #      80  Arms Lore                                Trapped pouches
-                                        #      80  Alchemy                                  Delectable food trays
+                                        #      80  Arms Lore *                              Trapped pouches
+                                        #      80  Alchemy *                                Delectable food trays
                                         #                                                   Aspect Armour & Weapon
                                         #  ASPECT: FROST/FROST (or FROST/VOID)              Aspect crystals
                                         #                                                   Adventurers rope *
-                                        #                                                   Skinning knife *
-                                        #                                                   Scissors [blessed] *
+                                        #   * or Parrying                                   Skinning knife *
+                                        #     or Taste ID/Poison                            Scissors [blessed] *
                                         #                                                   Wooden Box w/ copper key *
                                         #                                                   Wizard Satchel *                                                   
 
@@ -60,6 +60,7 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
+    #       June 19, 2025 - version 2.0.3:  Minor adjustments and bug fixes - getting close to "finished"
     #       June 17, 2025 - version 2.0.2:  Fixed error in AutoExplosionPots section and tweaked the order of a few things in the combat loop
     #       June 15, 2025 - version 2.0.1:  Public re-release of updated script (no more required cooldowns, improved target and healing systems, more features, etc.)
 
@@ -78,7 +79,7 @@
     //    Since I do not personally use all aspects of the script (and do all my editing in Notepad on my PC at work lol) some bugs take longer for me to find - but I am always adjusting and updating!  Thanks for being patient!
 
 
-#     IMPT: FIRST RUN OF SCRIPT SHOULD BE DONE IN HOUSE/INN ROOM AND TAKES ROUGHLY 20 SECONDS TO COMPLETE INITIAL (ONE TIME) SETUP!
+#     IMPT: FIRST RUN OF SCRIPT SHOULD BE DONE IN HOUSE/INN ROOM/BANK (ie. location of your Auto Recall rune) AND TAKES ROUGHLY 20 SECONDS TO COMPLETE INITIAL (ONE TIME) SETUP!
 #           Initial setup can be redone by setting 'ResetScriptPermanentVariable' variable to 1 below!
 #           Or you can re-target script variables individually in the 'Options' tab above the script
 
@@ -200,9 +201,11 @@
     # Enabling this setting will attack closest MOB at all times
     # Otherwise target will remain locked until dead or out of range
 
-@setvar! EnableDivineFury 1
-@setvar! EnableEnemyOfOne 1
-@setvar! EnableConsecrateWeapon 0
+if skill 'Archery' > 50
+    @setvar! TargetAttackRange 12
+else
+    @setvar! TargetAttackRange 5
+endif
 
 @setvar! EnableAutoTaunting 0
     # Requires 80+ Parrying skill
@@ -210,39 +213,39 @@
 @setvar! EnableAutoPoisonWeaponinHand 0
     # Requires 80+ Poisoning/Taste ID skill
 
-if skill 'Archery' > 50
-    @setvar! TargetAttackRange 10
-else
-    @setvar! TargetAttackRange 5
-endif
-
 
 //////////////////////////
 //      DEFENSIVE:      //
 //////////////////////////
 
 @setvar! ActivateAutoHealHPdiff 50
-    # 
     
 @setvar! EnableAutoParalyzePouch 1
-@setvar! EnableWeaponCheck 0
-@setvar! EnableShieldCheck 0
-
-@setvar! EnableHolyLight 1
-@setvar! HolyLightHPdiff 50
-
-@setvar! EnableNobleSacrifice 1
-@setvar! NobleSacrificeHPdiff 80
-
-@setvar! EnableCleanseByFire 0
-@setvar! CleanseByFireHPdiff 5
-
-@setvar! EnableCloseWounds 1
 
 @setvar! EnableFrostAspect 0
 @setvar! FrostAspectTier 0
     # Set your Frost Aspect level (if using Frost Aspect)
     # This will automatically set your Frost Shell Cooldown length
+
+@setvar! EnableWeaponCheck 0
+@setvar! EnableShieldCheck 0
+
+
+/////////////////////////
+//      CHIVALRY:      //
+/////////////////////////
+
+@setvar! EnableDivineFury 1
+@setvar! EnableEnemyOfOne 1
+@setvar! EnableConsecrateWeapon 1
+
+@setvar! EnableHolyLight 1
+@setvar! EnableNobleSacrifice 1
+@setvar! EnableCleanseByFire 1
+@setvar! EnableCloseWounds 1
+
+@setvar! HolyLightHPdiff 50
+@setvar! NobleSacrificeHPdiff 80
 
 
 //////////////////
@@ -258,18 +261,22 @@ endif
 
 @setvar! HealPotionHPdiff 40
 @setvar! RefreshPotionSPdiff 10
+    # Strength, agility and resist potions will auto-buff when effects wear off (if enabled)
 
 if skill 'Alchemy' >= 80
     @setvar! HealingPotionCooldown 7000
 else
     @setvar! HealingPotionCooldown 10000
 endif
+    # This only affects your optional cooldown bars (script uses other checks to verify potions are ready)
 
 @setvar! EnableAutoExplosionPots 0
 @setvar! PurplePotionTargetRange 5
+    # Requires 80+ Alchemy skill
 
 @setvar! EnableUsePotionKegs 0
     # Will auto fill empty bottles from potion kegs if counts drop below set amount
+    # Requires empty bottles and kegs of each type in inventory (pack extra bottles for explosion pots)
 
     if EnableUsePotionKegs = 1
         @setvar! HealingPotionAmount 5
@@ -296,13 +303,13 @@ endif
 
     @setvar! SetCodexStance 0
         # '0' for 'Disabled'
-        # '1' for 'First Stance'
-        # '2' for 'Second Stance'
-        # '3' for 'Third Stance'
-        # '4' for 'Fourth Stance'
-        # '5' for 'Fifth Stance'
+        # '1' for 'First Weapon Stance'
+        # '2' for 'Second Weapon Stance'
+        # '3' for 'Third Weapon Stance'
+        # '4' for 'Fourth Weapon Stance'
+        # '5' for 'Fifth Weapon Stance'
         # '6' for 'Auto Stance Switching'
-            // Auto:  PEACE = 'Flaying/Wildswing/Blackguard/Arcane/Dragon Stances'  WAR = 'Cleave/Testudo Stances'  FROST/BLEED/POISON/LOWHP = 'Defensive Stance'
+            // Auto:  PEACE = 'Flaying/Wildswing/Blackguard/Arcane/Dragon Stances'  WAR = 'Cleave Stances'  FROSTSHELL/BLEED/POISON/LOWHP = 'Defensive Stances'
             // Must set 'EnableWeaponCodexSwitching' to '1' in order use 'Auto Stance Switching'
 
 @setvar! EnableShieldCodexHotbar 0
@@ -317,7 +324,7 @@ endif
         # '4' for 'Mirror Stance'
         # '5' for 'Bulwark Stance'
         # '6' for 'Auto Shield Stance Switching'
-            // Auto:  PEACE = 'Bulwark Stance'  WAR = 'Testudo Stance'  BLEED/POISON/LOWHP = 'Warding Stance'
+            // Auto:  PEACE = 'Bulwark Stance'  WAR = 'Testudo Stance'  FROSTSHELL/BLEED/POISON/LOWHP = 'Warding Stance'
             // Must set 'EnableShieldCodexSwitching' to '1' in order use 'Auto Shield Stance Switching'
 
     if EnableWeaponCodexSwitching = 1 or EnableShieldCodexSwitching = 1
@@ -335,13 +342,15 @@ endif
     #######################
 
 @setvar! EnableWeaponAbilityHotbar 0
-@setvar! EnableWeaponAbilities 1
+@setvar! EnableWeaponAbilities 0
 
     if skill 'Arms Lore' > 0
         @setvar! WeaponAbilityCooldown 30000
     else
         @setvar! WeaponAbilityCooldown 60000
     endif
+
+    // Enable only one Weapon Ability at a time (per codex)!
 
         # SWORDS:
     @setvar! UseSpinslashAbility 0
@@ -364,16 +373,19 @@ endif
     @setvar! UseHaymakerAbility 0
     @setvar! UseTakedownAbility 0
 
+
+
+
     #######################
     #  WEAPON FINISHERS:  #
     #######################
 
 @setvar! EnableWeaponFinisher 0
     # '0' for 'Disabled'
-    # '1' for 'First Finisher'
-    # '2' for 'Second Finisher'
+    # '1' for 'First Weapon Finisher'
+    # '2' for 'Second Weapon Finisher'
     # '3' for 'Auto Finisher Switching'
-        // Auto:  PEACE/WAR = 'First Finisher'  BLEED/POISON/LOWHP = 'Second Finisher'
+        // Auto:  PEACE/WAR = 'First Weapon Finisher'  FROSTSHELL/BLEED/POISON/LOWHP = 'Second Weapon Finisher'
 
     #######################
     #  SHIELD FINISHERS:  #
@@ -384,24 +396,26 @@ endif
     # '1' for 'Last Stand Finisher'
     # '2' for 'Barrier Finisher'
     # '3' for 'Auto Shield Finisher Switching'
-        // Auto: PEACE/WAR = 'Last Stand Finisher'  BLEED/POISON/LOWHP = 'Barrier Finisher'
+        // Auto: PEACE/WAR = 'Last Stand Finisher'  FROSTSHELL/BLEED/POISON/LOWHP = 'Barrier Finisher'
 
 
 //////////////////////////
 //       BARDING:       //
 //////////////////////////
 
-@setvar! EnablePeacemaking 1
-@setvar! EnableDiscordance 1
-@setvar! EnableProvocation 1
-
-@setvar! EnablePeacemakingBuff 1
-@setvar! EnableDiscordanceBuff 1
-@setvar! EnableProvocationBuff 1
+@setvar! EnablePeacemaking 0
+@setvar! EnableDiscordance 0
+@setvar! EnableProvocation 0
+    # Will automatically Peace, Discord and, if targets available, Provoke enemies before attacking
 
 @setvar! PeacemakingReapply 30000
 @setvar! DiscordanceReapply 30000
 @setvar! ProvocationReapply 30000
+    # Script will reapply if bard break is detected (by default) and/or when variable above is met
+
+@setvar! EnablePeacemakingBuff 0
+@setvar! EnableDiscordanceBuff 0
+@setvar! EnableProvocationBuff 0
 
 
 //////////////////////////
@@ -409,33 +423,41 @@ endif
 //////////////////////////
 
 @setvar! EnableOverheadMessages 1
+    # Overhead messages can be turned off (minimal target indicators will remain)
 
 @setvar! EnableAutoCarving 0
+    # Requires skinning knife and will automatically carve nearby corpses
+
 @setvar! EnableEatingFood 0
+    # Will automatically eat delectable food trays when not buffed
+
 @setvar! EnableGoldVacuum 0
+    # Will automatically pickup discarded gold nearby
 
 @setvar! EnableDungeonCleanup 0
-    # Will automatically pickup discarded resources (regs, ingots, boards, etc.)
+    # Will automatically pickup discarded resources nearby (regs, ingots, boards, etc.)
     
 @setvar! EnableArrowCleanup 0
     # Will automatically pickup arrows or bolts from the ground
     
 @setvar! EnableDropGoldWhenOverweight 0
 @setvar! DropGoldAmount 250
+    # Will drop set amount of gold when overweight until no longer impeded 
 
 @setvar! EnableLootBag 0
     # Will open your selected LOOTBAG when unloading at HOME/INN/BANK
 
 @setvar! EnablePutLootinLockBox 0
     # Must have WOODEN BOX and COPPER KEY and loot will be automatically secured while FARMING
-    @setvar! StoreLootTimer 500
-    # StoreLootTimer is the delay between targets to trigger loot storage (so you are not storing items with nearby MOBs)
-    @setvar! AfterKillTimer 500 
+@setvar! StoreLootTimer 1500
+    # StoreLootTimer is the delay between targets to trigger loot storage
+@setvar! AfterKillTimer 500 
     # AfterKillTimer sets the delay after eliminating your target (to give time to loot, etc.) while still keeping you safe
     # Increase slightly if carving corpses or set to 0 for instant re-tartgeting
 
 @setvar! EnableArcheryWarningMessage 0
 @setvar! ArcheryLowAmmoWarningAmount 10
+    # Overhead warning (independant of other Overhead Messages) for low archery ammuniton (if Archery skill > 50) 
 
 @setvar! EnableWeightWarningMessage 1
 @setvar! GreenWarningDiffWeight 50
@@ -454,7 +476,7 @@ endif
 
         # Instead of recalling/retreating from PKs, you can choose to fight back instead:
             @setvar! EnableStandYourGround 0
-                # Will attack nearby PKs instead of attempting escape!
+                # Will attack nearby PKs instead of attempting to escape!
             @setvar! EnableSwitchToFastWeaponForPVP 0
                 # Uses Interrupt Weapons: katana, cutlass, scimitar, kryss, club, hammerpick, or war axe
 
@@ -495,7 +517,7 @@ endif
                     @setvar! EnableAutoRedDungeonGate 1
                 endif
             endif
-            # Will only trigger if RED is within target range (~12 tiles)
+            # Will only trigger if RED is within target range (~12 tiles) - but can still be helpful!
         endif
 
     ##########################
@@ -514,7 +536,7 @@ endif
     ##########################
 
     @setvar! EnableRecallAfterResurrection 0
-        # Must have [blessed] runebook charged w/ scrolls
+        # Must have [blessed] runebook charged w/ scrolls (even if 'EnableCastRecall' is turned on)
     @setvar! EnableDressAfterResurrection 0
         # Must have a Razor 'Dress List' named 'UltimateDexxer' for all your [blessed] wearables
 
@@ -725,11 +747,6 @@ if not timerexists 'PurplePotionTimer'
     settimer 'PurplePotionTimer' 0
 endif
 
-if not timerexists 'ExplosionCD'
-    createtimer 'ExplosionCD'
-    settimer 'ExplosionCD' 0
-endif
-
 if not timerexists 'WeightTimer'
     createtimer 'WeightTimer'
     settimer 'WeightTimer' 0
@@ -738,11 +755,6 @@ endif
 if not timerexists 'PKRadar'
     createtimer 'PKRadar'
     settimer 'PKRadar' 0
-endif
-
-if not timerexists "DungeonEscape"
-    createtimer "DungeonEscape"
-    settimer "DungeonEscape" 0
 endif
 
 if not timerexists 'TargetChecker'
@@ -773,6 +785,11 @@ endif
 if not timerexists "ShieldCodexCheckTimer"
     createtimer "ShieldCodexCheckTimer"
     settimer "ShieldCodexCheckTimer" 2000
+endif
+
+if not timerexists "DungeonEscape"
+    createtimer "DungeonEscape"
+    settimer "DungeonEscape" 0
 endif
 
 if not timerexists "DungeonCleanup"
@@ -1100,24 +1117,24 @@ if not timerexists "RendTimer"
     settimer "RendTimer" 0
 endif
 
-if not timerexists "After Kill"
-    createtimer "After Kill"
-    settimer "After Kill" 500
+if not timerexists "AfterKill"
+    createtimer "AfterKill"
+    settimer "AfterKill" 500
 endif
 
-if not timerexists "Gold Vacuum"
-    createtimer "Gold Vacuum"
+if not timerexists "GoldVacuum"
+    createtimer "GoldVacuum"
     settimer "Gold Vacuum" 0
 endif
 
-if not timerexists "Gold Radar"
-    createtimer "Gold Radar"
-    settimer "Gold Radar" 0
+if not timerexists "GoldRadar"
+    createtimer "GoldRadar"
+    settimer "GoldRadar" 0
 endif
 
-if not timerexists "Infinite Loop"
-    createtimer "Infinite Loop"
-    settimer "Infinite Loop" 30000
+if not timerexists "InfiniteLoop"
+    createtimer "InfiniteLoop"
+    settimer "InfiniteLoop" 30000
 endif
 
 if not timerexists "CleanupRadar"
@@ -1159,9 +1176,9 @@ endif
 if not dead
     if not varexist DexxerAutoPilot
         overhead "Lord Glaciers Chill Dexxer Auto Pilot Script" 77
-        overhead "version 2.0.2"
+        overhead "version 2.0.3"
         wait 1000
-        overhead "Last Updated June 17, 2025" 84
+        overhead "Last Updated June 19, 2025" 84
         wait 2500
         overhead "Thank you for trying my Dexxer AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
@@ -1276,11 +1293,13 @@ while not dead
                     waitforgump 4267467659 5000
                 endwhile
                 gumpresponse 6 4267467659
-                wait 1000
+                wait 500
                 clearsysmsg
             endif
             gumpclose 4267467659
-            overhead "[ AUTO RECALL ACTIVATED! ]" 334
+            if EnableOverheadMessages = 1
+                overhead "[ AUTO RECALL ACTIVATED! ]" 334
+            endif
         endif
     endif
 
@@ -1293,7 +1312,6 @@ while not dead
                 endif
                 @setvar! RedTargetFound 1
                 clearsysmsg
-                replay
             endif
         elseif PKTrackingRange = 50
             if insysmsg ": 50 step" or insysmsg "50 space" or insysmsg ": 49 step" or insysmsg "49 space" or insysmsg ": 48 step" or insysmsg "48 space" or insysmsg ": 47 step" or insysmsg "47 space" or insysmsg ": 46 step" or insysmsg "46 space" or insysmsg ": 45 step" or insysmsg "45 space" or insysmsg ": 44 step" or insysmsg "44 space" or insysmsg ": 43 step" or insysmsg "43 space" or insysmsg ": 42 step" or insysmsg "42 space" or insysmsg ": 41 step" or insysmsg "41 space" or insysmsg ": 40 step" or insysmsg "40 space" or insysmsg ": 39 step" or insysmsg "39 space" or insysmsg ": 38 step" or insysmsg "38 space" or insysmsg ": 37 step" or insysmsg "37 space" or insysmsg ": 36 step" or insysmsg "36 space" or insysmsg ": 35 step" or insysmsg "35 space" or insysmsg ": 34 step" or insysmsg "34 space" or insysmsg ": 33 step" or insysmsg "33 space" or insysmsg ": 32 step" or insysmsg "32 space" or insysmsg ": 31 step" or insysmsg "31 space" or insysmsg ": 30 step" or insysmsg "30 space" or insysmsg ": 29 step" or insysmsg "29 space" or insysmsg ": 28 step" or insysmsg "28 space" or insysmsg ": 27 step" or insysmsg "27 space" or insysmsg ": 26 step" or insysmsg "26 space" or insysmsg ": 25 step" or insysmsg "25 space" or insysmsg ": 24 step" or insysmsg "24 space" or insysmsg ": 23 step" or insysmsg "23 space" or insysmsg ": 22 step" or insysmsg "22 space" or insysmsg ": 21 step" or insysmsg "21 space" or insysmsg ": 20 step" or insysmsg "20 space" or insysmsg ": 19 step" or insysmsg "19 space" or insysmsg ": 18 step" or insysmsg "18 space" or insysmsg ": 17 step" or insysmsg "17 space" or insysmsg ": 16 step" or insysmsg "16 space" or insysmsg ": 15 step" or insysmsg "15 space" or insysmsg ": 14 step" or insysmsg "14 space" or insysmsg ": 13 step" or insysmsg "13 space" or insysmsg ": 12 step" or insysmsg "12 space" or insysmsg ": 11 step" or insysmsg "11 space" or insysmsg ": 10 step" or insysmsg "10 space" or insysmsg ": 9 step" or insysmsg "(9 space" or insysmsg ": 8 step" or insysmsg "(8 space" or insysmsg ": 7 step" or insysmsg "(7 space" or insysmsg ": 6 step" or insysmsg "(6 space" or insysmsg ": 5 step" or insysmsg "(5 space" or insysmsg ": 4 step" or insysmsg "(4 space" or insysmsg ": 3 step" or insysmsg "(3 space" or insysmsg ": 2 step" or insysmsg "(2 space" or insysmsg ": 1 step" or insysmsg "(1 space" or insysmsg ": 0 step" or insysmsg "(0 space"
@@ -1303,7 +1321,6 @@ while not dead
                 endif
                 @setvar! RedTargetFound 1
                 clearsysmsg
-                replay
             endif
         elseif PKTrackingRange = 40
             if insysmsg ": 40 step" or insysmsg "40 space" or insysmsg ": 39 step" or insysmsg "39 space" or insysmsg ": 38 step" or insysmsg "38 space" or insysmsg ": 37 step" or insysmsg "37 space" or insysmsg ": 36 step" or insysmsg "36 space" or insysmsg ": 35 step" or insysmsg "35 space" or insysmsg ": 34 step" or insysmsg "34 space" or insysmsg ": 33 step" or insysmsg "33 space" or insysmsg ": 32 step" or insysmsg "32 space" or insysmsg ": 31 step" or insysmsg "31 space" or insysmsg ": 30 step" or insysmsg "30 space" or insysmsg ": 29 step" or insysmsg "29 space" or insysmsg ": 28 step" or insysmsg "28 space" or insysmsg ": 27 step" or insysmsg "27 space" or insysmsg ": 26 step" or insysmsg "26 space" or insysmsg ": 25 step" or insysmsg "25 space" or insysmsg ": 24 step" or insysmsg "24 space" or insysmsg ": 23 step" or insysmsg "23 space" or insysmsg ": 22 step" or insysmsg "22 space" or insysmsg ": 21 step" or insysmsg "21 space" or insysmsg ": 20 step" or insysmsg "20 space" or insysmsg ": 19 step" or insysmsg "19 space" or insysmsg ": 18 step" or insysmsg "18 space" or insysmsg ": 17 step" or insysmsg "17 space" or insysmsg ": 16 step" or insysmsg "16 space" or insysmsg ": 15 step" or insysmsg "15 space" or insysmsg ": 14 step" or insysmsg "14 space" or insysmsg ": 13 step" or insysmsg "13 space" or insysmsg ": 12 step" or insysmsg "12 space" or insysmsg ": 11 step" or insysmsg "11 space" or insysmsg ": 10 step" or insysmsg "10 space" or insysmsg ": 9 step" or insysmsg "(9 space" or insysmsg ": 8 step" or insysmsg "(8 space" or insysmsg ": 7 step" or insysmsg "(7 space" or insysmsg ": 6 step" or insysmsg "(6 space" or insysmsg ": 5 step" or insysmsg "(5 space" or insysmsg ": 4 step" or insysmsg "(4 space" or insysmsg ": 3 step" or insysmsg "(3 space" or insysmsg ": 2 step" or insysmsg "(2 space" or insysmsg ": 1 step" or insysmsg "(1 space" or insysmsg ": 0 step" or insysmsg "(0 space"
@@ -1313,7 +1330,6 @@ while not dead
                 endif
                 @setvar! RedTargetFound 1
                 clearsysmsg
-                replay
             endif
         elseif PKTrackingRange = 0
             if insysmsg "Now tracking"
@@ -1323,7 +1339,6 @@ while not dead
                 endif
                 @setvar! RedTargetFound 1
                 clearsysmsg
-                replay
             endif
         endif
     endif
@@ -1348,6 +1363,9 @@ while not dead
         if findtype "pouch" self
             yell "[pouch"
             wait 250
+            hotkey 'Toggle War Only'
+            @setvar! RedTargetFound 1
+            @setvar! TimeToGo 1
         else
             if timer pouchMessageTimer > 5000 and EnableOverheadMessages = 1
                 overhead "[ NO MORE POUCHES! ]" 337
@@ -1358,7 +1376,7 @@ while not dead
 
 
     ///////////////////////////
-    //  BEGIN HEALING LOOP:  //
+    //  BEGIN AUTO HEALING:  //
     ///////////////////////////
 
     while diffhits >= ActivateAutoHealHPdiff or poisoned
@@ -1372,12 +1390,74 @@ while not dead
             if findtype "pouch" self
                 yell "[pouch"
                 wait 250
+                hotkey 'Toggle War Only'
+                @setvar! RedTargetFound 1
+                @setvar! TimeToGo 1
             else
                 if timer pouchMessageTimer > 5000 and EnableOverheadMessages = 1
                     overhead "[ NO MORE POUCHES! ]" 337
                     settimer pouchMessageTimer 0
                 endif
             endif
+        endif
+
+        if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+            if findtype "Yellow Potion" self as HealPot
+                getlabel HealPot HealPotlabel
+                if "next" in HealPotlabel
+                    // Do nothing
+                else
+                    @setvar! HealPotionCheck 0
+
+                    if counttype 3852 self as HealPotCount
+                        @setvar! HealPotionCheck HealPotCount
+                    endif
+
+                    clearsysmsg
+                    dclicktype 3852
+                    getlabel backpack backpackdesc
+                    wait 250
+
+                    if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                        settimer 'HealPotionTimer' 0
+                        cooldown "Healing Potion" HealingPotionCooldown
+                        if EnableOverheadMessages = 1
+                            if insysmsg "potion satchel used"
+                                overhead '[ FREE HEAL POTION ]' 253
+                            else
+                                overhead "[ HEAL POTION ]" 253
+                            endif
+                        endif 
+                        clearsysmsg
+                    endif
+                endif
+            else
+                if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                    overhead "[ NO HEAL POTS! ]" 337
+                    settimer 'yellowMessageTimer' 0
+                endif
+            endif
+        endif
+
+        if EnableCurePotion = 1
+            while poisoned
+                if findtype "Orange Potion" self
+                    dclicktype "Orange Potion"
+                    if EnableOverheadMessages = 1 and timer 'orangeMessageTimer' > 3500
+                        overhead "[ CURE POTION ]" 44
+                        settimer 'orangeMessageTimer' 0
+                    endif
+                    wait 250
+                else
+                    if timer 'orangeMessageTimer' > 5000 and EnableOverheadMessages = 1
+                        overhead "[ NO CURE POTS! ]" 337
+                        settimer 'orangeMessageTimer' 0
+                    endif
+                endif
+                if diffhits > 40
+                    break
+                endif
+            endwhile
         endif
 
         if diffhits > 0 and not bandaging
@@ -1623,6 +1703,7 @@ while not dead
                     endif
                     settimer 'NobleSacrificeTimer' 0
                     cooldown "Noble Sacrifice" 31000
+                    settimer 'ChivalryPrevented' 4000
                 endif
                 wait 250
             endif
@@ -1642,64 +1723,10 @@ while not dead
                     endif
                     settimer 'HolyLightTimer' 0
                     cooldown "Holy Light" 31000
+                    settimer 'ChivalryPrevented' 4000
                 endif
                 wait 250
             endif
-        endif
-
-        if diffhits >= HealPotionHPdiff and EnableHealPotion = 1
-            if findtype "Yellow Potion" self as hPot
-                getlabel hPot potLabel
-                if "next" in potLabel
-                    #do nothing
-                else
-                    @setvar! ch 0
-
-                    if counttype 3852 self as c
-                        @setvar! ch c
-                    endif
-                    if insysmsg "potion satchel used"
-                    endif
-
-                    dclicktype 3852
-                    getlabel backpack packdesc
-                    wait 250
-
-                    if ch != counttype 3852 self or insysmsg "potion satchel used"
-                        settimer 'HealPotionTimer' 0
-                        cooldown "Healing Potion" HealingPotionCooldown
-                        if EnableOverheadMessages = 1
-                            overhead "[ HEAL POTION ]" 253
-                        endif
-                    endif
-                endif
-            else
-                if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
-                    overhead "[ NO HEAL POTS! ]" 337
-                    settimer 'yellowMessageTimer' 0
-                endif
-            endif
-        endif
-
-        if EnableCurePotion = 1
-            while poisoned
-                if findtype "Orange Potion" self
-                    dclicktype "Orange Potion"
-                    if EnableOverheadMessages = 1 and timer 'orangeMessageTimer' > 3500
-                        overhead "[ CURE POTION ]" 44
-                        settimer 'orangeMessageTimer' 0
-                    endif
-                    wait 250
-                else
-                    if timer 'orangeMessageTimer' > 5000 and EnableOverheadMessages = 1
-                        overhead "[ NO CURE POTS! ]" 337
-                        settimer 'orangeMessageTimer' 0
-                    endif
-                endif
-                if diffhits > 40
-                    break
-                endif
-            endwhile
         endif
 
         if EnableStrengthPotion = 1 and not findbuff "Strength"
@@ -1955,7 +1982,7 @@ while not dead
                                     overhead "[ NO MORE POUCHES! ]" 337
                                 endif
                             endif
-                    endif
+                        endif
                     endif
 
                     if skill 'Healing' > 30
@@ -1974,6 +2001,7 @@ while not dead
                         endif
                         settimer "TargetAcquired" 0
                     endif
+
                     attack MurdererTarget
                     wait 500
 
@@ -2032,7 +2060,7 @@ while not dead
                     endif
 
                     if findtype "Purple Potion" self as Molotov and skill 'Alchemy' >= 80
-                        if find MurdererTarget ground -1 -1 10 and PurplePotionReady = 1
+                        if find MurdererTarget ground -1 -1 12 and PurplePotionReady = 1
                             dclick Molotov
                             wft 1000
                             target MurdererTarget
@@ -2041,6 +2069,7 @@ while not dead
                     endif
                 endif
             endwhile
+
             if EnableOverheadMessages = 1
                 if timer "NoTargetTimer" > 4000
                     overhead "[ RED TARGET LOST... ]" 37
@@ -2052,6 +2081,7 @@ while not dead
                     settimer "NoTargetTimer" 0
                 endif
             endif
+
             @setvar! RedTargetFound 0
             hotkey 'Toggle Peace Only'
             replay
@@ -2290,8 +2320,89 @@ while not dead
                                     overhead "[ NO MORE POUCHES! ]" 337
                                 endif
                             endif
+                        endif
                     endif
+
+                    if diffhits > 0 and not bandaging
+                        if skill 'healing' >= 30 or skill "veterinary" >= 50
+                            if findtype 'clean bandage%s%' backpack
+                                if targetexists
+                                    hotkey 'cancel current target'
+                                endif
+                                dclicktype 'clean bandage%s%'
+                                wft 1000
+                                target 'self'
+                                if EnableOverheadMessages = 1
+                                    overhead "[ BANDAGING... ]" 88
+                                endif
+                            else
+                                if timer aidsMessageTimer > 5000 and EnableOverheadMessages = 1
+                                    overhead "[ OUT OF BANDAGES! ]" 337
+                                    settimer aidsMessageTimer 0
+                                endif
+                            endif
+                        endif
                     endif
+
+                    if EnableCurePotion = 1
+                        while poisoned
+                            if findtype "Orange Potion" self
+                                dclicktype "Orange Potion"
+                                if EnableOverheadMessages = 1 and timer 'orangeMessageTimer' > 3500
+                                    overhead "[ CURE POTION ]" 44
+                                    settimer 'orangeMessageTimer' 0
+                                endif
+                                wait 250
+                            else
+                                if timer 'orangeMessageTimer' > 5000 and EnableOverheadMessages = 1
+                                    overhead "[ NO CURE POTS! ]" 337
+                                    settimer 'orangeMessageTimer' 0
+                                endif
+
+                                if diffhits >= 30 or not findtype 3972 self or not findtype 3973 self
+                                    break
+                                endif
+                            endif
+                        endwhile
+                    endif
+
+        if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+            if findtype "Yellow Potion" self as HealPot
+                getlabel HealPot HealPotlabel
+                if "next" in HealPotlabel
+                    // Do nothing
+                else
+                    @setvar! HealPotionCheck 0
+
+                    if counttype 3852 self as HealPotCount
+                        @setvar! HealPotionCheck HealPotCount
+                    endif
+
+                    clearsysmsg
+                    dclicktype 3852
+                    getlabel backpack backpackdesc
+                    wait 250
+
+                    if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                        settimer 'HealPotionTimer' 0
+                        cooldown "Healing Potion" HealingPotionCooldown
+                        if EnableOverheadMessages = 1
+                            if insysmsg "potion satchel used"
+                                overhead '[ FREE HEAL POTION ]' 253
+                            else
+                                overhead "[ HEAL POTION ]" 253
+                            endif
+                        endif 
+                        clearsysmsg
+                    endif
+                endif
+            else
+                if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                    overhead "[ NO HEAL POTS! ]" 337
+                    settimer 'yellowMessageTimer' 0
+                endif
+            endif
+        endif
 
                     if insysmsg "world is saving"
                         settimer "WorldSaveTimer" 0
@@ -2339,21 +2450,6 @@ while not dead
                         endif
                     endif
 
-                    if EnableMagicResistPotion = 1 and not findbuff "Magic Resist"
-                        if findtype "Black Potion" self
-                            dclicktype "Black Potion"
-                            if EnableOverheadMessages = 1
-                                overhead "[ RESIST POTION ]" 1109
-                            endif
-                            wait 250
-                        else
-                            if timer blackMessageTimer > 4500 and EnableOverheadMessages = 1
-                                overhead "[ NO RESIST POTS! ]" 337
-                                settimer blackMessageTimer 0
-                            endif
-                        endif
-                    endif
-
                     if EnableRefreshPotion = 1 and diffstam > RefreshPotionSPdiff
                         if findtype "Red Potion" self
                             dclicktype "Red Potion"
@@ -2380,83 +2476,6 @@ while not dead
                                 if EnableOverheadMessages = 1
                                     overhead "[ NO MORE POUCHES! ]" 337
                                 endif
-                            endif
-                        endif
-                    endif
-
-                    if diffhits > 0 and not bandaging
-                        if skill 'healing' >= 30 or skill "veterinary" >= 50
-                            if findtype 'clean bandage%s%' backpack
-                                if targetexists
-                                    hotkey 'cancel current target'
-                                endif
-                                dclicktype 'clean bandage%s%'
-                                wft 1000
-                                target 'self'
-                                if EnableOverheadMessages = 1
-                                    overhead "[ BANDAGING... ]" 88
-                                endif
-                            else
-                                if timer aidsMessageTimer > 5000 and EnableOverheadMessages = 1
-                                    overhead "[ OUT OF BANDAGES! ]" 337
-                                    settimer aidsMessageTimer 0
-                                endif
-                            endif
-                        endif
-                    endif
-
-                    if EnableCurePotion = 1
-                        while poisoned
-                            if findtype "Orange Potion" self
-                                dclicktype "Orange Potion"
-                                if EnableOverheadMessages = 1 and timer 'orangeMessageTimer' > 3500
-                                    overhead "[ CURE POTION ]" 44
-                                    settimer 'orangeMessageTimer' 0
-                                endif
-                                wait 250
-                            else
-                                if timer 'orangeMessageTimer' > 5000 and EnableOverheadMessages = 1
-                                    overhead "[ NO CURE POTS! ]" 337
-                                    settimer 'orangeMessageTimer' 0
-                                endif
-
-                                if diffhits >= 30 or not findtype 3972 self or not findtype 3973 self
-                                    break
-                                endif
-                            endif
-                        endwhile
-                    endif
-
-                    if diffhits >= HealPotionHPdiff and EnableHealPotion = 1
-                        if findtype "Yellow Potion" self as hPot
-                            getlabel hPot potLabel
-                            if "next" in potLabel
-                                #do nothing
-                            else
-                                @setvar! ch 0
-
-                                if counttype 3852 self as c
-                                    @setvar! ch c
-                                endif
-                                if insysmsg "potion satchel used"
-                                endif
-
-                                dclicktype 3852
-                                getlabel backpack packdesc
-                                wait 250
-
-                                if ch != counttype 3852 self or insysmsg "potion satchel used"
-                                    settimer 'HealPotionTimer' 0
-                                    cooldown "Healing Potion" HealingPotionCooldown
-                                    if EnableOverheadMessages = 1
-                                        overhead "[ HEAL POTION ]" 253
-                                    endif
-                                endif
-                            endif
-                        else
-                            if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
-                                overhead "[ NO HEAL POTS! ]" 337
-                                settimer 'yellowMessageTimer' 0
                             endif
                         endif
                     endif
@@ -2740,39 +2759,43 @@ while not dead
                         endwhile
                     endif
 
-                    if diffhits >= HealPotionHPdiff and EnableHealPotion = 1
-                        if findtype "Yellow Potion" self as hPot
-                            getlabel hPot potLabel
-                            if "next" in potLabel
-                                #do nothing
-                            else
-                                @setvar! ch 0
+        if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+            if findtype "Yellow Potion" self as HealPot
+                getlabel HealPot HealPotlabel
+                if "next" in HealPotlabel
+                    // Do nothing
+                else
+                    @setvar! HealPotionCheck 0
 
-                                if counttype 3852 self as c
-                                    @setvar! ch c
-                                endif
-                                if insysmsg "potion satchel used"
-                                endif
-
-                                dclicktype 3852
-                                getlabel backpack packdesc
-                                wait 250
-
-                                if ch != counttype 3852 self or insysmsg "potion satchel used"
-                                    settimer 'HealPotionTimer' 0
-                                    cooldown "Healing Potion" HealingPotionCooldown
-                                    if EnableOverheadMessages = 1
-                                        overhead "[ HEAL POTION ]" 253
-                                    endif
-                                endif
-                            endif
-                        else
-                            if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
-                                overhead "[ NO HEAL POTS! ]" 337
-                                settimer 'yellowMessageTimer' 0
-                            endif
-                        endif
+                    if counttype 3852 self as HealPotCount
+                        @setvar! HealPotionCheck HealPotCount
                     endif
+
+                    clearsysmsg
+                    dclicktype 3852
+                    getlabel backpack backpackdesc
+                    wait 250
+
+                    if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                        settimer 'HealPotionTimer' 0
+                        cooldown "Healing Potion" HealingPotionCooldown
+                        if EnableOverheadMessages = 1
+                            if insysmsg "potion satchel used"
+                                overhead '[ FREE HEAL POTION ]' 253
+                            else
+                                overhead "[ HEAL POTION ]" 253
+                            endif
+                        endif 
+                        clearsysmsg
+                    endif
+                endif
+            else
+                if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                    overhead "[ NO HEAL POTS! ]" 337
+                    settimer 'yellowMessageTimer' 0
+                endif
+            endif
+        endif
 
                     if weight > maxweight and EnableDropGoldWhenOverweight = 1
                         if timer overweightMessageTimer > 4500
@@ -2828,6 +2851,7 @@ while not dead
                                 endif
                                 settimer "HolyLightTimer" 0
                                 cooldown "Holy Light" 31000
+                                settimer "ChivalryPrevented" 0
                             endif
                             wait 250
                         endif
@@ -2849,6 +2873,7 @@ while not dead
                                 endif
                                 settimer "NobleSacrificeTimer" 0
                                 cooldown "Noble Sacrifice" 31000
+                                settimer "ChivalryPrevented" 0
                             endif
                             wait 250
                         endif
@@ -2986,7 +3011,7 @@ while not dead
 
     if RECALLTIME = 1
         if EnableInfiniteLoop = 1
-            settimer "Infinite Loop" 0
+            settimer "InfiniteLoop" 0
         endif
 
         if EnableCastRecall = 1 and skill "Magery" >= 60 and RecallScrollsOnly != 1 and findtype '3962' self and findtype '3963' self and findtype '3974' self
@@ -3285,6 +3310,14 @@ while not dead
                             endif
                             wait 500
                             dclick lockbox
+                            wait 500
+                            if insysmsg "appears to be locked"
+                                dclick key
+                                wft 1500
+                                target lockbox
+                                wait 500
+                                dclick lockbox
+                            endif
                         endif
                     elseif EnableAutoRecallOverheadMessages = 1
                         overhead "[ NO LOCKBOX KEY! ]" 337
@@ -3593,6 +3626,24 @@ while not dead
                     if findtype 'keg' self KegColour as myKeg
                         dclick myKeg
                         wait 250
+                        if insysmsg 'You pour some'
+                            if EnableOverheadMessages = 1
+                                if timer 'PotionKegTimer' > 2000
+                                    overhead '[ FILLING POTS... ]' KegColour
+                                    clearsysmsg
+                                    settimer 'PotionKegTimer' 0
+                                endif
+                            else
+                                if timer 'PotionKegTimer' > 2000
+                                    overhead ' ¼ ' KegColour
+                                    clearsysmsg
+                                    settimer 'PotionKegTimer' 0
+                                endif
+                            endif
+                        elseif insysmsg 'You must wait'
+                            wait 250
+                            clearsysmsg
+                        endif
                         while queued
                             wait 250
                         endwhile
@@ -3601,24 +3652,6 @@ while not dead
                             overhead "[ NO KEG TO USE... ]" 337
                         endif
                         break
-                    endif
-                    if insysmsg 'You pour some'
-                        if EnableOverheadMessages = 1
-                            if timer 'PotionKegTimer' > 2000
-                                overhead '[ FILLING POTS... ]' KegColour
-                                clearsysmsg
-                                settimer 'PotionKegTimer' 0
-                            endif
-                        else
-                            if timer 'PotionKegTimer' > 2000
-                                overhead ' ¼ ' KegColour
-                                clearsysmsg
-                                settimer 'PotionKegTimer' 0
-                            endif
-                        endif
-                    elseif insysmsg 'You must wait'
-                        wait 250
-                        clearsysmsg
                     endif
                 endwhile
                 if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' backpack
@@ -3660,6 +3693,7 @@ while not dead
                         endif
                         settimer "NobleSacrificeTimer" 0
                         cooldown "Noble Sacrifice" 31000
+                        settimer "ChivalryPrevented" 0
                     endif
                     wait 250
                 endif
@@ -4427,7 +4461,7 @@ while not dead
                     endif
                 endif
 
-                while timer "Infinite Loop" < 30000
+                while timer "InfiniteLoop" < 30000
                     if timer "NoTargetTimer" < 4000
                         if EnableOverheadMessages = 1
                             overhead "[ WAITING TO LOOP... ]" 2234
@@ -4706,7 +4740,7 @@ while not dead
         endif
     endif
 
-    if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self
+    if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and diffhits < ActivateAutoHealHPdiff
         @setvar! PotionStockCheck 0
         while PotionStockCheck < 7 and findtype 'empty bottle%s%' backpack
             if PotionStockCheck = 0 and ExplosionPotionAmount != 0
@@ -4757,6 +4791,24 @@ while not dead
                 if findtype 'keg' self KegColour as myKeg
                     dclick myKeg
                     wait 250
+                    if insysmsg 'You pour some'
+                        if EnableOverheadMessages = 1
+                            if timer 'PotionKegTimer' > 2000
+                                overhead '[ FILLING POTS... ]' KegColour
+                                clearsysmsg
+                                settimer 'PotionKegTimer' 0
+                            endif
+                        else
+                            if timer 'PotionKegTimer' > 2000
+                                overhead ' ¼ ' KegColour
+                                clearsysmsg
+                                settimer 'PotionKegTimer' 0
+                            endif
+                        endif
+                    elseif insysmsg 'You must wait'
+                        wait 250
+                        clearsysmsg
+                    endif
                     while queued
                         wait 250
                     endwhile
@@ -4765,24 +4817,6 @@ while not dead
                         overhead "[ NO KEG TO USE... ]" 337
                     endif
                     break
-                endif
-                if insysmsg 'You pour some'
-                    if EnableOverheadMessages = 1
-                        if timer 'PotionKegTimer' > 2000
-                            overhead '[ FILLING POTS... ]' KegColour
-                            clearsysmsg
-                            settimer 'PotionKegTimer' 0
-                        endif
-                    else
-                        if timer 'PotionKegTimer' > 2000
-                            overhead ' ¼ ' KegColour
-                            clearsysmsg
-                            settimer 'PotionKegTimer' 0
-                        endif
-                    endif
-                elseif insysmsg 'You must wait'
-                    wait 250
-                    clearsysmsg
                 endif
             endwhile
             if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' backpack
@@ -4962,6 +4996,44 @@ while not dead
                     overhead ' Ï ' 2338
                 endif
                 settimer noTargetMessageTimer 0
+            endif
+
+            if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+                if findtype "Yellow Potion" self as HealPot
+                    getlabel HealPot HealPotlabel
+                    if "next" in HealPotlabel
+                        // Do nothing
+                    else
+                        @setvar! HealPotionCheck 0
+
+                        if counttype 3852 self as HealPotCount
+                            @setvar! HealPotionCheck HealPotCount
+                        endif
+
+                        clearsysmsg
+                        dclicktype 3852
+                        getlabel backpack backpackdesc
+                        wait 250
+
+                        if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                            settimer 'HealPotionTimer' 0
+                            cooldown "Healing Potion" HealingPotionCooldown
+                            if EnableOverheadMessages = 1
+                                if insysmsg "potion satchel used"
+                                    overhead '[ FREE HEAL POTION ]' 253
+                                else
+                                    overhead "[ HEAL POTION ]" 253
+                                endif
+                            endif 
+                            clearsysmsg
+                        endif
+                    endif
+                else
+                    if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                        overhead "[ NO HEAL POTS! ]" 337
+                        settimer 'yellowMessageTimer' 0
+                    endif
+                endif
             endif
 
             if diffhits > 0 and not bandaging
@@ -5266,14 +5338,14 @@ while not dead
                     if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 8 and WILDERNESSMODE = 1
                         wait 1000
                         if EnableInfiniteLoop = 1
-                            settimer "Infinite Loop" 0
+                            settimer "InfiniteLoop" 0
                         endif
                         hotkey 'Toggle War Only'
                         @setvar! AutoWeightRecall 1
                         replay
                     elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 8 and WILDERNESSMODE = 1
                         if EnableInfiniteLoop = 1
-                            settimer "Infinite Loop" 0
+                            settimer "InfiniteLoop" 0
                         endif
                         if timer "RECALLDELAY" > 3500 and EnableAutoRecallOverheadMessages = 1
                             overhead "[ WAITING TO RECALL... ]" 149
@@ -5283,7 +5355,7 @@ while not dead
                     elseif EnableAutoWeightDungeonGate = 1 and DUNGEONMODE = 1
                         wait 1000
                         if EnableInfiniteLoop = 1
-                            settimer "Infinite Loop" 0
+                            settimer "InfiniteLoop" 0
                         endif
                         hotkey 'Toggle War Only'
                         @setvar! TimeToGo 1
@@ -5435,6 +5507,44 @@ while not dead
                     replay
                 endif 
 
+                if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+                    if findtype "Yellow Potion" self as HealPot
+                        getlabel HealPot HealPotlabel
+                        if "next" in HealPotlabel
+                            // Do nothing
+                        else
+                            @setvar! HealPotionCheck 0
+
+                            if counttype 3852 self as HealPotCount
+                                @setvar! HealPotionCheck HealPotCount
+                            endif
+
+                            clearsysmsg
+                            dclicktype 3852
+                            getlabel backpack backpackdesc
+                            wait 250
+
+                            if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                                settimer 'HealPotionTimer' 0
+                                cooldown "Healing Potion" HealingPotionCooldown
+                                if EnableOverheadMessages = 1
+                                    if insysmsg "potion satchel used"
+                                        overhead '[ FREE HEAL POTION ]' 253
+                                    else
+                                        overhead "[ HEAL POTION ]" 253
+                                    endif
+                                endif 
+                                clearsysmsg
+                            endif
+                        endif
+                    else
+                        if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                            overhead "[ NO HEAL POTS! ]" 337
+                            settimer 'yellowMessageTimer' 0
+                        endif
+                    endif
+                endif
+
                 if diffhits > 0 and not bandaging
                     if skill 'healing' >= 30 or skill "veterinary" >= 50
                         if findtype 'clean bandage%s%' backpack
@@ -5452,40 +5562,6 @@ while not dead
                                 overhead "[ OUT OF BANDAGES! ]" 337
                                 settimer aidsMessageTimer 0
                             endif
-                        endif
-                    endif
-                endif
-
-                if diffhits >= HealPotionHPdiff and EnableHealPotion = 1
-                    if findtype "Yellow Potion" self as hPot
-                        getlabel hPot potLabel
-                        if "next" in potLabel
-                            #do nothing
-                        else
-                            @setvar! ch 0
-
-                            if counttype 3852 self as c
-                                @setvar! ch c
-                            endif
-                            if insysmsg "potion satchel used"
-                            endif
-
-                            dclicktype 3852
-                            getlabel backpack packdesc
-                            wait 250
-
-                            if ch != counttype 3852 self or insysmsg "potion satchel used"
-                                settimer 'HealPotionTimer' 0
-                                cooldown "Healing Potion" HealingPotionCooldown
-                                if EnableOverheadMessages = 1
-                                    overhead "[ HEAL POTION ]" 253
-                                endif
-                            endif
-                        endif
-                    else
-                        if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
-                            overhead "[ NO HEAL POTS! ]" 337
-                            settimer 'yellowMessageTimer' 0
                         endif
                     endif
                 endif
@@ -5654,6 +5730,8 @@ while not dead
                             endif
                         endif
                     endif
+                else 
+                    break
                 endif
                 
                 if targetexists
@@ -5704,6 +5782,44 @@ while not dead
                 endif
             endif
     
+            if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+                if findtype "Yellow Potion" self as HealPot
+                    getlabel HealPot HealPotlabel
+                    if "next" in HealPotlabel
+                        // Do nothing
+                    else
+                        @setvar! HealPotionCheck 0
+
+                        if counttype 3852 self as HealPotCount
+                            @setvar! HealPotionCheck HealPotCount
+                        endif
+
+                        clearsysmsg
+                        dclicktype 3852
+                        getlabel backpack backpackdesc
+                        wait 250
+
+                        if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                            settimer 'HealPotionTimer' 0
+                            cooldown "Healing Potion" HealingPotionCooldown
+                            if EnableOverheadMessages = 1
+                                if insysmsg "potion satchel used"
+                                    overhead '[ FREE HEAL POTION ]' 253
+                                else
+                                    overhead "[ HEAL POTION ]" 253
+                                endif
+                            endif 
+                            clearsysmsg
+                        endif
+                    endif
+                else
+                    if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                        overhead "[ NO HEAL POTS! ]" 337
+                        settimer 'yellowMessageTimer' 0
+                    endif
+                endif
+            endif
+
             if diffhits > 0 and not bandaging
                 if skill 'healing' >= 30 or skill "veterinary" >= 50
                     if findtype 'clean bandage%s%' backpack
@@ -5721,40 +5837,6 @@ while not dead
                             overhead "[ OUT OF BANDAGES! ]" 337
                             settimer aidsMessageTimer 0
                         endif
-                    endif
-                endif
-            endif
-
-            if diffhits >= HealPotionHPdiff and EnableHealPotion = 1
-                if findtype "Yellow Potion" self as hPot
-                    getlabel hPot potLabel
-                    if "next" in potLabel
-                        #do nothing
-                    else
-                        @setvar! ch 0
-
-                        if counttype 3852 self as c
-                            @setvar! ch c
-                        endif
-                        if insysmsg "potion satchel used"
-                        endif
-
-                        dclicktype 3852
-                        getlabel backpack packdesc
-                        wait 250
-
-                        if ch != counttype 3852 self or insysmsg "potion satchel used"
-                            settimer 'HealPotionTimer' 0
-                            cooldown "Healing Potion" HealingPotionCooldown
-                            if EnableOverheadMessages = 1
-                                overhead "[ HEAL POTION ]" 253
-                            endif
-                        endif
-                    endif
-                else
-                    if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
-                        overhead "[ NO HEAL POTS! ]" 337
-                        settimer 'yellowMessageTimer' 0
                     endif
                 endif
             endif
@@ -6091,7 +6173,7 @@ while not dead
             endif
 
             if EnableCleanseByFire = 1
-                if diffhits > CleanseByFireHPdiff and poisoned and timer "CleanseByFireTimer" > 31000 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and CleanseByFireAvailable = 1
+                if poisoned and timer "CleanseByFireTimer" > 31000 and timer "ChivalryPrevented" > 5000 and timer "DivineFuryTimer" < 31000 and CleanseByFireAvailable = 1
                     clearsysmsg
                     yell "[CleanseByFire"
                     wait 250
@@ -6729,7 +6811,6 @@ while not dead
                                     endif
                                 endif
                             endif
-
                         elseif NeedtoDiscord = 2
                             if timer "Discorded" > 3100- and timer "DiscordanceTimer" > 11000 and timer "Musicianship" > 5000 and diffhits <= ActivateAutoHealHPdiff 
                                 skill "Discordance"
@@ -6803,6 +6884,44 @@ while not dead
             //////////////////////
             //     POTIONS:     //
             //////////////////////
+
+            if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+                if findtype "Yellow Potion" self as HealPot
+                    getlabel HealPot HealPotlabel
+                    if "next" in HealPotlabel
+                        // Do nothing
+                    else
+                        @setvar! HealPotionCheck 0
+
+                        if counttype 3852 self as HealPotCount
+                            @setvar! HealPotionCheck HealPotCount
+                        endif
+
+                        clearsysmsg
+                        dclicktype 3852
+                        getlabel backpack backpackdesc
+                        wait 250
+
+                        if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                            settimer 'HealPotionTimer' 0
+                            cooldown "Healing Potion" HealingPotionCooldown
+                            if EnableOverheadMessages = 1
+                                if insysmsg "potion satchel used"
+                                    overhead '[ FREE HEAL POTION ]' 253
+                                else
+                                    overhead "[ HEAL POTION ]" 253
+                                endif
+                            endif 
+                            clearsysmsg
+                        endif
+                    endif
+                else
+                    if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                        overhead "[ NO HEAL POTS! ]" 337
+                        settimer 'yellowMessageTimer' 0
+                    endif
+                endif
+            endif
 
             if EnableStrengthPotion = 1 and not findbuff "Strength"
                 if findtype "White Potion" self
@@ -6915,6 +7034,24 @@ while not dead
                         if findtype 'keg' self KegColour as myKeg
                             dclick myKeg
                             wait 250
+                            if insysmsg 'You pour some'
+                                if EnableOverheadMessages = 1
+                                   if timer 'PotionKegTimer' > 2000
+                                        overhead '[ FILLING POTS... ]' KegColour
+                                        clearsysmsg
+                                        settimer 'PotionKegTimer' 0
+                                    endif
+                                else
+                                    if timer 'PotionKegTimer' > 2000
+                                        overhead ' ¼ ' KegColour
+                                        clearsysmsg
+                                        settimer 'PotionKegTimer' 0
+                                    endif
+                                endif
+                            elseif insysmsg 'You must wait'
+                                wait 250
+                                clearsysmsg
+                            endif
                             while queued
                                 wait 250
                             endwhile
@@ -6923,24 +7060,6 @@ while not dead
                                 overhead "[ NO KEG TO USE... ]" 337
                             endif
                             break
-                        endif
-                        if insysmsg 'You pour some'
-                            if EnableOverheadMessages = 1
-                                if timer 'PotionKegTimer' > 2000
-                                    overhead '[ FILLING POTS... ]' KegColour
-                                    clearsysmsg
-                                    settimer 'PotionKegTimer' 0
-                                endif
-                            else
-                                if timer 'PotionKegTimer' > 2000
-                                    overhead ' ¼ ' KegColour
-                                    clearsysmsg
-                                    settimer 'PotionKegTimer' 0
-                                endif
-                            endif
-                        elseif insysmsg 'You must wait'
-                            wait 250
-                            clearsysmsg
                         endif
                     endwhile
                     if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' backpack
@@ -6952,7 +7071,7 @@ while not dead
                 endwhile
             endif
 
-            if EnableAutoExplosionPots = 1 and diffhits < ActivateAutoHealHPdiff
+            if EnableAutoExplosionPots = 1 and skill 'Alchemy' >= 80 and diffhits < ActivateAutoHealHPdiff
                 if findtype 'purple potion' self as explotPot
                     getlabel explotPot potLabel
                     if "(" in potLabel
@@ -7057,6 +7176,44 @@ while not dead
                 replay
             endif
 
+            if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+                if findtype "Yellow Potion" self as HealPot
+                    getlabel HealPot HealPotlabel
+                    if "next" in HealPotlabel
+                        // Do nothing
+                    else
+                        @setvar! HealPotionCheck 0
+
+                        if counttype 3852 self as HealPotCount
+                            @setvar! HealPotionCheck HealPotCount
+                        endif
+
+                        clearsysmsg
+                        dclicktype 3852
+                        getlabel backpack backpackdesc
+                        wait 250
+
+                        if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                            settimer 'HealPotionTimer' 0
+                            cooldown "Healing Potion" HealingPotionCooldown
+                            if EnableOverheadMessages = 1
+                                if insysmsg "potion satchel used"
+                                    overhead '[ FREE HEAL POTION ]' 253
+                                else
+                                    overhead "[ HEAL POTION ]" 253
+                                endif
+                            endif 
+                            clearsysmsg
+                        endif
+                    endif
+                else
+                    if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                        overhead "[ NO HEAL POTS! ]" 337
+                        settimer 'yellowMessageTimer' 0
+                    endif
+                endif
+            endif
+
             if diffhits > 0 and not bandaging
                 if skill 'healing' >= 30 or skill "veterinary" >= 50
                     if findtype 'clean bandage%s%' backpack
@@ -7074,40 +7231,6 @@ while not dead
                             overhead "[ OUT OF BANDAGES! ]" 337
                             settimer aidsMessageTimer 0
                         endif
-                    endif
-                endif
-            endif
-
-            if diffhits >= HealPotionHPdiff and EnableHealPotion = 1
-                if findtype "Yellow Potion" self as hPot
-                    getlabel hPot potLabel
-                    if "next" in potLabel
-                        #do nothing
-                    else
-                        @setvar! ch 0
-
-                        if counttype 3852 self as c
-                            @setvar! ch c
-                        endif
-                        if insysmsg "potion satchel used"
-                        endif
-
-                        dclicktype 3852
-                        getlabel backpack packdesc
-                        wait 250
-
-                        if ch != counttype 3852 self or insysmsg "potion satchel used"
-                            settimer 'HealPotionTimer' 0
-                            cooldown "Healing Potion" HealingPotionCooldown
-                            if EnableOverheadMessages = 1
-                                overhead "[ HEAL POTION ]" 253
-                            endif
-                        endif
-                    endif
-                else
-                    if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
-                        overhead "[ NO HEAL POTS! ]" 337
-                        settimer 'yellowMessageTimer' 0
                     endif
                 endif
             endif
@@ -7591,7 +7714,7 @@ while not dead
                 endif
             endif
 
-            if mana > SwitchCodexManaAmount and EnableWeaponCodexSwitching = 1 and SetCodexStance != 0 and diffhits < ActivateAutoHealHPdiff
+            if mana > SwitchCodexManaAmount and EnableWeaponCodexSwitching = 1 and SetCodexStance != 0
                 if skill 'Swordsmanship' >= 80
                     if EnableWeaponCodexSwitching = 1 and findtype "sword codex" backpack as MyCodex and timer "WeaponCodexTimer" > SwitchWeaponCodexCooldown
                         if not gumpexists 2016719803 and EnableCodexHotbar = 1
@@ -8965,6 +9088,10 @@ while not dead
                     endif
                 endif
 
+                if dead ClosestTarget
+                    break
+                endif
+                
                 if EnableOverheadMessages = 1
                     if insysmsg "something invisible out of"
                         overhead "¼ SOMEONE HIDING! ¼" 6
@@ -8998,23 +9125,23 @@ while not dead
                         overhead "[ BLEED! ]" 2118
                     endif
 
-                    if insysmsg "Your shot hinders"
+                    if insysmsg "Your shot hinders" and not dead ClosestTarget
                         overhead "[ HINDERED! ]" 44 ClosestTarget
                     endif
 
-                    if insysmsg "Your strike disarms your target!"
+                    if insysmsg "Your strike disarms your target!" and not dead ClosestTarget
                         overhead "[ DISARMED! ]" 253 ClosestTarget
                     endif
 
-                    if insysmsg "Your attack hamstrings your target!"
+                    if insysmsg "Your attack hamstrings your target!" and not dead ClosestTarget
                         overhead "[ HAMSTRUNG... ]" 2117 ClosestTarget
                     endif
 
-                    if insysmsg "Your target overpowers"
+                    if insysmsg "Your target overpowers" and not dead ClosestTarget
                         overhead "[ VICIOUS WOUND! ]" 1664 ClosestTarget
                     endif
 
-                    if insysmsg "Barding break avoided"
+                    if insysmsg "Barding break avoided" and not dead ClosestTarget
                         overhead "[ BREAK AVOIDED! ]" 84 ClosestTarget
                     endif
 
@@ -9059,11 +9186,11 @@ while not dead
                     endif
                 endif
 
-                    if dead ClosestTarget
-                        break
-                    endif
+                if dead ClosestTarget
+                    break
                 endif
             endif
+            
         endwhile
 
         @setvar! NeedtoSecureLoot 1
@@ -9114,7 +9241,7 @@ while not dead
                 if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 8 and WILDERNESSMODE = 1
                     wait 1000
                     if EnableInfiniteLoop = 1
-                        settimer "Infinite Loop" 0
+                        settimer "InfiniteLoop" 0
                     endif
                     hotkey 'Toggle War Only'
                     @setvar! AutoWeightRecall 1
@@ -9125,13 +9252,13 @@ while not dead
                         settimer "RECALLDELAY" 0
                     endif
                     if EnableInfiniteLoop = 1
-                        settimer "Infinite Loop" 0
+                        settimer "InfiniteLoop" 0
                     endif
                     wait 500
                 elseif EnableAutoWeightDungeonGate = 1 and DUNGEONMODE = 1
                     wait 1000
                     if EnableInfiniteLoop = 1
-                        settimer "Infinite Loop" 0
+                        settimer "InfiniteLoop" 0
                     endif
                     hotkey 'Toggle War Only'
                     @setvar! TimeToGo 1
@@ -9169,6 +9296,44 @@ while not dead
             endif
         endif
 
+        if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+            if findtype "Yellow Potion" self as HealPot
+                getlabel HealPot HealPotlabel
+                if "next" in HealPotlabel
+                    // Do nothing
+                else
+                    @setvar! HealPotionCheck 0
+
+                    if counttype 3852 self as HealPotCount
+                        @setvar! HealPotionCheck HealPotCount
+                    endif
+
+                    clearsysmsg
+                    dclicktype 3852
+                    getlabel backpack backpackdesc
+                    wait 250
+
+                    if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                        settimer 'HealPotionTimer' 0
+                        cooldown "Healing Potion" HealingPotionCooldown
+                        if EnableOverheadMessages = 1
+                            if insysmsg "potion satchel used"
+                                overhead '[ FREE HEAL POTION ]' 253
+                            else
+                                overhead "[ HEAL POTION ]" 253
+                            endif
+                        endif 
+                        clearsysmsg
+                    endif
+                endif
+            else
+                if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                    overhead "[ NO HEAL POTS! ]" 337
+                    settimer 'yellowMessageTimer' 0
+                endif
+            endif
+        endif
+
         while EnableAutoCarving = 1 and findtype "corpse" ground -1 -1 2 as deadbody and diffhits < ActivateAutoHealHPdiff and findtype 11552 backpack
             if timer SkinningTimer > 5000
                 if targetexists
@@ -9189,11 +9354,11 @@ while not dead
         endwhile
 
         if EnableGoldVacuum = 1
-            if findtype "gold coin" ground -1 -1 12 as droppedmoney and timer "Gold Radar" > 3500
+            if findtype "gold coin" ground -1 -1 12 as droppedmoney and timer "GoldRadar" > 3500
                 overhead "¼" 149 droppedmoney
-                settimer "Gold Radar" 0
+                settimer "GoldRadar" 0
             endif
-            while findtype "gold coin" ground -1 -1 2 as droppedmoney and timer "Gold Vacuum" > 500
+            while findtype "gold coin" ground -1 -1 2 as droppedmoney and timer "GoldVacuum" > 500
                 overhead " ² " 149
                 hotkey "Grab Item"
                 wft 2500
@@ -9205,7 +9370,7 @@ while not dead
                 endif
                 wait 250
             endwhile
-            settimer "Gold Vacuum" 0
+            settimer "GoldVacuum" 0
         endif
 
         if EnableWeaponCheck = 1 and IHAVEDIED != 1
@@ -9431,9 +9596,9 @@ while not dead
 
     clearsysmsg
 
-    settimer "After Kill" 0
+    settimer "AfterKill" 0
 
-    while timer "After Kill" < AfterKillTimer
+    while timer "AfterKill" < AfterKillTimer
         while EnableAutoCarving = 1 and findtype "corpse" ground -1 -1 2 as deadbody and diffhits < ActivateAutoHealHPdiff and findtype 11552 backpack
             if timer SkinningTimer > 5000
                 if targetexists
@@ -9463,6 +9628,44 @@ while not dead
                     if EnableOverheadMessages = 1
                         overhead "[ NO MORE POUCHES! ]" 337
                     endif
+                endif
+            endif
+        endif
+
+        if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+            if findtype "Yellow Potion" self as HealPot
+                getlabel HealPot HealPotlabel
+                if "next" in HealPotlabel
+                    // Do nothing
+                else
+                    @setvar! HealPotionCheck 0
+
+                    if counttype 3852 self as HealPotCount
+                        @setvar! HealPotionCheck HealPotCount
+                    endif
+
+                    clearsysmsg
+                    dclicktype 3852
+                    getlabel backpack backpackdesc
+                    wait 250
+
+                    if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                        settimer 'HealPotionTimer' 0
+                        cooldown "Healing Potion" HealingPotionCooldown
+                        if EnableOverheadMessages = 1
+                            if insysmsg "potion satchel used"
+                                overhead '[ FREE HEAL POTION ]' 253
+                            else
+                                overhead "[ HEAL POTION ]" 253
+                            endif
+                        endif 
+                        clearsysmsg
+                    endif
+                endif
+            else
+                if timer 'yellowMessageTimer' > 4500 and EnableOverheadMessages = 1
+                    overhead "[ NO HEAL POTS! ]" 337
+                    settimer 'yellowMessageTimer' 0
                 endif
             endif
         endif
@@ -9609,6 +9812,5 @@ replay
     ################
    ###  THE END!  ###
     ################
-
 
 

@@ -1,0 +1,102 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/8b3043c0-7f6a-47b7-907a-68331cf5777b for latest
+# Automation by Jaseowns
+## Script: Totem Tinker Training
+## Created by: special_sy#0
+#############################################
+
+@clearignore 
+# Script by [DoS] Chumber
+#
+# This script leaves your room in totem to sell your beads (or whatever
+# you put into your sell agent) at the local jeweller.
+# Returns to your room, deposits gold in a safe if availble or just dumps it.
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !! REQUIREMENTS:                                                      !!
+# !! GET A ROOM IN TOTEM                                                !!
+# !! Add Beads to your sell agent                                       !!
+# !! Obv setup the crafting queue ;)                                    !!
+# !! Stand in the middle of your room, stockpile next to you, start     !!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+@setvar jewelerNPC 0
+
+# !!! DONT EDIT !!
+#find your door
+if findtype 'wooden door' ground -1 -1 8 as myRoomDoor
+    overhead "Found your door, all good"
+else
+    overhead "Not in the middle of the room?"
+    stop
+endif
+
+# make CQ the most current gump
+hotkey 'Crafting Queue'
+wait 500
+# Start queue
+if ingump 'Begin Crafting'
+
+    overhead "Here we go!"
+    gumpresponse 7
+endif
+
+#count beads
+while counttype 4233 < 50
+    wait 1000
+endwhile
+
+#stop queue or it will sell faster than your queue noticed it failed
+gumpresponse 7
+
+# leave room
+dclick myRoomDoor
+waitforgump 2393832411
+gumpresponse 4
+
+# Find a jeweler
+while findtype 400|401 'ground' -1 -1 10 as npc
+    getlabel npc npcLabel
+    if 'jeweler' in npcLabel
+        @setvar jewelerNPC npc
+    endif
+    @ignore npc
+endwhile
+
+# Didnt find a jeweler?
+if jewelerNPC = 0
+    overhead "No jeweler in range!"
+    hotkey 'Crafting Queue'
+    overhead "I cant work like that!" 32
+    wait 250
+    gumpresponse 7
+    stop
+endif
+
+#sell
+getlabel jewelerNPC npcLabel
+overhead '$$$ {{npcLabel}}'
+menu jewelerNPC 2
+
+#back to room
+wait 3000
+say 'room'
+waitforgump 2393832411
+gumpresponse 5
+waitforgump 2393832411
+gumpresponse 100
+
+# Deposit Gold or just drop it at your feet
+if findtype 'bank deposit safe' 'ground' -1 -1 2 as bank
+    menu bank 0
+    wait 100
+elseif findtype 'gold coin' self as money
+    lift money 60000
+    wait 500
+    # i just dropped the gold to my feet and scavenged it with my main
+    # you can also drop it into a secure container, just >info the container and set the serial
+    # drop serial
+    droprelloc 1 1
+endif
+
+replay

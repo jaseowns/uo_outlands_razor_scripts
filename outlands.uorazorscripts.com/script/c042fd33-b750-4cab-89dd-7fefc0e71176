@@ -4,8 +4,9 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-lumber ver.6.13
+#SUPER Auto-lumber ver.6.14
 
+#ver.6.14 - Added trap pouch requirement and auto trapping pouch
 #ver.6.13 - Fixed bug not recalling when summoning
 #ver.6.12 - Removed air, fire and daemon elementals / added detect hidden skill use
 #ver.6.11 - Minor fixes
@@ -86,8 +87,8 @@
 #--- Set Elementals Count ---#
 
 @setvar! earthElementals 0
-@setvar! waterElementals 0
-@setvar! summonCreature 3
+@setvar! waterElementals 1
+@setvar! summonCreature 0
 
 #--- Set mushrooms ---#
 
@@ -175,7 +176,7 @@ settimer storeTimer storeTimerCD
 @setvar! autoSelectMiscBag 1
 
 #-- Use detect hidden --#
-@setvar! useDetectHidden 1
+@setvar! useDetectHidden 0
 
 @setvar! detectTimerCD 1000
 settimer detectTimer storeTimerCD
@@ -2474,6 +2475,37 @@ while not dead
     
     endwhile
     
+    @setvar! castingInterrupted 0
+    
+    while findtype 3705 backpack as pouchy and diffhits < activateAutoHealDiff and findtype 3972 self and findtype 3973 and findtype 3980
+        if hue pouchy = 38    
+        else
+            cast 'magic trap'    
+            while not casting                   
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                cast 'magic trap'
+            endwhile 
+            
+            while not targetexists
+                if insysmsg "Your concentration is disturbed"
+                    interrupt
+                    @setvar! castingInterrupted 1
+                    break                
+                endif
+            endwhile
+            
+            if 0 = castingInterrupted
+                target pouchy 
+            endif 
+        endif
+        @ignore pouchy
+        
+    endwhile
+    
+    clearignore 
+    
 #********** AUTO-MAGERY BUFFS IF NEEDED **********          
     @setvar! castingInterrupted 0
     
@@ -2621,7 +2653,10 @@ while not dead
 
     if not findtype "wooden box" backpack or not findtype "copper key" backpack
         overhead "Need 1 wooden box and 1 copper key to begin!" 33
-        wait maxwaittimeinms       
+        wait maxwaittimeinms     
+    elseif not findtype 3705 backpack
+        overhead "No pouches found for trap"
+        wait maxwaittimeinms
     elseif counttype 2474 backpack > 1 or counttype 4110 backpack > 1 
          overhead "You have more than 2 wooden boxes or more than 2 copper keys" 33
          wait maxwaittimeinms       

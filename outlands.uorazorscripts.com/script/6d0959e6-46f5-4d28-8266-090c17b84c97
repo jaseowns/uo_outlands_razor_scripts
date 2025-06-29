@@ -1,0 +1,498 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/6d0959e6-46f5-4d28-8266-090c17b84c97 for latest
+# Automation by Jaseowns
+## Script: Armor Crate Assembler
+## Created by: nev0r#0
+#############################################
+
+// This script assists you in creating armor crates in UO Outlands
+// - https://wiki.uooutlands.com/Armor_Crates
+// - It is using items from backpack by default
+// - Edit setup to restock from a shelf instead
+// - WARNING: server system messages are needed to determine necessary actions, make sure they are not filtered for scripts: 
+//    Razor -> Filters -> Text&Messages ->
+//    - Uncheck "Filter repeating system messages"
+//    - "Enable text filter" and "Filter system messages" (list entry sub-menu) can be checked, however "Ignore filtered messages in overhead and scripts" (list entry sub-menu) has to be unchecked
+
+// -------- U  S  E  R  -  S  E  T  U  P ------- //
+// ----------- C r a t e  A m o u n t ---------- //
+// 0  ... Try to create as many crates as possi- //
+//        ble from backpack only, no restock     //
+// 1+ ... Build crates until backpack has this   //
+//        amount. Restock crates/armor from      // 
+//        shelf. Already existing crates count   //
+//        toward target amount.                  //
+setvar! crateAmount 0
+
+// ------------- A r m o r  T y p e ------------ //
+// 1 ... Leather Armor     | 4 ... Ringmail      //
+// 2 ... Studded Armor     | 5 ... Chainmail     //
+// 3 ... Bone Armor        | 6 ... Platemail     //
+setvar! crateArmorType 1
+
+// -------------- M a t e r i a l -------------- //
+// 1 ... Regular      |  6 ... Gold              //
+// 2 ... Dull         |  7 ... Rose/Agaptie      //
+// 3 ... Shadow       |  8 ... Vere              //
+// 4 ... Copper       |  9 ... Vale              //
+// 5 ... Bronze       | 10 ... Avar              //
+setvar! crateMaterial 1
+
+// --------------------------------------------- //
+// - E  N  D  -  U  S  E  R  -  S  E  T  U  P  - //
+
+//Global variables
+setvar! globalWaitForServerResponse 500
+setvar! globalWaitForObjectDelay    600
+setvar! globalTimeout             15000
+if not timerexists globalObjectDelayTimer
+    settimer globalObjectDelayTimer globalWaitForObjectDelay
+endif
+
+//Colors
+setvar! cSuccess 68
+setvar! cWarning 55
+setvar! cError   33
+
+//Clear relevant system messages and ignore list
+if insysmsg "You assemble an armor crate." or insysmsg "That item is unavailable." or insysmsg "Assembling armor crates require 6 armor items: one for each armor layer, with all being of exceptional quality, mastercrafted, fully repaired, and matching the 'crafted by' of the targeted item."
+endif
+@clearignore
+
+if 0 = crateAmount
+//Build crates exclusively from items currently held in backpack, no restock
+    
+    if not findtype "empty armor crate" backpack
+        overhead "|* No armor crates *|" cWarning
+        sysmsg   "|* No armor crates *|" cWarning
+        stop
+    elseif not findtype "leather tunic|studded tunic|bone armor|ringmail tunic|chainmail tunic|platemail" backpack
+        overhead "|* Missing armor items *|" cWarning
+        sysmsg   "|* Missing armor items *|" cWarning
+        stop
+    endif
+    while findtype "leather tunic|studded tunic|bone armor|ringmail tunic|chainmail tunic|platemail" backpack as localArmor and findtype "empty armor crate" backpack as localEmptyCrate
+        if targetexists
+            target cancel
+        endif
+        while timer globalObjectDelayTimer < globalWaitForObjectDelay
+        endwhile
+        dclick localEmptyCrate
+        settimer globalObjectDelayTimer 0
+        wft globalWaitForServerResponse
+        if targetexists
+            target localArmor
+            @ignore localArmor
+        endif
+        getlabel backpack waitForPing
+    endwhile
+    @clearignore
+    overhead "| Armor crates finished |" cSuccess
+    stop
+
+endif
+
+//Validate user input
+if 1 > crateArmorType or 6 < crateArmorType
+    overhead "|** Wrong input **|" cError
+    overhead "|* crateArmorType: {{crateArmorType}} (1-6) *|" cWarning
+    sysmsg   "|** Wrong input **|" cError
+    sysmsg   "|* crateArmorType: {{crateArmorType}} (1-6) *|" cWarning
+    stop
+elseif 1 > crateMaterial or 10 < crateMaterial
+    overhead "|** Wrong input **|" cError
+    overhead "|* crateMaterial: {{crateMaterial}} (1-10) *|" cWarning
+    sysmsg   "|** Wrong input **|" cError
+    sysmsg   "|* crateMaterial: {{crateMaterial}} (1-10) *|" cWarning
+    stop
+endif
+
+//Shelf variables
+setvar! shelfGumpID      3232825965
+setvar! shelfLowerMenuLeft       20
+setvar! shelfLowerMenuRight      21
+setvar! shelfSwitchRetrieveType  23
+setvar! shelfLowerMenu_Btn2      51
+setvar! shelfLowerMenu_Btn3      52
+setvar! shelfLowerMenu_Btn4      53
+setvar! shelfLowerMenu_Btn7      56
+setvar! shelfPrevMaterial        30
+setvar! shelfNextMaterial        40
+setvar! shelfGetArmorCrate      140
+
+//Open shelf gump
+if findtype "storage shelf" ground -1 -1 2 as localShelf
+    setvar! myShelf localShelf
+    while timer globalObjectDelayTimer < globalWaitForObjectDelay
+    endwhile
+    dclick myShelf
+    settimer globalObjectDelayTimer 0
+    getlabel backpack waitForPing
+    waitforgump shelfGumpID globalWaitForServerResponse
+else
+    overhead "|* Move closer to shelf *|" cWarning
+    sysmsg   "|* Move closer to shelf *|" cWarning
+    stop
+endif
+if not gumpexists shelfGumpID
+    overhead "|** Shelf gump not found **|" cError
+    sysmsg   "|** Shelf gump not found **|" cError
+    stop
+endif
+
+//Toggle 'Retrieve One'
+settimer globalSafetyTimer 0
+while gumpexists shelfGumpID and not ingump "Retrieve One" 3232825965 and timer globalSafetyTimer < globalTimeout
+    gumpresponse shelfSwitchRetrieveType shelfGumpID
+    waitforgump shelfGumpID globalWaitForServerResponse
+endwhile
+
+//Pull empty armor crates
+gumpresponse shelfLowerMenuRight shelfGumpID
+waitforgump shelfGumpID globalWaitForServerResponse
+gumpresponse shelfLowerMenu_Btn4 shelfGumpID
+waitforgump shelfGumpID globalWaitForServerResponse
+while counttype "empty armor crate" backpack < crateAmount and gumpexists shelfGumpID
+    gumpresponse shelfGetArmorCrate shelfGumpID
+    waitforgump shelfGumpID globalWaitForServerResponse
+    if insysmsg "That item is unavailable."
+        overhead "|* Not enough empty crates *|" cWarning
+        sysmsg   "|* Not enough empty crates *|" cWarning
+        if counttype "empty armor crate" backpack as localCrateCount
+            overhead "| Creating {{localCrateCount}} crates |" cSuccess
+            sysmsg   "| Creating {{localCrateCount}} crates |" cSuccess
+        else
+            stop
+        endif
+        break
+    endif
+endwhile
+settimer globalSafetyTimer 0
+while gumpexists shelfGumpID and ingump "Iron" 3232825965 and timer globalSafetyTimer < globalTimeout
+    gumpresponse shelfLowerMenuLeft shelfGumpID
+    waitforgump shelfGumpID globalWaitForServerResponse
+    gumpresponse shelfLowerMenu_Btn7 shelfGumpID
+    waitforgump shelfGumpID globalWaitForServerResponse
+endwhile
+
+//Switch shelf gump to needed material type
+settimer globalSafetyTimer 0
+if 0 < crateArmorType and 4 > crateArmorType
+    
+    while gumpexists shelfGumpID and not ingump "Leather" 3232825965 and timer globalSafetyTimer < globalTimeout
+        gumpresponse shelfLowerMenu_Btn2 shelfGumpID
+        waitforgump shelfGumpID globalWaitForServerResponse
+    endwhile
+    
+    if 1 = crateMaterial
+        setvar! crateHue 0
+        while gumpexists shelfGumpID and not ingump "Leather" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 2 = crateMaterial
+        setvar! crateHue 2419
+        while gumpexists shelfGumpID and not ingump "Dullhide" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 3 = crateMaterial
+        setvar! crateHue 2406
+        while gumpexists shelfGumpID and not ingump "Shadowhide" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 4 = crateMaterial
+        setvar! crateHue 2413
+        while gumpexists shelfGumpID and not ingump "Copperhide" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile    
+    elseif 5 = crateMaterial
+        setvar! crateHue 2418
+        while gumpexists shelfGumpID and not ingump "Bronzehide" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile    
+    elseif 6 = crateMaterial
+        setvar! crateHue 2213
+        while gumpexists shelfGumpID and not ingump "Goldenhide" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 7 = crateMaterial
+        setvar! crateHue 2425
+        while gumpexists shelfGumpID and not ingump "Rosehide" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 8 = crateMaterial
+        setvar! crateHue 2207
+        while gumpexists shelfGumpID and not ingump "Verehide" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 9 = crateMaterial
+        setvar! crateHue 2219
+        while gumpexists shelfGumpID and not ingump "Valehide" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 10 = crateMaterial
+        setvar! crateHue 1763
+        while gumpexists shelfGumpID and not ingump "Avarhide" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    endif
+
+    if 1 = crateArmorType and 1 = crateMaterial
+        setvar! crateFindtypeSerial 18047
+    elseif 1 = crateArmorType
+        setvar! crateFindtypeSerial 18048
+    elseif 2 = crateArmorType and 1 = crateMaterial
+        setvar! crateFindtypeSerial 18052
+    elseif 2 = crateArmorType
+        setvar! crateFindtypeSerial 18053
+    elseif 3 = crateArmorType and 1 = crateMaterial
+        setvar! crateFindtypeSerial 18044
+    elseif 3 = crateArmorType
+        setvar! crateFindtypeSerial 18045
+    endif
+
+elseif 3 < crateArmorType and 7 > crateArmorType
+    
+    while gumpexists shelfGumpID and not ingump "Iron" 3232825965 and timer globalSafetyTimer < globalTimeout
+        gumpresponse shelfLowerMenu_Btn3 shelfGumpID
+        waitforgump shelfGumpID globalWaitForServerResponse
+    endwhile
+    
+    if 1 = crateMaterial
+        setvar! crateHue 0
+        while gumpexists shelfGumpID and not ingump "Iron" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 2 = crateMaterial
+        setvar! crateHue 2419
+        while gumpexists shelfGumpID and not ingump "Dull Copper" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 3 = crateMaterial
+        setvar! crateHue 2406    
+        while gumpexists shelfGumpID and not ingump "Shadow Iron" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 4 = crateMaterial
+        setvar! crateHue 2413    
+        while gumpexists shelfGumpID and not ingump "Copper" 3232825965 and timer globalSafetyTimer < globalTimeout or ingump "Dull Copper" 3232825965
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile    
+    elseif 5 = crateMaterial
+        setvar! crateHue 2418    
+        while gumpexists shelfGumpID and not ingump "Bronze" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfNextMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile    
+    elseif 6 = crateMaterial
+        setvar! crateHue 2213    
+        while gumpexists shelfGumpID and not ingump "Gold" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 7 = crateMaterial
+        setvar! crateHue 2425    
+        while gumpexists shelfGumpID and not ingump "Agapite" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 8 = crateMaterial
+        setvar! crateHue 2207    
+        while gumpexists shelfGumpID and not ingump "Verite" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 9 = crateMaterial
+        setvar! crateHue 2219    
+        while gumpexists shelfGumpID and not ingump "Valorite" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    elseif 10 = crateMaterial
+        setvar! crateHue 1763    
+        while gumpexists shelfGumpID and not ingump "Avarite" 3232825965 and timer globalSafetyTimer < globalTimeout
+            gumpresponse shelfPrevMaterial shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endwhile
+    endif
+
+    if 4 = crateArmorType and 1 = crateMaterial
+        setvar! crateFindtypeSerial 18050
+    elseif 4 = crateArmorType
+        setvar! crateFindtypeSerial 18051
+    elseif 5 = crateArmorType
+        setvar! crateFindtypeSerial 18046
+    elseif 6 = crateArmorType
+        setvar! crateFindtypeSerial 18049
+    endif
+
+endif
+
+if not gumpexists shelfGumpID or not ingump "Retrieve One" 3232825965 or timer globalSafetyTimer > globalTimeout
+    overhead "|** Shelf gump error **|" cError
+    sysmsg   "|** Shelf gump error **|" cError
+    stop
+endif
+
+//Assemble crates
+//crateCounterList is used to increase script execution speed. Empty crates are deleted from inventory a lot slower than the system message or finished crate appear,
+//resulting in wrong findtype and counttype results of empty armor crates
+removelist crateCounterList
+createlist crateCounterList
+while list crateCounterList != counttype "empty armor crate" backpack
+    pushlist crateCounterList index
+endwhile
+
+settimer globalSafetyTimer 0
+while counttype crateFindtypeSerial backpack crateHue < crateAmount and list crateCounterList and findtype "empty armor crate" backpack as localEmptyCrate
+
+    if targetexists
+        target cancel
+    endif
+
+    if gumpexists shelfGumpID and timer globalSafetyTimer < globalTimeout
+        //Retrieve armor items
+        if 1 = crateArmorType or 4 = crateArmorType
+            gumpresponse 130 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 131 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 132 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 133 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 134 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 135 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        elseif 2 = crateArmorType or 5 = crateArmorType
+            gumpresponse 230 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 231 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 232 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 233 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 234 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 235 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        elseif 3 = crateArmorType or 6 = crateArmorType
+            gumpresponse 330 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 331 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 332 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 333 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 334 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+            gumpresponse 335 shelfGumpID
+            waitforgump shelfGumpID globalWaitForServerResponse
+        endif
+    endif
+        
+    //Assemble crate
+    if 1 = crateArmorType and findtype "leather tunic" backpack crateHue as localArmor and findtype "leather sleeves" backpack crateHue and findtype "leather Gloves" backpack crateHue and findtype "leather gorget" backpack crateHue and findtype "leather cap" backpack crateHue and findtype "leather leggings" backpack crateHue
+        setvar! crateArmorSerial localArmor
+    elseif 2 = crateArmorType and findtype "studded tunic" backpack crateHue as localArmor and findtype "studded sleeves" backpack crateHue and findtype "studded gloves" backpack crateHue and findtype "studded gorget" backpack crateHue and findtype "studded cap" backpack crateHue and findtype "studded leggings" backpack crateHue
+        setvar! crateArmorSerial localArmor
+    elseif 3 = crateArmorType and findtype "bone armor" backpack crateHue as localArmor and findtype "bone arms" backpack crateHue and findtype "bone gloves" backpack crateHue and findtype "bone gorget" backpack crateHue and findtype "bone helmet" backpack crateHue and findtype "bone legs" backpack crateHue
+        setvar! crateArmorSerial localArmor
+    elseif 4 = crateArmorType and findtype "ringmail tunic" backpack crateHue as localArmor and findtype "ringmail sleeves" backpack crateHue and findtype "ringmail gloves" backpack crateHue and findtype "ringmail gorget" backpack crateHue and findtype "helmet" backpack crateHue and findtype "ringmail leggings" backpack crateHue
+        setvar! crateArmorSerial localArmor
+    elseif 5 = crateArmorType and findtype "chainmail tunic" backpack crateHue as localArmor and findtype "chain arms" backpack crateHue and findtype "chain gloves" backpack crateHue and findtype "chain gorget" backpack crateHue and findtype "chainmail coif" backpack crateHue and findtype "chainmail leggings" backpack crateHue
+        setvar! crateArmorSerial localArmor
+    elseif 6 = crateArmorType and findtype "platemail" backpack crateHue as localArmor and findtype "platemail arms" backpack crateHue and findtype "platemail gloves" backpack crateHue and findtype "platemail gorget" backpack crateHue and findtype "plate helm" backpack crateHue and findtype "platemail legs" backpack crateHue
+        setvar! crateArmorSerial localArmor
+    else
+        setvar! crateArmorSerial 0
+    endif
+
+    if 0 < crateArmorSerial
+        while timer globalObjectDelayTimer < globalWaitForObjectDelay
+        endwhile
+        dclick localEmptyCrate
+        settimer globalObjectDelayTimer 0
+        wft globalWaitForServerResponse
+        if targetexists
+            target crateArmorSerial
+        else
+            settimer globalSafetyTimer globalTimeout
+            continue
+        endif
+    else
+        overhead "|* Missing armor pieces *|" cWarning
+        sysmsg   "|* Missing armor pieces *|" cWarning
+        break
+    endif
+
+    settimer globalSafetyTimer 0
+    while gumpexists shelfGumpID and not insysmsg "You assemble an armor crate." and timer globalSafetyTimer < globalTimeout
+        if insysmsg "Assembling armor crates require 6 armor items: one for each armor layer, with all being of exceptional quality, mastercrafted, fully repaired, and matching the 'crafted by' of the targeted item."
+            overhead "|* Crafter mismatch *|"  cWarning
+            sysmsg   "|* Crafter mismatch *|"  cWarning
+            settimer globalSafetyTimer globalTimeout
+        endif
+    endwhile
+    if not gumpexists shelfGumpID or timer globalSafetyTimer > globalTimeout
+        overhead "|** Failed to build crate **|" cError
+        sysmsg   "|** Failed to build crate **|" cError
+        break
+    endif
+
+    //Status display
+    if 1 = crateArmorType and counttype "leather crate" backpack crateHue as localCount
+        overhead "Crate done ... {{localCount}}" crateHue
+        sysmsg "Armor crate count: {{localCount}}" cSuccess
+    elseif 2 = crateArmorType and counttype "studded crate" backpack crateHue as localCount
+        overhead "Crate done ... {{localCount}}" crateHue    
+        sysmsg "Armor crate count: {{localCount}}" cSuccess
+    elseif 3 = crateArmorType and counttype "bone armor crate" backpack crateHue as localCount
+        overhead "Crate done ... {{localCount}}" crateHue    
+        sysmsg "Armor crate count: {{localCount}}" cSuccess
+    elseif 4 = crateArmorType and counttype "ringmail crate" backpack crateHue as localCount
+        overhead "Crate done ... {{localCount}}" crateHue    
+        sysmsg "Armor crate count: {{localCount}}" cSuccess
+    elseif 5 = crateArmorType and counttype "chainmail crate" backpack crateHue as localCount
+        overhead "Crate done ... {{localCount}}" crateHue    
+        sysmsg "Armor crate count: {{localCount}}" cSuccess
+    elseif 6 = crateArmorType and counttype "platemail crate" backpack crateHue as localCount
+        overhead "Crate done ... {{localCount}}" crateHue    
+        sysmsg "Armor crate count: {{localCount}}" cSuccess
+    endif
+    
+    poplist crateCounterList front
+
+endwhile
+
+//Clean up
+while findtype "empty armor crate" backpack as localCrate and findtype "storage shelf" ground -1 -1 2 as localShelf
+    while timer globalObjectDelayTimer < globalWaitForObjectDelay
+    endwhile
+    @drop backpack -1 -1 -1
+    @lift localCrate 60000
+    settimer globalObjectDelayTimer 0
+    @drop localShelf -1 -1 -1
+    getlabel backpack waitForPing
+endwhile
+
+@clearignore
+gumpclose shelfGumpID
+removelist crateCounterList
+removetimer globalSafetyTimer
+removetimer globalObjectDelayTimer

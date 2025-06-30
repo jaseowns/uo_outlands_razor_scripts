@@ -122,17 +122,19 @@ setvar! shelfGetArmorCrate      140
 //Open shelf gump
 if findtype "storage shelf" ground -1 -1 2 as localShelf
     setvar! myShelf localShelf
-    while timer globalObjectDelayTimer < globalWaitForObjectDelay
-    endwhile
-    dclick myShelf
-    settimer globalObjectDelayTimer 0
-    getlabel backpack waitForPing
-    waitforgump shelfGumpID globalWaitForServerResponse
+elseif findtype "storage locker" self as localShelf
+    setvar! myShelf localShelf
 else
     overhead "|* Move closer to shelf *|" cWarning
     sysmsg   "|* Move closer to shelf *|" cWarning
     stop
 endif
+while timer globalObjectDelayTimer < globalWaitForObjectDelay
+endwhile
+dclick myShelf
+settimer globalObjectDelayTimer 0
+getlabel backpack waitForPing
+waitforgump shelfGumpID globalWaitForServerResponse
 if not gumpexists shelfGumpID
     overhead "|** Shelf gump not found **|" cError
     sysmsg   "|** Shelf gump not found **|" cError
@@ -481,15 +483,17 @@ while counttype crateFindtypeSerial backpack crateHue < crateAmount and list cra
 endwhile
 
 //Clean up
-while findtype "empty armor crate" backpack as localCrate and findtype "storage shelf" ground -1 -1 2 as localShelf
-    while timer globalObjectDelayTimer < globalWaitForObjectDelay
+if find myShelf ground -1 -1 2 or find myShelf self
+    while findtype "empty armor crate" backpack as localCrate
+        while timer globalObjectDelayTimer < globalWaitForObjectDelay
+        endwhile
+        @drop backpack -1 -1 -1
+        @lift localCrate 60000
+        settimer globalObjectDelayTimer 0
+        @drop myShelf -1 -1 -1
+        getlabel backpack waitForPing
     endwhile
-    @drop backpack -1 -1 -1
-    @lift localCrate 60000
-    settimer globalObjectDelayTimer 0
-    @drop localShelf -1 -1 -1
-    getlabel backpack waitForPing
-endwhile
+endif
 
 @clearignore
 gumpclose shelfGumpID

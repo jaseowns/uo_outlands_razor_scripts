@@ -5,9 +5,9 @@
 #############################################
 
 /////////
-////////                    Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.0.6
+////////                    Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.0.7
 ///////
-//////                          UO Outlands Razor script - Released Feb 18, 2025 - Last Updated Jun 27, 2025
+//////                          UO Outlands Razor script - Released Feb 18, 2025 - Last Updated Jun 30, 2025
 /////                               Compiled by DanStock. (aka. Glacier)
 ////
 ///
@@ -60,6 +60,7 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
+    #       June 30, 2025 - version 2.0.7:  Found and squashed a couple more minor bugs
     #       June 26, 2025 - version 2.0.6:  More minor stuff - calling it done for now! (unless I find any more bugs lol)
     #       June 26, 2025 - version 2.0.5:  More small tweaks, adjustments and improvements
     #       June 23, 2025 - version 2.0.4:  Bug fixes and minor adjustments in barding skills section
@@ -282,7 +283,9 @@ endif
 
 @setvar! EnableAutoExplosionPots 0
 @setvar! PurplePotionTargetRange 5
-    # Requires 80+ Alchemy skill 
+    # Requires 80+ Alchemy skill (which I highly recommend, for many other reasons too!)
+    # Will only throw pots when target is within set range
+    # Warning: In rare cases you may flag 'criminal' if throwing potions in a crowded dungeon - USE AT OWN RISK!
 
 @setvar! EnableUsePotionKegs 0
     # Will auto fill empty bottles from potion kegs if counts drop below set amount
@@ -1179,9 +1182,9 @@ endif
 if not dead
     if not varexist DexxerAutoPilot
         overhead "Lord Glaciers Chill Dexxer Auto Pilot Script" 77
-        overhead "version 2.0.6"
+        overhead "version 2.0.7"
         wait 1000
-        overhead "Last Updated June 27, 2025" 84
+        overhead "Last Updated June 30, 2025" 84
         wait 2500
         overhead "Thank you for trying my Dexxer AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
@@ -2602,6 +2605,7 @@ while not dead
                         if DropGoldAmount != 0
                             clearignore
                             if EnablePutLootinLockBox = 1
+                                clearignore
                                 if find lockbox self
                                     getlabel lockbox lockboxlabel
                                     if 'items' in lockboxlabel
@@ -2609,7 +2613,7 @@ while not dead
                                     else
                                         dclick key
                                         wft 1500
-                                        dclick lockbox
+                                        target lockbox
                                         wait 250
                                     endif
                                 endif
@@ -2812,7 +2816,7 @@ while not dead
                                     else
                                         dclick key
                                         wft 1500
-                                        dclick lockbox
+                                        target lockbox
                                         wait 250
                                     endif
                                 endif
@@ -3306,14 +3310,14 @@ while not dead
                             if EnableAutoRecallOverheadMessages = 1
                                 overhead "[loot box unlocked]" 84
                             endif
-                            wait 500
+                            wait 250
                             dclick lockbox
                             wait 500
                             if insysmsg "appears to be locked"
                                 dclick key
                                 wft 1500
                                 target lockbox
-                                wait 500
+                                wait 250
                                 dclick lockbox
                             endif
                         endif
@@ -3338,12 +3342,12 @@ while not dead
                                     dclick key
                                     wft 1500
                                     target lockbox
-                                    wait 500
+                                    wait 250
                                     if insysmsg "appears to be locked"
                                         dclick key
                                         wft 1500
                                         target lockbox
-                                        wait 500
+                                        wait 250
                                     endif
                                 endif
                             elseif EnableAutoRecallOverheadMessages = 1
@@ -4993,14 +4997,24 @@ while not dead
         endif
     endif
 
+    if not find ClosestTarget ground -1 -1 12
+        @setvar! ClosestTarget self
+    endif 
+
+    if not find NextClosestTarget ground -1 -1 12
+        @setvar! NextClosestTarget self
+    endif 
+
 
     /////////////////////////
     //     FIND TARGET:    //
     /////////////////////////
 
-    if find ClosestTarget ground -1 -1 12
+    if find ClosestTarget ground -1 -1 12 and TargetChecker != 1
         // Do nothing
     else
+        @setvar! TargetChecker 0
+
         if targetexists
             hotkey 'cancel current target'
         endif
@@ -5089,7 +5103,9 @@ while not dead
                     settimer overweightMessageTimer 0
                 endif
                 if DropGoldAmount != 0
+                    clearignore
                     if EnablePutLootinLockBox = 1
+                        clearignore
                         if find lockbox self
                             getlabel lockbox lockboxlabel
                             if 'items' in lockboxlabel
@@ -5098,8 +5114,7 @@ while not dead
                             else
                                 dclick key
                                 wft 1500
-                                dclick lockbox
-                                @clearignore
+                                target lockbox                                
                                 wait 250
                             endif
                         endif
@@ -5466,7 +5481,7 @@ while not dead
                                     dclick key
                                     wft 1500
                                     target lockbox
-                                    wait 500
+                                    wait 150
                                     if EnableOverheadMessages = 1 and timer "STORELOOT" > 5000
                                         overhead "[ SECURING LOOT... ]" 149
                                         settimer "STORELOOT" 0
@@ -5484,7 +5499,7 @@ while not dead
                                             dclick key
                                             wft 1500
                                             target lockbox
-                                            wait 500
+                                            wait 150
                                             clearsysmsg
                                         endif
                                     endif
@@ -5776,6 +5791,14 @@ while not dead
             replay
         endif
 
+        if not find ClosestTarget ground -1 -1 12
+            @setvar! ClosestTarget self
+        endif 
+
+        if not find NextClosestTarget ground -1 -1 12
+            @setvar! NextClosestTarget self
+        endif 
+
         if diffhits >= ActivateAutoHealHPdiff 
             replay
         endif 
@@ -5816,10 +5839,12 @@ while not dead
                 if ClosestTarget != TargetCheck
                     settimer "TargetChecker" 0
                     @setvar! TargetCheck 0
+                    @setvar! TargetChecker 1
                     replay
                 else
                     settimer "TargetChecker" 0
                     @setvar! TargetCheck 0
+                    @setvar! TargetChecker 0
                 endif
             endif
         endif

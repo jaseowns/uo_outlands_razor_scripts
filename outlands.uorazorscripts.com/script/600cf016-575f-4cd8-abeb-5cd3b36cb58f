@@ -6,14 +6,10 @@
 
 ########## SETTING GLOBAL VARIABLES ##########
 @setvar! auto_hide_bot 0
-@setvar! auto_buff 0
-@setvar! auto_reveal_and_ban 1
-@setvar! auto_item_id_and_recycle 1
+@setvar! auto_reveal_and_ban 0
 @setvar! auto_sacred_journey 1
 @setvar! auto_map_decipher 1
 @setvar! auto_paragon_unlock 1
-
-
 
 ##### Chivalry Sacred Journey Gate Bot Lantern Hue Setup
 ############################################################################################################################################
@@ -28,12 +24,12 @@
 
 ## Towns
 @setvar! chivalry_town_gate_trigger_type_id 2597
-@setvar! chivalry_town_gate_trigger_hue 2085
+@setvar! chivalry_town_gate_trigger_hue 1182
 @setvar! chivalry_town_gate_trigger_distance_tiles 2
 
 ## Dungeons
 @setvar! chivalry_dungeon_gate_trigger_type_id 2597
-@setvar! chivalry_dungeon_gate_trigger_hue 1909
+@setvar! chivalry_dungeon_gate_trigger_hue 1779
 @setvar! chivalry_dungeon_gate_trigger_distance_tiles 2
 
 ## Shrines
@@ -43,7 +39,7 @@
 
 ## Custom
 @setvar! chivalry_custom_gate_trigger_type_id 2597
-@setvar! chivalry_custom_gate_trigger_hue 2092
+@setvar! chivalry_custom_gate_trigger_hue 2338
 @setvar! chivalry_custom_gate_trigger_distance_tiles 2
 
 
@@ -57,25 +53,15 @@
 #Use the Storage Container Serial value to prevent the bot from selecting similar containers nearby with matching ID values.
 ############################################################################################################################################
 
+@clearignore 
+
 ## Player Dropoff Storage Container
-@setvar! player_dropoff_storage_container 0x447D4EFC
+@setvar! player_dropoff_storage_container 0x434A16F7
 ignore player_dropoff_storage_container
 
 ## Player Pickup Storage Container
-@setvar! player_pickup_storage_container 0x71988B43
+@setvar! player_pickup_storage_container 0x424BC810
 ignore player_pickup_storage_container
-
-
-
-##### Magic Item Identification, Recycling, and Resource Restock
-@setvar! lantern_trigger_type_id 2597
-@setvar! lantern_trigger_hue 2841
-@setvar! lantern_trigger_distance_tiles 3
-
-
-@setvar! magic_item_recycler 0x53F5F6CD
-@setvar! resource_stockpile 0x420A5B19
-@setvar! magic_item_vault 0x53F5D3F2
 
 
 
@@ -91,10 +77,14 @@ if not timerexists "greeting_timer"
     settimer "greeting_timer" 0
 endif
 
+if not timerexists "detect_hidden_timer"
+    createtimer "detect_hidden_timer"
+    settimer "detect_hidden_timer" 10000
+endif
 
-if not timerexists "skill_cooldown_timer"
-    createtimer "skill_cooldown_timer"
-    settimer "skill_cooldown_timer" 10000
+if not timerexists "error_message_timer"
+    createtimer "error_message_timer"
+    settimer "error_message_timer" 10000
 endif
 
 
@@ -102,12 +92,17 @@ while not dead
     if timer "greeting_timer" >= 3600000
         say "Greetings.  I am H3-PLR - your morally impartial loot technician and part-time spatial displacer." 88
         wait 500
-        say "Initiating Map Decipher, Paragon Unlock, and Chivalry Gate subroutines." 88
+        say "Initiating Map Decipher, Paragon Unlock, Chivalry Gate, and Hostile Hospitality subroutines." 88
         wait 500
         settimer "greeting_timer" 0
     endif
 
-    
+    if timer "error_message_timer" > 60000
+        settimer "error_message_timer" 10000
+    endif
+
+
+
 ########## BEGIN AUTO HIDE BOT ##########
     if auto_hide_bot = 1
         if not hidden
@@ -122,11 +117,11 @@ while not dead
     if auto_reveal_and_ban = 1
         @setvar! hostile_player_banned 0
     
-        if timer "skill_cooldown_timer" >= 10000
+        if timer "detect_hidden_timer" >= 10000
             skill "detectinghidden"
             waitfortarget 100
             target "self"
-            settimer "skill_cooldown_timer" 0
+            settimer "detect_hidden_timer" 0
         endif
 
         target next nonfriendly player
@@ -145,11 +140,11 @@ while not dead
             
             @setvar! hostile_player_banned 1
             
-            if timer "skill_cooldown_timer" >= 10000
+            if timer "detect_hidden_timer" >= 10000
                 skill "detectinghidden"
                 waitfortarget 100
                 target "self"
-                settimer "skill_cooldown_timer" 0
+                settimer "detect_hidden_timer" 0
             endif
             
             target next nonfriendly player
@@ -163,78 +158,6 @@ while not dead
         endif
     endif
 ########## END AUTO REVEAL & BAN ##########
-
-    
-########## BEGIN MAGIC ITEM IDENTIFICATION & RECYCLE ##########
-    if findtype lantern_trigger_type_id 'ground' lantern_trigger_hue 1 lantern_trigger_distance_tiles as trigger
-        if auto_item_id_and_recycle = 1
-            @setvar! lantern_to_turn_on trigger
-
-            #Identifies all magical items in the Magic Item Recycler
-            if timer "skill_cooldown_timer" >= 10000
-                skill 'itemidentification'
-            else
-                @setvar! on_cooldown 1
-
-                while on_cooldown = 1
-                    overhead "Waiting of Skill Cooldown Timer" 53
-                    
-                    if timer "skill_cooldown_timer" >= 10000
-                        @setvar! on_cooldown 0
-                    endif
-                    
-                    wait 1000
-                endwhile
-                skill 'itemidentification'
-                settimer "skill_cooldown_timer" 0
-            endif
-            
-            waitfortarget 100
-            target magic_item_recycler
-            wait 100
-            say "Arcane obfuscation removed. Artifacts now labeled for your convenience." 88
-            wait 500
-
-            #Recycles magic Items
-            dclick magic_item_recycler
-            waitforgump 4045111101
-            gumpresponse 6
-            gumpclose
-            wait 500
-            
-            #Restocks Resource Stockpile
-            menu resource_stockpile 0
-            waitfortarget 100
-            target magic_item_recycler
-            say "Magical surplus has been recycled. Enchantments reduced to base components for future misuse." 88
-            wait 500
-            
-            #Places items not matching the Magic Item Recycler filters in the Magic Item Vault
-            menu magic_item_vault 0
-            waitfortarget 100
-            target magic_item_recycler
-            wait 100
-            say "Items of questionable power but undeniable value have been sealed in the vault." 88
-            wait 500
-
-            #Turns the Lantern trigger back on
-            dclick lantern_to_turn_on
-            wait 500
-        endif
-     
-        if auto_buff = 1
-            cast "Bless"
-            waitfortarget 100
-            target next friendly player
-            wait 2000
-
-            cast "Arch Protection"
-            waitfortarget 100
-            target next friendly player
-            wait 1000
-        endif
-    endif
-########## END MAGIC ITEM IDENTIFICATION & RECYCLE ##########
 
 
 
@@ -380,7 +303,7 @@ while not dead
         if findtype chivalry_custom_gate_trigger_type_id 'ground' chivalry_custom_gate_trigger_hue 1 chivalry_custom_gate_trigger_distance_tiles as custom_gate_trigger
             if timer chivalry_gate_cooldown >= 36000
                 if has_enough_holy_symbols = 1
-            say "CFC Guildhall Gate initialized. Contents may have shifted during thermal inversion." 88
+                    say "Frost Fort Gate initialized. Contents may have shifted during thermal inversion." 88
                     wait 500
                     say '[SacredJourney'
                     wait 500
@@ -429,27 +352,44 @@ while not dead
                 if findtype 2472|3712|2475|3648|3649|3708|3650|3651|29832|29833 backpack as paragon_chest
                     getlabel paragon_chest chest_description
                     wait 100
+                    @setvar! chest_to_unlock paragon_chest
 
                     if "sealed" in chest_description
                         #say "Chest found. Please allow time for delicate tampering and casual disregard for safety." 88
                         @setvar! have_paragon_to_open 1
                         @setvar! paragon_chest_to_open paragon_chest
+                    else
+                        lift chest_to_unlock
+                        wait 100
+                        drop player_pickup_storage_container -1 -1 -1
+                        wait 100
+                        say "Unsealed chest detected: I am for treasure, not trash, returning to sender in the GREEN chest" 88
+                        wait 500
+                        @setvar! have_paragon_to_open 0
                     endif
+                
                 elseif findtype 2472|3712|2475|3648|3649|3708|3650|3651|29832|29833 player_dropoff_storage_container as paragon_chest
                     getlabel paragon_chest chest_description
                     wait 100
+                    @setvar! chest_to_unlock paragon_chest
 
                     if "sealed" in chest_description
-                        lift paragon_chest
+                        lift chest_to_unlock
                         wait 100
                         drop backpack -1 -1 -1
                         wait 100
                         say "Chest found. Please allow time for delicate tampering and casual disregard for safety." 88
                         wait 500
-                        say chest_description 88
-                        wait 500
                         @setvar! have_paragon_to_open 1
-                        @setvar! paragon_chest_to_open paragon_chest
+                        @setvar! paragon_chest_to_open chest_to_unlock
+                    else
+                        lift chest_to_unlock
+                        wait 100
+                        drop player_pickup_storage_container -1 -1 -1
+                        wait 100
+                        say "Unsealed chest detected: I am for treasure, not trash, returning to sender in the GREEN chest" 88
+                        wait 500
+                        @setvar! have_paragon_to_open 0
                     endif
                 endif
                 wait 100
@@ -460,7 +400,7 @@ while not dead
 
                     if gumpexists 736038070
                         
-                        #Setting Continuous Lockpicking & Disarm
+                        #Setting Continuous Lockpicking & Trap Disarm
                         gumpresponse 10 736038070
                         waitforgump 736038070 500
 
@@ -494,12 +434,12 @@ while not dead
 
                             while not ingump "Cleared of Traps" 736038070
                                 wait 1000
+                                overhead "Waiting on Trap Removal" 53
                                 
-                                if timer "chest_trap_removal_timer" >= 60000
-                                    overhead "Trap removal took too long.  Resetting" 33
+                                if timer "chest_trap_removal_timer" >= 15000
+                                    overhead "Trap removal taking a long time." 33
                                     settimer "chest_trap_removal_timer" 0
-                                    #removetimer "chest_trap_removal_timer"
-                                    #break
+                                    break
                                 endif
                             endwhile
 
@@ -522,12 +462,12 @@ while not dead
 
                             while "sealed" in sealed_chest_description
                                 wait 1000
+                                overhead "Waiting on Lockpicking" 53   
                                 
-                                if timer "chest_lockpick_timer" >= 60000
-                                    overhead "Lockpicking took too long.  Resetting" 33
+                                if timer "chest_lockpick_timer" >= 15000
+                                    overhead "Lockpicking taking a long time." 33
                                     settimer "chest_lockpick_timer" 0
-                                    #removetimer "chest_trap_removal_timer"
-                                    #break
+                                    break
                                 endif
 
                                 getlabel paragon_chest_to_open sealed_chest_description
@@ -541,7 +481,7 @@ while not dead
                                     wait 100
                                     drop player_pickup_storage_container -1 -1 -1
                                     wait 100
-                                    say "Paragon security bypassed. Please collect your questionably earned valuables from the green chest." 88
+                                    say "Paragon security bypassed. Please collect your questionably earned valuables from the GREEN chest." 88
                                     wait 500
                                     gumpclose 736038070
                                     @setvar! have_paragon_to_open 0
@@ -552,7 +492,10 @@ while not dead
                 endif
             endif
         else
-            overhead "Missing Lockpicks and/or Drill" 33
+            if timer "error_message_timer" >= 10000
+                say "I'm missing Lockpicks and/or Drill - please message DrDyaus on Discord to restock" 33
+                settimer "error_message_timer" 0
+            endif
         endif
     endif
 ########## END PARAGON CHEST UNLOCK ############
@@ -642,17 +585,19 @@ while not dead
                             gumpresponse 4 2589357942
                         endif
                         
-                        if timer "map_decipher_timer" >= 60000
+                        if timer "map_decipher_timer" >= 10000
                             overhead "Map Deciphering took too long.  Resetting" 33
                             settimer "map_decipher_timer" 0
-                            #removetimer "chest_trap_removal_timer"
-                            #break
+                            break
                         endif    
                     endif
                 endwhile
             endif 
         else
-            overhead "Missing Spyglass" 33
+            if timer "error_message_timer" >= 10000
+                say "I'm missing Spyglasses - please message DrDyaus on Discord to restock" 33
+                settimer "error_message_timer" 0
+            endif
         endif
     endif
 ########## END MAP DECIPHER ##########

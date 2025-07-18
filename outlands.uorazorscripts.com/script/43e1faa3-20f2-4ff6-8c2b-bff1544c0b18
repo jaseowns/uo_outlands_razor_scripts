@@ -1,0 +1,97 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/43e1faa3-20f2-4ff6-8c2b-bff1544c0b18 for latest
+# Automation by Jaseowns
+## Script: Auto Level Tinkering in Town
+## Created by: mushnar#0
+#############################################
+
+####################################
+########### SCRIPT SETUP ###########
+# Add beads ONLY to your SELL agent and enable it
+# Add 2 toolkits to your BUY agent and enable it
+# Setup your crafting queue with beads set to Craft Until Skill Reached
+# Put a container in your bank box and set the crafting queue to pull resources from this container
+# Put all your crafting materials inside this container
+
+
+# Set bank_serial_number variable to the serial number of your bank box OR a container INSIDE your bank box
+# #### Go to a bank and open it
+# #### Open Razor and create a new script and give it any name
+# #### Press the Record button in razor
+# #### Drag any item into your bank box
+# #### Copy the serial number from the line that says "drop" followed by a serial number that looks like this 0x72C326D9 and some other numbers
+####################################
+
+@clearignore
+@setvar! tinkering_skill_cap 120
+@setvar! bank_box_or_container_in_bank 0x72C326D9
+
+
+
+while not dead
+    # Find a jeweler
+    @clearignore
+    @setvar jeweler_npc 0
+    while findtype 400|401 'ground' any any 8 as npc
+        getlabel npc npcLabel
+        if 'jeweler' in npcLabel
+            @setvar jeweler_npc npc
+
+            if skill 'tinkering' >= tinkering_skill_cap
+                overhead "Tinkering at cap!" 88
+                stop
+            else
+                if findtype 7864 backpack as found_tinker_tools
+                    if counttype "tool kit" <= 1
+                        if automatically_buy_tinkering_toolkits = 1
+                            overhead "Last toolkit, buying more!"
+                            menu jewelerNPC 1
+                        endif
+                    endif
+                else
+                    overhead "Last toolkit, buying more!"
+                    menu jewelerNPC 1
+                endif
+
+
+                # Keep the crafting queue open
+                if not gumpexists 453554062
+                    hotkey 'Crafting Queue'
+                    getlabel backpack ping
+                endif
+
+
+                # Start queue
+                if ingump 'Begin Crafting'
+                    overhead "Here we go!"
+                    gumpresponse 7
+                endif
+                wait 1000
+
+
+                # Sells beads to the Jeweler
+                if findtype 4233 backpack as found_bead
+                    menu jewelerNPC 2
+                    getlabel backpack ping
+                endif
+
+
+                # Moves gold to the bank box
+                if findtype 3821 backpack as found_gold
+                    @drop backpack -1 -1 -1
+                    getlabel backpack ping
+                    lift found_gold 60000
+                    drop bank_box_or_container_in_bank -1 -1 0
+                    @ignore loot
+                endif
+            endif
+        else
+            @ignore npc
+        endif
+    endwhile
+
+
+    if jeweler_npc = 0
+        overhead "No jeweler in range!"
+        stop
+    endif
+endwhile

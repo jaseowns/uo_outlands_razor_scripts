@@ -6,8 +6,8 @@
 
 ####################################
 ########### SCRIPT SETUP ###########
-# Add beads/necklace ONLY to your SELL agent and click the (Push to Enable) button
-# Add 2 toolkits to your BUY agent click the (Push to Enable) button 
+# Add beads ONLY to your SELL agent and enable it
+# Add 2 toolkits to your BUY agent and enable it
 # Setup your crafting queue with beads set to Craft Until Skill Reached
 # Put a container in your bank box and set the crafting queue to pull resources from this container
 # Put all your crafting materials inside this container
@@ -18,63 +18,135 @@
 # #### Open Razor and create a new script and give it any name
 # #### Press the Record button in razor
 # #### Drag any item into your bank box
-# #### Copy the serial number from the line that says "drop" followed by a serial number that looks like this 0x72C326D9 and some other numbers
+# #### Copy the serial number from the line that says *drop*
+# #### Serial number should be in this format 0x72C326D9 
 ####################################
 
 @clearignore
-@setvar! tinkering_skill_cap 120
-@setvar! bank_box_or_container_in_bank 0x72C326D9
+@setvar! tinkering_skill_cap 80
+@setvar! bank_box_or_container_in_bank 0x42250BDA
+@setvar! stop_if_artisan_aspect_capped 1
+@setvar! mark_jeweler_overhead 1
+@setvar! mark_jeweler_overhead_frequency 2000
+@setvar! enable_debug_messages 0
 
+if stop_if_artisan_aspect_capped = 1
+    say "[Aspect"
+    waitforgump 2424293173 1000
+endif
+
+if mark_jeweler_overhead = 1
+removetimer "overhead_cooldown"
+if not timerexists "overhead_cooldown"
+    createtimer "overhead_cooldown"
+    settimer "overhead_cooldown" mark_jeweler_overhead_frequency
+endif
+
+if enable_debug_messages = 1
+    overhead "DEBUG MESSAGES ENABLED" 53
+endif
 
 
 while not dead
-    # Find a jeweler
     @clearignore
     @setvar jeweler_npc 0
-    while findtype 400|401 'ground' any any 8 as npc
+    while findtype 400|401 ground any any 8 as npc
         getlabel npc npc_description
-        if 'jeweler' in npc_description
+        if "jeweler" in npc_description
             @setvar jeweler_npc npc
 
-            if skill 'tinkering' >= tinkering_skill_cap
-                overhead "Tinkering at cap!" 88
+
+            if enable_debug_messages = 1
+                overhead "Found Jeweler!" 53
+            endif
+
+
+            if mark_jeweler_overhead = 1
+                if timer "overhead_cooldown" >= mark_jeweler_overhead_frequency
+                    overhead "¼¼ Jeweler ¼¼" 88 jeweler_npc
+                endif
+            endif
+
+
+            if skill "tinkering" >= tinkering_skill_cap
+                overhead "Tinkering at desired level!" 88
                 stop
             else
-                if counttype "tool kit" <= 1
-                    overhead "Last toolkit, restocking!"
-                    menu jeweler_npc 1
-                    wait 500
+                if enable_debug_messages = 1
+                    overhead "Tinkering skill below desired level" 53
+                endif
 
-                    if counttype "tool kit" <= 1
+                say "[Aspect"
+                waitforgump 2424293173 100
+
+                
+                if ingump "Upgrade tier" 2424293173
+                    if stop_if_artisan_aspect_capped = 1
+                        overhead "UPGRADE ASPECT" 53
+                        stop
+                    endif
+                endif
+
+            
+                if counttype "tool kit" backpack <= 1
+                    if enable_debug_messages = 1
+                        overhead "Restocking Tinkers Tools" 53
+                    endif
+
+                    menu jeweler_npc 1
+                    wait 1000
+
+                    if counttype "tool kit" backpack <= 1
+                        if enable_debug_messages = 1
+                            overhead "Error Buying: Restocking from Bank" 53
+                        endif
+
                         if findtype 7864 bank_box_or_container_in_bank as tools_in_bank
+                            if enable_debug_messages = 1
+                                overhead "Found Tinker Tools in Bank" 53
+                            endif
+
                             @drop backpack -1 -1 -1
                             getlabel backpack ping
                             lift tools_in_bank 1
                             getlabel backpack ping
+                            wait 100
                             drop backpack
                             getlabel backpack ping
+                            wait 100
                         endif
                     endif
                 endif
 
-
+                
                 # Keep the crafting queue open
                 if not gumpexists 453554062
-                    hotkey 'Crafting Queue'
+                    if enable_debug_messages = 1
+                        overhead "Opening Crafting Queue" 53
+                    endif
+
+                    say "[CraftingQueue"
                     getlabel backpack ping
                 endif
 
 
                 # Start queue
-                if ingump 'Begin Crafting'
-                    overhead "Here we go!"
-                    gumpresponse 7
+                if ingump "Begin Crafting" 453554062
+                    if enable_debug_messages = 1
+                        overhead "Begin Crafting!" 53
+                    endif
+
+                    gumpresponse 7 453554062
+                    waitforgump 453554062 1000
                 endif
-                wait 1000
 
-
+                
                 # Sells beads to the Jeweler
                 if findtype 4233 backpack as found_bead
+                    if enable_debug_messages = 1
+                        overhead "Selling Beads!" 53
+                    endif
+
                     menu jeweler_npc 2
                     getlabel backpack ping
                 endif
@@ -82,13 +154,19 @@ while not dead
 
                 # Moves gold to the bank box
                 if findtype 3821 backpack as found_gold
+                    if enable_debug_messages = 1
+                        overhead "Moving Gold to Bank!" 53
+                    endif
+
                     @drop backpack -1 -1 -1
                     getlabel backpack ping
                     lift found_gold 60000
                     getlabel backpack ping
                     drop bank_box_or_container_in_bank -1 -1 0
-                    @ignore loot
                 endif
+                
+                wait 1500
+                gumpclose 2424293173
             endif
         else
             @ignore npc

@@ -9,6 +9,7 @@
 # 2025-07-20
 # #### Fixed some edge case bugs that prevented the script from being able to count the number of toolkits in your backpack
 # #### Feature: Stop the script if your Artisan aspect is capped out on XP if enabled
+# #### Feature: Stop the script if you run out of resources to prevent the Crafting Queue from making higher level items and wasting resources erroneously
 # #### Feature: Ping an overhead message on the Jeweler NPC if enabled
 # #### Feature: Display Debug messages overhead if enabled to assist in troubleshooting errors 
 #################################
@@ -23,9 +24,7 @@
 # Setup your crafting queue with beads set to Craft Until Skill Reached
 # Put a container in your bank box and set the crafting queue to pull resources from this container
 # Put all your crafting materials inside this container
-# If you are going to run this while away from the computer you will need to put a large stock of Tinkering Tools in your bank
-# #### This is due to a change in the Stationary Penalty debuff that prevents players from buying from vendors while they have this debuff
-# #### The script will attempt to buy from the vendor first and if it fails it will then attempt to pull from your bank box
+
 
 # Set bank_serial_number variable to the serial number of your bank box OR a container INSIDE your bank box
 # #### Go to a bank and open it
@@ -36,10 +35,10 @@
 # #### Serial number should be in this format 0x72C326D9 
 ####################################
 
-
 @setvar! tinkering_skill_cap 80
 @setvar! bank_box_serial_number 0x42250BDA
-@setvar! stop_if_artisan_aspect_capped 1
+@setvar! stop_if_artisan_aspect_capped 0
+@setvar! stop_if_out_of_resources 1
 
 
 @setvar! mark_jeweler_overhead 0
@@ -94,12 +93,12 @@ while not dead
                     overhead "Tinkering skill below desired level" 53
                 endif
 
-                say "[Aspect"
-                waitforgump 2424293173 100
 
-                
-                if ingump "Upgrade tier" 2424293173
-                    if stop_if_artisan_aspect_capped = 1
+                if stop_if_artisan_aspect_capped = 1
+                    say "[Aspect"
+                    waitforgump 2424293173 500                
+
+                    if ingump "Upgrade tier" 2424293173
                         overhead "UPGRADE ASPECT" 53
                         stop
                     endif
@@ -158,6 +157,13 @@ while not dead
                     waitforgump 453554062 1000
                 endif
 
+                if stop_if_out_of_resources = 1
+                    if insysmsg "You don't have the resources required to make that item"
+                        overhead "Out of resources!" 53
+                        stop
+                    endif
+                endif
+
                 
                 # Sells beads to the Jeweler
                 if findtype 4233 backpack as found_bead
@@ -184,7 +190,12 @@ while not dead
                 endif
                 
                 wait 1000
-                gumpclose 2424293173
+                
+                if stop_if_artisan_aspect_capped = 1
+                    if gumpexists 2424293173
+                        gumpclose 2424293173
+                    endif
+                endif
             endif
         else
             @ignore npc

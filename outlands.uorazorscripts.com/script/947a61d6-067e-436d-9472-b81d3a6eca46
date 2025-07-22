@@ -39,6 +39,10 @@ endif
 if not timerexists "checkSOSLocationTimer"
     createtimer "checkSOSLocationTimer"
     settimer "checkSOSLocationTimer" 99999
+endif 
+if not timerexists "enemyScanTimer_"
+    createtimer "enemyScanTimer_"
+    settimer "enemyScanTimer_" 99999
 endif
 if findtype 3702 backpack as fishBag__
     @setvar fishBag_ fishBag__
@@ -48,124 +52,121 @@ if findtype 3999 backpack as scissors__
     @setvar scissors_ scissors__
     overhead "FOUND SCISSORS"
 endif
-if findtype 31172|31169 backpack as myWeapon__
-    @setvar myWeapon_ myWeapon__
-    overhead "FOUND HARPON"
+if findtype 11552 backpack 1763 as knife_
+    @setvar myKnife_ knife_
+elseif findtype 11552 backpack 2207 as knife_
+    @setvar myKnife_ knife_
+elseif findtype 11552 backpack 0 as knife_
+    @setvar myKnife_ knife_
 endif
 
+
+@setvar myWeaponFound_ 0
+while myWeaponFound_ = 0 and findtype 31172|31169 backpack
+    if findtype 31172|31169 backpack as myWeapon__
+        getlabel myWeapon__ myWeaponLabel__
+        if "exceptional" in myWeaponLabel__
+            @setvar myWeapon_ myWeapon__
+            @setvar myWeaponFound_ 1
+            overhead "FOUND HARPON"
+        else 
+            @ignore myWeapon__
+        endif
+    endif
+endwhile
+
 @clearignore
-@setvar me_ self
-@setvar pvpPvmStatus_ 0
-@setvar lagTimer_ 750
+@setvar lagTimer_ 600
 @setvar spyglassChoice_ 0
 @setvar fishingWithNet_ 0
 @setvar minHpAllowed_ 50
-@setvar lagTimer_ 750
+@setvar healthPotTimer_ 11000
 
-@setvar weaponAbility_ 2
-# 0 - FISHING SPOTS, 1 - SPECIAL NETS, 2 - SOSs
-@setvar justSpecialFishing_ 2
+# 0 - FISHING SPOTS, 1 - SPECIAL NETS, 2 - SOSs, 3 - ONLY FISHING
+@setvar justSpecialFishing_ 0
 
-@setvar greaterTimerValue_ 205000
-if justSpecialFishing_ = 0
-    @setvar greaterTimerValue_ 205000
-elseif justSpecialFishing_ = 1
-    @setvar greaterTimerValue_ 217000
-elseif justSpecialFishing_ = 2
-    @setvar greaterTimerValue_ 217000
-endif
+@setvar greaterTimerValue_ 188000
 while not dead
-    if findtype "spyglass" backpack as spyglass_ and not cooldown "Spyglass" and hp > minHpAllowed_
-        while gumpexists 2890020940
-            gumpclose 2890020940
-            wait lagTimer_
-        endwhile        
-        hotkey "> Interrupt"
+    if findtype "spyglass" backpack as spyglass_ and not cooldown "Spyglass"
+        gumpclose 2890020940
         dclick spyglass_
         waitfortarget
         target self
-        while not gumpexists 2890020940
-            wait lagTimer_
-        endwhile
+        waitforgump 2890020940
         if spyglassChoice_ = 0
             gumpresponse 10 2890020940
-            while not gumpexists 2890020940
-                wait lagTimer_
-            endwhile
+            waitforgump 2890020940 
             gumpresponse 4 2890020940
             if justSpecialFishing_ = 0
                 @setvar spyglassChoice_ 1
             endif
+            if justSpecialFishing_ = 3
+                cooldown "Spyglass" 15000
+            else
+                cooldown "Spyglass" 5000
+            endif
         else
             gumpresponse 11 2890020940
-            while not gumpexists 2890020940
-                wait lagTimer_
-            endwhile
+            waitforgump 2890020940
             gumpresponse 4 2890020940
             @setvar spyglassChoice_ 0
+            wait 250
+            if ingump "a fishing spot"
+                cooldown "Spyglass" 15000
+            else
+                cooldown "Spyglass" 5000
+            endif
         endif
-        cooldown "Spyglass" 5000
     endif
 
     if poisoned
-        if statusPoisoned_ = 0
-            @setvar statusPoisoned_ 1
-            settimer "stillPoisonedTimer_" 0
-        endif
-        if timer "stillPoisonedTimer_" > 5000
-            if timer "curePotTimer_" > 5100
-                if findtype "Orange Potion" backpack as pot_
-                    dclick pot_
-                    wait lagTimer_
-                    settimer "curePotTimer_" 0
-                else
-                    overhead "MISSING POTS" 38 
-                endif
-            else 
-                overhead "Wait for it..."
+        if timer "curePotTimer_" > 5100
+            if findtype "Orange Potion" backpack as pot_
+                dclick pot_
+                wait lagTimer_
+                settimer "curePotTimer_" 0
+            else
+                overhead "MISSING POTS" 38 
             endif
+        else 
+            overhead "Wait for it..."
         endif
-    elseif statusPoisoned_ = 1
-        @setvar statusPoisoned_ 0
     endif
 
     if hp < maxhp
-        if pvpPvmStatus_ = 0 and not bandaging
+        if not bandaging
             if  findtype "clean bandage%s%" backpack
                 hotkey "Bandage Self"
                 cooldown "Bandage" 7100
             else 
                 overhead "MISSING: BANDAGES" 38
             endif
-        elseif pvpPvmStatus_ = 1 and not bandaging and findtype "clean bandage%s%" backpack 
-            hotkey "Bandage Self"
-            cooldown "Bandage" 10100
         endif    
         if hp < 60
-            if pvpPvmStatus_ = 0
-                if not cooldown "Health Potion" and findtype "Yellow Potion" backpack as pot_
-                    dclick pot_
-                    cooldown "Health Potion" healthPotTimer_
-                endif
-                if hp < minHpAllowed_ and not cooldown "Holy Light" and not cooldown "Chiv Timer" and skill "chivalry" >= 95
-                    say "[HolyLight"
-                    wait lagTimer_
-                    if insysmsg "Holy symbols remaining"
-                        cooldown "Holy Light" 30000
-                        cooldown "Chiv Timer" 500
-                    endif
-                endif
-            else 
-                if hp < 60 and not cooldown "Health Potion" and findtype "Yellow Potion" backpack as pot_
-                    dclick pot_
-                    cooldown "Health Potion" 11100
+            if not cooldown "Health Potion" and findtype "Yellow Potion" backpack as pot_
+                dclick pot_
+                cooldown "Health Potion" healthPotTimer_
+            endif
+            wait 500
+            if hp < 30 and not cooldown "Holy Light" and not cooldown "Chiv Timer" and skill "chivalry" >= 95
+                say "[HolyLight"
+                wait lagTimer_
+                if insysmsg "Holy symbols remaining"
+                    cooldown "Holy Light" 30000
+                    cooldown "Chiv Timer" 500
                 endif
             endif
         endif
     endif
+
+    if justSpecialFishing_ != 3
+        if not findbuff "Food Satisfaction" and findtype "Tray" backpack
+            dclicktype "Tray"
+        endif    
+    endif
     
-    if not warmode
-        if not warmode and timer "fishingTimer_" > 8100 and fishingWithNet_ = 0 and justSpecialFishing_ = 0
+    if justSpecialFishing_ = 0 or justSpecialFishing_ = 3
+        if timer "fishingTimer_" > 8100 and fishingWithNet_ = 0 and not warmode
             if findtype 3520 backpack as pole_
                 dress Fishing
                 while queued
@@ -173,81 +174,89 @@ while not dead
             endif
             hotkey "Use Item in Hand"
             settimer "fishingTimer_" 0
-        endif    
-
-        while findtype "fish" fishBag_ as fish_
-            dclick scissors_
-            waitfortarget 
-            target fish_
-            wait lagTimer_
-        endwhile
-        while findtype 17606|28828|28825|28820|28823|17157|28821|28829|28845|28822 fishBag_ as fish_
-            dclick scissors_
-            waitfortarget 
-            target fish_
-            wait lagTimer_
-        endwhile
-    
-        if not findtype 3530 backpack and timer "checkForNetsTimer_" > 60000
-            overhead "MISSING FISHING NET" 38
-            settimer "checkForNetsTimer_" 0
         endif
+    endif    
 
-        if findtype "corpse" ground -1 -1 2 as corpse_ and timer "skinningTimer_" > 3000
-            if findtype "Elven Spellblade" backpack as blade_
-                dclick blade_
-                waitfortarget
-                target self
-                settimer "skinningTimer_" 0
-                @ignore corpse_
+    if warmode or timer "netCastTimer_" < 5000
+        if warmode and find myWeapon_ backpack
+            dclick myWeapon_
+            wait 500
+        endif
+        if not varexist currentTarget_ and timer "enemyScanTimer_" > 3000
+            hotkey 'Next Enemy Monster Target'
+            if not insysmsg "No one matching" 
+                @setvar currentTarget_ lasttarget
+            endif
+            hotkey 'Next Grey Monster Target'
+            if not insysmsg "No one matching" 
+                @setvar currentTarget_ lasttarget
+            endif
+            hotkey 'Next Murderer Monster Target'
+            if not insysmsg "No one matching" 
+                @setvar currentTarget_ lasttarget
+            endif
+            settimer "enemyScanTimer_" 0
+            if not varexist currentTarget_
+                warmode "off"
+            endif
+        endif
+        if varexist currentTarget_
+            if not warmode
+                warmode "on"
+                wait 500
+            endif
+            if warmode and find myWeapon_ backpack
+                dclick myWeapon_
+                wait 500
+            endif
+            if not dead currentTarget_
+                if not cooldown "Weapon Ability"
+                    say "[WeaponAbility3"
+                    wait 500
+                    if insysmsg "You cannot perform that ability yet."
+                        cooldown "Weapon Ability" 2500
+                    endif
+                endif
+                attack currentTarget_
+            else 
+                @unsetvar currentTarget_
             endif
         endif
     endif
 
+    #if justSpecialFishing_ = 0 or justSpecialFishing_ = 3
+        #if not cooldown "Main Greater"
+            #say "[GreaterAbility"
+            #wait lagTimer_
+            #cooldown "Main Greater" greaterTimerValue_
+        #endif
+    #endif
+    
+    # FISHING SPOTS
     if justSpecialFishing_ = 0 and findtype 1286|18824|3530|26683|39345|29410|29230|2646|18824|441|25769|39434|27641|3707|29230|25769 ground -1 -1 12 as fishingSpot_
-        if not cooldown "Main Greater"
-            say "[GreaterAbility"
-            wait lagTimer_
-            cooldown "Main Greater" greaterTimerValue_
-        endif
-
-        if not find fishingSpot_ ground -1 -1 8
-            overhead "MOVE CLOSER" 48
-            overhead "X" 38 fishingSpot_
-            wait lagTimer_
-            wait lagTimer_
-        else
-            if cooldown "Main Greater" < 40000
-                overhead "WAITING ON MARINERs" 48
-                wait 1000
-            else
-                @setvar fishingWithNet_ 1
-                if find myWeapon_ backpack
-                    dclick myWeapon_ 
-                endif
-                if not warmode and timer "netCastTimer_" > 3000
-                    if findtype 3530 backpack as net_
-                        getlabel net_ net__
-                        if "special" in net__
-                            @ignore net_
-                        else
-                            dclick net_
-                            waitfortarget 
-                            target self
-                            settimer "netCastTimer_" 0
-                        endif
-                    else 
-                        overhead "MISSING NETS" 38
-                    endif
-                endif
+        #if cooldown "Main Greater" < 9000
+            #overhead "WAITING ON MARINERs" 48
+            #wait 500
+        #else
+        @setvar fishingWithNet_ 1
+        if warmode
+            if find myWeapon_ backpack
+                dclick myWeapon_ 
             endif
         endif
+        if not cooldown "Fishing Net"
+            dclick fishingSpot_
+            cooldown "Fishing Net" 3500
+            settimer "netCastTimer_" 0
+        endif
+        #endif
     else
         if fishingWithNet_ = 1
             @setvar fishingWithNet_ 0
         endif
     endif
     
+    # SPECIAL FISHING NETS
     if justSpecialFishing_ = 1
         if not cooldown "Main Greater"
             say "[GreaterAbility"
@@ -258,7 +267,7 @@ while not dead
         if find myWeapon_ backpack
             dclick myWeapon_ 
         endif
-        if cooldown "Main Greater" < 40000
+        if cooldown "Main Greater" < 8000
             overhead "WAITING ON MARINERs"
         else
             if not warmode and timer "netCastTimer_" > 9000
@@ -283,12 +292,13 @@ while not dead
         endif
     endif
 
+    # MIBS
     if justSpecialFishing_ = 2
         @setvar fishingWithNet_ 1
         if find myWeapon_ backpack
             dclick myWeapon_ 
         endif        
-         if not warmode and timer "netCastTimer_" > 4000
+         if timer "netCastTimer_" > 4000
             if findtype 3530 backpack as net_
                 getlabel net_ net__
                 if "special" in net__
@@ -305,47 +315,38 @@ while not dead
         endif
     endif
 
-    if not find myAttackTarget_ ground -1 -1 8 or myAttackTarget_ = me_
-        hotkey "Target Closest Grey Monster"
-        hotkey "Target Closest Enemy Monster"
-        hotkey "Next Non-Friendly Player Target"
-        hotkey "Next Murderer Player Target"
-        if lasttarget != me_ and find lasttarget ground -1 -1 8
-            warmode "on"
-            @setvar myAttackTarget_ lasttarget
-            say "[CrewAttack"
-            waitfortarget
-            target myAttackTarget_
-            wait lagTimer_
-        else 
-            warmode "off"
-        endif
-    endif    
+    if not warmode
+        @clearignore
+        while not cooldown "Fishing Net" and not cooldown "Spyglass" and findtype "fish" backpack as fish_ 
+            getlabel fish_ fishLabel_
+            if "arbiter" in fishLabel_ or "puffer" in fishLabel_
+                @ignore fish_
+            else
+                dclick scissors_
+                waitfortarget 
+                target fish_
+                wait lagTimer_
+            endif
+        endwhile
+        while not cooldown "Fishing Net" and not cooldown "Spyglass" and findtype 15124|28819|17606|28828|28825|28820|28823|17157|28821|28829|28845|28822 backpack as fish_
+            getlabel fish_ fishLabel_
+            if "arbiter" in fishLabel_ or "puffer" in fishLabel_
+                @ignore fish_
+            else
+                dclick scissors_
+                waitfortarget 
+                target fish_
+                wait lagTimer_
+            endif
+        endwhile
+    endif
 
-    if warmode 
-        if find myWeapon_ backpack
-            dclick myWeapon_ 
-        endif
-        
-        if find myAttackTarget_ ground -1 -1 8 or myAttackTarget_ = me_
-            attack myAttackTarget_
-        endif
-        
-        if not cooldown "Weapon Ability" and warmode
-            if weaponAbility_ = 1
-                say "[WeaponAbility1"
-                wait lagTimer_
-            elseif weaponAbility_ = 2
-                say "[WeaponAbility2"
-                wait lagTimer_
-            elseif weaponAbility_ = 3
-                say "[WeaponAbility3"
-                wait lagTimer_
-            endif
-            if insysmsg "You cannot perform that ability yet."
-                cooldown "Weapon Ability" 2500
-            endif
-        endif
-    endif 
-        
+    if findtype "corpse" ground -1 -1 2 as corpse_ and timer "skinningTimer_" > 3000
+        dclick myKnife_
+        waitfortarget
+        target self
+        settimer "skinningTimer_" 0
+        @ignore corpse_
+    endif    
+    
 endwhile

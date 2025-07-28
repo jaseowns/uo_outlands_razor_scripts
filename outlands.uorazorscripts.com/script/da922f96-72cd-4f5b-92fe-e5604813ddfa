@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.17.1
+#Auto-mage attack 3.17.2
 
 #********** INFORMATION **********# 
 
@@ -26,6 +26,7 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.17.2 Added arch protection and fixes to meditation use
 # Ver 3.17 Added setting to auto trap pouches 
 # Ver 3.15 Added ability to use explosion potions & fix minor bugs
 # Ver 3.13 Fixes to followers and weapon ability
@@ -128,7 +129,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Set Mage attack spells ---#
 
-@setvar! minimumManaToCastAnyDamageSpells 49
+@setvar! minimumManaToCastAnyDamageSpells 25
 
 @setvar! castMagicArrow 1
 @setvar! castHarm 1
@@ -149,12 +150,12 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Big Spells prioritize order ---#
 
-@setvar! castFlamestrike 1
+@setvar! castFlamestrike 0
 @setvar! castEnergyBolt 0
 @setvar! castExplosion 0
 @setvar! castMindblast 1
 
-@setvar! minimumManaToCastBigSpellsOnly 14
+@setvar! minimumManaToCastBigSpellsOnly 49
 
 #--- Set Mage auto heals ---#
 
@@ -167,7 +168,8 @@ pushlist animalsIgnoreList "a death adder"
 @setvar! magicReflect 1
 @setvar! blessSpell 1
 @setvar! armorReflect 1
-@setvar! protectionSpell 1
+@setvar! protectionSpell 0
+@setvar! archProtectionSpell 1
 
 @setvar! miniumManaToBuff 50
 
@@ -279,7 +281,7 @@ pushlist animalsIgnoreList "a death adder"
 
 @setvar! useMeditationSkill 1
 @setvar! meditateWhenManaBelow 50
-@setvar! meditateUntilManaReach 65
+@setvar! meditateUntilManaReach 75
 
 @setvar! lowManaWarningMessageWhenBelow 40
 
@@ -1323,6 +1325,25 @@ while not dead
         endwhile  
         while casting
         endwhile
+        wait 200  
+    endif 
+    
+    if archProtectionSpell = 1 and skill 'magery' >= 60 and not findbuff "Protection" and mana >= miniumManaToBuff and diffhits < activateAutoHealDiff and findtype 3980 self and findtype 3972 self and findtype 3973 self  and findtype 3974 self and not find currentTarget ground -1 -1 12
+        sysmsg "arch protect" 11
+        cast 'Arch Protection'         
+        while not casting                  
+            if targetexists
+                hotkey 'cancel current target'
+            endif
+            cast 'Arch Protection' 
+            wait 50
+        endwhile  
+        
+        while not targetexists and casting
+        endwhile
+        
+        waitfortarget maxwaittimeinms
+        target 'self' 
         wait 200  
     endif 
     
@@ -2836,6 +2857,39 @@ while not dead
             endif
         endif
     endif
+    
+    #--- Use Meditation ---#
+    
+    if 0 = useMeditationSkill and mana < 50 
+        break
+    elseif 1 = useMeditationSkill and mana < 50 and not findbuff "meditating" and timer meditationTimer > meditationCD
+        if insysmsg "you are at peace"
+        endif
+        if insysmsg "you enter a meditative trance"
+        endif
+        if insysmsg "You must wait a few moments to use another skill."
+        endif
+        
+        skill 'meditation'
+        getlabel backpack xxx
+        wait 200
+        if not findbuff 'meditating'
+            settimer meditationTimer 7500
+        elseif findbuff 'meditating'
+            warmode on
+            warmode off
+            settimer meditationTimer 0
+            while mana < 50 and diffhits < activateAutoHealDiff
+                if not findbuff 'meditating'
+                    break
+                endif
+                if timer meditationMessageTimer > meditationMessageCD
+                    overhead "* actively meditating *" 11
+                    settimer meditationMessageTimer 0
+                endif
+            endwhile
+        endif
+    endif 
     
     @setvar! petsCurrentlyAttacking 0 
     

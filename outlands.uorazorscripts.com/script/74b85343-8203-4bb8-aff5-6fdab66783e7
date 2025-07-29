@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#SUPER Auto-healer ver.5.01
+#SUPER Auto-healer ver.5.03
 
 #********** INFORMATION **********# 
 
@@ -45,7 +45,7 @@
 @setvar! holyLight 1
 
 @setvar! nobleSacrificeDiff 80
-@setvar! holyLightDiff 50
+@setvar! holyLightDiff 60
 
 #--- Set potions ---#
 
@@ -78,7 +78,7 @@
 @setvar! startCastGreaterHealDiff endCastMiniHealDiff
 @setvar! endCastGreaterHealDiff 200
 
-@setvar! drinkHealPotDiff 40
+@setvar! drinkHealPotDiff 35
 
 @setvar! interruptCastingBuffsDiff 40
 
@@ -101,9 +101,6 @@ l
 
 @setvar! nobleCD 30000
 settimer nobleTimer nobleCD
-
-@setvar! nobleDelayCD 5000
-settimer nobleDelayTimer nobleDelayCD
 
 @setvar! nobleMessageCD 500
 settimer nobleMessageTimer nobleMessageCD
@@ -155,18 +152,6 @@ settimer redMessageTimer redMessageCD
 
 @setvar! foodMessageCD 3333
 settimer foodMessageTimer foodMessageCD
-
-@setvar! panaceaAbilityCD 30000
-
-if not timerexists panaceaAbilityTimer
-    settimer panaceaAbilityTimer panaceaAbilityCD
-endif
-
-@setvar! panaceaDelayMessageCD 5000
-
-if not timerexists panaceaDelayMessageTimer
-    settimer panaceaDelayMessageTimer panaceaDelayMessageCD
-endif
 
 #--- Magery buffs timers ---#
 
@@ -233,30 +218,23 @@ while not dead
         endif
     endif
 
-    if timer nobleDelayTimer < nobleDelayCD and timer nobleMessageTimer > nobleMessageCD
-        sysmsg "Healing Restricted {{nobleDelayTimer}} / 5000" 34 
-        overhead "Healing Restricted {{nobleDelayTimer}} / 5000" 34 
+    if findbuff "Noble Sacrifice" and timer nobleMessageTimer > nobleMessageCD
+        sysmsg "Healing Restricted" 34
+        overhead "Healing Restricted" 34 
         settimer nobleMessageTimer 0
     endif
     
     if panaceaAbility = 1
         if findbuff "bleed" or findbuff "diseased"
-            if timer panaceaAbilityTimer > panaceaAbilityCD
+            if not findbuff "panacea potion cooldown"
                 if findtype "Orange Potion" self
                     dclicktype "Orange Potion"
                     wait 200
-                    while not insysmsg "you are not poisoned" and not insysmsg "potion codex panacea"
-                        dclicktype "Orange Potion"
-                        sysmsg "cure pot" 44
-                        wait 200                        
-                    endwhile
-                    settimer panaceaAbilityTimer 0
-                    overhead "Panacea Activated!" 55
-                    sysmsg "Panacea Activated!" 55
+                    if findbuff "panacea potion cooldown"
+                        overhead "Panacea Activated!" 55
+                        sysmsg "Panacea Activated!" 55
+                    endif
                 endif 
-            elseif timer panaceaAbilityTimer > 25000 and timer panaceaDelayMessageTimer > panaceaDelayMessageCD
-                sysmsg "Panacea Ability ready in less than 5 seconds" 44
-                settimer panaceaDelayMessageTimer 0
             endif
         endif
     endif
@@ -277,7 +255,7 @@ while not dead
         
     #--- Self bandage ---#
     
-    if diffhits >= 1 and not bandaging
+    if diffhits >= 1 and not bandaging and not findbuff "Noble Sacrifice"
         if skill 'healing' >= 50 or skill "veterinary" >= 50
             if findtype 'clean bandage%s%' backpack
             
@@ -285,6 +263,7 @@ while not dead
                     hotkey 'cancel current target'  
                 endif
                 dclicktype 'clean bandage%s%'
+                sysmsg "bandaged" 22
                 waitfortarget maxwaittimeinms
                 target 'self'
                 wait 200            
@@ -303,6 +282,7 @@ while not dead
         if not findbuff "Strength" 
             if findtype "White Potion" self
                 dclicktype "White Potion"
+                sysmsg "strength pot" 1
                 wait 200
             else
                 if timer whiteMessageTimer > whiteMessageCD
@@ -319,6 +299,7 @@ while not dead
         if not findbuff "Agility" 
             if findtype "Blue Potion" self
                 dclicktype "Blue Potion"
+                sysmsg "agility pot" 86
                 wait 200
             else
                 if timer blueMessageTimer > blueMessageCD
@@ -335,6 +316,7 @@ while not dead
         if not findbuff "Magic Resist" 
             if findtype "Black Potion" self
                 dclicktype "Black Potion"
+                sysmsg "magic resist pot" 111
                 wait 200
             else
                 if timer blackMessageTimer > blackMessageCD
@@ -388,16 +370,14 @@ while not dead
         
     #--- Drink Heal Pot ---#
     
-    if diffhits >= drinkHealPotDiff and 1 = drinkHeal and timer nobleDelayTimer > nobleDelayCD
+    if diffhits >= drinkHealPotDiff and 1 = drinkHeal and not findbuff "Noble Sacrifice"
         if findtype "Yellow Potion" self as hPot
             getlabel hPot potLabel
-            if "next" in potLabel
-                #do nothing
+            if "(" in potLabel
             else
                 dclicktype 3852
-                sysmsg "healing pot 1" 55
                 getlabel backpack xxx
-                wait 200
+                sysmsg "heal pot" 55
             endif
         else
             if timer yellowMessageTimer > yellowMessageCD
@@ -470,7 +450,7 @@ while not dead
         @setvar holyPoints 0
     endif    
 
-    if holyLight = 1 and 4 < holyPoints and timer holyLightTimer > holyLightCD and timer nobleDelayTimer > nobleDelayCD and skill 'chivalry' >= 95 and skill 'tactics' >= 95 and diffhits >= holyLightDiff
+    if holyLight = 1 and 4 < holyPoints and timer holyLightTimer > holyLightCD and not findbuff "Noble Sacrifice" and skill 'chivalry' >= 95 and skill 'tactics' >= 95 and diffhits >= holyLightDiff
         @setvar! castingInterrupted 0
         
         if insysmsg "holy symbols remaining"
@@ -520,13 +500,12 @@ while not dead
             waitfortarget maxwaittimeinms
             target 'self'
             settimer nobleTimer 0
-            settimer nobleDelayTimer 0
         endif
     endif
         
     #--- Cast heals ---#
     
-    if skill 'magery' >= 40 and diffhits >= startCastMiniHealDiff and diffhits < endCastMiniHealDiff and mana >= 4 and miniHeal = 1 and not casting and timer nobleDelayTimer > nobleDelayCD
+    if skill 'magery' >= 40 and diffhits >= startCastMiniHealDiff and diffhits < endCastMiniHealDiff and mana >= 4 and miniHeal = 1 and not casting and not findbuff "Noble Sacrifice"
         if insysmsg "Your concentration is disturbed"
         endif  
         
@@ -551,7 +530,7 @@ while not dead
             target 'self' 
         endif 
         
-    elseif skill 'magery' >= 40 and diffhits >= castEmergencyMiniHealDiff and mana >= 4 and miniHeal = 1 and not casting and timer nobleDelayTimer > nobleDelayCD
+    elseif skill 'magery' >= 40 and diffhits >= castEmergencyMiniHealDiff and mana >= 4 and miniHeal = 1 and not casting and not findbuff "Noble Sacrifice"
         if insysmsg "Your concentration is disturbed"
         endif  
         sysmsg "mini heal" 11
@@ -575,7 +554,7 @@ while not dead
             target 'self' 
         endif 
         
-    elseif skill 'magery' >= 60 and diffhits >= startCastGreaterHealDiff and diffhits < endCastGreaterHealDiff and mana >= 11 and greaterHeal = 1 and not casting and timer nobleDelayTimer > nobleDelayCD
+    elseif skill 'magery' >= 60 and diffhits >= startCastGreaterHealDiff and diffhits < endCastGreaterHealDiff and mana >= 11 and greaterHeal = 1 and not casting and not findbuff "Noble Sacrifice"
         if insysmsg "Your concentration is disturbed"
         endif  
                     
@@ -619,16 +598,14 @@ while not dead
             
                 #--- Drink Heal Pot ---#
                 
-                if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists and timer nobleDelayTimer > nobleDelayCD
+                if diffhits >= drinkHealPotDiff and 1 = drinkHeal and casting and not targetexists and not findbuff "Noble Sacrifice"
                     if findtype "Yellow Potion" self as hPot
                         getlabel hPot potLabel
-                        if "next" in potLabel
-                            #do nothing
+                        if "(" in potLabel
                         else
                             dclicktype 3852
-                            sysmsg "healing pot 2" 55
+                            sysmsg "heal pot" 55
                             getlabel backpack xxx
-                            wait 200
                         endif
                     else
                         if timer yellowMessageTimer > yellowMessageCD

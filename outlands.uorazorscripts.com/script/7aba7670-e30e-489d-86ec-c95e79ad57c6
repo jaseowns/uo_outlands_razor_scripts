@@ -1,13 +1,13 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/7aba7670-e30e-489d-86ec-c95e79ad57c6 for latest
 # Automation by Jaseowns
-## Script: Lord Glacier's Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v2.1.2
+## Script: Lord Glacier's Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v2.1.3
 ## Created by: danstock._98439#0
 #############################################
 
 /////////
-////////                                Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.1.2
+////////                                Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.1.3
 ///////
-//////                                      UO Outlands Razor script - Released Feb 18, 2025 - Last Updated July 28, 2025
+//////                                      UO Outlands Razor script - Released Feb 18, 2025 - Last Updated July 30, 2025
 /////                                           Compiled by DanStock. (aka. Glacier)
 ////
 ///
@@ -62,6 +62,7 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
+    #       July 30, 2025 - version 2.1.3:  Final touches - just trying to dial in all the timings on everything.  Done... unless I find more lol
     #       July 28, 2025 - version 2.1.2:  Few more tweaks and adjustments (mostly to Gold Drop, Loot Storage and Arrow Cleanup sections)
     #       July 25, 2025 - version 2.1.1:  Adjusted arrow pickup code and other minor timing and order of operations tweaks throughout (99.99% done now, I think!)
     #       July 24, 2025 - version 2.1.0:  Tweaked the attack target timing, fixed bug in Gold Drop loop and added more bandage/heal pot checkpoints
@@ -262,7 +263,7 @@ endif
 
 @setvar! EnableDivineFury 1
 @setvar! EnableEnemyOfOne 1
-@setvar! EnableConsecrateWeapon 0
+@setvar! EnableConsecrateWeapon 1
     # Chivalry buffs, if enabled, will auto trigger during combat loop
 
 @setvar! EnableHolyLight 1
@@ -280,7 +281,7 @@ endif
 
 @setvar! EnableHealPotion 1
 @setvar! EnableCurePotion 1
-@setvar! EnableRefreshPotion 1
+@setvar! EnableRefreshPotion 0
 
 @setvar! HealPotionHPdiff 40
 @setvar! RefreshPotionSPdiff 10
@@ -327,10 +328,10 @@ endif
     ######################
 
 @setvar! EnableWeaponCodexHotbar 0
-@setvar! EnableWeaponCodexSwitching 0
-@setvar! SwitchWeaponCodexCooldown 1500
+@setvar! EnableWeaponCodexSwitching 1
+@setvar! SwitchWeaponCodexCooldown 1000
 
-@setvar! SetCodexStance 0
+@setvar! SetCodexStance 6
         # '0' for 'Disabled'
         # '1' for 'First Weapon Stance'
         # '2' for 'Second Weapon Stance'
@@ -343,7 +344,7 @@ endif
 
 @setvar! EnableShieldCodexHotbar 0
 @setvar! EnableShieldCodexSwitching 0
-@setvar! SwitchShieldCodexCooldown 1500
+@setvar! SwitchShieldCodexCooldown 10000
 
     @setvar! SetShieldCodexStance 0
         # '0' for 'Disabled'
@@ -456,6 +457,9 @@ endif
 @setvar! EnableAutoCarving 0
     # Requires skinning knife and will automatically carve nearby corpses
 
+@setvar! EnableAutoSatchels 0
+    # Will automatically move potions and/or reagents in backpack to satchels
+
 @setvar! EnableEatingFood 0
     # Will automatically eat delectable food trays when not buffed
 
@@ -481,12 +485,12 @@ endif
     @setvar! StoreLootTimer 0
         # StoreLootTimer is the delay between targets to trigger loot storage
 
-@setvar! AfterKillTimer 500
+@setvar! AfterKillTimer 0
     # AfterKillTimer sets the delay after eliminating your target (to give time to loot, etc.) while still keeping you safe
     # Increase slightly if carving corpses or set to 0 for instant re-tartgeting
 
 @setvar! EnableArcheryWarningMessage 0
-@setvar! ArcheryLowAmmoWarningAmount 25
+@setvar! ArcheryLowAmmoWarningAmount 10
     # Overhead warning (independant of other Overhead Messages) for low archery ammuniton (if Archery skill > 50) 
 
 @setvar! EnableWeightWarningMessage 1
@@ -708,6 +712,7 @@ createlist animalsIgnoreList
     pushlist animalsIgnoreList "a spirit sabertus"
     pushlist animalsIgnoreList "a death asp"
     pushlist animalsIgnoreList "a death adder"
+    pushlist animalsIgnoreList "frozen remains"
     pushlist animalsIgnoreList "ADD MOBS TO IGNORE HERE"
     pushlist animalsIgnoreList "ADD MOBS TO IGNORE HERE"
     pushlist animalsIgnoreList "ADD MOBS TO IGNORE HERE"
@@ -1197,7 +1202,25 @@ if not timerexists "PotFillTimer"
     settimer "PotFillTimer" 5000
 endif 
 
-clearsysmsg
+if not timerexists "ClearIgnoreTimer"
+    createtimer "ClearIgnoreTimer"
+    settimer "ClearIgnoreTimer" 30000
+endif 
+
+if not timerexists "ClearSysmsgTimer"
+    createtimer "ClearSysmsgTimer"
+    settimer "ClearSysmsgTimer"30000
+endif 
+
+if timer "ClearIgnoreTimer" > 30000
+    clearignore 
+    settimer "ClearIgnoreTimer" 0
+endif 
+
+if timer "ClearSysmsgTimer"> 30000
+    clearsysmsg
+    settimer "ClearSysmsgTimer" 0
+endif 
 
 
     //////////////////////
@@ -1206,19 +1229,21 @@ clearsysmsg
 
 if not dead
     if not varexist DexxerAutoPilot
-        overhead "Lord Glaciers Chill Dexxer Auto Pilot Script" 88
-        overhead "version 2.1.2" 2234
+        overhead "Lord Glacier's Chill Dexxer Auto Pilot Script" 2234
+        # '
+        overhead "version 2.1.3" 2234
         wait 1000
-        overhead "Last Updated: July 28, 2025" 88
+        overhead "Last Updated: July 30, 2025" 88
         wait 2500
         overhead "Thank you for trying my Dexxer AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
         overhead "IMPT: Please make sure to check and adjust your required VARIABLES!" 153
         wait 3500
-        overhead "Please read the TIPS section at the beginning of the script for more info" 88
-        wait 3000
+        overhead "Read the TIPS section at the beginning of the script for more info" 0
+        wait 4000
         setvar DexxerAutoPilot 1
-        sysmsg "Beginning Lord Glaciers Chill Dexxer Auto Pilot script...... " 0
+        sysmsg "Beginning Lord Glacier's Chill Dexxer Auto Pilot script...... " 88
+        # '
         wait 1000
     endif
 
@@ -1276,9 +1301,10 @@ if not dead
     endif
 
     if not varexist FirstRunDexxer
-        wait 1000
+        overhead "Ok, looks like you are all set!" 84
+        wait 2000
         overhead "Good luck out there!" 2234
-        overhead "         - Dan (aka. Glacier)" 2234
+        overhead "         - Dan (aka. Lord Glacier)" 2234
         wait 1500
         setvar FirstRunDexxer 1
     endif
@@ -1329,7 +1355,7 @@ while not dead
             endif
             gumpclose 4267467659
             if EnableOverheadMessages = 1
-                overhead "[ AUTO RECALL ACTIVATED! ]" 334
+                overhead "[ RED RECALL ACTIVATED! ]" 334
             endif
         endif
     endif
@@ -4861,6 +4887,16 @@ while not dead
         endwhile
 
         if findtype "quiver" self as MyQuiver and timer "QuiverTimer" > 30000
+            while findtype "quiver" self as MyQuiver
+                getlabel MyQuiver MyQuiverdesc
+                wait 250
+                if 'decorative' in MyQuiverdesc
+                    @ignore MyQuiver
+                    wait 500
+                else
+                    break
+                endif
+            endwhile
             settimer "QuiverTimer" 0
             menu MyQuiver 0
             wait 250
@@ -4896,7 +4932,7 @@ while not dead
             wait 250
         endwhile
         if findtype "iron ingot%s|board%s|cut up leather|3972|3962|3963|3980|3976|3973|3974|3981" ground -1 -1 15 as dungeonjunk and timer "DungeonCleanupRadar" > 3500
-            overhead "¼" 420 dungeonjunk
+            overhead " ¼ " 420 dungeonjunk
             settimer "DungeonCleanupRadar" 0
         endif
     endif
@@ -4940,7 +4976,7 @@ while not dead
     //     BARD BUFFS:    //
     ////////////////////////
 
-    if skill 'Peacemaking' >= 50 or skill 'Provocation' >= 50 or skill 'Discordance' >= 50
+    if skill 'Peacemaking' >= 50 or skill 'Provocation' >= 50 or skill 'Discordance' >= 50 and diffhits < ActivateAutoHealHPdiff
         if EnablePeacemakingBuff = 1 and not findbuff "Song Of Peacemaking" and timer 'Musicianship' > 5000 and timer 'PeacemakingTimer' > 11000 and timer "SongBuffDelay" > 10500
             skill "Peacemaking"
             wft 1500
@@ -5204,7 +5240,7 @@ while not dead
 
             if EnableGoldVacuum = 1 and DisableVacuums != 1
                 if findtype "gold coin" ground -1 -1 12 as droppedmoney and timer "GoldRadar" > 3500
-                    overhead "¼" 149 droppedmoney
+                    overhead " ¼ " 149 droppedmoney
                     settimer "GoldRadar" 0
                 endif
                 while findtype "gold coin" ground -1 -1 2 as droppedmoney and diffhits < ActivateAutoHealHPdiff
@@ -5241,7 +5277,7 @@ while not dead
                 endwhile
 
                 if findtype "iron ingot%s|board%s|cut up leather|3972|3962|3963|3980|3976|3973|3974|3981" ground -1 -1 15 as dungeonjunk and timer "DungeonCleanupRadar" > 3500
-                    overhead "¼" 420 dungeonjunk
+                    overhead " ¼ " 420 dungeonjunk
                     settimer "DungeonCleanupRadar" 0
                 endif
             endif
@@ -5264,18 +5300,28 @@ while not dead
                 endwhile
 
                 if findtype "quiver" self as MyQuiver and timer "QuiverTimer" > 30000
+                    while findtype "quiver" self as MyQuiver
+                        getlabel MyQuiver MyQuiverdesc
+                        wait 250
+                        if 'decorative' in MyQuiverdesc
+                            @ignore MyQuiver
+                            wait 500
+                        else
+                            break
+                        endif
+                    endwhile
                     settimer "QuiverTimer" 0
                     menu MyQuiver 0
                     wait 250
                 endif
-
+                
                 if findtype 7163 ground -1 -1 10 as bolt and timer "BoltCleanupRadar" > 3500
-                    overhead "¼" 93 bolt
+                    overhead " ¼ " 93 bolt
                     settimer "BoltCleanupRadar" 0
                 endif
 
                 if findtype 3903 ground -1 -1 10 as arrow and timer "ArrowCleanupRadar" > 3500
-                    overhead "¼" 37 arrow
+                    overhead " ¼ " 37 arrow
                     settimer "ArrowCleanupRadar" 0
                 endif
             endif
@@ -5302,20 +5348,20 @@ while not dead
                 wait 250
             endif
 
-            if timer "SatchelTimer" > 15000 and findtype "quiver" self as MyQuiver
-                for 2
-                if findtype "quiver" self as MyQuiver
+            if findtype "quiver" self as MyQuiver and timer "QuiverTimer" > 30000
+                while findtype "quiver" self as MyQuiver
                     getlabel MyQuiver MyQuiverdesc
-                    if "decorative" in MyQuiverdesc
-                        ignore MyQuiver
+                    wait 250
+                    if 'decorative' in MyQuiverdesc
+                        @ignore MyQuiver
+                        wait 500
                     else
-                        menu MyQuiver 0
-                        settimer "SatchelTimer" 0
-                        wait 250
                         break
                     endif
-                endif
-                endfor
+                endwhile
+                settimer "QuiverTimer" 0
+                menu MyQuiver 0
+                wait 250
             endif
 
             if EnableTrackingAutoRecall = 1
@@ -5731,7 +5777,7 @@ while not dead
 
                 if EnableGoldVacuum = 1 and DisableVacuums != 1
                     if findtype "gold coin" ground -1 -1 12 as droppedmoney and timer "GoldRadar" > 3500
-                        overhead "¼" 149 droppedmoney
+                        overhead " ¼ " 149 droppedmoney
                         settimer "GoldRadar" 0
                     endif
                     while findtype "gold coin" ground -1 -1 2 as droppedmoney and diffhits < ActivateAutoHealHPdiff
@@ -5768,7 +5814,7 @@ while not dead
                     endwhile
 
                     if findtype "iron ingot%s|board%s|cut up leather|3972|3962|3963|3980|3976|3973|3974|3981" ground -1 -1 15 as dungeonjunk and timer "DungeonCleanupRadar" > 3500
-                        overhead "¼" 420 dungeonjunk
+                        overhead " ¼ " 420 dungeonjunk
                         settimer "DungeonCleanupRadar" 0
                     endif
                 endif
@@ -5789,20 +5835,30 @@ while not dead
                         target item
                         wait 250
                     endwhile
-            
+                        
                     if findtype "quiver" self as MyQuiver and timer "QuiverTimer" > 30000
+                        while findtype "quiver" self as MyQuiver
+                            getlabel MyQuiver MyQuiverdesc
+                            wait 250
+                            if 'decorative' in MyQuiverdesc
+                                @ignore MyQuiver
+                                wait 500
+                            else
+                                break
+                            endif
+                        endwhile
                         settimer "QuiverTimer" 0
                         menu MyQuiver 0
                         wait 250
                     endif
 
                     if findtype 7163 ground -1 -1 10 as bolt and timer "BoltCleanupRadar" > 3500
-                        overhead "¼" 93 bolt
+                        overhead " ¼ " 93 bolt
                         settimer "BoltCleanupRadar" 0
                     endif
 
                     if findtype 3903 ground -1 -1 10 as arrow and timer "ArrowCleanupRadar" > 3500
-                        overhead "¼" 37 arrow
+                        overhead " ¼ " 37 arrow
                         settimer "ArrowCleanupRadar" 0
                     endif
                 endif
@@ -5959,10 +6015,12 @@ while not dead
                 if "Paragon" in TargetDesc and find ClosestTarget ground -1 -1 12 and not dead ClosestTarget
                     overhead " ¼ PARAGON! ¼ " 12 ClosestTarget
                     settimer "TargetAcquired" 0
+                    settimer "NoTargetTimer" 0
                     attack ClosestTarget
                 elseif find ClosestTarget ground -1 -1 12 and not dead ClosestTarget
                     overhead " ¼ TARGET ¼ " 253 ClosestTarget
                     settimer "TargetAcquired" 0
+                    settimer "NoTargetTimer" 0
                     attack ClosestTarget
                 endif
             endif
@@ -5971,10 +6029,12 @@ while not dead
                 if "Paragon" in TargetDesc and find ClosestTarget ground -1 -1 12 and not dead ClosestTarget
                     overhead " ¼ " 12 ClosestTarget
                     settimer "TargetAcquired" 0
+                    settimer "NoTargetTimer" 0
                     attack ClosestTarget
                 elseif find ClosestTarget ground -1 -1 12 and not dead ClosestTarget
                     overhead " ¼ " 253 ClosestTarget
                     settimer "TargetAcquired" 0
+                    settimer "NoTargetTimer" 0
                     attack ClosestTarget
                 endif
             endif
@@ -5993,10 +6053,18 @@ while not dead
                 if ClosestTarget != TargetCheck
                     settimer "AmIclosestMOB" 0
                     @setvar! TargetisnotClosest 1
-                    if EnableOverheadMessages = 1
-                        overhead '[ RETARGETING... ]' 88
-                    else 
-                        overhead ' ¼ ' 88 TargetCheck
+                    if EnableOverheadMessages = 1 
+                       if timer "NoTargetTimer" > 4000 and timer "TargetAcquired" > 4000 
+                            overhead '[ RETARGETING... ]' 88
+                            settimer "TargetAcquired" 0
+                            settimer "NoTargetTimer" 0
+                        endif
+                    else
+                        if timer "NoTargetTimer" > 4000 and timer "TargetAcquired" > 4000 
+                            overhead ' ¼ ' 88 TargetCheck
+                            settimer "TargetAcquired" 0
+                            settimer "NoTargetTimer" 0
+                        endif
                     endif
                     @setvar! TargetCheck 0
                     replay
@@ -6118,7 +6186,7 @@ while not dead
             replay
         endif 
 
-        if skill "Provocation" >= 50 and EnableProvocation = 1 and diffhits <= ActivateAutoHealHPdiff 
+        if skill "Provocation" >= 50 and EnableProvocation = 1
             if timer "NextTargetCheck" > 1000
                 hotkey 'Next Grey Monster Target'
                 wait 150
@@ -6198,7 +6266,7 @@ while not dead
             endif
         endif
 
-        if skill 'Peacemaking' >= 50 or skill 'Discordance' >= 50 and diffhits <= ActivateAutoHealHPdiff 
+        if skill 'Peacemaking' >= 50 or skill 'Discordance' >= 50
             if skill "Peacemaking" >= 50 and EnablePeacemaking = 1
                 if timer "PeaceCheck" > 2000
                     if find ClosestTarget ground -1 -1 6
@@ -6257,7 +6325,7 @@ while not dead
             endif
         endif
 
-        if skill "Provocation" >= 50 and EnableProvocation = 1 and diffhits <= ActivateAutoHealHPdiff 
+        if skill "Provocation" >= 50 and EnableProvocation = 1
             if NeedtoProvoke = 1
                 clearsysmsg
                 for 5
@@ -6291,7 +6359,7 @@ while not dead
                         cooldown "Provocation" 11000
                         clearsysmsg
                         break
-                    elseif insysmsg "You must wait another moment before you may provoke"
+                    elseif insysmsg "You must wait"
                         clearsysmsg
                         wait 500
                     elseif insysmsg 'That is too far away.'
@@ -6332,7 +6400,9 @@ while not dead
                                 settimer "NextTargetTimer" 0
                             endif
                         endif
-                        sysmsg "You play an aggressive tune, provoking rage into your targets..." 2117
+                        if EnableOverheadMessages = 1
+                            sysmsg "You play an aggressive tune, provoking rage into your targets..." 2117
+                        endif
                         settimer "Musicianship" 0
                         settimer "Provocation" 0
                         cooldown "Provocation" 11000
@@ -6371,7 +6441,7 @@ while not dead
                             overhead '[ TOO FAR AWAY! ]' 43 ClosestTarget
                         endif
                         replay
-                    elseif insysmsg 'The creatures you are trying to provoke are too far away from each other for your music to have an effect.'
+                    elseif insysmsg 'The creatures you are trying to provoke are too far away from each'
                         if EnableOverheadMessages = 1
                             overhead '[ TOO FAR APART! ]' 153 ClosestTarget
                             overhead '[ TOO FAR APART! ]' 153 NextClosestTarget
@@ -6396,7 +6466,7 @@ while not dead
             endif
         endif
             
-        if skill "Peacemaking" >= 50 and EnablePeacemaking = 1 and diffhits <= ActivateAutoHealHPdiff 
+        if skill "Peacemaking" >= 50 and EnablePeacemaking = 1 
             if NeedtoPacify = 1
                 clearsysmsg
                 if timer "Pacified" > 30000 and timer "Peacemaking" > 11000 and timer "Musicianship" > 5000
@@ -6454,7 +6524,9 @@ while not dead
                                 settimer "TargetAcquired" 0
                             endif
                         endif
-                        sysmsg "You play a calming tune, pacifying your target..." 84
+                        if EnableOverheadMessages = 1
+                            sysmsg "You play a calming tune, pacifying your target..." 84
+                        endif
                     elseif insysmsg "you fail to pacify your opponent"
                         if EnableOverheadMessages = 1
                             overhead "[ PACIFY FAIL! ]" 337
@@ -6516,8 +6588,10 @@ while not dead
                                     settimer "TargetAcquired" 0
                                 endif
                             endif
-                            sysmsg "You play a mesmerizing tune, disrupting your target's focus..." 69
-                            # '
+                            if EnableOverheadMessages = 1
+                                sysmsg "You play a mesmerizing tune, disrupting your target's focus..." 69
+                                # '
+                            endif
                         elseif insysmsg "fail to discord"
                             settimer "Discordance" 5500
                             if EnableOverheadMessages = 1
@@ -6582,8 +6656,10 @@ while not dead
                                     overhead ' j ' 69 NextClosestTarget
                                     settimer "NextTargetTimer" 0
                                 endif
-                            endif   
-                            sysmsg "You play another doozey and distract your provoked target, too!" 69
+                            endif
+                            if EnableOverheadMessages = 1
+                                sysmsg "You play another doozey and distract your provoked target, too!" 69
+                            endif
                         elseif insysmsg "fail to discord"
                             settimer "Discordance" 5500
                             if EnableOverheadMessages = 1
@@ -7426,7 +7502,7 @@ while not dead
                 @setvar! SpellInterrupted 0
 
                 if targetexists
-                hotkey 'cancel current target'
+                    hotkey 'cancel current target'
                 endif
 
                 if PurplePotionReady = 1 and not dead ClosestTarget and find ClosestTarget ground -1 -1 PurplePotionTargetRange
@@ -7460,7 +7536,7 @@ while not dead
 
             if EnableGoldVacuum = 1 and DisableVacuums != 1
                 if findtype "gold coin" ground -1 -1 12 as droppedmoney and timer "GoldRadar" > 3500
-                    overhead "¼" 149 droppedmoney
+                    overhead " ¼ " 149 droppedmoney
                     settimer "GoldRadar" 0
                 endif
                 while findtype "gold coin" ground -1 -1 2 as droppedmoney and diffhits < ActivateAutoHealHPdiff
@@ -7503,7 +7579,7 @@ while not dead
                 endwhile
 
                 if findtype "iron ingot%s|board%s|cut up leather|3972|3962|3963|3980|3976|3973|3974|3981" ground -1 -1 15 as dungeonjunk and timer "DungeonCleanupRadar" > 3500
-                    overhead "¼" 420 dungeonjunk
+                    overhead " ¼ " 420 dungeonjunk
                     settimer "DungeonCleanupRadar" 0
                 endif
             endif
@@ -7526,18 +7602,28 @@ while not dead
                 endwhile
 
                 if findtype "quiver" self as MyQuiver and timer "QuiverTimer" > 30000
+                    while findtype "quiver" self as MyQuiver
+                        getlabel MyQuiver MyQuiverdesc
+                        wait 250
+                        if 'decorative' in MyQuiverdesc
+                            @ignore MyQuiver
+                            wait 500
+                        else
+                            break
+                        endif
+                    endwhile
                     settimer "QuiverTimer" 0
                     menu MyQuiver 0
                     wait 250
                 endif
-
+                
                 if findtype 7163 ground -1 -1 10 as bolt and timer "BoltCleanupRadar" > 3500
-                    overhead "¼" 93 bolt
+                    overhead " ¼ " 93 bolt
                     settimer "BoltCleanupRadar" 0
                 endif
 
                 if findtype 3903 ground -1 -1 10 as arrow and timer "ArrowCleanupRadar" > 3500
-                    overhead "¼" 37 arrow
+                    overhead " ¼ " 37 arrow
                     settimer "ArrowCleanupRadar" 0
                 endif
             endif
@@ -10033,7 +10119,7 @@ while not dead
 
         if EnableGoldVacuum = 1 and DisableVacuums != 1
             if findtype "gold coin" ground -1 -1 12 as droppedmoney and timer "GoldRadar" > 3500
-                overhead "¼" 149 droppedmoney
+                overhead " ¼ " 149 droppedmoney
                 settimer "GoldRadar" 0
             endif
             while findtype "gold coin" ground -1 -1 2 as droppedmoney and diffhits < ActivateAutoHealHPdiff
@@ -10487,9 +10573,4 @@ replay
         ############################
        ###    SCRIPT ENDS HERE    ###
         ############################
-
-
-
-
-
 

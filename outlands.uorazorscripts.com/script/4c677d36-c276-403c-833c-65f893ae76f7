@@ -4,26 +4,64 @@
 ## Created by: mushnar#0
 #############################################
 
+####################### WARNING ########################
+	# Verify the following Razor settings
+	# Open Razor > Filters tab > Text & Messages tab
+	# ### UNCHECK Filter repeating system messages
+	# ### UNCHECK Filter repeating Razor messages
+	# ### UNCHECK Filter repeating overhead messages
+########################################################
+
+
+##################### SCRIPT SETUP #####################
+	# CUSTOMIZE THE FOLLOWING VARIABLES
+	# ## house_door_id_number_when_open
+	# ## house_door_serial_number
+	# ## resource_stockpile_serial_number
+	# ## storage_container_id_number
+
+	# ALL OTHER VARIABLES SET 1 TO ENABLE 0 TO DISABLE
+
+	# REPLACE "HOME RUNE NAME" ON LINES 304, 314, & 324
+########################################################
+
+
+
+
+
 @clearignore
 
-@setvar! automatically_gate_when_detecting_hostile 1
-@setvar! automatically_gate_when_pouch_popped 1
 @setvar! automatically_gate_when_overweight 1
+@setvar! weight_remaining_limit 30
+@setvar! automatically_gate_when_detecting_hostile 1
+@setvar! automatically_detect_popped_pouches 1
+@setvar! automatically_gate_when_pouch_popped 1
+
+@setvar! warn_if_low_pickaxe_count 1
+@setvar! low_pick_axe_count 2
+@setvar! stop_script_if_no_runebook 1
+@setvar! mining_overhead_message_on_ore_gain 1
+
+@setvar! storage_container_id_number 2473
 
 
-@setvar! automatically_gate_when_large_value_of_ingots 0
-@setvar! automatically_gate_when_large_value_of_ore 0
+@setvar! automatically_gate_when_large_amount_of_ingots 0
+@setvar! automatically_gate_when_large_amount_of_ore 0
 @setvar! ingots_gate_amount 500
-@setvar! ore_gate_amount 500
+@setvar! ore_gate_amount 1000
 
 
 @setvar! automatically_smelt_ore 1
+@setvar! automatically_restock_at_resource_stockpile 1
 @setvar! always_display_tracking_window 1
 @setvar! use_peacemaking 1
+@setvar! detect_hidden_during_warmode 0
 
 
-@setvar! house_door 0x4A6A2E7F
-@setvar! resource_stockpile 0x420A5B19
+@setvar! automatically_close_house_door 1
+@setvar! house_door_id_number_when_open 1664
+@setvar! house_door_serial_number 0x4A6A2E7F
+@setvar! resource_stockpile_serial_number 0x420A5B19
 
 
 @setvar! automatically_drink_potions 1
@@ -35,6 +73,9 @@
 @setvar! health_value_to_drink_cure_potion 75
 
 @setvar! potion_error_message_frequency 2000
+@setvar! overhead_message_frequency 10000
+@setvar! error_message_frequency 5000
+@setvar! forge_overhead_ping_frequency 4000
 
 
 if not timerexists "skill_cooldown_timer"
@@ -45,12 +86,17 @@ endif
 
 if not timerexists "forge_ping"
     createtimer "forge_ping"
-    settimer "forge_ping" 4000
+    settimer "forge_ping" forge_overhead_ping_frequency
 endif
 
 if not timerexists "overhead_cooldown"
     createtimer "overhead_cooldown"
-    settimer "overhead_cooldown" 0
+    settimer "overhead_cooldown" overhead_message_frequency
+endif
+
+if not timerexists "error_overhead_cooldown"
+    createtimer "error_overhead_cooldown"
+    settimer "error_overhead_cooldown" error_message_frequency
 endif
 
 removetimer "potion_error_message_cooldown"
@@ -133,6 +179,29 @@ if use_peacemaking = 1
 endif
 
 
+if not findtype "runebook" backpack and not findtype "runetome" backpack
+    overhead "NO RUNEBOOK" 1288
+    overhead "NO RUNEBOOK" 1288
+    overhead "NO RUNEBOOK" 1288
+    overhead "NO RUNEBOOK" 1288
+    overhead "NO RUNEBOOK" 1288
+
+    if stop_script_if_no_runebook = 1
+    	stop
+    endif
+endif
+
+
+if warn_if_low_pickaxe_count = 1
+	if counttype "pickaxe" < low_pick_axe_count
+		if timer "error_overhead_cooldown" >= error_message_frequency
+			overhead "LOW ON PICKAXES" 1288
+	        settimer "error_overhead_cooldown" 0
+	    endif
+	endif
+endif
+
+
 
 while not dead
     if skill "Tracking" > 0
@@ -166,10 +235,21 @@ while not dead
 
 
     if timer "skill_cooldown_timer" >= 10000
-        skill "detectinghidden"
-        waitfortarget 100
-        target "self"
-        settimer "skill_cooldown_timer" 0
+        if detect_hidden_during_warmode = 1
+	        skill "detectinghidden"
+	        waitfortarget 100
+	        target "self"
+	        settimer "skill_cooldown_timer" 0
+	    else
+	   		if warmode on
+	   			# Do nothing
+	   		else
+	   			skill "detectinghidden"
+		        waitfortarget 100
+		        target "self"
+		        settimer "skill_cooldown_timer" 0
+	   		endif
+	    endif
     endif
 
 
@@ -191,19 +271,21 @@ while not dead
     endif
 
 
-    if findtype 3705 backpack 0 as popped_pouch
-        overhead "POUCH POPPED" 33
-        overhead "POUCH POPPED" 33
-        overhead "POUCH POPPED" 33
-        overhead "POUCH POPPED" 33
-        overhead "POUCH POPPED" 33
-        @ignore popped_pouch
+    if automatically_detect_popped_pouches = 1
+	    if findtype 3705 backpack 0 as popped_pouch
+	        overhead "POUCH POPPED" 33
+	        overhead "POUCH POPPED" 33
+	        overhead "POUCH POPPED" 33
+	        overhead "POUCH POPPED" 33
+	        overhead "POUCH POPPED" 33
+	        @ignore popped_pouch
 
-        if automatically_gate_when_pouch_popped = 1
-        	overhead "Gating home!" 88
-        	say "[RecallCharge The Drunken Dragon"
-        endif
-    endif
+	        if automatically_gate_when_pouch_popped = 1
+	        	overhead "Gating home!" 88
+	        	say "[RecallCharge The Drunken Dragon"
+	        endif
+	    endif
+	endif
 
 
     if insysmsg "Now tracking:"
@@ -219,84 +301,130 @@ while not dead
         endif
     endif
 
-    
-	if rhandempty
-		if casting
-			wait 100
-		elseif findtype "pickaxe" backpack as found_pickaxe
-			dclick found_pickaxe
-			wait 100
-		endif
 
-		if casting
-			wait 100
-		else
-			dclick found_pickaxe
-		endif
-	else
-		@getlabel righthand right_hand_description
-		if "pickaxe" in right_hand_description
-			if casting
-				wait 100
-			else
-				dclick righthand
-			endif
-		endif
-	endif
+    if diffweight <= weight_remaining_limit
+        overhead "OVERWEIGHT" 53
 
-
-    if rhandempty
-        if findtype "pickaxe" backpack as found_pickaxe
-            overhead "Equipping Pickaxe!" 88
-            if casting
-				wait 100
-			else
-            	dclick found_pickaxe
-            endif
-            wait 1000
-        else
-            overhead "   No Pickaxes Found   " 53
-            overhead "   No Pickaxes Found   " 53
-            overhead "   No Pickaxes Found   " 53
-            overhead "   No Pickaxes Found   " 53
-            overhead "   No Pickaxes Found   " 53
-            stop
-        endif
-        
-        if rhandempty
-        	wait 100
-        else
-        	if casting
-        		wait 100
-        	else
-        		dclick righthand
-        	endif
-        endif
-    else
-        @getlabel righthand right_hand_description
-        if "pickaxe" in right_hand_description
-            dclick righthand
-        elseif findtype "pickaxe" backpack as found_pickaxe
-            overhead "Equipping Pickaxe!" 88
-            if casting
-				wait 100
-			else
-            	dclick found_pickaxe
-            endif
-            wait 1000
-        else
-            overhead "   No Pickaxes Found   " 53
-            overhead "   No Pickaxes Found   " 53
-            overhead "   No Pickaxes Found   " 53
-            overhead "   No Pickaxes Found   " 53
-            overhead "   No Pickaxes Found   " 53
-            stop
-        endif
-        
-        dclick righthand
-        
+   	    if automatically_gate_when_overweight = 1
+        	overhead "Gating home!" 88
+        	say "[RecallCharge HOME RUNE NAME"
         endif
     endif
+
+
+    if counttype 7154 backpack >= ingots_gate_amount
+    	overhead "Too many ingots!"
+
+   	    if automatically_gate_when_large_amount_of_ingots = 1
+        	overhead "Gating home!" 88
+        	say "[RecallCharge HOME RUNE NAME"
+        endif
+    endif
+
+
+    if counttype 6585 backpack >= ore_gate_amount
+    	overhead "Too much ore!"
+    	
+   	    if automatically_gate_when_large_amount_of_ore = 1
+        	overhead "Gating home!" 88
+        	say "[RecallCharge HOME RUNE NAME"
+        endif
+    endif
+
+
+	if rhandempty
+		while casting
+			wait 500
+		endwhile
+		wait 100
+
+		if findtype "pickaxe" backpack as found_pickaxe
+			dclick found_pickaxe
+			wait 600
+			dclick righthand
+		else
+			if timer "error_overhead_cooldown" >= error_message_frequency
+				overhead "OUT OF PICKAXES" 1288
+	            overhead "OUT OF PICKAXES" 1288
+	            overhead "OUT OF PICKAXES" 1288
+	            overhead "OUT OF PICKAXES" 1288
+	            overhead "OUT OF PICKAXES" 1288
+	            settimer "error_overhead_cooldown" 0
+	        endif
+		endif
+	else
+		getlabel righthand righthand_description
+	    if "pickaxe" in righthand_description
+	    	dclick righthand
+	    else
+		    if findtype "pickaxe" backpack as found_pickaxe
+				dclick found_pickaxe
+				wait 600
+				dclick righthand
+			else
+				if timer "error_overhead_cooldown" >= error_message_frequency
+					overhead "OUT OF PICKAXES" 1288
+		            overhead "OUT OF PICKAXES" 1288
+		            overhead "OUT OF PICKAXES" 1288
+		            overhead "OUT OF PICKAXES" 1288
+		            overhead "OUT OF PICKAXES" 1288
+		            settimer "error_overhead_cooldown" 0
+		        endif
+			endif
+	    endif
+
+		if warmode
+			# Do nothing
+		else
+		    getlabel righthand righthand_description
+
+		    if "(100 uses remaining)" in righthand_description
+		        if timer "overhead_cooldown" >= overhead_message_frequency
+		        	overhead "PICKAXE LOW: 100" 63
+		        	settimer "overhead_cooldown" 0
+		        endif
+		    endif
+
+		    if "(50 uses remaining)" in righthand_description
+		        if timer "overhead_cooldown" >= overhead_message_frequency
+		        	overhead "PICKAXE LOW: 50" 88
+		        	overhead "PICKAXE LOW: 50" 88
+		        	settimer "overhead_cooldown" 0
+		        endif
+		    endif
+
+		    if "(25 uses remaining)" in righthand_description
+		        if timer "overhead_cooldown" >= overhead_message_frequency
+			        overhead "PICKAXE LOW: 25" 53
+			        overhead "PICKAXE LOW: 25" 53
+			        overhead "PICKAXE LOW: 25" 53
+			        settimer "overhead_cooldown" 0
+			    endif
+		    endif
+
+		    if "(10 uses remaining)" in righthand_description
+		        if timer "overhead_cooldown" >= overhead_message_frequency
+			        overhead "PICKAXE LOW: 10" 1257
+			        overhead "PICKAXE LOW: 10" 1257
+			        overhead "PICKAXE LOW: 10" 1257
+			        overhead "PICKAXE LOW: 10" 1257
+			        settimer "overhead_cooldown" 0
+			    endif
+		    endif
+
+		    if "(5 uses remaining)" in righthand_description
+		        if timer "overhead_cooldown" >= overhead_message_frequency
+			        overhead "PICKAXE LOW: 5" 1288
+			        overhead "PICKAXE LOW: 5" 1288
+			        overhead "PICKAXE LOW: 5" 1288
+			        overhead "PICKAXE LOW: 5" 1288
+			        overhead "PICKAXE LOW: 5" 1288
+			        settimer "overhead_cooldown" 0
+			    endif
+		    endif
+		endif
+	endif 
+
 
     if insysmsg "Harvest double yield/loot triggered"
     	overhead "Æ HARVEST PROC Æ" 62
@@ -307,9 +435,11 @@ while not dead
         overhead "¼ MINING ¼" 1366 
     endif    
 
-    if insysmsg "You dig some"
-        overhead "¼ MINING ¼" 1366 
-    endif
+    if mining_overhead_message_on_ore_gain = 1
+	    if insysmsg "You dig some"
+	        overhead "¼ MINING ¼" 1366 
+	    endif
+	endif
 
     if insysmsg "You do not see any harvestable resources nearby"
         overhead "² NEXT SPOT ²" 53
@@ -323,7 +453,7 @@ while not dead
    	endif
 
 
-    if findtype 2473 backpack as boom_box
+    if findtype storage_container_id_number backpack as storage_container
         if findtype 6585 backpack as found_ore
             @getlabel found_ore ore_description
 
@@ -372,34 +502,36 @@ while not dead
             wait 500
             lift found_ore 9999
             getlabel backpack ping
-            drop boom_box -1 -1 -1           
+            drop storage_container -1 -1 -1           
             wait 500
             @ignore found_ore
         endif
     endif
 
     if findtype 4017 ground any any 2 as found_forge
-        if timer "forge_ping" >= 4000
+        if timer "forge_ping" >= forge_overhead_ping_frequency
             overhead "¼¼ FORGE ¼¼" 88 found_forge
             settimer "forge_ping" 0
         endif
         
-        @clearignore
-        if findtype 2473 backpack as boom_box
-            if findtype 7154 boom_box as found_ingots
-                @ignore found_ingots
-            endif
-        endif
-        
-        while findtype 6585 backpack as found_ore
-            overhead "Æ SMELTING ORE Æ"
-            dclick found_ore
-            @ignore found_ore
-            wait 500
-        endwhile
+        if automatically_smelt_ore = 1
+	        @clearignore
+	        if findtype storage_container_id_number backpack as storage_container
+	            while findtype 7154 storage_container as found_ingots
+	                @ignore found_ingots
+	            endwhile
+	        endif
+	        
+	        while findtype 6585 backpack as found_ore
+	            overhead "Æ SMELTING ORE Æ"
+	            dclick found_ore
+	            @ignore found_ore
+	            wait 500
+	        endwhile
+	    endif
     endif
 
-    if findtype 2473 backpack as boom_box
+    if findtype storage_container_id_number backpack as storage_container
         if findtype 7154 backpack as found_ingots
             @getlabel found_ingots ingot_description
 	        if "iron" in ingot_description
@@ -446,7 +578,7 @@ while not dead
             getlabel backpack ping
             lift found_ingots 9999
             getlabel backpack ping
-            drop boom_box -1 -1 -1
+            drop storage_container -1 -1 -1
             wait 600
             @ignore found_ingots
         endif
@@ -454,58 +586,34 @@ while not dead
         
     
     if findtype 4017 ground any any 6 as found_forge
-        if timer "forge_ping" >= 4000
+        if timer "forge_ping" >= forge_overhead_ping_frequency
             overhead "¼¼ FORGE ¼¼" 88 found_forge
             settimer "forge_ping" 0
         endif
     elseif findtype 4017 ground any any 18 as found_forge
-        if timer "forge_ping" >= 4000
+        if timer "forge_ping" >= forge_overhead_ping_frequency
             overhead "¼¼ FORGE ¼¼" 88 found_forge
             settimer "forge_ping" 0
         endif
     endif
 
 
-    if diffweight <= 30
-        overhead "OVERWEIGHT" 53
-
-   	    if automatically_gate_when_overweight = 1
-        	overhead "Gating home!" 88
-        	say "[RecallCharge RUNE NAME HERE"
-        endif
-    endif
 
 
-    if counttype 7154 backpack >= ingots_gate_amount
-    	overhead "Too many ingots!"
 
-   	    if automatically_gate_when_large_value_of_ingots = 1
-        	overhead "Gating home!" 88
-        	say "[RecallCharge RUNE NAME HERE"
-        endif
-    endif
+    if automatically_restock_at_resource_stockpile = 1
+	    if find resource_stockpile_serial_number ground any any 2 as my_resource_stockpile
+		    @clearignore
+		    if findtype 7154 backpack as found_ingots
+			    overhead "RESTOCKING INGOTS" 88
+			    menu resource_stockpile_serial_number 0
+			    waitfortarget 1000
+			    target self
+			    wait 1000
+			endif
+	    endif
+	endif
 
-
-    if counttype 6585 backpack >= ore_gate_amount
-    	overhead "Too much ore!"
-    	
-   	    if automatically_gate_when_large_value_of_ore = 1
-        	overhead "Gating home!" 88
-        	say "[RecallCharge RUNE NAME HERE"
-        endif
-    endif
-
-
-    if find resource_stockpile ground any any 2 as my_resource_stockpile
-	    @clearignore
-	    if findtype 7154 backpack as found_ingots
-		    overhead "RESTOCKING INGOTS" 88
-		    menu resource_stockpile 0
-		    waitfortarget 1000
-		    target self
-		    wait 1000
-		endif
-    endif
 
     if automatically_drink_potions = 1
         ########## OPEN POTION SATCHEL ##########
@@ -515,8 +623,8 @@ while not dead
 			        dclick stored_alchemist_satchel
 			    endif
 			    
-			    if findtype 2473 backpack as boom_box
-			        if findtype 31262 boom_box as hidden_potion_satchel
+			    if findtype storage_container_id_number backpack as storage_container
+			        if findtype 31262 storage_container as hidden_potion_satchel
 			            dclick hidden_potion_satchel
 			        endif
 			    endif
@@ -557,59 +665,75 @@ while not dead
         #################################
     endif
 
+
+    if paralyzed 
+        if findtype 3705 backpack 38 
+            yell "[Pouch"
+            getlabel backpack ping
+        else
+            overhead "Out of Pouches!" 34
+        endif
+    endif
+
+
     if use_peacemaking = 1
-	    if warmode on
-		    target closest grey monster
-		    @setvar! target_to_analyze lasttarget
-		    getlabel target_to_analyze target_description
-		    wait 1000
-		    
-		    if inlist animalsIgnoreList target_description
-		        @ignore target_to_analyze
-		    else
-		        if find target_to_analyze ground -1 -1 12
-		            overhead target_description 53
-		            if timer "skill_cooldown_timer" >= 10000
-		                skill "Peacemaking"
-		                waitfortarget 1000
-		            endif
-		            
-		            if insysmsg "What instrument shall you play"
-		                if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as instrument
-		                    target instrument
-		                else
-		                    overhead "NO INSTRUMENT" 33
-		                    overhead "NO INSTRUMENT" 33
-		                    overhead "NO INSTRUMENT" 33
-		                    overhead "NO INSTRUMENT" 33
-		                    overhead "NO INSTRUMENT" 33
-		                    wait 100
-		                    target self
-		                endif
-		            else
-		                if timer "skill_cooldown_timer" >= 10000
-		                    overhead "¼ PEACING ¼" 1366 target_to_analyze
-		                    skill "Peacemaking"
-		                    waitfortarget 1000
-		                    target target_to_analyze
-		                    settimer "skill_cooldown_timer" 0
-		                endif
-		                
-		                if insysmsg "You fail to pacify your opponent"
-		                    settimer "skill_cooldown_timer" 5000
-		                    overhead "PEACE FAILED" 53
-		                    overhead "PEACE FAILED" 53
-		                    overhead "PEACE FAILED" 53
-		                endif
-		                
-		                if insysmsg "You play successfully, pacifying your target"
-		                    overhead "¼ PEACED ¼" 1366 target_to_analyze
-		                endif
-		            endif
-		        endif
-		    endif
-		endif
-	endif
+        if warmode on
+            target closest grey monster
+    
+            if find lasttarget ground any any 18
+                @setvar! target_to_analyze lasttarget
+                getlabel target_to_analyze target_description
+            
+                if inlist animalsIgnoreList target_description
+                    @ignore target_to_analyze
+                else
+                    if find target_to_analyze ground -1 -1 12
+                        if timer "skill_cooldown_timer" >= 10000
+                            skill "Peacemaking"
+                            waitfortarget 1000
+                        endif
+                        
+                        if insysmsg "What instrument shall you play"
+                            if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as instrument
+                                target instrument
+                            else
+                                overhead "NO INSTRUMENT" 33
+                                overhead "NO INSTRUMENT" 33
+                                overhead "NO INSTRUMENT" 33
+                                overhead "NO INSTRUMENT" 33
+                                overhead "NO INSTRUMENT" 33
+                                wait 100
+                                target self
+                            endif
+                        else
+                            if timer "skill_cooldown_timer" >= 10000
+                                skill "Peacemaking"
+                                waitfortarget 1000
+                                target target_to_analyze
+                                settimer "skill_cooldown_timer" 0
+                            endif
+                            
+                            if insysmsg "You fail to pacify your opponent"
+                                settimer "skill_cooldown_timer" 5000
+                                overhead "¼ PEACE FAILED ¼" 53 target_to_analyze
+                                overhead "¼ PEACE FAILED ¼" 53 target_to_analyze
+                                overhead "¼ PEACE FAILED ¼" 53 target_to_analyze
+                            endif
+                            
+                            if insysmsg "You play successfully, pacifying your target"
+                                overhead "¼ PEACED ¼" 63 target_to_analyze
+                            endif
+                            getlabel target_to_analyze target_description
+                            if "pacified" in target_description
+                                overhead target_description 88 target_to_analyze
+                            endif
+                            wait 1000
+                        endif
+                    endif
+                endif
+             endif
+        endif
+    endif
 
 
     #################### WORLD SAVE ######################    
@@ -643,8 +767,10 @@ while not dead
     endif
 ######################################################
 
-	if findtype 1664 ground any any 2
-	    dclick house_door
-	    wait 500
+	if automatically_close_house_door = 1
+		if findtype house_door_id_number_when_open ground any any 2
+		    dclick house_door_serial_number
+		    wait 500
+		endif
 	endif
 endwhile

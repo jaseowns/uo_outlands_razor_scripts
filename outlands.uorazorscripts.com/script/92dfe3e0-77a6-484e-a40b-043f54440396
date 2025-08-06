@@ -1,0 +1,175 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/92dfe3e0-77a6-484e-a40b-043f54440396 for latest
+# Automation by Jaseowns
+## Script: Minimum Viable Pooner - Spyglass and Fish
+## Created by: dabiri#0
+#############################################
+
+//30-july-2025
+//This script is the main one running in the background, it heals, fishes, spyglasses, etc.
+
+//This script expects you to have cooldowns named exactly "Spyglass", "Holy Light", and "Fishing Net".
+
+//Spyglass and Holy Light just need to exist - no cooldown triggers necessary
+
+// Fishing Net should have a 3.6 second overhead trigger on the phrase "Throwing Net"
+
+//For better performance I also like to have 0.5 second triggers one the sys messages: 
+// "Someone is currently fishing"
+// "You must be closer" 
+// and 
+// "You must wait to perform"
+
+overhead 'Spying and fishing'
+
+if not findtype 'Orange Potion' backpack
+    overhead 'Out of cure pots' 28
+endif
+
+if not findtype 'White Potion' backpack
+    overhead 'Out of strength pots' 28
+endif
+
+if not findtype 'Black Potion' backpack
+    overhead 'Out of resist pots' 28
+endif
+
+if not findtype 'Blue Potion' backpack
+    overhead 'Out of agility pots' 28
+endif
+
+if not findtype 'Yellow Potion' backpack
+    overhead 'Out of heal pots' 28
+endif
+
+//Check for spyglass
+if not findtype 5365 backpack
+    overhead 'No spyglass - hope you are on land?'
+endif
+
+while not dead
+
+    //Throw fishing net 
+    if not cooldown 'Fishing Net' and findtype rowboat|barrel|horn|25769|rock|foliage|rowboat|mushroom|basket|18824|28933|swordfish|rocks|bedroll ground as fishingSpot
+        overhead "Throwing Net" 15
+        getlabel backpack pingCheck
+        dclick 'fishingSpot'
+        getlabel backpack pingCheck
+    endif
+
+    if lhandempty
+        overhead 'Left hand empty'
+        if findtype 31169 backpack as darpoon
+            overhead 'Equipping harpoon'
+            dclick darpoon
+            getlabel backpack pingCheck
+        elseif findtype 31172 backpack as drident
+            overhead 'Equipping trident'
+            dclick drident
+            getlabel backpack pingCheck
+        endif
+    endif
+
+
+
+    if not cooldown 'Spyglass' and not queued
+        if targetexists
+            overhead 'Skipping spyglass' 15
+            cooldown 'Spyglass' 2000
+        else
+            gumpclose 2890020940
+            dclicktype 5365
+            wft 500
+            if targetexists neutral
+                target 'self'
+                waitforgump 2890020940
+                gumpresponse 4 2890020940
+                waitforgump 2890020940
+                cooldown 'Spyglass' 6300
+            endif
+        endif
+    endif
+
+    //Eat food if we need it
+    if not findbuff "food" and findtype "tray" backpack as jood
+        dclick jood
+        wait 200
+    endif
+
+    //Heals & Cures
+    //Bandage Self
+    if not bandaging and hp < maxhp and skill healing > 50
+        hotkey "Bandage Self"
+        wait 200
+    endif
+
+    //Potion heal
+    if diffhits >= 30 
+        if findtype "Yellow Potion" backpack as pot 
+            getlabel pot desc
+            if "next usable" in desc
+                // do nothing
+            else
+                dclick pot
+                overhead 'Heal Potion' 48
+                wait 500
+            endif
+        endif
+    endif
+
+    //Chivalry heal
+    if diffhits >= 50 and skill "Chivalry" > 95 and not cooldown 'Holy Light'
+        say '[Holylight'
+        wait 250
+        if insysmsg "Holy symbols remaining:"
+            cooldown 'Holy Light' 31000
+        endif
+    endif
+
+    // Cure
+    if poisoned
+        // Potion cure
+        if findtype 'Orange Potion' backpack 
+            overhead 'Drinking cure potion' 48
+            hotkey 'Drink Cure'
+            wait 500
+        endif
+    endif
+
+    // Drink Red Pot
+    if diffstam >= 5
+        if findtype 'Red Potion' backpack
+            overhead ' Drinking refresh potion'
+            hotkey 'Drink Refresh'
+            wait 500
+        else
+            overhead 'Out of refresh pots' 34
+        endif
+    endif
+
+    // Drink str pot
+    if not findbuff 'Strength'
+        if findtype 'White Potion' backpack
+            overhead 'Drinking strength potion'
+            hotkey 'Drink Strength'
+            wait 500
+        endif
+    endif
+
+    // Drink resist pot
+    if not findbuff 'Magic Resist Potion'
+        if findtype 'Black Potion' backpack
+            overhead 'Drinking resist potion'
+            hotkey 'Drink Magic Resist'
+            wait 500
+        endif
+    endif
+
+    // Drink agility pot
+    if not findbuff 'Agility'
+        if findtype 'Blue Potion' backpack
+            overhead 'Drinking agility potion'
+            hotkey 'Drink Agility'
+            wait 500
+        endif
+    endif
+endwhile

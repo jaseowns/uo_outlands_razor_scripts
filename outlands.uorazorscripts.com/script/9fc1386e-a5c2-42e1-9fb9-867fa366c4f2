@@ -1,0 +1,202 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/9fc1386e-a5c2-42e1-9fb9-867fa366c4f2 for latest
+# Automation by Jaseowns
+## Script: Easy Backstab Script
+## Created by: oakman8490#0
+#############################################
+
+## Easy Backstab by Oak of [KoU] ##
+
+clearsysmsg 
+clearall 
+@setvar! autoSkinning 1
+
+if not timerexists "TargetTimer"
+    createtimer "TargetTimer"
+    settimer TargetTimer 10000
+endif
+
+
+while not hidden
+## Applying Bandages if damaged or poisoned ##    
+    if diffhits > 0 or poisoned 
+        if not bandaging and skill "Healing" > 10
+            if findtype "clean bandage%s%" self
+                hotkey "Bandage Self"
+                wait 200
+            else 
+                overhead "No Bandages"
+            endif
+        endif
+    endif
+## Taking Heal Potion if low health ##    
+    if diffhits > 40
+        if findtype "Yellow Potion" self
+            hotkey "Drink Heal"
+            wait 1000
+        else 
+            overhead "No Heal Pots"
+        endif
+    endif
+## Hiding ##    
+    warmode "off"
+    useskill "hiding"
+    wait 400
+## Smoke Bomb if Hide didn't work ##    
+    if not hidden 
+        if findtype 52149 backpack 2876
+            say "[SmokeBomb"
+        wait 400
+        endif
+    endif
+## Use Magery to Invis if Hiding & Smoke Bomb Failed (if able) ##
+    if not hidden
+        if skill "Magery" >= 80
+            while not targetexists beneficial
+                cast "Invisibility"
+                wait 50
+            endwhile
+            while targetexists
+                hotkey "target self"
+            endwhile
+        endif
+        wait 1000
+        if hidden
+            wait 9000
+            overhead "Hiding"
+            skill "Hiding"
+            wait 200
+        endif
+    endif
+## If you still aren't Hidden, you need to break line of sight and try again ##    
+    if not hidden
+        overhead "Run for it!!!" 33
+    endif
+endwhile
+
+if hidden 
+    wait 1000
+endif  
+ 
+while hidden
+## waiting for initial Stealth Timer ##    
+    while not insysmsg "You feel comfortable enough to begin stealthing."
+        if not timerexists "StealthTimer"
+            createtimer "StealthTimer"
+            settimer "StealthTimer" 4000
+        endif
+        if timer "StealthTimer" > 4000
+            overhead "Waiting for Stealth"
+            settimer "StealthTimer" 0
+        endif
+        wait 100
+    endwhile
+## Starting Re-Stealth Timer ## 
+    wait 400
+    hotkey "Stealth"
+    overhead "Stealthing"
+    clearsysmsg
+## You will need need to set up a Dress Agent to equip your Weapon. This is to ensure we don't accidentally Wrestle the target ##
+    hotkey "Dress: Burst"
+    while not warmode 
+        wait 100
+## Go into War Mode to auto-select target ##    
+        if not timerexists "AttackTimer"
+            createtimer "AttackTimer"
+            settimer "AttackTimer" 5000
+        endif
+        if timer AttackTimer > 5000
+            overhead "Warmode to attack"
+            settimer AttackTimer 0
+        endif
+    endwhile
+    if warmode 
+        break
+    endif
+endwhile
+while hidden
+    if warmode 
+        if not targetexists
+            hotkey "Target Closest Grey Monster" as MyTarget
+        endif
+## Auto-Attack target when in range. This is defaulted for Mugging, but Ranged can change the distance manually ##        
+        while find lasttarget ground any
+            if find lasttarget ground -1 -1 1
+                if findbuff "Stationary Penalty"
+                    overhead "Stationary Penalty - Move Around"
+                else
+                    hotkey "Attack Last Target"
+                    wait 500
+                    break
+                endif
+            elseif timer TargetTimer > 2500
+                overhead "¼ OUT OF RANGE ¼" 88 lasttarget
+                settimer TargetTimer 0
+            endif
+        endwhile
+    endif
+endwhile
+
+while not hidden
+## If target is not dead, will attempt to finish them off. You can always run off, break LoS and hide or use smoke bomb (just hit hotkey again) ##   
+    if cooldown "WeaponAbility" = 0
+        say "[weaponability3"
+        cooldown "WeaponAbility" 60000
+    endif
+## Applying Bandages if damaged or poisoned ##    
+    if diffhits > 0 or poisoned 
+        if not bandaging and skill "Healing" > 10
+            if findtype "clean bandage%s%" self
+                hotkey "Bandage Self"
+                wait 200
+            else 
+                overhead "No Bandages"
+            endif
+        endif
+    endif
+## Taking Heal Potion if low health ##    
+    if diffhits > 40
+        if findtype "Yellow Potion" self
+            hotkey "Drink Heal"
+            wait 1000
+        else 
+            overhead "No Heal Pots"
+        endif
+    endif
+## Taking Cure Potion if poisoned ##    
+    if poisoned
+        if findtype "Orange Potion" self
+            hotkey "Drink Cure"
+            wait 1000
+        else 
+            overhead "No Cure Pots"
+        endif
+    endif 
+## Auto-Skinning any corpses around ##        
+    if autoSkinning = 1
+        if findtype "Elven Spellblade" backpack and findtype 8198 ground -1 -1 2 as aCorpse
+        getlabel aCorpse desc
+            if "the remains" in desc
+                overhead "Skipping: {{desc}}" 11 aCorpse
+                // do nothing
+                @ignore aCorpse
+            else
+                overhead "Skinning: {{desc}}" 88 aCorpse
+                while not targetexists 
+                    useskill 'forensicevaluation'
+                endwhile
+                if targetexists 
+                    target aCorpse
+                    @ignore aCorpse
+                endif
+            endif
+        endif
+    endif
+    if not timerexists "HideReminder"
+        createtimer "HideReminder"
+        settimer "HideReminder" 0
+    endif
+    if cooldown "skill" = 0 and timer "HideReminder" > 10000
+        overhead "Ready to Hide"
+        settimer "HideReminder" 0
+    endif
+endwhile

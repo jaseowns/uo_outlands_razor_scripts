@@ -13,8 +13,16 @@
 ########################################################
 
 
+##################### CHANGE LOG ######################
+    # VERSION 1.7
+    # ## Added additional non-hostile mobs to the peacemaking ignore list
+    # ## Changed the automatically gate when hostiles detected distance to 50 steps after a few "accidents"
+    # ## Added the stone grate forge object to the forge detection
+    # ### Forges inside the quarry are usable to smelt ore manually, but aren't able to be detected by scripts due to lacking an item ID with >info
+########################################################
+
+
 ##################### SCRIPT SETUP #####################
-    # VERSION 1.6
 	# CUSTOMIZE THE FOLLOWING VARIABLES
 	# ## house_door_id_number_when_open
 	# ## house_door_serial_number
@@ -30,13 +38,14 @@
 @clearsysmsg
 @clearignore
 
-@setvar! automatically_gate_when_overweight 1
+@setvar! automatically_gate_when_overweight 0
 @setvar! weight_remaining_limit 30
 @setvar! automatically_gate_when_detecting_hostile_any_distance 0
-@setvar! automatically_gate_when_detecting_hostile_within_40_steps 1
+@setvar! automatically_gate_when_detecting_hostile_within_50_steps 1
+
 @setvar! track_only_red_players 0
 @setvar! automatically_detect_popped_pouches 1
-@setvar! automatically_gate_when_pouch_popped 1
+@setvar! automatically_gate_when_pouch_popped 0
 
 @setvar! warn_if_low_pickaxe_count 1
 @setvar! low_pick_axe_count 2
@@ -75,7 +84,7 @@
 
 @setvar! potion_error_message_frequency 3000
 @setvar! overhead_message_frequency 10000
-@setvar! error_message_frequency 5000
+@setvar! error_message_frequency 3000
 @setvar! forge_overhead_ping_frequency 4000
 @setvar! tracking_hostile_overhead_alert_frequency 5000
 
@@ -166,6 +175,11 @@ pushlist animalsIgnoreList "a spirit sabertus"
 pushlist animalsIgnoreList "a death asp"
 pushlist animalsIgnoreList "a death adder"
 pushlist animalsIgnoreList "a wisp"
+pushlist animalsIgnoreList "a bison"
+pushlist animalsIgnoreList "a wolf"
+pushlist animalsIgnoreList "a cuckoo"
+pushlist animalsIgnoreList "a starling"
+
 
 if use_peacemaking = 1
 	if timer "skill_cooldown_timer" >= 10000
@@ -311,10 +325,30 @@ while not dead
 	endif
 
     
-    if automatically_gate_when_detecting_hostile_within_40_steps = 1
+    if automatically_gate_when_detecting_hostile_within_50_steps = 1
         @setvar! gate_now 0
 
-		if insysmsg "Distance to destination: 40 steps" or insysmsg "(40 spaces to target)"
+		if insysmsg "Distance to destination: 50 steps" or insysmsg "(50 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 49 steps" or insysmsg "(49 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 48 steps" or insysmsg "(48 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 47 steps" or insysmsg "(47 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 46 steps" or insysmsg "(46 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 45 steps" or insysmsg "(45 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 44 steps" or insysmsg "(44 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 43 steps" or insysmsg "(43 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 42 steps" or insysmsg "(42 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 41 steps" or insysmsg "(41 spaces to target)"
+            @setvar! gate_now 1
+        elseif insysmsg "Distance to destination: 40 steps" or insysmsg "(40 spaces to target)"
 			@setvar! gate_now 1
 		elseif insysmsg "Distance to destination: 39 steps" or insysmsg "(39 spaces to target)"
 			@setvar! gate_now 1
@@ -511,21 +545,21 @@ while not dead
     	overhead "Æ HARVEST PROC Æ" 62
     endif
 
-    if insysmsg "You do not see any harvestable resources nearby"
-        overhead "² NEXT SPOT ²" 53
-    elseif insysmsg "You loosen some rocks but fail to find any useable ore" or insysmsg "You dig some"
-        overhead "¼ MINING ¼" 1366 
+    if insysmsg "You loosen some rocks but fail to find any useable ore" or insysmsg "You dig some"
+        overhead "¼ MINING ¼" 1366
+    elseif insysmsg "You do not see any harvestable resources nearby"
+        overhead "² NEXT SPOT ²" 53     
     elseif insysmsg "harvesting is not allowed"
         overhead "LEAVE TOWN" 53
-    	overhead "LEAVE TOWN" 53
-    	overhead "LEAVE TOWN" 53
-   	elseif insysmsg "You have recently traveled"
-   		if timer "error_overhead_cooldown" >= error_message_frequency
-   			overhead "Waiting on travel cooldown"
-   			overhead "¼ MINING ¼" 1366 
-   			settimer "error_overhead_cooldown" 0
-   		endif
-   	endif
+        overhead "LEAVE TOWN" 53
+        overhead "LEAVE TOWN" 53
+    elseif insysmsg "You have recently traveled"
+        if timer "error_overhead_cooldown" >= error_message_frequency
+            overhead "Waiting on travel cooldown"
+            overhead "¼ MINING ¼" 1366 
+            settimer "error_overhead_cooldown" 0
+        endif
+    endif
 
 
 
@@ -570,7 +604,7 @@ while not dead
         endif
     endif
 
-    if findtype 4017 ground any any 2 as found_forge
+    if findtype 4017|47190 ground any any 2 as found_forge
         if timer "forge_ping" >= forge_overhead_ping_frequency
             overhead "¼¼ FORGE ¼¼" 88 found_forge
             settimer "forge_ping" 0
@@ -636,17 +670,17 @@ while not dead
     endif
        
     
-    if findtype 4017 ground any any 6 as found_forge
+    if findtype 4017|47190 ground any any 6 as found_forge
         if timer "forge_ping" >= forge_overhead_ping_frequency
             overhead "¼¼ FORGE ¼¼" 88 found_forge
             settimer "forge_ping" 0
         endif
-	elseif findtype 4017 ground any any 12 as found_forge
+	elseif findtype 4017|47190 ground any any 12 as found_forge
         if timer "forge_ping" >= forge_overhead_ping_frequency
             overhead "¼¼ FORGE ¼¼" 88 found_forge
             settimer "forge_ping" 0
         endif    
-    elseif findtype 4017 ground any any 18 as found_forge
+    elseif findtype 4017|47190 ground any any 18 as found_forge
         if timer "forge_ping" >= forge_overhead_ping_frequency
             overhead "¼¼ FORGE ¼¼" 88 found_forge
             settimer "forge_ping" 0

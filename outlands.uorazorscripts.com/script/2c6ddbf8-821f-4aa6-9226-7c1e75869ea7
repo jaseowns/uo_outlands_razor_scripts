@@ -10,13 +10,61 @@
 
 clearignore 
 
-@setvar! maxFollowers 2
+@setvar! maxFollowers 5
 #>info the tank, insert its ID
-@setvar! tank 0x1268ED
+@setvar! tank 0x4B59F1
+@setvar! myNextPet 1
+@setvar! healCD 5500
+@setvar! lureDist 4
 
 warmode off
 
-if findtype "a cave bear" ground -1 -1 12 as tAnimal
+if dead 
+    stop
+endif
+
+if find tank ground -1 -1 12
+    if not cooldown 'heal'
+        if findtype 3617 backpack
+            dclicktype 3617 backpack
+            waitfortarget 
+            pause 500
+            target tank
+            pause 500
+            if insysmsg 'being is not damaged'
+                cooldown 'heal' healCD
+            else
+                cooldown 'heal' healCD
+            endif
+        endif
+    endif
+else
+    overhead 'no tank..'
+endif
+
+if hp < 100
+    say 'all guard me'
+    pause 500
+    if poisoned
+        cast 'Cure'
+        waitfortarget 
+        pause 500
+        target 'self'
+        pause 500
+    else
+        if skill 'magery' > 40
+            cast 'Greater Heal'
+            waitfortarget 
+            pause 500
+            target 'self'
+            pause 500
+        endif
+    endif
+    replay
+endif
+
+
+if findtype "a gravebug" ground -1 -1 lureDist as tAnimal
     #overhead 'found new pet'
     @setvar! tameThisThing tAnimal
     pause 500
@@ -25,28 +73,9 @@ else
     pause 500
 endif
 
-if hp < maxhp
-    say 'all guard me'
-    pause 500
-    if skill 'magery' > 40
-        cast 'Greater Heal'
-        waitfortarget 
-        target 'self'
-        pause 500
-    endif
-    replay
-endif
-
-if find tank ground -1 -1 12
-    if not bandaging
-        pause 200
-        dclicktype 3617 backpack
-        waitfortarget 
-        pause 200
-        target tank
-    endif
-else
-    overhead 'no tank..'
+if followers >= maxFollowers
+    overhead 'too many followers, play with the settings'
+    pause 1000
 endif
 
 if followers < maxFollowers and varexist tameThisThing
@@ -73,20 +102,22 @@ if followers < maxFollowers and varexist tameThisThing
             useskill 'Taming'
             pause 1000
         endwhile
-        pause 1000
+        pause 500
         target tameThisThing
+        pause 500
         settimer 'tamingTimer' 0
     endif   
     
     if insysmsg 'fail to'
         settimer 'tamingTimer' 12000
     endif
-    
 else
-    say 'all kill'
-    waitfortarget 
-    target tameThisThing
-    pause 1000
+    if myNextPet = 0
+        say 'all kill'
+        waitfortarget 
+        target tameThisThing
+        pause 1000
+    endif
 endif
 
 

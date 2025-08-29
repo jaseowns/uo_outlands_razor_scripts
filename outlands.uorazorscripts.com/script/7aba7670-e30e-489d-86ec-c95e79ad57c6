@@ -1,13 +1,13 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/7aba7670-e30e-489d-86ec-c95e79ad57c6 for latest
 # Automation by Jaseowns
-## Script: Lord Glacier's Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v2.1.5
+## Script: Lord Glacier's Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v2.1.6
 ## Created by: danstock._98439#0
 #############################################
 
 /////////
-////////                                Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.1.5
+////////                                Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 2.1.6
 ///////
-//////                                      UO Outlands Razor script - Released Feb 18, 2025 - Last Updated August 26, 2025
+//////                                      UO Outlands Razor script - Released Feb 18, 2025 - Last Updated August 29, 2025
 /////                                           Compiled by DanStock. (aka. Lord Glacier)
 ////
 ///
@@ -62,8 +62,9 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
+    #       Aug 29, 2025 - version 2.1.6:  Fixed bug in gold drop (if loot was in lockbox) and hopefully fixed the targeting hangup bug - if you find anything else you can email me at:  dan@danstockman.com
     #       Aug 26, 2025 - version 2.1.5:  Adjusted targeting section to avoid hangup and fixed bug in gold drop loop
-    #       Jul 31, 2025 - version 2.1.4:  Added some more descriptions in the variable sections - if you find any bugs you can email me at:  dan@danstockman.com
+    #       Jul 31, 2025 - version 2.1.4:  Added some more descriptions in the variable sections 
     #       Jul 30, 2025 - version 2.1.3:  Final touches - just trying to dial in all the timings on everything.  Done... unless I find more lol
     #       Jul 28, 2025 - version 2.1.2:  Few more tweaks and adjustments (mostly to Gold Drop, Loot Storage and Arrow Cleanup sections)
     #       Jul 25, 2025 - version 2.1.1:  Adjusted arrow pickup code and other minor timing and order of operations tweaks throughout (99.99% done now, I think!)
@@ -265,7 +266,7 @@ endif
 
 @setvar! EnableDivineFury 1
 @setvar! EnableEnemyOfOne 1
-@setvar! EnableConsecrateWeapon 1
+@setvar! EnableConsecrateWeapon 0
     # Chivalry buffs, if enabled, will auto trigger during combat loop
 
 @setvar! EnableHolyLight 1
@@ -478,8 +479,8 @@ endif
     # Will automatically pickup arrows or bolts from the ground (if Archery skill > 50) 
     
 @setvar! EnableDropGoldWhenOverweight 0
-@setvar! DropGoldAmount 250
-    # Will drop set amount of gold when overweight until no longer impeded 
+    @setvar! DropGoldAmount 250
+        # Will drop set amount of gold when overweight until no longer impeded 
 
 @setvar! EnableLootBag 0
     # Will open your selected LOOTBAG when unloading at HOME/INN/BANK
@@ -494,7 +495,7 @@ endif
     # AfterKillTimer sets the delay after eliminating your target (to give time to loot, etc.) while still keeping you safe
     # Increase slightly if carving corpses or set to 0 for instant re-tartgeting
 
-@setvar! EnableArcheryWarningMessage 0
+@setvar! EnableArcheryWarningMessage 1
 @setvar! ArcheryLowAmmoWarningAmount 10
     # Overhead warning (independant of other Overhead Messages) for low archery ammuniton (if Archery skill > 50) 
 
@@ -1243,9 +1244,9 @@ if not dead
     if not varexist DexxerAutoPilot
         overhead "Lord Glacier's Chill Dexxer Auto Pilot Script" 2234
         # '
-        overhead "version 2.1.5" 2234
+        overhead "version 2.1.6" 2234
         wait 1000
-        overhead "Last Updated: August 26, 2025" 88
+        overhead "Last Updated: August 29, 2025" 88
         wait 2500
         overhead "Thank you for trying my Dexxer AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
@@ -1515,7 +1516,7 @@ while not dead
 
         if diffhits > 0 and not bandaging
             if skill 'healing' >= 30
-                if findtype 'clean bandage%s%' self
+                if findtype 'clean bandage%s%' self and not bandaging
                     if targetexists
                         hotkey 'cancel current target'
                     endif
@@ -1806,6 +1807,8 @@ while not dead
         if timer "AttackingTimer" > 500 and find ClosestTarget ground -1 -1 TargetAttackRange 
             attack ClosestTarget
             settimer "AttackingTimer" 0
+        else 
+            replay
         endif
 
         if EnableRefreshPotion = 1 and diffstam >= RefreshPotionSPdiff
@@ -2364,7 +2367,7 @@ while not dead
 
                     if diffhits > 0 and not bandaging
                         if skill 'healing' >= 30
-                            if findtype 'clean bandage%s%' self
+                            if findtype 'clean bandage%s%' self and not bandaging
                                 if targetexists
                                     hotkey 'cancel current target'
                                 endif
@@ -2640,18 +2643,32 @@ while not dead
                             clearignore
                             @setvar! DisableVacuums 1
                             wait 250 
-
+                            
                             if EnablePutLootinLockBox = 1
-                                if find lockbox self
-                                    getlabel lockbox lockboxlabel
-                                    wait 150
-                                    if 'items' in lockboxlabel
-                                        wait 150
-                                    else
-                                        dclick key
-                                        wft 1500
-                                        target lockbox
-                                        wait 500
+                                if findtype "wooden box" self as lockbox
+                                    if findtype "copper key" self as key
+                                        clearignore
+                                        getlabel lockbox lockboxlabel
+                                        wait 100
+                                        if "items" in lockboxlabel
+                                            // Do nothing
+                                        else
+                                            dclick key
+                                            wft 1500
+                                            target lockbox
+                                            if EnableOverheadMessages = 1
+                                                overhead "[loot box unlocked]" 84
+                                            endif
+                                            wait 500
+                                            if insysmsg "appears to be locked"
+                                                dclick key
+                                                wft 1500
+                                                target lockbox
+                                                wait 250
+                                            endif
+                                        endif
+                                    elseif EnableOverheadMessages = 1
+                                        overhead "[ NO LOCKBOX KEY! ]" 337
                                     endif
                                 endif
                             endif
@@ -2762,7 +2779,7 @@ while not dead
 
                     if diffhits > 0 and not bandaging
                         if skill 'healing' >= 30
-                            if findtype 'clean bandage%s%' self 
+                            if findtype 'clean bandage%s%' self and not bandaging
                                 if targetexists
                                     hotkey 'cancel current target'
                                 endif
@@ -2853,16 +2870,30 @@ while not dead
                             wait 250 
 
                             if EnablePutLootinLockBox = 1
-                                if find lockbox self
-                                    getlabel lockbox lockboxlabel
-                                    wait 150
-                                    if 'items' in lockboxlabel
-                                        wait 150
-                                    else
-                                        dclick key
-                                        wft 1500
-                                        target lockbox
-                                        wait 500
+                                if findtype "wooden box" self as lockbox
+                                    if findtype "copper key" self as key
+                                        clearignore
+                                        getlabel lockbox lockboxlabel
+                                        wait 100
+                                        if "items" in lockboxlabel
+                                            // Do nothing
+                                        else
+                                            dclick key
+                                            wft 1500
+                                            target lockbox
+                                            if EnableOverheadMessages = 1
+                                                overhead "[loot box unlocked]" 84
+                                            endif
+                                            wait 500
+                                            if insysmsg "appears to be locked"
+                                                dclick key
+                                                wft 1500
+                                                target lockbox
+                                                wait 250
+                                            endif
+                                        endif
+                                    elseif EnableOverheadMessages = 1
+                                        overhead "[ NO LOCKBOX KEY! ]" 337
                                     endif
                                 endif
                             endif
@@ -3633,7 +3664,7 @@ while not dead
             clearignore
 
             if skill 'healing' > 0 and hp < maxhp and not bandaging
-                if findtype 'clean bandage%s%' self
+                if findtype 'clean bandage%s%' self and not bandaging
                     hotkey 'Bandage Self'
                     if EnableAutoRecallOverheadMessages = 1
                         overhead "[ BANDAGING... ]" 88
@@ -5081,7 +5112,12 @@ while not dead
     /////////////////////////
 
     if find ClosestTarget ground -1 -1 12 and TargetisnotClosest != 1
-        // Do nothing
+        if timer "AttackingTimer" > 500 and find ClosestTarget ground -1 -1 TargetAttackRange 
+            attack ClosestTarget
+            settimer "AttackingTimer" 0
+        else 
+            replay
+        endif
     else
         @setvar! TargetisnotClosest 0
 
@@ -5154,7 +5190,7 @@ while not dead
 
             if diffhits > 0 and not bandaging
                 if skill 'healing' >= 30
-                    if findtype 'clean bandage%s%' self
+                    if findtype 'clean bandage%s%' self and not bandaging
                         if targetexists
                             hotkey 'cancel current target'
                         endif
@@ -5185,16 +5221,30 @@ while not dead
                             wait 250 
 
                             if EnablePutLootinLockBox = 1
-                                if find lockbox self
-                                    getlabel lockbox lockboxlabel
-                                    wait 150
-                                    if 'items' in lockboxlabel
-                                        wait 150
-                                    else
-                                        dclick key
-                                        wft 1500
-                                        target lockbox
-                                        wait 500
+                                if findtype "wooden box" self as lockbox
+                                    if findtype "copper key" self as key
+                                        clearignore
+                                        getlabel lockbox lockboxlabel
+                                        wait 100
+                                        if "items" in lockboxlabel
+                                            // Do nothing
+                                        else
+                                            dclick key
+                                            wft 1500
+                                            target lockbox
+                                            if EnableOverheadMessages = 1
+                                                overhead "[loot box unlocked]" 84
+                                            endif
+                                            wait 500
+                                            if insysmsg "appears to be locked"
+                                                dclick key
+                                                wft 1500
+                                                target lockbox
+                                                wait 250
+                                            endif
+                                        endif
+                                    elseif EnableOverheadMessages = 1
+                                        overhead "[ NO LOCKBOX KEY! ]" 337
                                     endif
                                 endif
                             endif
@@ -5692,8 +5742,12 @@ while not dead
         //////////////////////////
 
         elseif not dead TargetToAnalyze
-            while diffhits < ActivateAutoHealHPdiff
+            while diffhits < ActivateAutoHealHPdiff and find TargetToAnalyze ground -1 -1 12
                 if diffhits >= ActivateAutoHealHPdiff 
+                    replay
+                endif 
+
+                if not find TargetToAnalyze ground -1 -1 12
                     replay
                 endif 
 
@@ -5737,7 +5791,7 @@ while not dead
 
                 if diffhits > 0 and not bandaging
                     if skill 'healing' >= 30
-                        if findtype 'clean bandage%s%' self
+                        if findtype 'clean bandage%s%' self and not bandaging
                             if targetexists
                                 hotkey 'cancel current target'
                             endif
@@ -5920,7 +5974,7 @@ while not dead
                     getlabel TargetToAnalyze tempLabel                    
                 endif
 
-                if find TargetToAnalyze ground -1 -1 12
+                if find TargetToAnalyze ground -1 -1 15
                     getlabel TargetToAnalyze tempLabel
 
                     if inlist animalsIgnoreList tempLabel
@@ -5995,7 +6049,7 @@ while not dead
                                         endif
                                     endif
                                     break
-                                elseif find ClosestTarget ground -1 -1 12
+                                elseif find ClosestTarget ground -1 -1 15
                                     if timer "NoTargetTimer" > 4000 
                                         if EnableOverheadMessages = 1
                                             overhead "[ GET CLOSER! ]" 69 ClosestTarget
@@ -6025,7 +6079,7 @@ while not dead
     //  BEGIN COMBAT LOOP:  //
     //////////////////////////
             
-    while not dead ClosestTarget and find ClosestTarget ground -1 -1 TargetAttackRange and diffhits < ActivateAutoHealHPdiff
+    while not dead ClosestTarget and find ClosestTarget ground -1 -1 TargetAttackRange 
         if dead ClosestTarget or not find ClosestTarget ground -1 -1 TargetAttackRange
             @setvar! SwitchtoIncendiaryAmmo 0
             replay
@@ -6067,10 +6121,12 @@ while not dead
             endif
         endif
 
-        if timer "AttackingTimer" > 500
+        if timer "AttackingTimer" > 500 and find ClosestTarget ground -1 -1 TargetAttackRange 
             attack ClosestTarget
             settimer "AttackingTimer" 0
-        endif 
+        else 
+            replay
+        endif
 
         if EnableAlwaysTargetClosest = 1
             if timer "AmIclosestMOB" > 500 and timer "ATTACKTIMER" > 2500
@@ -6143,7 +6199,7 @@ while not dead
 
         if diffhits > 0 and not bandaging
             if skill 'healing' >= 30
-                if findtype 'clean bandage%s%' self
+                if findtype 'clean bandage%s%' self and not bandaging
                     if targetexists
                         hotkey 'cancel current target'
                     endif
@@ -6221,17 +6277,17 @@ while not dead
                 getlabel NextClosestTarget descNextTarget
                 if NextClosestTarget != ClosestTarget
                     for 4
-                    if find NextClosestTarget ground -1 -1 10 and ClosestTarget != NextClosestTarget
+                    if find NextClosestTarget ground -1 -1 12 and ClosestTarget != NextClosestTarget
                         if timer "NextTargetTimer" > 3500
                             if "Paragon" in descNextTarget
                                 if EnableOverheadMessages = 1 and not dead NextClosestTarget
                                     overhead " ¼ PARAGON! ¼ " 12 NextClosestTarget
                                 elseif not dead NextClosestTarget
-                                    overhead " ¼ " 12 NextClosestTarget
+                                    overhead " ¼¼¼ " 12 NextClosestTarget
                                 endif
                             else
                                 if EnableOverheadMessages = 1 and not dead NextClosestTarget
-                                    overhead " ¼ TARGET ¼ " 2117 NextClosestTarget
+                                    overhead " ¼ PROVO TARGET ¼ " 2117 NextClosestTarget
                                 elseif not dead NextClosestTarget
                                     overhead " ¼ " 2117 NextClosestTarget
                                 endif
@@ -6267,7 +6323,7 @@ while not dead
             endif
 
             if timer "ProvoCheck" > 2000
-                if find ClosestTarget gound -1 -1 6 and find NextClosestTarget ground -1 -1 8 and ClosestTarget != NextClosestTarget
+                if find ClosestTarget gound -1 -1 TargetAttackRange and find NextClosestTarget ground -1 -1 12 and ClosestTarget != NextClosestTarget
                     getlabel ClosestTarget descTarget
                     getlabel NextClosestTarget descNextTarget
                     wait 150
@@ -6296,7 +6352,7 @@ while not dead
         if skill 'Peacemaking' >= 50 or skill 'Discordance' >= 50
             if skill "Peacemaking" >= 50 and EnablePeacemaking = 1
                 if timer "PeaceCheck" > 2000
-                    if find ClosestTarget ground -1 -1 6
+                    if find ClosestTarget ground -1 -1 TargetAttackRange
                         getlabel ClosestTarget descTarget
                         wait 150
                         if "pacified" in descTarget
@@ -6321,7 +6377,7 @@ while not dead
 
             if skill "Discordance" >= 50 and EnableDiscordance = 1 and diffhits <= ActivateAutoHealHPdiff 
                 if timer "DiscoCheck" > 2000
-                    if find ClosestTarget gound -1 -1 10
+                    if find ClosestTarget gound -1 -1 TargetAttackRange
                         getlabel ClosestTarget descTarget
                         wait 150
                         if "discord" in descTarget
@@ -6356,7 +6412,7 @@ while not dead
             if NeedtoProvoke = 1
                 clearsysmsg
                 for 5
-                if timer "ProvokedTimer" < 31000 or not find "NextClosestTarget" ground -1 -1 8
+                if timer "ProvokedTimer" < 31000 or not find "NextClosestTarget" ground -1 -1 TargetAttackRange 
                     @setvar! NeedtoProvoke 0
                     @setvar! NeedtoPacify 0
                     @setvar! NeedtoDiscord 1
@@ -6564,7 +6620,7 @@ while not dead
                         sysmsg "You fail to pacify your target!" 337
                         settimer "Peacemaking" 5500
                     else
-                        if not find ClosestTarget ground -1 -1 8 or dead ClosestTarget
+                        if not find ClosestTarget ground -1 -1 TargetAttackRange or dead ClosestTarget
                             break
                         endif
                     endif
@@ -6630,12 +6686,12 @@ while not dead
                             endif
                             sysmsg "You fail to discord your target!" 337
                         else
-                            if not find ClosestTarget ground -1 -1 8 or dead ClosestTarget
+                            if not find ClosestTarget ground -1 -1 TargetAttackRange or dead ClosestTarget
                                 break
                             endif
                         endif
                     else
-                        if not find ClosestTarget ground -1 -1 8 or dead ClosestTarget
+                        if not find ClosestTarget ground -1 -1 TargetAttackRange or dead ClosestTarget
                             break
                         endif
                     endif
@@ -6698,12 +6754,12 @@ while not dead
                             sysmsg "You fail to discord your target!" 337
                             wait 250
                         else
-                            if not find ClosestTarget ground -1 -1 8 or dead ClosestTarget
+                            if not find ClosestTarget ground -1 -1 TargetAttackRange or dead ClosestTarget
                                 break
                             endif
                         endif
                     else
-                        if not find ClosestTarget ground -1 -1 8 or dead ClosestTarget
+                        if not find ClosestTarget ground -1 -1 TargetAttackRange or dead ClosestTarget
                             break
                         endif
                     endif
@@ -6745,27 +6801,6 @@ while not dead
                 if timer 'yellowMessageTimer' > 4500
                     overhead "[ NO HEAL POTS! ]" 337
                     settimer 'yellowMessageTimer' 0
-                endif
-            endif
-        endif
-
-        if diffhits > 0 and not bandaging
-            if skill 'healing' >= 30
-                if findtype 'clean bandage%s%' self
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    dclicktype 'clean bandage%s%'
-                    wft 1000
-                    target 'self'
-                    if EnableOverheadMessages = 1
-                        overhead "[ BANDAGING... ]" 88
-                    endif
-                else
-                    if timer aidsMessageTimer > 5000
-                        overhead "[ OUT OF BANDAGES! ]" 337
-                        settimer aidsMessageTimer 0
-                    endif
                 endif
             endif
         endif
@@ -7233,13 +7268,13 @@ while not dead
                         settimer "WeightTimer" 0
                     endif
 
-                    if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 8 and WILDERNESSMODE = 1
+                    if EnableAutoWeightRecall = 1 and not find ClosestTarget ground -1 -1 TargetAttackRange and WILDERNESSMODE = 1
                         wait 500
                         hotkey 'Toggle War Only'
                         @setvar! AutoWeightRecall 1
                         @setvar! WarModeToggledWhileFighting 0
                         replay
-                    elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 8 and WILDERNESSMODE = 1
+                    elseif EnableAutoWeightRecall = 1 and find ClosestTarget ground -1 -1 TargetAttackRange and WILDERNESSMODE = 1
                         if timer "RECALLDELAY" > 3500 and EnableAutoRecallOverheadMessages = 1
                             overhead "[ WAITING TO RECALL... ]" 149
                             settimer "RECALLDELAY" 0
@@ -7264,7 +7299,7 @@ while not dead
             endif
 
             if EnableAutoTaunting = 1 and diffhits < ActivateAutoHealHPdiff
-                if skill 'Parrying' >= 80 and find ClosestTarget ground -1 -1 12 and timer "TauntingTimer" > 15000
+                if skill 'Parrying' >= 80 and find ClosestTarget ground -1 -1 TargetAttackRange and timer "TauntingTimer" > 15000
                     say "[Taunt"
                     wft 1000
                     target ClosestTarget
@@ -7289,7 +7324,7 @@ while not dead
 
             if diffhits > 0 and not bandaging
                 if skill 'healing' >= 30
-                    if findtype 'clean bandage%s%' self
+                    if findtype 'clean bandage%s%' self and not bandaging
                         if targetexists
                             hotkey 'cancel current target'
                         endif
@@ -7505,6 +7540,8 @@ while not dead
             if timer "AttackingTimer" > 500 and find ClosestTarget ground -1 -1 TargetAttackRange
                 attack ClosestTarget
                 settimer "AttackingTimer" 0
+            else 
+                replay
             endif 
 
             if EnableAutoExplosionPots = 1 and skill 'Alchemy' >= 80 and diffhits < ActivateAutoHealHPdiff
@@ -7655,7 +7692,7 @@ while not dead
                 endif
             endif
 
-            if dead ClosestTarget or not find ClosestTarget ground -1 -1 12
+            if dead ClosestTarget or not find ClosestTarget ground -1 -1 TargetAttackRange
                 @setvar! SwitchtoIncendiaryAmmo 0
                 replay
             endif
@@ -7679,6 +7716,8 @@ while not dead
             if timer "AttackingTimer" > 500 and find ClosestTarget ground -1 -1 TargetAttackRange
                 attack ClosestTarget
                 settimer "AttackingTimer" 0
+            else 
+                replay
             endif 
 
             if diffhits > ActivateAutoHealHPdiff
@@ -7725,7 +7764,7 @@ while not dead
 
             if diffhits > 0 and not bandaging
                 if skill 'healing' >= 30
-                    if findtype 'clean bandage%s%' self
+                    if findtype 'clean bandage%s%' self and not bandaging
                         if targetexists
                             hotkey 'cancel current target'
                         endif
@@ -7914,7 +7953,7 @@ while not dead
                             cooldown "Bane Ability" 5000
                         endif
                     endif
-                elseif skill 'Archery' >= 50 and find ClosestTarget ground -1 -1 10
+                elseif skill 'Archery' >= 50 and find ClosestTarget ground -1 -1 TargetAttackRange
                     if timer "WeaponAbilityTimer" > WeaponAbilityCooldown and UseSkirmishAbility = 1
                         clearsysmsg
                         yell "[WeaponAbility1"
@@ -8213,7 +8252,7 @@ while not dead
 
             if diffhits > 0 and not bandaging
                 if skill 'healing' >= 30
-                    if findtype 'clean bandage%s%' self
+                    if findtype 'clean bandage%s%' self and not bandaging
                         if targetexists
                             hotkey 'cancel current target'
                         endif
@@ -9415,6 +9454,8 @@ while not dead
             if timer "AttackingTimer" > 500 and find ClosestTarget ground -1 -1 TargetAttackRange
                 attack ClosestTarget
                 settimer "AttackingTimer" 0
+            else 
+                replay
             endif 
 
             if EnableShieldCodexSwitching = 1 and SetShieldCodexStance != 0
@@ -9683,7 +9724,7 @@ while not dead
 
             if diffhits > 0 and not bandaging
                 if skill 'healing' >= 30
-                    if findtype 'clean bandage%s%' self
+                    if findtype 'clean bandage%s%' self and not bandaging
                         if targetexists
                             hotkey 'cancel current target'
                         endif
@@ -10087,7 +10128,8 @@ while not dead
             endif
         endif
 
-        while EnableAutoCarving = 1 and findtype "corpse" ground -1 -1 2 as deadbody and diffhits < ActivateAutoHealHPdiff and findtype 11552 self
+        if EnableAutoCarving = 1 and findtype 11552 self and diffhits < ActivateAutoHealHPdiff
+            while findtype "corpse" ground -1 -1 2 as deadbody
             if timer SkinningTimer > 5000
                 if targetexists
                     hotkey 'cancel current target'
@@ -10104,7 +10146,8 @@ while not dead
                     settimer SkinningTimer 0
                 endif
             endif
-        endwhile
+            endwhile
+        endif 
 
         if EnableGoldVacuum = 1 and DisableVacuums != 1
             if findtype "gold coin" ground -1 -1 12 as droppedmoney and timer "GoldRadar" > 3500
@@ -10348,7 +10391,8 @@ while not dead
     endif
 
     while timer "AfterKill" < AfterKillTimer
-        while EnableAutoCarving = 1 and findtype "corpse" ground -1 -1 2 as deadbody and diffhits < ActivateAutoHealHPdiff and findtype 11552 self
+        if EnableAutoCarving = 1 and findtype 11552 self and diffhits < ActivateAutoHealHPdiff 
+            while findtype "corpse" ground -1 -1 2 as deadbody 
             if timer SkinningTimer > 5000
                 if targetexists
                     hotkey 'cancel current target'
@@ -10365,7 +10409,8 @@ while not dead
                     settimer SkinningTimer 0
                 endif
             endif
-        endwhile
+            endwhile
+        endif 
 
         if EnableAutoParalyzePouch = 1
             if paralyzed
@@ -10383,7 +10428,7 @@ while not dead
 
         if diffhits > 0 and not bandaging
             if skill 'healing' >= 30
-                if findtype 'clean bandage%s%' self
+                if findtype 'clean bandage%s%' self and not bandaging
                     if targetexists
                         hotkey 'cancel current target'
                     endif

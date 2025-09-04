@@ -1,35 +1,34 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/76e1658a-ef42-4ebf-8b54-7ace855388d5 for latest
 # Automation by Jaseowns
-## Script: Dress Suite - Cleanup Module
+## Script: Dress Suite - Cleanup
 ## Created by: thisideasucks#0
 #############################################
 
-// Dress Suite - Cleanup Module
+// Dress Suite - Cleanup
 
 // Set script wait
 @setvar! globalWait 500
-
-// Set whether to call dress script
-// If calling dress script, set the name and conditions at the bottom
+// Set whether to call dress script - If calling dress script, set the name and conditions at the bottom
 @setvar! callDressScript 1
-
 // Set whether to sort unidentified loot into a bag/box
 @setvar! sortLoot 1
-
-// Set whether to call organizer agents
+// Set whether to call organizer agents and define organizer agent numbers to call in the list below
 @setvar! callOrganizers 1
-
-// Define organizer agent numbers to call in the list below
 removelist organizerList; createlist organizerList
-pushlist organizerList 1; pushlist organizerList 2
-pushlist organizerList 3; pushlist organizerList 4
-
+pushlist organizerList 2; pushlist organizerList 4; pushlist organizerList 5; pushlist organizerList 6
 // Set whether to restock to resource stockpile
 @setvar! resourceRestock 1
-
 // Set whether to restock/resupply to storage shelf
 @setvar! storageRestock 1
 @setvar! storageResupply 1
+// Set whether to repair gear and wait time for repair to complete
+@setvar! repairGear 1
+@setvar! repairWait 3000
+// Set whether to full clear gear and equipment to refresh all items during cleanup
+// Disable storage shelf setting 'Keep Aspect Items' to allow aspected item pickup
+@setvar! fullClean 0
+// Set whether to call script to update Storage Shelf Loadout
+@setvar! updateLoadout 0
 
 // Sort Loot into box (You can use a secure container on the floor nearby)
 if not varexist lootBox and sortLoot = 1
@@ -40,13 +39,9 @@ elseif varexist lootBox and sortLoot = 1
     foreach loot in loot_items
         sysmsg loot
         while findtype loot backpack as item
-            overhead item   
-            getlabel item description
-            overhead description 88
+            overhead item; getlabel item description; overhead description 88
             if unidentified in description
-                lift item
-                wait globalWait
-                drop lootBox -1 -1 -1
+                lift item; wait globalWait; drop lootBox -1 -1 -1
             else
                 ignore item
                 wait globalWait
@@ -58,45 +53,58 @@ endif
 // Run Organizer Agents
 if callOrganizers = 1
     foreach number in organizerList
-        organizer number
-        wait globalWait
+        organizer number; wait globalWait
     endfor
+endif
+
+// Repair gear
+if findtype "repair bench" ground -1 -1 2 as repair
+    clearsysmsg; dclick repair; getlabel backpack 
+    if insysmsg "You do not have any items equipped or in your backpack in need of repairs."
+    else
+        wait repairWait
+    endif
 endif
 
 // Restock to resource stockpile
 if findtype "resource container" ground -1 -1 2 as resource and resourceRestock = 1
-    menu resource 0
-    wft globalWait
-    target self
-    wait globalWait
-    gumpclose
+    menu resource 0; wft globalWait; target self; wait globalWait; gumpclose
 endif
 
-// Restock to storage shelf
+// Remove all equipment if fullClean is set
+if fullClean = 1
+    if findlayer self gloves as item; lift item; drop self; endif
+    if findlayer self innertorso as item; lift item; drop self; endif
+    if findlayer self head as item; lift item; drop self; endif
+    if findlayer self neck as item; lift item; drop self; endif
+    if findlayer self pants as item; lift item; drop self; endif
+    if findlayer self neck as item; lift item; drop self; endif
+    if findlayer self arms as item; lift item; drop self; endif
+    if findlayer self rightHand as item; lift item; drop self; endif
+    if findlayer self offHand as item; lift item; drop self; endif
+    if findlayer self outerBody as item; lift item; drop self; endif
+endif
+
+// Call script to update storage shelf loadout
+if updateLoadout = 1 and not varexist loadoutUpdated
+    script "Dress Suite - Shelf Loadout"
+endif
+
+// Restock to storage shelf - Twice to clear pouches/bags
 if findtype "storage shelf" ground -1 -1 2 as shelf and storageRestock = 1
-    menu shelf 0
-    wft globalWait
-    target self
-    wait globalWait
+    menu shelf 0; wft globalWait; target self; wait globalWait
+    menu shelf 0; wft globalWait; target self; wait globalWait
 endif
 
 // Resupply to storage shelf
 if findtype "storage shelf" ground -1 -1 2 as shelf and storageResupply = 1
-    menu shelf 1
-    wait globalWait
-    gumpclose
+    menu shelf 1; wait globalWait; gumpclose
 endif
 
 // Announce completed
-overhead "Cleanup completed" 88
+overhead "Dress Suite - Cleanup completed" 88
 
-// Call Dress Script - Customize script names and conditions if needed
+// Call Dress Script
 if callDressScript = 1
-    if skill "Magery" >= 60 and skill "Arcane" < 60
-        overhead "Calling Spellbook Dress" 88
-        script "Dress Suite - Spellbook"
-    else
-        overhead "Calling Weapon Dress" 88
-        script "Dress Suite - Weapon"
-    endif
+    script "Dress Suite - Equip"
 endif

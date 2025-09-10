@@ -4,15 +4,54 @@
 ## Created by: oakman8490#0
 #############################################
 
-## Easy Backstab by Oak of [KoU] ##
+#~# [KoU] - Oak's Easy Backstab Script #~#
+
+#Pre-Requisites for script to work correctly#
+## Cooldown "WeaponAbility" set up in UO. The only trigger it needs is for sysmsg: "Weapon ability ready." to 0 ##
+## Dress Agent named "Burst" where you add the type of weapon you use. This will prevent "wrestling" the mob if you forget to equip weapon." ##
+## Organizer Agent 20 for moving gold & black goods (and anything else you want to add) to the bag you want them. ##
+## forceTracking will turn on tracking (if you have skill) and stop the script after, if tracking is not on ##
+
+#Overhead Messages#
+## "Waiting for Stealth" - You will unhide if you move, attacks will not be Backstabs ##
+## "Move into place" - You may move using your stealth steps. You can attack by going into War Mode, but you will not be able to immediately hide after ##
+## "Warmode to Attack" - You may move using your stealth steps, go into War Mode to attack, and you will be able to immediately re-hide after Backstab when you hit the hotkey. ##
+
+
 
 clearsysmsg 
 clearall 
 @setvar! autoSkinning 1
+@setvar! showCodexHotbar 1
+@setvar! forceTracking 1
 
 if not timerexists "TargetTimer"
     createtimer "TargetTimer"
     settimer TargetTimer 10000
+endif
+
+if skill "Tracking" > 0 and forceTracking = 1
+    if not findbuff "tracking"
+        overhead "i should track.."
+        while cooldown "Skill" != 0
+            wait 100
+        endwhile   
+        while not gumpexists 4267467659
+            useskill "tracking"
+            wait 250
+        endwhile
+        if gumpexists 4267467659
+            while not insysmsg "You will now hunt all hostile players."
+                gumpresponse 8 4267467659
+                waitforgump 4267467659 5000
+            endwhile
+            gumpresponse 6 4267467659
+            wait 1000
+            clearsysmsg                     
+        endif
+        gumpclose 4267467659
+        stop
+    endif
 endif
 
 
@@ -45,7 +84,10 @@ while not hidden
     if not hidden 
         if findtype 52149 backpack 2876
             say "[SmokeBomb"
-        wait 400
+            wait 600
+            if hidden
+                sysmsg "You feel comfortable enough to begin stealthing."
+            endif
         endif
     endif
 ## Use Magery to Invis if Hiding & Smoke Bomb Failed (if able) ##
@@ -69,12 +111,25 @@ while not hidden
     endif
 ## If you still aren't Hidden, you need to break line of sight and try again ##    
     if not hidden
-        overhead "Run for it!!!" 33
+        overhead "Run for it!!! - Break Line of Sight and try again." 33
+        stop
     endif
 endwhile
 
 if hidden 
-    wait 1000
+    organizer 20
+    while queued
+        wait 100
+    endwhile
+    if findtype 30765 self as WizSatchel
+        menu WizSatchel 0
+    endif
+    if mounted
+        hotkey "Dismount"
+    endif
+    if showCodexHotbar = 1 and not gumpexists 2016719803
+        say "[codexhotbar"
+    endif
 endif  
  
 while hidden
@@ -85,7 +140,7 @@ while hidden
             settimer "StealthTimer" 4000
         endif
         if timer "StealthTimer" > 4000
-            overhead "Waiting for Stealth"
+            overhead "Waiting for Stealth" 33
             settimer "StealthTimer" 0
         endif
         wait 100
@@ -93,10 +148,10 @@ while hidden
 ## Starting Re-Stealth Timer ## 
     wait 400
     hotkey "Stealth"
-    overhead "Stealthing"
     clearsysmsg
 ## You will need need to set up a Dress Agent to equip your Weapon. This is to ensure we don't accidentally Wrestle the target ##
     hotkey "Dress: Burst"
+    @setvar! StealthReady 0
     while not warmode 
         wait 100
 ## Go into War Mode to auto-select target ##    
@@ -105,8 +160,18 @@ while hidden
             settimer "AttackTimer" 5000
         endif
         if timer AttackTimer > 5000
-            overhead "Warmode to attack"
-            settimer AttackTimer 0
+            if StealthReady = 0
+                overhead "Move into place" 253
+                settimer AttackTimer 0
+            elseif StealthReady = 1
+                overhead "Warmode to attack" 167
+                settimer AttackTimer 0      
+            endif
+        endif
+        if insysmsg "You begin to move quietly."
+            @setvar! StealthReady 0
+        elseif insysmsg "You will automatically stealth when out of steps."
+            @setvar! StealthReady 1
         endif
     endwhile
     if warmode 
@@ -140,7 +205,7 @@ while not hidden
 ## If target is not dead, will attempt to finish them off. You can always run off, break LoS and hide or use smoke bomb (just hit hotkey again) ##   
     if cooldown "WeaponAbility" = 0
         say "[weaponability3"
-        cooldown "WeaponAbility" 60000
+        cooldown "WeaponAbility" 120000
     endif
 ## Applying Bandages if damaged or poisoned ##    
     if diffhits > 0 or poisoned 
@@ -172,7 +237,7 @@ while not hidden
         endif
     endif 
 ## Auto-Skinning any corpses around ##        
-    if autoSkinning = 1
+    if autoSkinning = 2
         if findtype "Elven Spellblade" backpack and findtype 8198 ground -1 -1 2 as aCorpse
         getlabel aCorpse desc
             if "the remains" in desc
@@ -188,6 +253,22 @@ while not hidden
                     target aCorpse
                     @ignore aCorpse
                 endif
+            endif
+        endif
+    endif
+    if autoSkinning = 1
+        if findtype 8198 ground -1 -1 2 as aCorpse
+            if findtype "Elven Spellblade" backpack
+                dclicktype "Elven Spellblade" backpack
+                waitfortarget 1500
+                target 'self'
+                if insysmsg "You carve materials from the corpse"
+                    ignore aCorpse
+                elseif insysmsg "That corpse has already been carved"
+                    ignore aCorpse
+                endif
+            else
+                overhead 'No Skinning Knife!'
             endif
         endif
     endif

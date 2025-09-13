@@ -1,0 +1,274 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/b29af1f5-7037-4a05-a5b9-a3888430e2d9 for latest
+# Automation by Jaseowns
+## Script: Decode research materials and store lore pages
+## Created by: nev0r#0
+#############################################
+
+//////////////////////////////////////////
+// 
+//  Script to decode research materials & store lore pages 
+//  for UO Outlands
+// 
+// - No mandatory setup, an optional setup section can be found below
+//
+//////////////////////////////////////////
+
+######## MANUAL SETUP ########
+
+# AutoDecodeLorePages: automatically decode research materials?
+    # 0 ... No
+    # 1 ... Yes
+    setvar! AutoDecodeLorePages 1
+
+# AutoStoreLorePages: automatically store lore pages?
+    # 0 ... No
+    # 1 ... Yes
+    setvar! AutoStoreLorePages  1
+
+###### END MANUAL SETUP ######
+
+//Script variables
+setvar! loreTomeHue          2910
+setvar! decodeOverheadCD     3000
+setvar! researchGumpID  709455756
+setvar! lorePageGumpID 2520345223
+
+//Global variables
+setvar! globalWaitForServerResponse 500
+setvar! globalWaitForObjectDelay    600
+if not timerexists globalObjectDelayTimer
+    settimer globalObjectDelayTimer globalWaitForObjectDelay
+endif
+
+//Colors
+setvar! cSuccess 68
+setvar! cWarning 55
+setvar! cError   33
+
+@clearignore
+//Skill level check
+if 1 = AutoDecodeLorePages and skill "Cartography" < 120 and skill "Detecting Hidden" < 120 and skill "Item Identification" < 120 and not findtype 42516 backpack
+    overhead "Need research guide to decode" cError
+    setvar! AutoDecodeLorePages 0
+endif
+
+while 1 = AutoDecodeLorePages
+
+    //Collect research materials
+    if not findtype "research materials" backpack
+        
+        setvar! targetContainer 0    
+        if findtype "research materials" myResearchMaterialsSourceContainer
+            setvar! targetContainer myResearchMaterialsSourceContainer
+        elseif find myResearchMaterialsSourceContainer ground -1 -1 2 
+            setvar! targetContainer myResearchMaterialsSourceContainer
+            dclick targetContainer
+            settimer globalObjectDelayTimer 0
+            wait globalWaitForServerResponse
+            if not findtype "research materials" targetContainer
+                setvar! targetContainer 0
+            endif
+        endif        
+
+        if 0 = targetContainer
+            hotkey "Set Last Target"
+            settimer decodeOverheadTimer decodeOverheadCD
+            wft globalWaitForServerResponse
+            while targetexists
+                if timer decodeOverheadTimer > decodeOverheadCD
+                    overhead "Click container holding" cWarning
+                    overhead "your research materials" cWarning
+                    settimer decodeOverheadTimer 0
+                endif
+            endwhile
+            setvar! targetContainer lasttarget
+            if not findtype "research materials" targetContainer
+                dclick targetContainer
+                settimer globalObjectDelayTimer 0
+                wait globalWaitForServerResponse
+            endif
+        endif
+
+        if not findtype "research materials" targetContainer
+            overhead "No research mats found" cError
+            break
+        endif
+
+        setvar! decodeCounter 0
+        settimer decodeOverheadTimer decodeOverheadCD
+        while timer globalObjectDelayTimer < globalWaitForObjectDelay
+        endwhile        
+        while findtype "research materials" targetContainer as localResearchMats
+            if timer decodeOverheadTimer > decodeOverheadCD
+                overhead "Collecting research mats" cSuccess
+                overhead "            ¼           " cSuccess targetContainer
+                settimer decodeOverheadTimer 0
+            endif
+            overhead "            ¼           " cSuccess localResearchMats
+            @drop backpack -1 -1 -1
+            lift localResearchMats 60000
+            @drop backpack -1 -1 -1                
+            wait globalWaitForObjectDelay
+            if counttype "research materials" backpack > decodeCounter and counttype "research materials" backpack as newCount
+                setvar! decodeCounter newCount
+            else
+                break
+            endif
+        endwhile
+        unsetvar decodeCounter
+
+        if not findtype "research materials" backpack
+            overhead "Could not collect research mats" cError
+            unsetvar myResearchMaterialsSourceContainer
+            break
+        else
+            @setvar myResearchMaterialsSourceContainer targetContainer
+        endif
+
+    endif
+
+    //Decode research materials
+    gumpclose researchGumpID
+    while timer globalObjectDelayTimer < globalWaitForObjectDelay
+    endwhile
+
+    settimer decodeOverheadTimer decodeOverheadCD
+    while findtype "research materials" backpack as localResearchMats
+        if timer decodeOverheadTimer > decodeOverheadCD
+            overhead "Decoding" cSuccess
+            settimer decodeOverheadTimer 0
+        endif    
+        overhead "    ¼   " cSuccess localResearchMats
+        dclick localResearchMats
+        settimer globalObjectDelayTimer 0
+        waitforgump researchGumpID globalWaitForServerResponse
+        if skill "Cartography" = 120
+            gumpresponse 2 researchGumpID
+        elseif skill "Detecting Hidden" = 120
+            gumpresponse 3 researchGumpID
+        elseif skill "Item Identification" = 120 or findtype 42516 backpack
+            gumpresponse 4 researchGumpID
+        endif
+        waitforgump researchGumpID globalWaitForServerResponse
+        while timer globalObjectDelayTimer < globalWaitForObjectDelay
+        endwhile
+        if findtype "research materials" backpack and skill "Cartography" < 120 and skill "Detecting Hidden" < 120 and skill "Item Identification" < 120 and not findtype 42516 backpack
+            overhead "Out of research guides" cWarning
+            break
+        endif
+    endwhile
+
+    break
+endwhile
+
+//Store lore pages
+while 1 = AutoStoreLorePages and findtype 27612 backpack
+
+    if insysmsg "No lore pages found in backpack." or insysmsg "lore pages added to tome."
+    endif
+    
+    if varexist myLoreTomeContainer
+        setvar! targetContainer myLoreTomeContainer
+        menu targetContainer 0
+        getlabel backpack waitForPing
+        if insysmsg! "lore pages added to tome." or insysmsg! "No lore pages found in backpack."
+            break
+        else
+            if not findtype 29104 targetContainer loreTomeHue
+                while timer globalObjectDelayTimer < globalWaitForObjectDelay
+                endwhile
+                dclick targetContainer
+                settimer globalObjectDelayTimer 0
+                wait globalWaitForServerResponse
+            endif
+            if not findtype 29104 targetContainer loreTomeHue
+                unsetvar myLoreTomeContainer
+                setvar! targetContainer 0
+            endif
+        endif
+    else
+        setvar! targetContainer 0
+    endif
+
+    if findtype 29104 targetContainer loreTomeHue as localLoreTome
+        setvar! loreTomeSerial localLoreTome
+    elseif findtype 29104 backpack loreTomeHue as localLoreTome 
+        setvar! loreTomeSerial localLoreTome
+    elseif findtype 29104 ground loreTomeHue -1 2 as localLoreTome 
+        setvar! loreTomeSerial localLoreTome        
+    else 
+        setvar! loreTomeSerial 0
+    endif
+        
+    if 0 != loreTomeSerial
+        menu loreTomeSerial 0
+        getlabel backpack waitForPing
+        if insysmsg! "lore pages added to tome." or insysmsg! "No lore pages found in backpack."
+            break
+        else
+            unsetvar myLoreTomeContainer
+            continue
+        endif
+    else
+        hotkey "Set Last Target"
+        settimer decodeOverheadTimer decodeOverheadCD
+        wft globalWaitForServerResponse
+        while targetexists
+            if timer decodeOverheadTimer > decodeOverheadCD
+                overhead "Click container to move pages"    cWarning
+                overhead "or container holding a lore tome" cWarning
+                settimer decodeOverheadTimer 0
+            endif
+        endwhile
+        setvar!  targetContainer lasttarget
+        getlabel targetContainer targetContainerLabel
+        if "a lore page tome" in targetContainerLabel
+            menu targetContainer 0
+            @setvar myLoreTomeContainer targetContainer
+            getlabel backpack waitForPing
+        elseif "items, " in targetContainerLabel and findtype 29104 targetContainer loreTomeHue as localLoreTome
+            menu localLoreTome 0
+            @setvar myLoreTomeContainer targetContainer
+            getlabel backpack waitForPing
+        elseif "items, " in targetContainerLabel
+            while timer globalObjectDelayTimer < globalWaitForObjectDelay
+            endwhile
+            dclick targetContainer
+            wait globalWaitForObjectDelay
+            if findtype 29104 targetContainer loreTomeHue as localLoreTome
+                menu localLoreTome 0
+                @setvar myLoreTomeContainer targetContainer
+                getlabel backpack waitForPing
+            else
+                @clearignore
+                while findtype 27612 backpack as localLorePage
+                    @drop backpack -1 -1 -1
+                    lift localLorePage
+                    @drop targetContainer -1 -1 -1
+                    wait globalWaitForObjectDelay
+                    @ignore localLorePage
+                endwhile
+                @clearignore
+                if not findtype 27612 backpack
+                    overhead "Lore pages stored" cSuccess
+                endif
+            endif
+        else
+            overhead "Unknown container" cError
+        endif
+    endif
+    
+    break
+endwhile
+
+if insysmsg "lore pages added to tome."
+    overhead "Lore pages stored" cSuccess 
+    overhead "Lore pages stored" cSuccess targetContainer
+    overhead "        ¼        " cSuccess targetContainer
+elseif insysmsg "No lore pages found in backpack."
+    overhead "No lore pages found" cWarning
+endif
+
+@clearignore
+gumpclose researchGumpID
+gumpclose lorePageGumpID

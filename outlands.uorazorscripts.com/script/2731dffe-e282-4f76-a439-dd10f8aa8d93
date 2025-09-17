@@ -1,18 +1,23 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/2731dffe-e282-4f76-a439-dd10f8aa8d93 for latest
 # Automation by Jaseowns
-## Script: Bapeth's Ocean Net Caster and Frenzy Catcher
+## Script: Bapeth's Frenzy Catcher
 ## Created by: barryroser#0
 #############################################
 
-# Bapeths Net Caster and Frenzy Catcher
+# Bapeths Frenzy Catcher
 #
-# "****REQUIRED****"
-# Bapeths Ship Cooldowns xml file (copy paste into your characters Cooldown file)
-# "COPY" Link to get Bapeths Cooldowns "https://outlands.uorazorscripts.com/script/f1e41e2d-411e-461e-9fd0-c4fc2dc234b1"
-# "PASTE" FILE PATH : C:\Program Files (x86)\Ultima Online Outlands\ClassicUO\Data\Profiles\"YOUR-ACCOUNT-NAME"\UO Outlands\"YOUR-CHARACTER" Open file in notepad
+# Sept 16th 2025
 #
-# Play the script while in Peace Mode and it will auto net fishing spots in the ocean, attack mobs,  and auto spyglass (Spyglass cooldown required, can be found in Bapeths XML)
-# Play the script while in War Mode and it will auto search for fishing frenzies and fish them up if you have a fishing rod
+# Play the script while you are looking for fishing frenzies
+# It will auto fish once a frenzy is detected as well as highlight frenzies overhead 
+# The script will stop if you cast a spell
+#
+# Fishing Pole is required
+
+if not findtype "fishing pole" self
+    overhead "I will need a Fishing Pole..." 45
+    stop
+endif
 
 if not timerexists fishy
     createtimer fishy
@@ -24,116 +29,10 @@ else
     endif
 endif
 while casting 
-    //donothing
+    stop
 endwhile
-pause 150
-if not warmode and not targetexists and not casting 
-    if not timerexists netwait
-        createtimer netwait
-        settimer netwait 4000
-    endif
-    if not queued and timer netwait >= 3400 and findtype "fishing net" backpack as net
-        dclick net
-        wft 500
-        target net
-        getlabel backpack ping
-        settimer netwait 0
-    endif
-    if insysmsg "You have completely fished out that location."
-        overhead "Fishing spot depleated..." 88
-        script "Master Background"
-        stop
-    endif
-    if not queued and not targetexists and not findbuff "Actively Meditating" and not cooldown "Spyglass" and hp >= 66 and findtype "spyglass" backpack as bspy
-        gumpclose 2890020940
-        dclick bspy
-        wft 500
-        target self
-        hotkey "Cancel Current Target"
-        waitforgump 2890020940 500
-        if gumpexists 2890020940
-            gumpresponse 4
-            waitforgump 2890020940 500
-        endif
-        if gumpexists 2890020940
-            overhead 'Yarr!' 67
-        endif    
-        pause 600
-    endif
     
-    if not timerexists oceanscan
-        createtimer oceanscan
-        settimer oceanscan 300
-    endif
-    
-    if timer oceanscan >= 300 and skill "Arcane" >= 80
-        clearsysmsg 
-        if varexist "oceantarget"
-            @unsetvar "oceantarget"
-        endif
-        hotkey "Next Enemy Monster Target"
-        if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
-        endif
-        hotkey "Next Grey Monster Target"
-        if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
-        endif
-        hotkey "Next Murderer Monster Target"
-        if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
-        endif
-        settimer oceanscan 0
-    elseif timer oceanscan >= 300 and skill "Fishing" >= 80
-        clearsysmsg 
-        if varexist "oceantarget"
-            @unsetvar "oceantarget"
-        endif
-        hotkey "Next Enemy Monster Target"
-        if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
-        endif
-        hotkey "Next Grey Monster Target"
-        if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
-        endif
-        hotkey "Next Murderer Monster Target"
-        if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
-        endif
-        settimer oceanscan 0
-    endif
-    if not timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating"
-        if find "Manual Override" ground and noto "Manual Override" = hostile
-            attack "Manual Override"
-        elseif noto "Manual Override" = criminal
-            attack "Manual Override"
-        elseif noto "Manual Override" = enemy
-            attack "Manual Override"
-        elseif noto "Manual Override" = murderer
-            attack "Manual Override"
-        else       
-            attack "oceantarget"
-        endif
-    elseif timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating"
-        if find "Manual Override" ground and noto "Manual Override" = hostile
-            attack "Manual Override"
-        elseif noto "Manual Override" = criminal
-            attack "Manual Override"
-        elseif noto "Manual Override" = enemy
-            attack "Manual Override"
-        elseif noto "Manual Override" = murderer
-            attack "Manual Override"
-        else       
-            hotkey 'Target Closest Enemy Monster'
-            hotkey 'Target Closest Grey Monster'
-            hotkey 'Target Closest Murderer Monster'
-            attack lasttarget 
-            hotkey "Cancel Current Target"
-        endif        
-    endif
-    
-elseif warmode and findtype "fishing pole" as pole and not targetexists and not casting 
+if findtype "fishing pole" as pole and not targetexists and not casting 
     if not findlayer self lefthand and not findlayer self righthand
         lift pole 1
         drop self righthand
@@ -165,14 +64,21 @@ for 18
     if index > 0 and findtype 42403 ground -1 -1 index as fishfrenzy
         getlabel fishfrenzy desc
         if "fishing frenzy" in desc
-            overhead "desc" 2085 fishfrenzy
+            overhead "**Frenzy Found**" 2085 fishfrenzy
             break
         endif
     endif
 endfor
 @clearignore
 while findtype 42403 ground -1 -1 8
+    clearsysmsg 
     hotkey 'use item in hand'
-    pause 3075
+    overhead "**Fishing**" 1788 fishfrenzy
+    pause 3100
+    getlabel backpack ping
+    if insysmsg "The fishing frenzy subsides."
+        overhead "Frenzy Depleted..." 38
+        break
+    endif
 endwhile
 loop

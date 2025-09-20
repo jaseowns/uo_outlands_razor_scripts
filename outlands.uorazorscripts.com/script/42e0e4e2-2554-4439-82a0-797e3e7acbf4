@@ -4,14 +4,15 @@
 ## Created by: nev0r#0
 #############################################
 
-////////////////////////////////////////
-//    _ _                         _ _
-//  _{ * }_    Gardening-Bot    _{ * }_
-// { *.!.* }                   { *.!.* }
-//  *-._.-*   for UO Outlands   *-._.-*
-//  ___|___                     ___|___
-// |_______|     Version 4     |_______|
-//
+//////////////////////////////////////////
+//''''''''''''''''''''''''''''''''''''''''
+//'    _ _                         _ _   '
+//'  _{ * }_    Gardening-Bot    _{ * }_ '
+//' { *.!.* }                   { *.!.* }'
+//'  *-._.-*   for UO Outlands   *-._.-* '
+//'  ___|___                     ___|___ '
+//' |_______|     Version 4     |_______|'
+//''''''''''''''''''''''''''''''''''''''''
 // - Processes flower pots within range
 // - No mandatory setup, an optional setup section can be found below
 // - Note: gardening items have to be in your backpack (except for flower pots and water tiles)
@@ -20,7 +21,7 @@
 //      - Uncheck "Filter repeating system messages"
 //      - "Enable text filter" and "Filter system messages" (list entry sub-menu) can be checked, however "Ignore filtered messages in overhead and scripts" (list entry sub-menu) has to be unchecked
 //
-/////////////////////////////////////////
+//////////////////////////////////////////
 
 ######## MANUAL SETUP ########
 
@@ -94,6 +95,7 @@
 
         # gardeningSpecialSeedList: changes to the list items are only necessary if you set gardeningAutoPlantNewSeed to 2 or 3
         # Comment out seed types you do not want to be handled as rare (select line/s -> right click -> comment, or put a # at the beginning of the line):
+        pushlist gardeningSpecialSeedList "peach seeds"
         pushlist gardeningSpecialSeedList "dungeon seed"
         pushlist gardeningSpecialSeedList "mushroom spore"
         pushlist gardeningSpecialSeedList "melloweed seed"
@@ -132,9 +134,10 @@
 //////////////////////////////
 // 
 // Changelog
-// - Update 11-Dec-2024 (V4): Added manual seed selection mode for planting new seeds
+// - Update 03-Dec-2024 (V4): Added manual seed selection mode for planting new seeds
 //                            Added overhead info above unprocessed planters outside 2 tiles range (max. 10)
 //                            Added possibility to continue gardening session in case script did not finish
+// - Update 20-Sep-2025:      Added peach seeds for harvestmaster event
 //
 //////////////////////////////
 
@@ -191,23 +194,7 @@ while findtype "planter|flower box|window planter|trough|flower pot" ground -1 -
         endif        
         settimer gardeningOverheadTimer 0
     endif
-    
-    //World save
-    if insysmsg "world is saving"
-        sysmsg "Waiting for world save ..."
-        settimer globalWorldSaveTimer 0
-        while timer globalWorldSaveTimer < 10000
-            if insysmsg "save complete"
-                sysmsg "The world has been saved!"
-                settimer gardeningMinWaitTimer 0
-                getlabel backpack waitForPing
-                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
-                endwhile
-                break
-            endif
-        endwhile
-    endif
-    
+
     if targetexists
         target cancel
     endif
@@ -232,7 +219,7 @@ while findtype "planter|flower box|window planter|trough|flower pot" ground -1 -
             wait gardeningWaitForObjectDelay
             @ignore myWaterContainer
         endwhile
-    
+
     endif
     
     clearsysmsg
@@ -293,7 +280,7 @@ while findtype "planter|flower box|window planter|trough|flower pot" ground -1 -
             //Seed already planted
         elseif gardeningAutoPlantNewSeed >= 4
             //Leave pot empty
-        elseif gumpexists gardeningPlantGumpID and findtype 22326|51078|51098|53611|54062|55139|58196|59449 backpack and not insysmsg! "That plant bowl is too far away."
+        elseif gumpexists gardeningPlantGumpID and findtype 63922|22326|51078|51098|53611|54062|55139|58196|59449 backpack and not insysmsg! "That plant bowl is too far away."
             //Set seed to plant
             if gardeningDebugMode > 0 
                 sysmsg "[Gardening] Trying to plant new seed (gardeningAutoPlantNewSeed: {{gardeningAutoPlantNewSeed}}, Timer: {{gardeningRunTimer}} ms)" cLightBlue
@@ -350,7 +337,10 @@ while findtype "planter|flower box|window planter|trough|flower pot" ground -1 -
                         setvar! gardeningSpecialPlanter 0
                     endif
                     if gardeningSpecialPlanter = 1
-                        if inlist gardeningSpecialSeedList "dungeon seed" and findtype 51098 backpack as myNewSeed
+                        if inlist gardeningSpecialSeedList "peach seeds" and findtype 63922 backpack as myNewSeed
+                            //Set peach seeds
+                            setvar! gardeningSeedToPlant myNewSeed                        
+                        elseif inlist gardeningSpecialSeedList "dungeon seed" and findtype 51098 backpack as myNewSeed
                             //Set dungeon seed
                             setvar! gardeningSeedToPlant myNewSeed
                         elseif inlist gardeningSpecialSeedList "mushroom spore" and findtype "mushroom spore" backpack as myNewSeed
@@ -392,7 +382,10 @@ while findtype "planter|flower box|window planter|trough|flower pot" ground -1 -
                         endif   
                     else
                         //low tier planter, plant low tier seed
-                        if not inlist gardeningSpecialSeedList "dungeon seed" and findtype 51098 backpack as myNewSeed
+                        if not inlist gardeningSpecialSeedList "peach seeds" and findtype 63922 backpack as myNewSeed
+                            //Set peach seeds
+                            setvar! gardeningSeedToPlant myNewSeed
+                        elseif not inlist gardeningSpecialSeedList "dungeon seed" and findtype 51098 backpack as myNewSeed
                             //Set dungeon seed
                             setvar! gardeningSeedToPlant myNewSeed
                         elseif not inlist gardeningSpecialSeedList "mushroom spore" and findtype "mushroom spore" backpack as myNewSeed
@@ -442,7 +435,10 @@ while findtype "planter|flower box|window planter|trough|flower pot" ground -1 -
                 //Seed already set
             elseif gardeningAutoPlantNewSeed = 3 and gardeningSpecialPlanter = 1 or gardeningAutoPlantNewSeed = 1
                 //Select all types of seeds
-                if findtype 51098 backpack as myNewSeed
+                if findtype 63922 backpack as myNewSeed
+                    //Set peach seeds
+                    setvar! gardeningSeedToPlant myNewSeed
+                elseif findtype 51098 backpack as myNewSeed
                     //Set dungeon seed
                     setvar! gardeningSeedToPlant myNewSeed
                 elseif findtype "mushroom spore" backpack as myNewSeed
@@ -528,21 +524,6 @@ while findtype "planter|flower box|window planter|trough|flower pot" ground -1 -
                 while gardeningWaterDone != 1 or gardeningSoilDone != 1
                     if gardeningDebugMode > 0
                         sysmsg "[Gardening] Optimizing Soil&Water (Loop-Index: {{index}}, WaterDone: {{gardeningWaterDone}}, SoilDone: {{gardeningSoilDone}}, Timer: {{gardeningRunTimer}} ms)" cLightBlue
-                    endif
-                    //World save
-                    if insysmsg "world is saving"
-                        sysmsg "Waiting for world save ..."
-                        settimer globalWorldSaveTimer 0
-                        while timer globalWorldSaveTimer < 10000
-                            if insysmsg "save complete"
-                                sysmsg "The world has been saved!"
-                                settimer gardeningMinWaitTimer 0
-                                getlabel backpack waitForPing
-                                while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
-                                endwhile
-                                break
-                            endif
-                        endwhile
                     endif
                     if targetexists
                         target cancel
@@ -668,21 +649,6 @@ while findtype "planter|flower box|window planter|trough|flower pot" ground -1 -
                             sysmsg "[Gardening] Removing debuffs - smart mode (Timer: {{gardeningRunTimer}} ms)" cLightBlue
                         endif
                         while not insysmsg! "That plant bowl is too far away."
-                            //World save
-                            if insysmsg "world is saving"
-                                sysmsg "Waiting for world save ..."
-                                settimer globalWorldSaveTimer 0
-                                while timer globalWorldSaveTimer < 10000
-                                    if insysmsg "save complete"
-                                        sysmsg "The world has been saved!"
-                                        settimer gardeningMinWaitTimer 0
-                                        getlabel backpack waitForPing
-                                        while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
-                                        endwhile
-                                        break
-                                    endif
-                                endwhile
-                            endif
                             if targetexists
                                 target cancel
                             endif
@@ -946,22 +912,6 @@ while findtype "planter|flower box|window planter|trough|flower pot" ground -1 -
                         //Kill all negativ effects without considering collateral damage to (potentially stronger) positive effects
                         if gardeningDebugMode > 0
                             sysmsg "[Gardening] Removing debuffs - normal mode (Timer: {{gardeningRunTimer}} ms)" cLightBlue
-                        endif
-                        
-                        //World save
-                        if insysmsg "world is saving"
-                            sysmsg "Waiting for world save ..."
-                            settimer globalWorldSaveTimer 0
-                            while timer globalWorldSaveTimer < 10000
-                                if insysmsg "save complete"
-                                    sysmsg "The world has been saved!"
-                                    settimer gardeningMinWaitTimer 0
-                                    getlabel backpack waitForPing
-                                    while timer gardeningMinWaitTimer < gardeningMinWaitForServerResponse
-                                    endwhile
-                                    break
-                                endif
-                            endwhile
                         endif
                         
                         if targetexists
@@ -1476,6 +1426,7 @@ overhead "|* Gardening Done *|" cGreen
             
     //Beneficial effects sysmsgs
         
+        #Scarecrow (Cannot be removed): Prevents crows, goats, and deer (Permanent Effect.)
         #Lucky Clovers (Cannot be removed): Increases total growth rate by 200%. 
 
         //Creature

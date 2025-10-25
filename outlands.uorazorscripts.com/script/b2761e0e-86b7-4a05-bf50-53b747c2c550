@@ -4,6 +4,8 @@
 ## Created by: kh1031#0
 #############################################
 
+#Update 10/25/2025 - Added additional safeguards against rune tome not renamed in time due to latency. Credit goes to the guy who sells Marked Witcher Rune Tome at Cambria gate.
+
 ### READ ME ###
 #You need a set of witcher runebook or rune tome in your backpack. The runes should be titled with only the witcher number and nothing else
 #You also need at least one rune tome in your backpack to serve as the gump to enter the witcher number you wish to travel to
@@ -20,34 +22,37 @@
 @setvar! witRuneTomeGumpID       167090027
 @setvar! witRuneTomeRenameGumpID 1263030975
 
-//START Reset Runetome Name
-dclick indexRuneTome
-waitforgump witRuneTomeGumpID
-gumpresponse 2
-waitforgump witRuneTomeRenameGumpID
-gumpresponse 1
-waitforgump witRuneTomeGumpID
-getlabel backpack PingCheck
-gumpclose witRuneTomeGumpID
-//END Reset Runetome Name
-wait 500
+@createtimer spamDelay
+@settimer spamDelay 1000
+
 while not dead
     getlabel indexRuneTome label
-    if label = "a rune tome [blessed]"
-        //START Rename RuneTome
-        dclick indexRuneTome
-        waitforgump witRuneTomeGumpID
-        gumpresponse 2
-        waitforgump witRuneTomeRenameGumpID
-        while gumpexists witRuneTomeRenameGumpID
-            getlabel backpack PingCheck
-            gumpclose witRuneTomeGumpID
-            overhead "Ï Enter Rune Name Ï " 88
-            wait 1000
-        endwhile
-        waitforgump witRuneTomeGumpID
+    //START Rename RuneTome
+    dclick indexRuneTome
+    waitforgump witRuneTomeGumpID
+    gumpresponse 2 167090027
+    waitforgump witRuneTomeRenameGumpID
+    
+    while gumpexists witRuneTomeRenameGumpID
+        getlabel backpack PingCheck
         gumpclose witRuneTomeGumpID
-        //END Rename RuneTome
+        if timer spamDelay > 1000
+            overhead "Ï Enter Rune Name Ï " 88
+            @settimer spamDelay 0
+        endif
+        wait 100
+    endwhile
+    waitforgump witRuneTomeGumpID
+    
+    gumpclose witRuneTomeGumpID
+    getlabel backpack PingCheck
+    
+    if not insysmsg "You rename the runetome"
+        overhead "Error: Rune Tome Not Properly Set" 26
+        stop
+    endif
+    
+    //END Rename RuneTome
         getlabel indexRuneTome label
         if label = "1 a rune tome [blessed]"
             say '[RecallCharge 1'
@@ -769,23 +774,13 @@ while not dead
             say '[RecallCharge 352'
         elseif label = "353 a rune tome [blessed]"
             say '[RecallCharge 353'
+        elseif label = "a rune tome [blessed]"
+            overhead "Error: Rune Tome Not Properly Set" 26
+            stop
         else
             overhead 'Error: Rune Name Not Recognized' 26
             replay
-        endif
-        getlabel backpack PingCheck
-        //START Reset Runetome Name
-        dclick indexRuneTome
-        waitforgump witRuneTomeGumpID
-        gumpresponse 2
-        waitforgump witRuneTomeRenameGumpID
-        gumpresponse 1
-        waitforgump witRuneTomeGumpID
-        getlabel backpack PingCheck
-        gumpclose witRuneTomeGumpID
-        //END Reset Runetome Name
-        break
-    else
-        overhead "Error: Remove Name on Runetome" 26
     endif
+    //END Reset Runetome Name
+    break
 endwhile

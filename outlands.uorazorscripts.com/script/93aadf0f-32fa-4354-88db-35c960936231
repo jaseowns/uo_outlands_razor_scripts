@@ -1,0 +1,690 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/93aadf0f-32fa-4354-88db-35c960936231 for latest
+# Automation by Jaseowns
+## Script: Michael's Miner
+## Created by: michael_8911#0
+#############################################
+
+# Michael's Miner v0.1
+# 10/29/25 - initial release
+
+# this script will not function properly if duplicate system messages are collapsed
+# make sure the following setting is UNchecked
+# Filters > Filter Messages > Filter Repeating System Messages
+
+# todo: reagent warning
+# todo: tool count warning
+
+# configuration - turn features on and off here
+// this will summon creatures to protect you
+@setvar! enableSummons 1 
+// this will recall away from pks
+@setvar! enableRecall 1 
+// this will automatically recall to a forge, smelt, dropoff, and return to mining
+@setvar! enableAutoSmelt 1 
+// this will automatically smelt via a nearby forge
+@setvar! enableLocalSmelt 0
+// auto-dropoff only activates if auto-smelt is on
+@setvar! enableAutoDropoff 1 
+
+# settings - set preferences and references here
+// this is used to auto-smelt
+@setvar! weightThreshold 500
+// this is used for auto-dropoff
+@setvar! autoDropoffContainer 0x4924CD6F 
+@setvar! useMeditation 0
+@setvar! minManaToSummon 61
+
+# protection
+@setvar! useMagicReflect 1
+@setvar! useBless 0
+@setvar! useReactiveArmor 1
+@setvar! useProtection 0
+
+# enter home
+@setvar! useHardCodedRooms 1
+@setvar! myRoom 1
+@setvar! accountHasRoom 0
+// zero-based index of the room to enter
+@setvar! coOwnRoomIndex 0
+
+@setvar! useCustomRoomIndex 0
+@setvar! customRoomIndex 106
+
+# summoning
+@setvar! summonCastCooldown 5050
+@setvar! allGuardCooldown 60000
+
+# message cooldowns
+@setvar! moveMessageCooldown 4000
+@setvar! travelMessageCooldown 5000
+@setvar! waitMessageCooldown 2500
+@setvar! townMessageCooldown 5000
+@setvar! stationaryMessageCooldown 2500
+@setvar! harvestMessageCooldown 2500
+@setvar! smeltHereMessageCooldown 2500
+
+# state
+if not varexist waitForMana
+    @setvar! waitForMana 0
+endif
+
+if not varexist targetMana
+    @setvar! targetmana 0
+endif
+
+if not varexist forgeFailed
+    @setvar! forgeFailed 0
+endif
+
+if not varexist noNodeNearby
+    @setvar! noNodeNearby 0
+endif
+
+if not varexist isHarvesting
+    @setvar! isHarvesting 0
+endif
+
+if not varexist currentDelay
+    @setvar! currentDelay 0
+elseif currentDelay < 0
+    @setvar! currentDelay 0
+elseif currentDelay > 60000
+    @setvar! currentDelay 0
+endif
+
+# technical
+@setvar! printDiagnostics 1
+
+@setvar! processLoopTick 50
+@setvar! delayTick 50
+
+@setvar! postMarkDelay 2500
+@setvar! postRecallDelay 2500
+@setvar! postHouseEntryDelay 2500
+@setvar! postCastDelay 500
+@setvar! postHarvestDelay 100
+
+@setvar! noNodeNearbyDelay 750
+@setvar! travelDelay 1000
+@setvar! townDelay 1000
+@setvar! waitDelay 500
+@setvar! successfulHarvestAttemptDelay 100
+@setvar! stationaryDelay 150
+
+
+@setvar! minWait 100
+
+# object ids
+
+@setvar! pickaxe 3718
+@setvar! ore 6585
+@setvar! ingot 7154
+
+# materials setup
+@setvar! iron 0
+@setvar! dullCopper 2419
+@setvar! shadow 2406
+@setvar! copper 2413 
+@setvar! bronze 2418
+@setvar! gold 2213
+@setvar! rose 2425
+@setvar! agapite 2425
+@setvar! verite 2207
+@setvar! valorite 2219
+@setvar! avarite  1763
+
+if not listexists materialHueList
+    createlist materialHueList
+
+    pushlist materialHueList iron
+    pushlist materialHueList dullCopper
+    pushlist materialHueList shadow
+    pushlist materialHueList copper
+    pushlist materialHueList bronze
+    pushlist materialHueList gold
+    pushlist materialHueList rose
+    pushlist materialHueList agapite
+    pushlist materialHueList verite
+    pushlist materialHueList valorite
+    pushlist materialHueList avarite
+endif
+
+# timer setup
+if not timerexists 'delayTimer'
+    createtimer 'delayTimer'
+endif
+
+if not timerexists 'allGuardTimer'
+    createtimer 'allGuardTimer'
+endif
+
+if not timerexists 'moveMessageTimer'
+    createtimer 'moveMessageTimer'
+    settimer 'moveMessageTimer' 'moveMessageCooldown'
+endif
+
+if not timerexists 'harvestMessageTimer'
+    createtimer 'harvestMessageTimer'
+    settimer 'harvestMessageTimer' 'harvestMessageCooldown'
+endif
+
+if not timerexists 'smeltHereMessageTimer'
+    createtimer 'smeltHereMessageTimer'
+    settimer 'smeltHereMessageTimer' 'smeltHereMessageCooldown'
+endif
+
+if not timerexists 'stationaryMessageTimer'
+    createtimer 'stationaryMessageTimer'
+    settimer 'stationaryMessageTimer' 'stationaryMessageCooldown'
+endif
+
+if not timerexists 'travelMessageTimer'
+    createtimer 'travelMessageTimer'
+    settimer 'travelMessageTimer' 'travelMessageCooldown'
+endif
+
+if not timerexists 'waitMessageTimer'
+    createtimer 'waitMessageTimer'
+    settimer 'waitMessageTimer' 'waitMessageCooldown'
+endif
+
+if not timerexists 'townMessageTimer'
+    createtimer 'townMessageTimer'
+    settimer 'townMessageTimer' 'townMessageCooldown'
+endif
+
+# auto smelt setup
+if enableAutoSmelt = 1 and not varexist returnRune
+    overhead 'Choose a return rune for auto smelting' 7
+    setvar! returnRune
+    
+    if returnRune = 0
+        overhead 'Need a valid return rune - aborting' 32
+        stop
+    endif
+endif
+
+### SCRIPT EXECUTION ###
+while casting 
+    overhead 'Casting' 7
+    wait minWait
+endwhile
+
+# mana recovery - used to achieve target mana while maintaining PK awareness
+if waitForMana = 1
+    if useMeditation = 1 and not findbuff 'meditating'
+        skill 'meditation'
+    endif
+    
+    while mana < targetMana
+        if enableRecall = 1 and mana >= 11
+            if insysmsg 'Now tracking' or insysmsg 'Distance'
+                say '[recall Home'
+                wait 50
+                say 'Peace!'
+                stop
+            endif
+        endif
+    
+        wait minWait
+    endwhile
+    
+    @setvar! waitForMana 0
+endif
+
+
+# delay timer - used to schedule execution ticks while maintaining PK awareness
+if timer delayTimer < currentDelay
+    if printDiagnostics = 1
+        overhead "Delaying: {{currentDelay}}"
+    endif
+
+    while timer delayTimer < currentDelay
+        if enableRecall = 1
+            if insysmsg 'Now tracking' or insysmsg 'Distance'
+                if mana < 11                    
+                    overhead 'You let your mana get too low!' 32
+                    @setvar! waitForMana 1
+                    @setvar! targetMana 11
+                    loop
+                endif
+    
+                say '[recall Home'
+                wait 50
+                say 'Peace!'
+                stop
+            endif
+        endif
+        
+        wait delayTick
+    endwhile
+endif
+
+# recall to safety
+if enableRecall = 1
+    if insysmsg 'Now tracking' or insysmsg 'Distance'
+        if mana < 11                    
+            overhead 'You let your mana get too low!' 32           
+            @setvar! waitForMana 1
+            @setvar! targetMana 11
+            loop
+        endif
+    
+        say '[recall Home'
+        stop
+    endif
+endif
+
+clearsysmsg
+
+# auto-smelt
+if diffweight <= weightThreshold and enableAutoSmelt = 1
+    # wait for mana to cast mark + recall
+    if mana < 31
+        overhead 'Regening mana for autosmelt' 7
+        @setvar! waitForMana 1
+        @setvar! targetMana 31
+        loop
+    endif
+    
+    overhead 'Autosmelting' 7
+    
+    cast 'mark'
+    wft 5000
+    target returnRune
+    wait postMarkDelay
+
+    say '[recall forge'
+    wait postRecallDelay
+    
+    foreach mat in materialHueList
+        if findtype ore backpack mat as orePile
+            dclick orePile
+            wait 250
+        endif
+    endfor
+    
+    if enableAutoDropoff = 1
+        # we don't use our mana loop here since we are assuming the forge is in a safe location
+        if mana < 11
+            overhead 'Waiting for mana...' 7
+            if useMeditation = 1
+                skill 'meditation'
+            endif
+        
+            while mana < 11
+                wait minWait
+            endwhile
+        endif
+    
+        say '[recall home'
+        wait postRecallDelay
+    
+        say 'room'
+        waitforgump 2393832411
+        # enter inn room
+        if useHardCodedRooms = 1
+            if name = 'ChopChopperChop'
+                gumpresponse 4
+            elseif name = 'ChopChopOnTheWay'
+                gumpresponse 6
+                waitforgump 2393832411
+                gumpresponse 100
+            elseif name = "ChoppityChopChop"
+                gumpresponse 5
+                waitforgump 2393832411
+                gumpresponse 100
+            endif
+        else
+            if myRoom = 1
+                gumpresponse 4
+            else
+                if accountOwnsRoom = 1
+                    gumpresponse 6
+                else
+                    gumpresponse 5
+                endif
+                waitforgump 2393832411
+                
+                if useCustomRoomIndex = 1
+                    gumpresponse customRoomIndex
+                else
+                    if coOwnRoomIndex = 0
+                        gumpresponse 100
+                    elseif coOwnRoomIndex = 1
+                        gumpresponse 101
+                    elseif coOwnRoomIndex = 2
+                        gumpresponse 102
+                    elseif coOwnRoomIndex = 3
+                        gumpresponse 103
+                    elseif coOwnRoomIndex = 4
+                        gumpresponse 104
+                    elseif coOwnRoomIndex = 5
+                        gumpresponse 105
+                    else
+                        overhead 'Room index out of range'
+                        stop
+                    endif
+                endif
+            endif
+        endif
+        
+        wait postHouseEntryDelay
+        
+        foreach mat in materialHueList
+            while findtype ingot backpack mat as ingotPile
+                lift ingotPile 10000
+                drop autoDropoffContainer -1 -1 -1
+                wait 500
+            endwhile
+        endfor
+    endif
+    
+    # no mana loop here since we are safely in our room
+    if mana < 72
+        overhead 'Waiting for mana' 7
+        if useMeditation = 1
+            skill 'meditation'
+        endif
+    
+        while mana < 72
+            wait 500
+        endwhile
+    endif
+    
+    cast 'recall'
+    wft 5000
+    target returnRune
+    wait postRecallDelay
+    loop
+endif
+
+# pause for world save
+if insysmsg 'world is saving'
+    for 120
+        overhead 'Waiting for Save' 7
+        wait 250
+        if insysmsg 'save complete'
+            overhead 'Save Finished' 7
+            clearsysmsg
+            loop
+        endif
+    endfor
+endif
+
+# turn on tracking
+if not findbuff 'tracking'
+    overhead 'Starting Tracking' 7
+    useskill 'tracking'
+    while not gumpexists 4267467659
+        wait 100
+    endwhile
+    
+    # set to track all hostiles
+    while not insysmsg "You will now hunt all hostile players."
+        gumpresponse 8 4267467659
+        waitforgump 4267467659 5000
+    endwhile
+    
+    gumpresponse 6 4267467659
+    wait 1000
+    gumpclose 4267467659
+    clearsysmsg     
+endif
+
+
+# summon protection
+if enableSummons = 1
+    if followers < 1 
+        if mana < minManaToSummon
+            @setvar! waitForMana 1
+            @setvar! targetMana minManaToSummon
+            loop
+        else
+            cast 'Earth Elemental'
+            wait summonCastTime
+            say 'All Guard Me' 7
+            settimer 'allGuardTimer' 0
+        endif
+    endif
+endif
+
+if enableSummons = 1 and timer 'allGuardTimer' >= allGuardCooldown
+    settimer 'allGuardTimer' 0
+    say 'All Guard Me' 7
+endif
+
+
+# cast protective spells
+if useBless = 1 
+    if not findbuff 'strength' or not findbuff 'agility' or not findbuff 'cunning'
+        if mana < 20
+            @setvar! waitForMana 1
+            @setvar! targetMana 20
+            loop
+        endif
+        
+        cast 'Bless'
+        wft 5000
+        target self
+        wait postCastDelay
+    endif
+endif
+
+# todo: will not adhere
+if useMagicReflect = 1 and not findbuff 'Magic Reflection'
+    if mana < 25
+        @setvar! waitForMana 1
+        @setvar! targetMana 25
+        loop
+    endif
+    
+    cast 'Magic Reflection'
+    wait 1500
+    wait postCastDelay
+endif
+
+if useReactiveArmor = 1 and not findbuff 'Reactive Armor'
+    if mana < 15
+        @setvar! waitForMana 1
+        @setvar! targetMana 15
+        loop
+    endif
+    
+    cast 'Reactive Armor'
+    wait 500
+    wait postCastDelay
+endif
+
+if useProtection = 1 and not findbuff 'Protection'
+    if mana < 17
+        @setvar! waitForMana 1
+        @setvar! targetMana 17
+        loop
+    endif
+    
+    cast 'Protection'
+    wait 750
+    wait postCastDelay
+endif
+
+# equip tool
+if rhandempty == 1
+    if findtype pickaxe backpack as pick
+        dclick pick
+        wait 150
+    else
+        overhead 'No Pick!' 32
+        wait 1000
+        loop
+    endif
+endif
+
+
+# look for a forge
+if enableLocalSmelt = 1
+    if findtype 'forge' ground -1 -1 12 as forge
+        if timer 'smeltHereMessageTimer' >= 'smeltHereMessageCooldown'
+            overhead "Smelt Here" 53 forge
+            settimer 'smeltHereMessageTimer' 0
+        endif
+    endif
+    
+    if findtype 'forge' ground -1 -1 2
+        while findtype ore as orePile
+            dclick orePile
+        endwhile
+    endif
+endif
+
+
+# mine ore
+hotkey 'Use item in hand'
+wait postHarvestDelay
+
+#process result
+for 10
+    if printDiagnostics = 1
+        overhead "Process Loop: {{index}}"
+    endif
+    
+    # recall to safety
+    if enableRecall = 1
+        if insysmsg 'Now tracking' or insysmsg 'Distance'
+            if mana < 11                    
+                overhead 'You let your mana get too low!'                
+                if useMeditation = 1
+                    skill 'meditation'
+                endif
+                while mana < 11
+                    wait 100
+                endwhile
+            endif
+        
+            say '[recall Home'
+            wait 50
+            say 'Peace!'
+            stop
+        endif
+    endif
+
+    # pause for world save
+    if insysmsg 'world is saving'
+        for 120
+            overhead 'Waiting for Save' 88
+            wait 100
+            if insysmsg 'save complete'
+                overhead 'Save Finished' 88
+                clearsysmsg
+                loop
+            endif
+        endfor
+    endif
+    
+    # keep pet guarding
+    if enableSummons = 1 and timer 'allGuardTimer' >= allGuardCooldown
+        settimer 'allGuardTimer' 0
+        say 'All Guard Me' 1
+    endif
+
+    # process harvest result
+    # no nearby node
+    if insysmsg 'You do not see any harvestable'
+        if printDiagnostics = 1
+            overhead 'No Node'
+        endif
+    
+        if timer 'moveMessageTimer' >= 'moveMessageCooldown'
+            overhead 'Move To Next Spot' 32
+            overhead 'Move To Next Spot' 32
+            settimer 'moveMessageTimer' 0
+        endif
+        
+        @setvar! noNodeNearby 1
+        @setvar! isHarvesting 0
+        
+        settimer delayTimer 0
+        @setvar! currentDelay noNodeNearbyDelay
+        loop
+    # recently traveled
+    elseif insysmsg 'stationary penalty'
+        if printDiagnostics = 1
+            overhead 'Stationary Penalty'
+        endif
+    
+        if timer 'stationaryMessageTimer' >= 'stationaryMessageCooldown'
+            overhead 'Move 5 Tiles' 32
+            settimer 'stationMessageTimer' 0
+        endif
+        
+        @setvar! isHarvesting 0
+        settimer delayTimer 0
+        @setvar! currentDelay stationaryDelay
+        loop
+        elseif insysmsg 'travel' or insysmsg 'teleport'
+        if timer 'travelMessageTimer' >= 'travelMessageCooldown'
+            overhead 'Wait For Travel/Teleport' 7
+            settimer 'travelMessageTimer' 0
+        endif
+        
+        @setvar! isHarvesting 0
+        settimer delayTimer 0
+        @setvar! currentDelay travelDelay
+        loop
+    # unspecified delay
+    elseif insysmsg 'You must wait'
+        if printDiagnostics = 1
+            overhead 'Must Wait'
+        endif
+    
+        if timer 'waitMessageTimer' >= waitMessageCooldown
+            overhead 'Waiting' 7
+            settimer 'waitMessageTimer' 0
+        endif
+        
+        @setvar! isHarvesting 0
+        settimer delayTimer 0
+        @setvar! currentDelay waitDelay
+        loop
+    # in town
+    elseif insysmsg 'harvesting is not allowed'
+        if printDiagnostics = 1
+            overhead 'In Town'
+        endif
+        
+        if timer 'townMessageTimer' >= 'townMessageCooldown'
+            overhead 'Move Out of Town' 32
+            settimer 'townMessageTimer' 0
+        endif
+    
+        @setvar! isHarvesting 0
+        settimer delayTimer 0
+        @setvar! currentDelay townDelay
+        loop
+    # successful harvest attempt
+    elseif insysmsg 'you loosen some' or insysmsg 'you dig some' or insysmsg 'you hack' or insysmsg  'you chop'
+        if printDiagnostics = 1
+            overhead 'Harvest Attempt Made'
+        endif
+    
+        if noNodeNearby = 1 and isHarvesting = 0
+            overhead 'Good spot!' 52
+        elseif timer 'harvestMessageTimer' >= 'harvestMessageCooldown'
+            overhead 'Harvesting' 74
+            settimer 'harvestMessageTimer' 0
+        endif
+    
+        @setvar! noNodeNearby 0
+        @setvar! isHarvesting 1
+        
+        settimer delayTimer 0
+        @setvar! currentDelay successfulHarvestAttemptDelay
+        loop
+    endif
+    
+    wait processLoopTick
+endfor
+if printDiagnostics = 1
+    sysmsg 'Did not find matching system message before timeout'
+endif
+loop

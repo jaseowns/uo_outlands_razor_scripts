@@ -1,0 +1,180 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/416f04fb-b581-45db-849e-f513fb8304d9 for latest
+# Automation by Jaseowns
+## Script: Map Decipher with spyglass recycle
+## Created by: gmussi#0
+#############################################
+
+# Resource Map Decoder 1.0 by MORTADELAZ
+
+# WHAT IT DOES
+# - Gets spyglass from the shelf
+# - Decipher maps in the backpack
+# - Recycles spyglass when there is only 1 use left
+# - Put 100% deciphered maps back in the tome
+#
+# HOW TO USE
+# - have any recycling tool in the backpack (sewing kit, tinker tools, etc)
+# - put tome in backpack
+# - remove maps from it
+# - set shelf with spyglass to use
+# - run script
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!!!!!! ATTENTION !!!!!!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!
+# Dont remove ALL maps at once!!! 
+# It makes no sense to use avarite spyglass with dullhide map
+# You also cant decipher avarhide map with bronze spyglass
+# !!!! PLAN ACCORDINGLY !!!!
+
+# Take spyglasses from shelf? 1=yes, 0=no
+@setvar! spyglass_restock 1
+
+@setvar! timeout 650
+@setvar! short_timeout 200
+
+@setvar! ore_gump 3367641484
+@setvar! skinning_gump 3473029237
+@setvar! lumber_gump 1332805401
+@setvar! treasure_gump 1520869851
+@setvar! fishing_gump 2589357942
+@clearignore
+
+if not listexists undecoded_map_list
+    createlist undecoded_map_list
+else
+    clearlist undecoded_map_list
+endif
+
+// Refill Spyglasses
+if spyglass_restock == 1
+    if not findtype "spyglass" backpack
+        if findtype "storage shelf" ground -1 -1 2 as shelf
+            menu shelf 1
+            wait short_timeout
+        endif
+
+        for 12
+            say "Need spyglass" 34
+            wait 5000
+            if findtype "spyglass" backpack
+                break
+            endif
+        endfor
+    endif
+endif
+
+// Close map gumps
+gumpclose ore_gump
+gumpclose skinning_gump
+gumpclose lumber_gump
+gumpclose treasure_gump
+gumpclose fishing_gump
+
+
+@clearignore
+while findtype "map" backpack as resource_map
+    getlabel resource_map desc
+    overhead desc
+    
+    if "[100.0%" in desc or "(100.0%" in desc
+        if findtype 29104 backpack as tome
+            lift resource_map
+            wait short_timeout
+            drop tome
+        else
+            overhead "Where tome?"
+        endif
+    else
+        // Find number of undecoded maps left
+        if findtypelist undecoded_map_list "map" backpack any
+        endif
+        for 200
+            if list undecoded_map_list = "index"
+                @setvar! num_undecoded_maps "index"
+                break
+            endif
+        endfor
+        if num_undecoded_maps == 0
+        elseif num_undecoded_maps == 1
+            overhead "{{num_undecoded_maps}} map to decode" 88
+        else
+            overhead "{{num_undecoded_maps}} maps to decode" 88
+        endif
+        
+        // Check for spyglasses
+        if findtype "spyglass" backpack as glass
+            @setvar! myglass glass
+            dclick glass
+        elseif spyglass_restock == 1
+            replay
+        else
+            for 12
+                say "Out of Spyglasses!" 34
+                wait 5000
+            endfor
+        endif
+        wft 1500
+        target resource_map
+        
+        // Select gump for current map
+        @setvar! gumpIdToCheck 0
+        if "ore" in desc
+            @setvar! gumpIdToCheck ore_gump
+        elseif "skinning" in desc
+            @setvar! gumpIdToCheck skinning_gump
+        elseif "lumber" in desc
+            @setvar! gumpIdToCheck lumber_gump
+        elseif "treasure" in desc
+            @setvar! gumpIdToCheck treasure_gump
+        elseif "fishing" in desc
+            @setvar! gumpIdToCheck fishing_gump
+        else
+        overhead "Unknown gump!" 34
+        endif
+        
+        waitforgump gumpIdToCheck 1000
+        
+        // Decode the map
+        overhead "Updating..."
+        clearsysmsg
+        while gumpexists gumpIdToCheck
+            if insysmsg "do not have any spyglasses"
+                replay
+            endif
+            getlabel resource_map desc
+            if "[100.0%" in desc or "(100.0%" in desc
+                gumpclose gumpIdToCheck
+                @ignore resource_map
+                else 
+                    if find myglass backpack
+                    getlabel myglass glasslabel
+                    overhead glasslabel
+                    if "(1 uses" in glasslabel or "[1 uses" in glasslabel
+                        if findtype 4032|4032|3997|7864|4148|4136 as recyclingtool
+                            if not gumpexists 949095101
+                                if findtype 4032|3997|7864|4148|4136 backpack as recyclerItemKit
+                                    dclick recyclerItemKit
+                                    waitforgump 949095101 5000
+                                endif
+                            endif
+                            if gumpexists 949095101      
+                                gumpresponse 3 949095101
+                                wft 500
+                                target myglass
+                                overhead "Recycling spyglass"
+                                replay
+                             endif
+                        endif
+                    endif
+                endif
+                gumpresponse 4 gumpIdToCheck
+                wait timeout
+            endif
+        endwhile
+        
+        replay
+    endif
+    
+    wait short_timeout
+endwhile

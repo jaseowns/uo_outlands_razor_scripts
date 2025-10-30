@@ -5,7 +5,7 @@
 #############################################
 
 # "***Bapeths Modern Dungeon Picker***"
-# October 29 2025 - Loot list update
+# October 30 2025 - Improved auto skinner
 #
 # "***READ THIS***READ THIS***READ THIS***READ THIS***"
 #
@@ -146,6 +146,89 @@ if not find "bsummon2" ground and findtype "an earth elemental|a fire elemental|
     endif
 elseif not find "bsummon2" gorund and findtype "LootGolems" ground as sum2
     @setvar "bsummon2" sum2
+endif
+
+if skill "Parrying" >= 80 and mana >= 6
+    if not timerexists checkshieldcodex
+        createtimer checkshieldcodex
+        settimer checkshieldcodex 13000
+    elseif timer checkshieldcodex >= 13000
+        settimer checkshieldcodex 0
+        if findtype "shield codex" backpack as scodex
+            getlabel scodex desc
+            if "Shield Bash" in desc
+                overhead "--Shield Bash Active--" 2490
+            elseif "Warding" in desc
+                overhead "--Warding Active--" 2087
+                if not findbuff "Bleed" and not findbuff "Diseased"
+                    say "[ShieldsStance1" 45
+                    getlabel backpack ping
+                    say "[ShieldsFinisher1" 45
+                endif
+            elseif "Testudo" in desc
+                overhead "--Testudo Active--" 2503
+            elseif "Mirror" in desc
+                overhead "--Mirror Active--" 2615
+            elseif "Bulwark" in desc
+                overhead "--Bulwark Active--" 2767
+            else 
+                overhead "No Stance Active" 45
+                overhead "Defaulting to Shield Bash" 45
+                say "[ShieldsStance1"
+            endif
+        endif
+    endif
+    if not timerexists bleedbuffcheck and findbuff "Bleed" and not findbuff "Diseased"
+        removetimer bullwarkactive
+        createtimer bleedbuffcheck
+        say "[ShieldsStance2" 45
+        getlabel backpack ping
+        say "[ShieldsFinisher2" 45
+    elseif timerexists bleedbuffcheck and not findbuff "Bleed" and not findbuff "Diseased"
+        removetimer bleedbuffcheck
+        pause 800
+        getlabel backpack ping
+        say "[ShieldsStance1" 45
+        getlabel backpack ping
+        say "[ShieldsFinisher1" 45
+    endif
+    if not timerexists diseasebuffcheck and findbuff "Diseased" and not findbuff "Bleed"
+        removetimer bullwarkactive
+        createtimer diseasebuffcheck
+        say "[ShieldsStance2" 45
+        getlabel backpack ping
+        say "[ShieldsFinisher2" 45
+    elseif timerexists diseasebuffcheck and not findbuff "Diseased" and not findbuff "Bleed"
+        removetimer diseasebuffcheck
+        pause 800
+        getlabel backpack ping
+        say "[ShieldsStance1" 45
+        getlabel backpack ping
+        say "[ShieldsFinisher1" 45
+    endif
+    if timerexists baptrapcombat
+        if not findbuff "Diseased" and not findbuff "Bleed" and not timerexists defaultstance and timer baptrapcombat <= 10000
+            if not timerexists "bullwarktime"
+                createtimer bullwarktime
+            endif    
+            if cooldown "Move"
+                settimer bullwarktime 0
+            endif
+            if not timerexists bullwarkactive and timer bullwarktime >= 3000
+                say "[ShieldsStance5" 45
+                createtimer bullwarkactive
+            endif
+        endif
+    endif
+    if cooldown "Move"
+        settimer bullwarktime 0
+    endif
+    if timerexists bullwarkactive
+        if timer bullwarktime < 3000
+            say "[ShieldsStance1" 45
+            removetimer bullwarkactive
+        endif
+    endif
 endif
 
 if findtype 5912 self and not varexist "bwiz" and findlayer self head as regularhat
@@ -1859,7 +1942,7 @@ if timerexists skinnerswitch
         overhead "--Skinner Mode Disabled--" 1779
     endif
 endif
-if not hidden and not casting and findtype "11552" backpack
+if not targetexists and not hidden and not casting and findtype "11552" backpack
     if not warmode and timerexists skinnerswitch
         if not find "bknife" backpack and findtype "11552" backpack as newknife
             @setvar "bknife" newknife
@@ -1885,6 +1968,16 @@ if not hidden and not casting and findtype "11552" backpack
                     overhead "*carved*" 1779 bcorpse
                     @ignore bcorpse
                 endif
+            endif
+            if casting 
+                while casting 
+                    //donothing
+                endwhile
+                getlabel backpack ping
+                break
+            endif
+            if targetexists 
+                break
             endif
         endwhile
         clearsysmsg 

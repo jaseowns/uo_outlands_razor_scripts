@@ -4,9 +4,9 @@
 ## Created by: barryroser#0
 #############################################
 
-# Bapeths Butler   (MAP DECODER NOT ADDED YET - SOON)
+# Bapeths Butler 
 #
-# Nov 10th 2025 - Overhauled code for new functionality - Read below...
+# Nov 10th 2025 - Overhauled code for new functionality - Read below... (Will add Research Materials Later)
 #
 # What it does:
 # "Casts Bless and Protection on you main character" - Create an entry in the Razor Friends tab called "Friends" and add your main character.
@@ -44,11 +44,13 @@
 # Items this script uses are as follows:
 #
 # Charater Items:
-# "Iron Lockpicks"
-# "Avarite Trap Removal Tools"
-# "Agapite Spyglass or higher"
-# "Reagents in an Avarhide Wizards Satchel"
-
+# "Iron Lockpicks" x2
+# "Avarite Trap Removal Tools" x2
+# "Agapite Spyglass or higher" x3
+# "Reagents in an Avarhide Wizards Satchel" 
+#
+# Set your storage shelf to restock these items and the script will auto stock periodically
+#
 # Storage Items:
 # "Two containers of any kind"
 # "A rune tome"
@@ -76,12 +78,11 @@
 # Do not put any of these items inside containers although it may work with some of them in containers
 #
 # Script starts here
-
 if not varexist lootchestdump
     overhead "Set Main Loot Container" 88
     hotkey "Cancel Current Target"
     setlasttarget 
-    wft 500
+    wft 1000
     while targetexists      
         //donothing
     endwhile
@@ -92,7 +93,7 @@ if not varexist lootchestdump2
     overhead "Set Second Loot Container" 88
     hotkey "Cancel Current Target"
     setlasttarget 
-    wft 500
+    wft 1000
     while targetexists      
         //donothing
     endwhile
@@ -191,6 +192,14 @@ if not varexist magicchest
     endif
 endif
 
+if not timerexists bapbutler
+    createtimer bapbutler
+    settimer bapbutler 17500
+elseif timer bapbutler >= 17500
+    say "I exist to serve thee, Master..." 78
+    settimer bapbutler 0
+endif
+
 if skill "Magery" >= 40 and mana >= 10
     if timerexists reactive and not findbuff "Reactive Armor"
         if timer reactive > 30000
@@ -205,6 +214,18 @@ if skill "Magery" >= 40 and mana >= 10
     endif
 endif
 
+if not timerexists shelfrestock
+    createtimer shelfrestock
+    settimer shelfrestock 25000
+endif
+if timer shelfrestock >= 25000
+    settimer shelfrestock 0
+    dclick "myshelf"
+    waitforgump 3232825965 500
+    gumpresponse 7
+    waitforgump 3232825965 500
+    gumpclose 3232825965
+endif
 
 // Magery Buffer
 if skill "Magery" >= 60 and mana >= 20
@@ -275,7 +296,7 @@ if skill "Item ID" = 120
         while not insysmsg "What do you wish to appraise"
             skill "itemidentification"
         endwhile
-        wft 500
+        wft 1000
         target "magicrecycler"
         getlabel backpack ping
         pause 500
@@ -297,7 +318,7 @@ if skill "Item ID" = 120
         endif
         gumpclose 4045111101
         menu magicchest 0
-        wft 500
+        wft 1000
         target "magicrecycler"
     endif
 endif
@@ -305,7 +326,7 @@ endif
 // Ship Crate Expediter
 if findtype 3645|3644 ground -1 -1 2 as shipcrate
     hotkey 'Set Grab Item HotBag'
-    wft 500
+    wft 1000
     target backpack
     pause 300
     dclick shipcrate
@@ -360,25 +381,82 @@ if findtype 3645|3644 ground -1 -1 2 as shipcrate
     menu magicrecycler 1
     getlabel backpack ping
     hotkey 'Grab Item' 
-    wft 500
+    wft 1000
     target shipcrate
 endif
 
-
-
 //Treasure Map Decoder
-
-if skill "Cartography" >= 120
-    
-
-
-
-
-
+if skill "Cartography" >= 120 and findtype "spyglass" backpack
+    if not timerexists mapdecodetimer
+        createtimer mapdecodetimer
+        settimer mapdecodetimer 5000
+    endif
+    if timer mapdecodetimer >= 5000  
+        settimer mapdecodetimer 0
+        if findtype "spyglass" backpack as spygls
+            dclick lootchestdump
+            gumpclose 1520869851
+            gumpclose 3367641484
+            gumpclose 3473029237
+            gumpclose 1332805401
+            gumpclose 2589357942
+            getlabel backpack ping
+            if findtype "Map" "lootchestdump" as map
+                drop backpack
+                lift map
+                drop backpack
+                while queued
+                    //donothing
+                endwhile
+                dclick spygls
+                wft 1000
+                target map
+                getlabel backpack ping
+                for 100
+                    gumpresponse 4
+                    waitforgump 3367641484 1000
+                    pause 500
+                    if insysmsg "You have reached the maximum accuracy possible"
+                        break
+                    endif
+                    if not findtype "spyglass" backpack
+                        dclick "myshelf"
+                        waitforgump 3232825965 1000
+                        gumpresponse 7
+                        waitforgump 3232825965 1000
+                        gumpclose 3232825965
+                        dclick map
+                        getlabel backpack ping
+                        if not findtype "spyglass" backpack
+                            overhead "I have no spyglass..." 38
+                            replay
+                        endif
+                    endif
+                endfor
+                getlabel map color
+                if "treasure" in color
+                    menu treasuremaptome 0
+                elseif "ore" in color
+                    menu oremaptome 0
+                elseif "skinning" in color
+                    menu skinningmaptome 0
+                elseif "lumber" in color
+                    menu lumbermaptome 0
+                elseif "fishing" in color
+                    menu fishingmaptome 0
+                endif
+                gumpclose 1520869851
+                gumpclose 3367641484
+                gumpclose 3473029237
+                gumpclose 1332805401
+                gumpclose 2589357942
+            endif
+        endif
+    endif
 endif
-
+            
 // Paragon Chest opener
-if skill "Lockpicking" = 120 and skill "Detect" = 120
+if skill "Lockpicking" = 120 and skill "Detect" = 120 and findtype "lockpicks" backpack and findtype "drill" backpack
     if not timerexists paragontimer
         createtimer paragontimer
         settimer paragontimer 5000
@@ -413,7 +491,7 @@ if skill "Lockpicking" = 120 and skill "Detect" = 120
             dclick ParagonChest
             getlabel backpack ping
             if not insysmsg "It appears to be locked."
-                overhead "Already unlocked...." 45
+                overhead "Already unlocked..." 45 ParagonChest
                 @ignore ParagonChest
             endif
             if gumpexists 736038070 and not ingump "Cleared Of Traps" 736038070
@@ -431,6 +509,21 @@ if skill "Lockpicking" = 120 and skill "Detect" = 120
                 endwhile
                 overhead "*disarming*" 1060 ParagonChest
                 while not dead 
+                    if not findtype "drill" backpack
+                        dclick "myshelf"
+                        waitforgump 3232825965 1000
+                        gumpresponse 7
+                        waitforgump 3232825965 1000
+                        gumpclose 3232825965
+                        dclick ParagonChest
+                        waitforgump 736038070 1000
+                        gumpresponse 7
+                        getlabel backpack ping
+                        if not findtype "drill" backpack
+                            overhead "I have no Trap Tools..." 38
+                            replay
+                        endif
+                    endif
                     if insysmsg "You make some progress towards clearing it of traps"
                         overhead "*clink*" 810 ParagonChest
                     endif            
@@ -460,6 +553,21 @@ if skill "Lockpicking" = 120 and skill "Detect" = 120
                 endwhile
                 overhead "*picking*" 1060 ParagonChest
                 while not dead 
+                    if not findtype "lockpicks" backpack
+                        dclick "myshelf"
+                        waitforgump 3232825965 1000
+                        gumpresponse 7
+                        waitforgump 3232825965 1000
+                        gumpclose 3232825965
+                        dclick ParagonChest
+                        waitforgump 736038070 1000
+                        gumpresponse 7
+                        getlabel backpack ping
+                        if not findtype "lockpicks" backpack
+                            overhead "I have no Lockpicks..." 38
+                            replay
+                        endif
+                    endif
                     if insysmsg "You make some progress on the lock"
                         overhead "*click*" 810 ParagonChest
                     endif

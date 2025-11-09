@@ -6,13 +6,14 @@
 
 # Bapeths Butler 
 #
-# Nov 10th 2025 - Overhauled code for new functionality - Read below... (Will add Research Materials Later)
+# Nov 10th 2025 - Overhauled code for new functionality - Read below...
 #
 # What it does:
 # "Casts Bless and Protection on you main character" - Create an entry in the Razor Friends tab called "Friends" and add your main character.
 # "Expedite Shipping Crates" - Sorts and Stores items - Use the unlockable ship crate location in your house and make sure it is within 2 tiles of this character.
-# "Item ID and Recycle" - Identifies items in the Magic Recycler and recycles them - Make sure to select your recycler settings on this character.
+# "Item ID and Recycle" - Identifies items in the "Magic Recycler" and recycles them - Make sure to select your recycler settings on this character.
 # "Paragon Chest Opener" - Paragon chests that are placed in "lootdumpchest" will be auto opened and loot sorted.
+# "Decode Reasearch Materials" - Research Materials that are placed in "lootdumpchest2" will be auto decoded and sorted
 #
 # When you run the script for the first time you will be asked to "Select two containers" - These are for storage and paragon chests.
 #
@@ -53,7 +54,7 @@
 #
 # Storage Items:
 # "Two containers of any kind"
-# "A rune tome"
+# "A lore page tome"
 # "A rare cloth tome"
 # "A dyes tome"
 # "An arcane rune tome"
@@ -101,6 +102,11 @@ if not varexist lootchestdump2
     overhead "Loot Container Set" 77
 endif
 
+if not varexist lorepagetome
+    if findtype "book" ground 2910 -1 2 as book
+        @setvar "lorepagetome" book
+    endif
+endif
 if not varexist rareclothtome
     if findtype "book" ground 1495 -1 2 as book
         @setvar "rareclothtome" book
@@ -368,6 +374,7 @@ if findtype 3645|3644 ground -1 -1 2 as shipcrate
     wft 1000
     target 'self'
     menu rareclothtome 0
+    menu lorepagetome 0
     menu dyestome 0
     menu arcanerunetome 0
     menu treasuremaptome 0
@@ -391,7 +398,8 @@ if skill "Cartography" >= 120 and findtype "spyglass" backpack
         createtimer mapdecodetimer
         settimer mapdecodetimer 5000
     endif
-    if timer mapdecodetimer >= 5000  
+    if timer mapdecodetimer >= 5000 
+        clearsysmsg 
         settimer mapdecodetimer 0
         if findtype "spyglass" backpack as spygls
             dclick lootchestdump
@@ -450,6 +458,45 @@ if skill "Cartography" >= 120 and findtype "spyglass" backpack
                 gumpclose 3473029237
                 gumpclose 1332805401
                 gumpclose 2589357942
+            endif
+        endif
+    endif
+endif
+
+//Research Materials Decoder
+if skill "Cartography" = 120 or skill "Detect" = 120 or skill "Item ID" = 120
+    if not timerexists researchmatdecode
+        createtimer researchmatdecode
+        settimer researchmatdecode 1000
+    endif
+    if timer researchmatdecode >= 1000
+        clearsysmsg 
+        settimer researchmatdecode 0
+        gumpclose 709455756
+        if findtype "research materials" "lootchestdump2" as rmdecode
+            drop backpack
+            lift rmdecode 1
+            drop backpack
+            while queued
+                //donothing
+            endwhile
+            dclick rmdecode
+            waitforgump 709455756 1000
+            gumpresponse 2
+            getlabel backpack ping
+            if insysmsg "You must have"
+                waitforgump 709455756 1000
+                gumpresponse 3
+                getlabel backpack ping
+            else 
+                menu lorepagetome 0
+            endif
+            if insysmsg "You must have"
+                waitforgump 709455756 1000
+                gumpresponse 4
+                getlabel backpack ping
+            else 
+                menu lorepagetome 0
             endif
         endif
     endif
@@ -606,6 +653,7 @@ if skill "Lockpicking" = 120 and skill "Detect" = 120 and findtype "lockpicks" b
             target 'self'
             menu rareclothtome 0
             menu dyestome 0
+            menu lorepagetome 0
             menu arcanerunetome 0
             menu treasuremaptome 0
             menu shipupgradetome 0

@@ -42,6 +42,7 @@
 # "A magic item recycler"
 # "A magic item vault"
 # "A repair bench"
+# "A flooring rack"
 # "A rune tome" - with a rune marked to your dump & restock spot
 #
 # The script will assume your house rune is in the very first entry of the runebook
@@ -73,9 +74,27 @@ if not varexist lootchestdump2
     overhead "Loot Container Set" 77
 endif
 
+if not varexist wandcontainer
+    overhead "Set Wand Container" 88
+    hotkey "Cancel Current Target"
+    setlasttarget 
+    wft 500
+    while targetexists      
+        //donothing
+    endwhile
+    @setvar "wandcontainer" lasttarget 
+    overhead "Wand Container Set" 77
+endif
+
 if not varexist rareclothtome
     if findtype "book" ground 1495 -1 2 as book
         @setvar "rareclothtome" book
+    endif
+endif
+
+if not varexist flooringrack
+    if findtype "carpet rack" ground -1 -1 2 as book
+        @setvar "flooringrack" book
     endif
 endif
 
@@ -231,7 +250,7 @@ while findtype "iron ore" backpack as ore
     getlabel backpack ping
 endwhile
 
-while findtype "12686" backpack as bessence
+while findtype "arcane essence" backpack as bessence
     lift bessence 60000
     drop magicrecycler -1 -1 0
     while queued
@@ -269,10 +288,13 @@ gumpclose 3232825965
 
 //Dumping all items
 menu respile 0
-waitfortarget 1000
+wft 1000
 target 'self'
 menu gardenshelf 0
-waitfortarget 1000
+wft 1000
+target 'self'
+menu flooringrack 0
+wft 1000
 target 'self'
 menu rareclothtome 0
 menu dyestome 0
@@ -286,6 +308,8 @@ menu skinningmaptome 0
 menu lumbermaptome 0
 menu fishingmaptome 0
 menu magicrecycler 1
+menu deposafe 0
+
 if skill "Discordance" <= 50 and skill "Peacemaking" <= 50 and skill "Provocation" <= 50 and skill "Tactics" <= 50
     menu magicchest 0
     wft 500
@@ -293,48 +317,18 @@ if skill "Discordance" <= 50 and skill "Peacemaking" <= 50 and skill "Provocatio
     hotkey "Cancel Current Target"
 endif
 
-while findtype "gold coin" backpack as bgold
-    lift bgold 60000
-    drop deposafe -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endwhile
-
-while findtype "doubloon" backpack as bdoubloon
-    lift bdoubloon 60000
-    drop deposafe -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endwhile
-
-while findtype "void orb" backpack as bvoid
-    lift bvoid 60000
+while findtype "void orb|research materials|spell hue deed|black market goods|redline bottle" backpack as chest1dump
+    drop backpack
+    lift chest1dump 60000
     drop lootchestdump -1 -1 0
     while queued
         //donothing
     endwhile
 endwhile
 
-while findtype "research materials" backpack as bresearch
-    lift bresearch 60000
-    drop lootchestdump -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endwhile
-
-while findtype "spell hue deed" backpack as bdeed
-    lift bdeed 60000
-    drop lootchestdump -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endwhile
-
-while findtype "bag of gems|17619|17617|2508|7710|3712|3648|3650|3708|3648|2475|3649|29833|29832|2463" backpack as bpirateboot
-    lift bpirateboot 60000
+while findtype "15178|card|soul jar|candy corn|colonial marks|27612|eggplant seeds|bag of gems|17619|17617|2508|7710|3712|3648|3650|3708|3648|2475|3649|29833|29832|2463" backpack as chest2dump
+    drop backpack
+    lift chest2dump 60000
     drop lootchestdump2 -1 -1 0
     while queued
         //donothing
@@ -346,52 +340,13 @@ while findtype "3530" backpack as bspecialnets
     if "mastercrafted" in desc
         @ignore bspecialnets
     else
+        drop backpack
         lift bspecialnets 60000
         drop lootchestdump2 -1 -1 0
         while queued
             //donothing
         endwhile
     endif
-endwhile
-
-while findtype "black market goods" backpack as bmg
-    lift bmg 60000
-    drop lootchestdump -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endwhile
-
-while findtype "redline bottle" backpack as redlinebot
-    lift redlinebot 60000
-    drop lootchestdump -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endwhile
-
-while findtype "carpet" backpack as carptile
-    lift carptile 60000
-    drop lootchestdump2 -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endwhile
-
-while findtype "15178" backpack as battlecommloot
-    lift battlecommloot 60000
-    drop lootchestdump2 -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endwhile
-
-while findtype "card|soul jar|candy corn|colonial marks|27612|eggplant seeds" backpack as eventitem
-    lift eventitem 60000
-    drop lootchestdump2 -1 -1 0
-    while queued
-        //donothing
-    endwhile
 endwhile
 
 //Resupply
@@ -403,7 +358,57 @@ if skill "Magery" >= 80 and mana >= 14 and not findbuff "Magic Reflection"
     cast 'Magic Reflection'
 endif
 
+if counttype "wand" >= 2 backpack
+    //do nothing
+else 
+    dclick "wandcontainer"
+    pause 500
+    getlabel backpack ping
+    if skill "lockpicking" = 120
+        while counttype "wand" < 2
+            if findtype "20496" "wandcontainer" as newwand
+                drop backpack
+                lift newwand
+                if findtype "bag" backpack as wandbag
+                    drop wandbag
+                else
+                    drop backpack
+                endif
+                pause 500
+                getlabel backpack ping
+            endif
+        endwhile
+    else
+        while counttype "wand" < 2 and skill "Chivalry" < 120
+            if findtype "20495" "wandcontainer" as newwand
+                drop backpack
+                lift newwand
+                if findtype "bag" backpack as wandbag
+                    drop wandbag
+                else
+                    drop backpack
+                endif
+                pause 500
+                getlabel backpack ping
+            endif
+        endwhile
+    endif
+endif
+
+if skill "Fishing" >= 100 and skill "Tactics" >= 100
+    dclick arcanerunetome
+    waitforgump 3561255175 500
+    gumpresponse 18
+    waitforgump 3561255175 500
+    gumpresponse 18
+    waitforgump 3561255175 500
+    gumpresponse 18
+    waitforgump 3561255175 500
+    gumpclose 3561255175
+endif
+
 clearall
+@clearignore 
 overhead '********************' 181
 overhead '**DUMP COMPLETE**' 181
 overhead '********************' 181

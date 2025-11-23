@@ -1,44 +1,73 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/77af3dbe-2cbb-44c7-879d-8f799892791d for latest
 # Automation by Jaseowns
-## Script: Train Magic Resist
+## Script: Train Magic Resist to 80 safely
 ## Created by: psychotics88#0
 #############################################
 
-#Make sure to stand next to your shelf and update below your shelf serial number using >info
+# Make sure to stand next to your shelf
 
-while skill 'MagicResist' < 80
+while skill 'Resisting Spells' < 80
 
-  # Start summoning only if no followers alive
-  if followers = 0
-    clearall   # safe here, happens once before summoning
-
-    # Summon elementals until 2 are created (4 slots used)
-    while followers < 3
-      cast "Fire Elemental"
-      wait 1500   # wait for elemental to fully appear
-
-      # Immediately after the second elemental is summoned
-      if followers = 4
-        #Change "SERIAL##" to your shelf serial number using >info
-        menu SERIAL## 1 
-        say "all kill"
+    # ======================
+    # Heal if HP lost (highest priority)
+    # ======================
+    if diffhits > 70
+        clearall           # clear only once before healing to prevent stuck cursor
+        cast "Greater Heal"
         wft
         target self
-      endif
-    endwhile
-  endif
+        wait 200
+    else
 
-  # Heal if HP lost
-  if diffhits > 30
-    cast "Greater Heal"
-    wait 200
-    target self
-    wait 200
+        # ======================
+        # Meditation if low mana
+        # ======================
+        if mana < 40
+            useskill "Meditation"
+            while mana < maxmana
+                wait 750
+            endwhile
+        endif
 
-    # Only clearall if followers are gone, prevents spam
-    if followers = 0
-      clearall
+        # ======================
+        # Summon elementals if skill < 70
+        # ======================
+        if skill 'Resisting Spells' < 70
+
+            # Only summon if no followers alive
+            if followers = 0
+                clearall   # safe, once before starting summoning
+
+                # Summon until 2 elementals exist (4 follower slots)
+                while followers < 4
+                    cast "Fire Elemental"
+                    wait 1500
+
+                    # After both elementals are up
+                    if followers = 4
+                        menu 0x7FEFD8FE 1
+                        say "all kill"
+                        wft
+                        target self
+                    endif
+                endwhile
+            endif
+
+        # ======================
+        # Cast Flamestrike if skill >= 70
+        # ======================
+        else
+            # Pull reagents from shelf if needed
+            menu 0x7FEFD8FE 1
+            clearall           # clear before casting
+            cast "Flamestrike"
+            wft
+            target self
+            wait 1500
+        endif
+
     endif
-  endif
 
 endwhile
+
+overhead "Training Finished  Resisting Spells reached 80"

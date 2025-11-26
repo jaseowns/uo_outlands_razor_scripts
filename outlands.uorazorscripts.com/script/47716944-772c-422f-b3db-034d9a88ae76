@@ -5,9 +5,9 @@
 #############################################
 
 /////////
-////////                                          Lord Glaciers Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 1.1.3
+////////                                          Lord Glaciers Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 1.1.4
 ///////
-//////                                                  UO Outlands Razor script - Released May 16, 2025 - Last updated November 21, 2025
+//////                                                  UO Outlands Razor script - Released May 16, 2025 - Last updated November 26, 2025
 /////                                                     Compiled by DanStock. (aka. Lord Glacier)
 ////
 ///
@@ -62,6 +62,7 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
+#       Nov 26 2025 - version 1.1.4:  Fixed small bugs in Auto PK Dungeon Gating and Auto Recall After Resurrection sections
 #       Nov 21 2025 - version 1.1.3:  Big update! Overhauled entire script to include my latest upgrades and tweaks. Default is now WAR mode for COMBAT and PEACE mode for ESCAPE/RECALL
 #       Nov 16 2025 - version 1.1.2:  Squashed bugs in Flamestrike, Potion Keg and Necromancy parts of script.  Sorry it took so long (have not played my Arcane Mage echo in a while)
 #       Jun 06 2025 - version 1.1.1:  Updated overhead messages for various potions and abilities and tweaked the order of a few things
@@ -125,10 +126,9 @@
 #     If enabled INVENTORY RESET will stack trapped pouches on your main inventory pouch (after putting scissors inside to protect them from shelf restocking) and then hide the stack
 #     MANY FEATURES ARE TURNED 'OFF' BY DEFAULT!  MAKE SURE TO CHECK THE VARIABLE SECTION BELOW CLOSELY PRIOR TO FIRST USE!!
 #     This script is a compilation of many existing scripts married to my own new stuff, but big thanks to user dennozz for many features I learned from studying their scripts!
-#     I have done my best to make things simple to use and understand but it is a constant work in progress - CHECK FOR UPDATES OFTEN!
 
 
-#     I believe everything is FINALLY working as intended.  Hopefully build version 2.2.5 is the final product, but always check back for new updates!!
+#     I believe everything is FINALLY working as intended.  Hopefully build version 1.1.4 is the final product, but always check back for new updates!!
 #     I am pretty stoked with where the script is as of Nov 2025. It has come a loooong way and, at least for my own purposes, is 100% functional.
 #     Let me know if you find any mistakes that I missed (dan@danstockman.com) or if there is anything that needs to be added.  Good luck and thanks for your support.
 
@@ -1119,9 +1119,9 @@ if not dead
     if not varexist ArcaneMageAutoPilot
         overhead "Lord Glacier's Chill Arcane Mage Auto Pilot Script" 2234
         # '
-        overhead "version 1.1.3" 2234
+        overhead "version 1.1.4" 2234
         wait 1000
-        overhead "Last Updated: November 21, 2025" 88
+        overhead "Last Updated: November 26, 2025" 88
         wait 2500
         overhead "Thank you for trying my Arcane Mage AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
@@ -1686,27 +1686,14 @@ while not dead
             endif
         elseif EnableAutoRedDungeonGate = 1 or EnableAutoWeightDungeonGate = 1 and TimeToGo = 1
 
-            if RedTargetFound = 1 and timer "REDALERT" > 30000 and EnableOverheadMessages = 1
-                overhead "[ !! RED ALERT !! ]" 37
-                settimer "REDALERT" 0
-                @setvar! RedTargetFound 0
-            endif
-
             settimer "DungeonEscape" 0
-            wait 500
+            sysmsg "Dungeon Escape mode enabled! (variables 'EnableAutoRedDungeonGate' and/or 'EnableAutoWeightDungeonGate')" 0
+            wait 250
+            sysmsg "Script will automatically revert after {{DungeonEscapeTimeLimit}}ms or upon dungeon exit" 88 
+            wait 250 
+            sysmsg "Please proceed to the nearest exit gate!  It will indicated by overhead arrows!" 153
 
             while timer "DungeonEscape" < DungeonEscapeTimeLimit 
-                if EnablePKradar = 1
-                    if timer "PKRadar" > 1000
-                        hotkey 'Next Murderer Player Target'
-                        wait 500
-                        if insysmsg "No one matching that was found"
-                            settimer "PKRadar" 0
-                            clearsysmsg
-                        endif
-                    endif
-                endif
-
                 if insysmsg "world is saving"
                     settimer "WorldSaveTimer" 0
                     if EnableOverheadMessages = 1
@@ -1763,82 +1750,7 @@ while not dead
                     endif
                 endif 
 
-                if EnableRefreshPotion = 1 and diffstam > RefreshPotionSPdiff
-                    if findtype "Red Potion" self
-                        dclicktype "Red Potion"
-                        if EnableOverheadMessages = 1
-                            overhead "[ REFRESH POTION ]" 37
-                        endif
-                        wait 250
-                    else
-                        if timer redMessageTimer > 4500
-                            overhead "[ NO REFRESH POTS! ]" 337
-                            settimer redMessageTimer 0
-                        endif
-                    endif
-                endif
-
-                if EnableCurePotion = 1
-                    while poisoned
-                        if findtype "Orange Potion" self
-                            dclicktype "Orange Potion"
-                            if EnableOverheadMessages = 1 and timer 'orangeMessageTimer' > 3500
-                                overhead "[ CURE POTION ]" 44
-                                settimer 'orangeMessageTimer' 0
-                            endif
-                            wait 250
-                        else
-                            if timer 'orangeMessageTimer' > 5000
-                                overhead "[ NO CURE POTS! ]" 337
-                                settimer 'orangeMessageTimer' 0
-                            endif
-
-                            if diffhits >= 30 or not findtype 3972 self or not findtype 3973 self
-                                break
-                            endif
-                        endif
-                    endwhile
-                endif
-
-                if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
-                    if findtype "Yellow Potion" self as HealPot
-                        getlabel HealPot HealPotlabel
-                        if "next" in HealPotlabel
-                            // Do nothing
-                        else
-                            @setvar! HealPotionCheck 0
-
-                            if counttype 3852 self as HealPotCount
-                                @setvar! HealPotionCheck HealPotCount
-                            endif
-
-                            clearsysmsg
-                            dclicktype 3852
-                            getlabel backpack backpackdesc
-                            wait 250
-
-                            if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
-                                settimer 'HealPotionTimer' 0
-                                cooldown "Healing Potion" HealingPotionCooldown
-                                if EnableOverheadMessages = 1
-                                    if insysmsg "potion satchel used"
-                                        overhead '[ FREE HEAL POTION ]' 253
-                                    else
-                                        overhead "[ HEAL POTION ]" 253
-                                    endif
-                                endif 
-                                clearsysmsg
-                            endif
-                        endif
-                    else
-                        if timer 'yellowMessageTimer' > 4500
-                            overhead "[ NO HEAL POTS! ]" 337
-                            settimer 'yellowMessageTimer' 0
-                        endif
-                    endif
-                endif
-
-                if skill 'magery' >= 40 and diffhits < 40 and diffhits > 5 and mana >= 4 and EnableCastHeal = 1 and not casting
+                if skill 'magery' >= 40 and diffhits < 40 and diffhits > 10 and mana >= 4 and EnableCastHeal = 1 and not casting
                     cast 'heal'
                     while not casting
                         if targetexists
@@ -1853,30 +1765,17 @@ while not dead
                             @setvar! SpellInterrupted 1
                             break
                         endif
+                        if diffhits >= HealPotionHPdiff
+                            break
+                        endif 
                     endwhile
 
                     if SpellInterrupted = 0
                         target 'self'
-                    endif
-                elseif skill 'magery' >= 40 and diffhits > 40 and mana >= 4 and EnableCastHeal = 1 and not casting
-                    cast 'heal'
-                    while not casting
+                    else 
                         if targetexists
                             hotkey 'cancel current target'
                         endif
-                        cast 'heal'
-                    endwhile
-
-                    while not targetexists
-                        if insysmsg "Your concentration is disturbed"
-                            interrupt
-                            @setvar! SpellInterrupted 1
-                            break
-                        endif
-                    endwhile
-
-                    if SpellInterrupted = 0
-                        target 'self'
                     endif
                 elseif skill 'magery' >= 60 and diffhits >= CastGreaterHealHPdiff and diffhits < 5 and mana >= 11 and EnableCastGreaterHeal = 1 and not casting
                     cast 'greater heal'
@@ -1888,7 +1787,7 @@ while not dead
                     endwhile
 
                     @settimer! spellTimer 0
-                    @setvar! spellCD 800
+                    @setvar! spellCD 1000
 
                     while not targetexists
                         if insysmsg "Your concentration is disturbed"
@@ -1962,6 +1861,81 @@ while not dead
                     endif
                 endif
 
+                if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
+                    if findtype "Yellow Potion" self as HealPot
+                        getlabel HealPot HealPotlabel
+                        if "next" in HealPotlabel
+                            // Do nothing
+                        else
+                            @setvar! HealPotionCheck 0
+
+                            if counttype 3852 self as HealPotCount
+                                @setvar! HealPotionCheck HealPotCount
+                            endif
+
+                            clearsysmsg
+                            dclicktype 3852
+                            getlabel backpack backpackdesc
+                            wait 250
+
+                            if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                                settimer 'HealPotionTimer' 0
+                                cooldown "Healing Potion" HealingPotionCooldown
+                                if EnableOverheadMessages = 1
+                                    if insysmsg "potion satchel used"
+                                        overhead '[ FREE HEAL POTION ]' 253
+                                    else
+                                        overhead "[ HEAL POTION ]" 253
+                                    endif
+                                endif 
+                                clearsysmsg
+                            endif
+                        endif
+                    else
+                        if timer 'yellowMessageTimer' > 4500
+                            overhead "[ NO HEAL POTS! ]" 337
+                            settimer 'yellowMessageTimer' 0
+                        endif
+                    endif
+                endif
+
+                if EnableRefreshPotion = 1 and diffstam > RefreshPotionSPdiff
+                    if findtype "Red Potion" self
+                        dclicktype "Red Potion"
+                        if EnableOverheadMessages = 1
+                            overhead "[ REFRESH POTION ]" 37
+                        endif
+                        wait 250
+                    else
+                        if timer redMessageTimer > 4500
+                            overhead "[ NO REFRESH POTS! ]" 337
+                            settimer redMessageTimer 0
+                        endif
+                    endif
+                endif
+
+                if EnableCurePotion = 1
+                    while poisoned
+                        if findtype "Orange Potion" self
+                            dclicktype "Orange Potion"
+                            if EnableOverheadMessages = 1 and timer 'orangeMessageTimer' > 3500
+                                overhead "[ CURE POTION ]" 44
+                                settimer 'orangeMessageTimer' 0
+                            endif
+                            wait 250
+                        else
+                            if timer 'orangeMessageTimer' > 5000
+                                overhead "[ NO CURE POTS! ]" 337
+                                settimer 'orangeMessageTimer' 0
+                            endif
+
+                            if diffhits >= 30 or not findtype 3972 self or not findtype 3973 self
+                                break
+                            endif
+                        endif
+                    endwhile
+                endif
+
                 if EnableAgilityPotion = 1 and not findbuff "Agility"
                     if findtype "Blue Potion" self
                         dclicktype "Blue Potion"
@@ -1999,6 +1973,7 @@ while not dead
                         overhead " Ï " 149
                     endif
                     @setvar! TimeToGo 0
+                    settimer "DungeonEscape" DungeonEscapeTimeLimit
                     replay
                 endif
 
@@ -2107,7 +2082,7 @@ while not dead
                         settimer "GATEHERE" 0
                     endif
                 else
-                    if timer "RUNAWAY" > 6000
+                    if timer "RUNAWAY" > 4500
                         if EnableOverheadMessages = 1
                             overhead "[ GET TO A GATE... ]" 2118
                         else
@@ -3841,7 +3816,7 @@ while not dead
             endif
         endif
 
-        if EnableMagicResistPotion = 1 and not findbuff "Magic Resist"
+        if EnableResistPotion = 1 and not findbuff "Magic Resist"
             if findtype "Black Potion" self
                 dclicktype "Black Potion"
                 if EnableOverheadMessages = 1
@@ -4694,6 +4669,7 @@ while not dead
                         break
                     else
                         @setvar! AutoRecallTime 1
+                        hotkey 'Toggle Peace Only'
                         replay
                     endif
                 elseif EnableAutoRedDungeonGate = 1 or EnableAutoWeightDungeonGate = 1 and DUNGEONMODE = 1
@@ -4705,6 +4681,7 @@ while not dead
                     settimer "RUNAWAY" 2000
                     @setvar! TimeToGo 1
                     @setvar! WarModeToggledWhileFighting 0
+                    hotkey 'Toggle Peace Only'
                     replay
                 endif
             endif
@@ -5677,7 +5654,7 @@ while not dead
             endif
         endif
 
-        if EnableMagicResistPotion = 1 and not findbuff "Magic Resist"
+        if EnableResistPotion = 1 and not findbuff "Magic Resist"
             if findtype "Black Potion" self
                 dclicktype "Black Potion"
                 if EnableOverheadMessages = 1
@@ -6569,7 +6546,7 @@ while not dead
             while not insysmsg "unholy symbols remaining"
                 yell "[PainSpike"
                 wft 1500
-                target ClosestTarget
+                target corpsespike
 
                 if insysmsg "You do not see any corpses"
                     settimer PainSpikeTimer 25000
@@ -8333,7 +8310,6 @@ if not dead
     if EnableRecallAfterResurrection = 1
         hotkey 'Toggle Peace Only'
         @setvar! ResThenTimeToGo 1
-        @setvar! TimeToGo 1
         wait 1000
         replay
     else

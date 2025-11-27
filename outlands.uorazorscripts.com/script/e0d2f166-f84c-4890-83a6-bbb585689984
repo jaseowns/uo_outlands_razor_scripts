@@ -6,47 +6,51 @@
 
 # Trapper Mapper Script by Bapeth
 #
-# November 16th 2025 - Added some chest overheads
+# November 26th 2025 - Re-worked a lot of the code "NOTE THE COOLDOWN CHANGE FOR ASPECT", Added auto gate travel logic if there is too much gold to carry in the chest, added full varible reset in the case that mastery chains need to be reset, read below
 #
-# This script uses both Harvest and Gadget aspect, both aspects are required.
-# This script also uses two Mastery Chains, one for Trap Damage and the other for Loot Chance.
-# If you only have one chain then set it for both chain settings when prompted.
+# This script uses both "Harvest and Gadget" aspect
+# This script also uses two Mastery Chains, one for Trap Damage and the other for Loot Chance
 #
-# "REQUIRED": User must create three cooldowns named "Aspect" "Chain Swap" "Aspect Proc"
+# "Full varible reset"
+# If an error has occured while the script is setting your chains go into "WARMODE + Open the Party Menu" then play the script to wipe all varible memory and start fresh
+#
+# "REQUIRED": <---------- "Important information!"
+#  User must create three cooldowns named "Aspect Armor" "Chain Swap" "Aspect Proc"
 # "Aspect Proc" cooldown requires an OVERHEAD Trigger Text: *innovation*  Cooldown: 30
-# Cooldowns can be found in the in game options.
-#
-# Note : The gadget weapon/book aspect special will unfortunately block aspect changes for 30 seconds.  Therefore it is advised to manually activate and level a different aspect for weapon/book.
+# Cooldowns can be found in the in game options
 #
 # "Auto Loot Control"
 # This script uses razor "Auto-Queue Object Delay" setting
 # Make sure this setting is turned ON in the razor Options tab > Targeting & Queues sub-tab
 # And set "object delay to 503" AUTO LOOTING WILL BE SLOW IF YOU DONT DO THIS!
 #
-# HOW TO USE:
+# "HOW TO USE":
 #    
-# Items needed in backpack - Shovel, T-map, Adv Pack, Ground Trap, Lockpicks, Trap Kit, Mastery Chain.
+# Items needed in backpack - Shovel, T-map, Explorer Pack, Ground Traps, Lockpicks, Trap Kit, Mastery Chain
 #
-# In "PEACEMODE" - Play the script when you are nearby the map location to being digging for the chest.
-# When the script begins digging the chest it will use the adv pack, summon an earth ele, and place a ground trap.
-# The script will stop when chest is fully dug up.
+# In "PEACEMODE" - Play the script when you are nearby the map location to being digging for the chest
+# When the script begins digging the chest it will use the adv pack, summon an earth ele, and place a ground trap
+# The script will stop when chest is fully dug up
 #
-# At this time the user should kill all the monsters.
-# It is best to Stay the elemental in the direct center of the trap and wait for the mobs to move in to range.
-# Detonate the trap and ready another trap if needed, repeat as needed.
-# A good trapper template with high gadget and a good chain will only need 2 traps maximum to clear any T-map under level 8.
+# At this time the user should kill all the monsters
+# It is best to Stay the elemental in the direct center of the trap and wait for the mobs to move in to range
+# Detonate the trap and ready another trap if needed, repeat as needed
+# A good trapper template with high gadget and a good chain will only need 2 traps maximum to clear any T-map under level 8
 #
-# In "WARMODE" - Play the script once again when all monsters are dead and it will switch to Harvest aspect and equip your loot chain.
-# Approach the chest and the script will automatically invis the user and begin picking and looting.
-# Low level tmaps will often open faster then the chain swap cooldown of 30 seconds, so, the user should wait 10 seconds after swapping to begin picking.
-# When the script is done looting it will switch back to gadget aspect and equip the Trap damage chain and stop.
+# In "WARMODE" - Play the script once again when all monsters are dead and it will switch to Harvest aspect and equip your loot chain
+# Approach the chest and the script will automatically invis the user and begin picking and looting
+# Low level tmaps will often open faster then the chain swap cooldown of 30 seconds, so, the user should wait 10 seconds after swapping to begin picking (loot monster corpses during this time)
+# When the script is done looting it will switch back to gadget aspect and equip the Trap damage chain and stop
 # You are now ready to go do another T-map!
 #
-# Please remember to "destroy your empty treasure chest" before leaving the site.
-#
-# If at any time you would like to change your chains or reset the script into One or Two Chain mode then delete the varibles from script options. 
-# Varibles are as follows: LootChain, TrapChain, OneChain, TwoChain
-# The "Script Options" tab can be found in the top left of razor while the "Scripts" tab is focused
+# "Auto-Gate Travel"
+# If there is too much gold within the treasure chest for the player to carry the auto-gate travel routine will activate
+# The script will gate to a rune named "House" within your runebook/tome
+# If a bank deposit safe is nearby the script will use it, otherwise it will drop the gold at your players feet
+# "Important" - Ensure you have a rune in your runebook/tome named "House"
+# 
+# The script will auto-delete the treasure map chest if it is empty - if not double check for any antiquities items that may not be on the loot list
+# Junk items like scrolls, bandages, arrows, bolts, and regs are not looted and will prevent the script from auto-deleting the chest
 #
 #~~"Recommended Build"~~
 #
@@ -61,16 +65,41 @@
 #
 # Script Starts Here
 
+if warmode and gumpexists 3527489586
+    warmode off
+    gumpclose 3527489586
+    overhead "VARIBLE RESET..." 38
+    if varexist "OneChain"
+        @unsetvar "OneChain"
+    endif
+    if varexist "TwoChain"
+        @unsetvar "TwoChain"
+    endif    
+    if varexist "TrapChain"
+        @unsetvar "TrapChain"
+    endif
+    if varexist "LootChain"
+        @unsetvar "LootChain"
+    endif
+    overhead "MEMORY WIPED..." 38
+    pause 2000
+endif
+
 if not varexist "OneChain" and not varexist "TwoChain"
-    overhead "The script needs to know if you are using ONE or TWO Mastery Chains" 68
-    pause 5000
-    overhead "Select trap kit if you have 2 chains" 88
-    overhead "Select backpack if you have 1 chain" 78
-    setlasttarget 
+    overhead "Are you using 1 or 2 Mastery Chains?" 56
+    pause 1200
+    hotkey "Set Last Target"
     wft 500
-    while targetexists 
-        //donothing
-    endwhile
+    while targetexists
+        if not timerexists chainselect
+            createtimer chainselect
+            settimer chainselect 4500
+        elseif timer chainselect >= 4500
+            settimer chainselect 0
+            overhead "Select trap kit for 2 chains" 88
+            overhead "Select backpack for 1 chain" 78
+        endif
+    endwhile
     getlabel lasttarget desc
     if "trap kit" in desc
         @setvar "TwoChain" lasttarget 
@@ -79,32 +108,50 @@ if not varexist "OneChain" and not varexist "TwoChain"
         @setvar "OneChain" lasttarget 
         overhead "I have selected for One Chain" 78
     endif
+    if timerexists chainselect
+        removetimer chainselect
+    endif
     pause 2000
 endif
 
 if varexist "TwoChain"
     if not varexist "TrapChain"
-        overhead "Set Trap Chain..." 88
-        setlasttarget 
+        hotkey "Set Last Target" 
         wft 500
-        while targetexists 
-            //do nothing
-        endwhile
+        while targetexists
+            if not timerexists chainselect
+                createtimer chainselect
+                settimer chainselect 4500
+            elseif timer chainselect >= 4500
+                settimer chainselect 0
+                overhead "Set Trap Chain..." 88
+            endif
+        endwhile
         @setvar "TrapChain" lasttarget 
         overhead "Trap Chain Set..." 88
         pause 1500
     endif
-
-    if not varexist "LootChain"
-        overhead "Set Loot Chain..." 58
-        setlasttarget 
-        wft 500
-        while targetexists 
-            //do nothing
-        endwhile
-        @setvar "LootChain" lasttarget 
-        overhead "Loot Chain Set..." 58
+    if timerexists chainselect
+        removetimer chainselect
     endif
+    if not varexist "LootChain"
+        hotkey "Set Last Target" 
+        wft 500
+        while targetexists
+            if not timerexists chainselect
+                createtimer chainselect
+                settimer chainselect 4500
+            elseif timer chainselect >= 4500
+                settimer chainselect 0
+                overhead "Set Loot Chain..." 78
+            endif
+        endwhile
+        @setvar "LootChain" lasttarget 
+        overhead "Loot Chain Set..." 78
+    endif
+endif
+if timerexists chainselect
+    removetimer chainselect
 endif
 
 if skill "Cartography" >= 10 and findtype "adventure pack" backpack as advpack
@@ -114,9 +161,23 @@ endif
 if skill "Tinkering" >= 80 and findtype "metal trap" backpack as btrap
     @setvar "baptrap" btrap
 endif
-
+if not warmode and not timerexists checkforgadget
+    createtimer checkforgadget
+    removetimer checkforharvest   
+elseif warmode and not timerexists checkforharvest
+    createtimer checkforharvest
+    removetimer checkforgadget 
+endif
 if timerexists bchestopen
     removetimer bchestopen
+endif
+
+if not targetexists and not casting and not findbuff "Food Satisfaction"
+    if findtype 2429|28885|29774|29773|28880|28888|28881|28883|28886|28879 backpack as food
+        dclick food
+        cooldown "Food" 3600000
+        getlabel backpack ping
+    endif
 endif
 
 if not warmode
@@ -143,24 +204,54 @@ if not warmode
         overhead "Trap Chain Equipped..." 44
         cooldown "Chain Swap" 30000
     endif
-    if not timerexists checkforgadget
-        clearsysmsg 
-        say "[AspectArmor Gadget"
-        getlabel backpack ping
-        if insysmsg "You must wait a moment before activating another armor aspect"
-            overhead "Aspect swap cooling..." 44
-            pause 1500
-            replay
-        elseif insysmsg "Your armor is already of that aspect"
-            createtimer checkforgadget
-        else
-            createtimer checkforgadget
-            cooldown "Aspect" 30000
+    if timerexists checkforgadget
+        if findlayer self innertorso as chestarmor
+            getlabel chestarmor desc
+            if "gadget" in desc
+                if timerexists aspectswapoverheadtimer
+                    removetimer aspectswapoverheadtimer
+                endif
+                if timerexists gobackformoregold
+                    removetimer gobackformoregold
+                endif
+                if timerexists gategold
+                    removetimer gategold
+                endif
+            else
+                if not timerexists aspectswapoverheadtimer
+                    createtimer aspectswapoverheadtimer
+                    settimer aspectswapoverheadtimer 3000
+                endif
+                if cooldown "Aspect Armor"
+                    if timerexists aspectswapoverheadtimer
+                        if timer aspectswapoverheadtimer >= 3000
+                            overhead "Aspect swap Gadget cooling" 2669
+                            settimer aspectswapoverheadtimer 0
+                        endif
+                    endif
+                elseif cooldown "Aspect Proc"
+                    if timerexists aspectswapoverheadtimer
+                        if timer aspectswapoverheadtimer >= 3000
+                            overhead "Aspect proced recently..." 2669
+                            overhead "Aspect swap Gadget cooling" 2669
+                            settimer aspectswapoverheadtimer 0
+                        endif
+                    endif
+                endif
+                if not cooldown "Aspect Armor"
+                    clearsysmsg
+                    say "[AspectArmor Gadget"
+                    getlabel backpack ping
+                    if insysmsg "Your armor is already of that aspect"
+                        overhead "Current Aspect is Gadget" 2669
+                    else 
+                        cooldown "Aspect Armor" 30000
+                    endif
+                endif
+            endif
         endif
-        stop
     endif
-    removetimer checkforharvest
-    if findtype "map" backpack
+    if findtype "map" backpack 0 -1
         //donothing
     else
         overhead "I will need a treasure map..." 38
@@ -233,19 +324,58 @@ elseif warmode
         overhead "Loot Chain Equipped..." 74
         cooldown "Chain Swap" 30000
     endif
-    if not timerexists checkforharvest and not cooldown "Aspect Proc" and not cooldown "Aspect"
-        clearsysmsg 
-        say "[AspectArmor Harvest"
-        getlabel backpack ping
-        if insysmsg "Your armor is already of that aspect"
-            createtimer checkforharvest
-        else
-            createtimer checkforharvest
-            cooldown "Aspect" 30000
+    if timerexists checkforharvest
+        if findlayer self innertorso as chestarmor
+            getlabel chestarmor desc
+            if "harvest" in desc
+                if timerexists aspectswapoverheadtimer
+                    removetimer aspectswapoverheadtimer
+                endif
+                if timerexists harvestspam
+                    removetimer harvestspam
+                endif
+            else
+                if not timerexists aspectswapoverheadtimer
+                    createtimer aspectswapoverheadtimer
+                    settimer aspectswapoverheadtimer 3000
+                endif
+                if cooldown "Aspect Armor"
+                    if timerexists aspectswapoverheadtimer
+                        if timer aspectswapoverheadtimer >= 3000
+                            overhead "Aspect swap Harvest cooling" 2086
+                            settimer aspectswapoverheadtimer 0
+                            if not timerexists harvestspam
+                                createtimer harvestspam
+                            endif
+                        endif
+                    endif
+                elseif cooldown "Aspect Proc"
+                    if timerexists aspectswapoverheadtimer
+                        if timer aspectswapoverheadtimer >= 3000
+                            overhead "Aspect proced recently..." 2086
+                            overhead "Aspect swap Harvest cooling" 2086
+                            settimer aspectswapoverheadtimer 0
+                            if not timerexists harvestspam
+                                createtimer harvestspam
+                            endif
+                        endif
+                    endif
+                endif
+                if not cooldown "Aspect Armor"
+                    clearsysmsg
+                    say "[AspectArmor Harvest"
+                    getlabel backpack ping
+                    if insysmsg "Your armor is already of that aspect"
+                        overhead "Current Aspect is Harvest" 2086
+                    else 
+                        cooldown "Aspect Armor" 30000
+                    endif
+                endif
+            endif
         endif
     endif
-    removetimer checkforgadget
-    if findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 1 as bchest
+    if findtype "wooden chest|metal chest" ground -1 -1 1 as bchest
+        gumpclose 736038070
         clearsysmsg 
         dclick bchest
         getlabel backpack ping
@@ -263,6 +393,13 @@ elseif warmode
             endwhile
             overhead "*picking*" 1060 bchest
             while not dead 
+                if insysmsg "Another player"
+                    gumpclose 736038070
+                    dclick bchest
+                    waitforgump 736038070 1000
+                    gumpresponse 7
+                    waitforgump 736038070 1000
+                endif
                 if not hidden and mana >= 20
                     cast "Invisibility"
                     wft 5000
@@ -273,24 +410,20 @@ elseif warmode
                 if insysmsg "You successfully pick the lock"
                     break
                 endif
-                if not findtype 3651|3649|3648|3650|3708|2475 ground -1 -1 2
+                if not findtype "wooden chest|metal chest" ground -1 -1 2
                     break
                 endif
-                if cooldown "Aspect Proc"
+                if insysmsg "resolved an aspect special" and not timerexists harvestspam
                     createtimer harvestspam
                 endif
-                if timerexists harvestspam
-                    clearsysmsg 
-                    say "[AspectArmor Harvest"
-                    getlabel backpack ping
-                    if insysmsg "resolved an aspect special"
-                        //do nothing
-                    elseif insysmsg "Your armor is already of that aspect"
-                        cooldown "Aspect Proc" 0
-                        removetimer harvestspam
-                    else
-                        removetimer harvestspam
-                        cooldown "Aspect" 30000
+                if timerexists harvestspam and not cooldown "Aspect Proc" and not cooldown "Aspect Armor"
+                    if findlayer self innertorso as chestarmor
+                        getlabel chestarmor desc
+                        if "harvest" in desc
+                            removetimer harvestspam
+                        else 
+                            say "[AspectArmor Harvest"
+                        endif
                     endif
                 endif
                 if insysmsg "You make some progress on the lock"
@@ -303,7 +436,7 @@ elseif warmode
             endwhile
             say "All Follow Me" 87
         endif
-        while findtype "chain link|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|shattered weapon|bird cage|widows grief|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7127|3861|24343|3821" bchest as bitem
+        while findtype "chain link|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|shattered weapon|bird cage|widows grief|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7127|3861|24343" bchest as bitem
             warmode off
             if not timerexists bchestopen
                 createtimer bchestopen
@@ -314,22 +447,184 @@ elseif warmode
             while queued
                 //donothing
             endwhile
-            while diffweight <= 0 and findtype "gold coin" backpack as dropgold
-                if not hidden and stam <= 4 and findtype "Red Potion" backpack as redpot
-                    while queued
-                        //donothing
-                    endwhile
-                    dclick redpot
-                endif
-                overhead "My cup runneth over..." 1779
+        endwhile
+        while findtype "gold coin" bchest as goldcoinz
+            hotkey 'Grab Item' 
+            target goldcoinz
+            while queued
+                //donothing
+            endwhile
+            if insysmsg "That container cannot hold more weight"
                 drop backpack
-                lift dropgold 444
+                lift goldcoinz 60000
+                drop bchest -1 -1 0
+                while queued
+                    //donothing
+                endwhile
+                if not timerexists gategold
+                    createtimer gategold
+                endif
+                break
+            endif
+        endwhile
+        while diffweight <= 0 and findtype "gold coin" backpack as dropgold
+            if not timerexists gategold
+                createtimer gategold
+            endif
+            overhead "My cup runneth over..." 1779
+            drop backpack
+            lift dropgold 2222
+            drop bchest -1 -1 0
+            while queued
+                //donothing
+            endwhile
+        endwhile
+        if not timerexists gategold and findtype "gold coin" bchest
+            createtimer gategold
+        endif
+        while mana <= 39 and timerexists gategold
+            if not findbuff "Activly Meditating"
+                skill "Meditation"
+                getlabel backpack ping
+            endif
+        endwhile
+        while timerexists gategold and findtype "gold coin" bchest as heavygold
+            if mana >= 40 and not findtype 3948 ground 0 -1 2
+                say "[gate House"
+            endif
+            getlabel backpack ping
+            drop backpack
+            lift heavygold 60000
+            while casting 
+                //donothing
+            endwhile
+            getlabel backpack ping
+            pause 350
+            if findtype "gold coin" bchest
+                createtimer gobackformoregold
+            else 
+                if timerexists gobackformoregold
+                    removetimer gobackformoregold
+                endif
+            endif
+            if findtype 3948 ground 0 -1 2 as bluegate
+                dclick bluegate
+                waitforgump 3899019871 1600
+                gumpresponse 2
+                getlabel backpack ping
+                pause 350
+            endif
+            if findtype "bank deposit safe" ground -1 -1 2 as bankdepot
+                drop bankdepot -1 -1 0
+                while queued
+                    //donothing
+                endwhile
+                getlabel backpack ping
+            else 
                 drop 0
                 while queued
                     //donothing
                 endwhile
-            endwhile
+                getlabel backpack ping
+            endif
+            if timerexists gobackformoregold
+                if findtype 3948 ground 0 -1 2 as bluegate
+                    dclick bluegate
+                    waitforgump 3899019871 1600
+                    gumpresponse 2
+                    getlabel backpack ping
+                    pause 350
+                endif
+                dclick bchest 
+                while queued
+                    //donothing
+                endwhile
+                getlabel backpack ping
+            endif
         endwhile
+    endif
+    if findtype 3948 ground 0 -1 2 as bluegate
+        dclick bluegate
+        waitforgump 3899019871 1600
+        gumpresponse 2
+        getlabel backpack ping
+        pause 350
+    endif
+    if findtype "wooden chest|metal chest" ground -1 -1 1 as bchest
+        getlabel bchest itemdesc
+        if "0 items, 0 stones" in itemdesc
+            menu bchest 1
+            if varexist "TwoChain" and findlayer self talisman as bchain
+                getlabel bchain desc
+                if not find "TrapChain" backpack
+                    //donothing
+                else
+                    lift bchain
+                    drop backpack -1 -1 0
+                    pause 500
+                    getlabel backpack ping
+                    lift "TrapChain"
+                    drop self Talisman
+                    overhead "Trap Chain Equipped..." 44
+                    cooldown "Chain Swap" 30000
+                    pause 500
+                    getlabel backpack ping
+                endif
+            elseif varexist "TwoChain"
+                lift "TrapChain"
+                drop self Talisman
+                getlabel backpack ping
+                overhead "Trap Chain Equipped..." 44
+                cooldown "Chain Swap" 30000
+            endif
+            if findlayer self innertorso as chestarmor
+                getlabel chestarmor desc
+                if "gadget" in desc
+                    if timerexists aspectswapoverheadtimer
+                        removetimer aspectswapoverheadtimer
+                    endif
+                else
+                    if not timerexists aspectswapoverheadtimer
+                        createtimer aspectswapoverheadtimer
+                        settimer aspectswapoverheadtimer 3000
+                    endif
+                    if cooldown "Aspect Armor"
+                        if timerexists aspectswapoverheadtimer
+                            if timer aspectswapoverheadtimer >= 3000
+                                overhead "Aspect swap Gadget cooling..." 2669
+                                settimer aspectswapoverheadtimer 0
+                            endif
+                        endif
+                    elseif cooldown "Aspect Proc"
+                        if timerexists aspectswapoverheadtimer
+                            if timer aspectswapoverheadtimer >= 3000
+                                overhead "Aspect proced recently..." 2669
+                                overhead "Aspect swap Gadget cooling..." 2669
+                                settimer aspectswapoverheadtimer 0
+                            endif
+                        endif
+                    endif
+                    if not cooldown "Aspect Armor"
+                        clearsysmsg
+                        say "[AspectArmor Gadget"
+                        getlabel backpack ping
+                        if insysmsg "Your armor is already of that aspect"
+                            overhead "Current Aspect is Gadget" 2669
+                        else 
+                            cooldown "Aspect Armor" 30000
+                        endif
+                    endif
+                endif
+            endif
+            if timerexists gobackformoregold
+                removetimer gobackformoregold
+            endif
+            if timerexists gategold
+                removetimer gategold
+            endif
+            overhead "Time to move on..." 88
+            stop
+        endif
     endif
 endif
 loop

@@ -70,10 +70,12 @@
 # "Avarite Trap Removal Tools" x2
 # "Agapite Spyglass or higher" x3
 # "Reagents in an Avarhide Wizards Satchel" 
+# "Scissors (blessed)"
 # Set your storage shelf to restock these items and the script will auto stock periodically
 #
 # Storage Items:
 # "Three secured containers of any kind" - locked down and secured in your house/inn room
+# "A mastery chain link tome"
 # "A lore page tome"
 # "A rare cloth tome"
 # "A dyes tome"
@@ -112,6 +114,9 @@ if warmode and gumpexists 3527489586
     endif
     if varexist lorepagetome
         @unsetvar "lorepagetome"
+    endif
+    if varexist chainlinktome
+        @unsetvar "chainlinktome"
     endif
     if varexist rareclothtome
         @unsetvar "rareclothtome"
@@ -199,6 +204,38 @@ if not varexist lorepagetome
         else
             @setvar "lorepagetome" lasttarget
             overhead "Lore Page Tome Set!" 69
+            if timerexists lootcontainerselect
+                settimer lootcontainerselect 4500
+            endif
+            pause 600
+        endif
+    endif
+endif
+if not varexist chainlinktome
+        if findtype "book" ground 2091 -1 2 as book
+        @setvar "chainlinktome" book
+    else
+        hotkey "Cancel Current Target"
+        overhead "Chain Link Tome not Found" 38
+        overhead "Manual Select..." 45
+        overhead "Select Backpack if none..." 45
+        hotkey "Set Last Target"
+        wft 500
+        while targetexists
+            if not timerexists lootcontainerselect
+                createtimer lootcontainerselect
+                settimer lootcontainerselect 4500
+            elseif timer lootcontainerselect >= 4500
+                settimer lootcontainerselect 0
+                overhead "Set Chain Link Tome" 38
+            endif
+        endwhile
+        getlabel lasttarget desc
+        if "backpack" in desc
+            @setvar "chainlinktome" lasttarget
+        else
+            @setvar "chainlinktome" lasttarget
+            overhead "Chain Link Tome Set!" 69
             if timerexists lootcontainerselect
                 settimer lootcontainerselect 4500
             endif
@@ -1052,6 +1089,25 @@ if findtype 3645|3644 ground -1 -1 2 as shipcrate
         endif
     endwhile
     getlabel backpack ping
+    while findtype 5901|5899|5903|5905 backpack as footwear
+        getlabel footwear desc
+        if "[blessed]" in desc
+            @ignore footwear
+        elseif findtype "scissors" backpack as footcutter
+            while queued
+                //donothing
+            endwhile
+            dclick footcutter
+            wft 1000
+            target footwear
+            pause 500
+            getlabel backpack ping
+        else
+            drop backpack
+            lift footwear 60000
+            drop lootchestdump2 -1 -1 0
+        endif
+    endwhile   
     //Dumping all items
     menu respile 0
     wft 1000

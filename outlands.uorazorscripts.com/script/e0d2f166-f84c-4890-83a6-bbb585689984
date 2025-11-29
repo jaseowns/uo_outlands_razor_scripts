@@ -6,7 +6,7 @@
 
 # Map-Trap Script by Bapeth
 #
-# November 27th 2025 - Fixed bug on line 55 (semicolon was causing script to error)
+# November 28th 2025 - Added Spellbook Aspect Swapping, Fixed an old lift/drop bug
 #
 # "What it does":
 # Digs for treasure
@@ -15,17 +15,36 @@
 # Summons an Earth Elemental
 # Uses both "Harvest and Gadget" aspect to maximize damage and loot
 # Uses two mastery chains - one for "Trap Damage" and one for "Special/Rare Loot Chance" (optional)
+# Swaps to your preferred Aspect Spell Book for XP gain (optional)
 # Auto opens and loots treasure chests
 # Auto Gate Travels to users house if there is too much gold to carry
 # Auto demolishes chest when empty
+#
+# If you wish to edit the script to change Harvest to Fortune Edit the following lines : 372, 389, 605, 608  (Be specific with upper and lowercase letters)
 #
 # "Full variable reset"
 # If an error has occurred while the script is setting mastery chains, go into "WARMODE + Open the Party Menu", then play the script to wipe all variable memory and start fresh
 #
 # "REQUIRED": <---------- "Important information!"
-# User must create three cooldowns named "Aspect Armor" "Chain Swap" "Aspect Proc"
-# "Aspect Proc" cooldown requires an OVERHEAD Trigger Text: *innovation* Cooldown: 30
+# User must create four cooldowns named:
+#
+# "Aspect Armor" OVERHEAD Trigger Text: aspect armor activated
+# -------------- Cooldown : 30
+#    
+# "Aspect Book"  OVERHEAD Trigger Text: aspect activated
+# -------------- Cooldown : 30
+#    
+# "Aspect Proc"  OVERHEAD Trigger Text: *innovation*
+# -------------- Cooldown : 30
+#
+# "Chain Swap" - No data needed
+#
 # Cooldowns can be found in the in-game options menu
+#
+# "Spell Book Aspect Swapping"
+# The script can now swap your aspect spellbook from Gadget to any aspect you would like to gain XP on
+# This part if the script is activated during the "Lockpicking Phase"
+# See the list of aspects below to set your preferred aspect for XP gain
 #
 # "Auto Loot Control"
 # This script uses the razor "Auto-Queue Object Delay" setting
@@ -35,6 +54,7 @@
 # "HOW TO USE":
 #
 # Items needed in backpack - Shovel, T-map, Explorer Pack, Ground Traps, Lockpicks, Trap Kit, Mastery Chain
+# Items needed equipped - Set of armor, Spellbook, Mastery Chain
 #
 # "PEACEMODE" (Gadget / Trap Chain)
 # In peacemode play the script while looking for treasure - The script will ensure you are in Gadget aspect and your Trap Chain is equipped
@@ -47,6 +67,7 @@
 #
 # "WARMODE" (Harvest / Loot Chain)
 # In warmode play the script when all monsters are dead - The script will ensure you are in Harvest aspect and your Loot Chain is equipped
+# At this time an optional spell book aspect swap will take place
 # Mastery chain cooldown is 30 seconds, which is longer than low-level maps will take to open - the user should wait 10 seconds before approaching the chest (loot monster corpses during this time)
 # Approach the chest (within 1 tile) and the script will automatically cast invis on the user and begin picking/looting
 # When the script is done looting, it will switch back to Gadget aspect and equip the Trap Chain
@@ -76,7 +97,33 @@
 # Spirit Speak --80
 #
 # Script Starts Here
+#
+# To set your "Spellbook Aspect" for XP gain during the lockpicking phase, choose an aspect and change the value from 0 to 1
+# Gadget is always the default book therefore it is not on the list - if you want to level gadget then leave all values at 0
+#
+@setvar! "Air Aspect Spellbook" 0
+@setvar! "Arcane Aspect Spellbook" 0
+@setvar! "Artisan Aspect Spellbook" 0
+@setvar! "Blood Aspect Spellbook" 0
+@setvar! "Command Aspect Spellbook" 0
+@setvar! "Death Aspect Spellbook" 0
+@setvar! "Discipline Aspect Spellbook" 0
+@setvar! "Earth Aspect Spellbook" 0
+@setvar! "Eldritch Aspect Spellbook" 0
+@setvar! "Fire Aspect Spellbook" 0
+@setvar! "Fortune Aspect Spellbook" 0
+@setvar! "Frost Aspect Spellbook" 0
+@setvar! "Harvest Aspect Spellbook" 0
+@setvar! "Holy Aspect Spellbook" 0
+@setvar! "Lightning Aspect Spellbook" 0
+@setvar! "Lyric Aspect Spellbook" 0
+@setvar! "Madness Aspect Spellbook" 0
+@setvar! "Poison Aspect Spellbook" 0
+@setvar! "Shadow Aspect Spellbook" 1
+@setvar! "Void Aspect Spellbook" 0
+@setvar! "Water Aspect Spellbook" 0
 
+//Do not edit below this line unless you know what you are doing!
 if warmode and gumpexists 3527489586
     warmode off
     gumpclose 3527489586
@@ -198,10 +245,12 @@ if not warmode
         if not find "TrapChain" backpack
             //donothing
         else
+            drop backpack
             lift bchain
             drop backpack -1 -1 0
             pause 500
             getlabel backpack ping
+            drop backpack
             lift "TrapChain"
             drop self Talisman
             overhead "Trap Chain Equipped..." 44
@@ -210,6 +259,7 @@ if not warmode
             getlabel backpack ping
         endif
     elseif varexist "TwoChain"
+        drop backpack
         lift "TrapChain"
         drop self Talisman
         getlabel backpack ping
@@ -220,9 +270,6 @@ if not warmode
         if findlayer self innertorso as chestarmor
             getlabel chestarmor desc
             if "gadget" in desc
-                if timerexists aspectswapoverheadtimer
-                    removetimer aspectswapoverheadtimer
-                endif
                 if timerexists gobackformoregold
                     removetimer gobackformoregold
                 endif
@@ -230,36 +277,20 @@ if not warmode
                     removetimer gategold
                 endif
             else
-                if not timerexists aspectswapoverheadtimer
-                    createtimer aspectswapoverheadtimer
-                    settimer aspectswapoverheadtimer 3000
-                endif
-                if cooldown "Aspect Armor"
-                    if timerexists aspectswapoverheadtimer
-                        if timer aspectswapoverheadtimer >= 3000
-                            overhead "Aspect swap Gadget cooling" 2669
-                            settimer aspectswapoverheadtimer 0
-                        endif
-                    endif
-                elseif cooldown "Aspect Proc"
-                    if timerexists aspectswapoverheadtimer
-                        if timer aspectswapoverheadtimer >= 3000
-                            overhead "Aspect proced recently..." 2669
-                            overhead "Aspect swap Gadget cooling" 2669
-                            settimer aspectswapoverheadtimer 0
-                        endif
-                    endif
-                endif
-                if not cooldown "Aspect Armor"
+                if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
                     clearsysmsg
                     say "[AspectArmor Gadget"
                     getlabel backpack ping
-                    if insysmsg "Your armor is already of that aspect"
-                        overhead "Current Aspect is Gadget" 2669
-                    else 
-                        cooldown "Aspect Armor" 30000
-                    endif
                 endif
+            endif
+        endif
+        if not cooldown "Aspect Book" and not cooldown "Aspect Proc" and findlayer self righthand as bookinhand
+            getlabel bookinhand righthanddesc
+            if "gadget" in desc
+                //donothing
+            else 
+                say "[AspectSpellbook Gadget"
+                getlabel backpack ping
             endif
         endif
     endif
@@ -279,7 +310,7 @@ if not warmode
             pause 2000 
             replay
         elseif findbuff "Entangle"
-            if mana >= 50 and followers < 4
+            if mana >= 50 and followers < 2
                 cast "Earth Elemental"
             endif
             if varexist "bappack"
@@ -320,10 +351,12 @@ elseif warmode
         if not find "LootChain" backpack
             //donothing
         else
+            drop backpack
             lift bchain
             drop backpack -1 -1 0
             pause 500
             getlabel backpack ping
+            drop backpack
             lift "LootChain"
             drop self Talisman
             overhead "Loot Chain Equipped..." 74
@@ -332,6 +365,7 @@ elseif warmode
             getlabel backpack ping
         endif
     elseif varexist "TwoChain"
+        drop backpack
         lift "LootChain"
         drop self Talisman
         getlabel backpack ping
@@ -342,48 +376,191 @@ elseif warmode
         if findlayer self innertorso as chestarmor
             getlabel chestarmor desc
             if "harvest" in desc
-                if timerexists aspectswapoverheadtimer
-                    removetimer aspectswapoverheadtimer
-                endif
                 if timerexists harvestspam
                     removetimer harvestspam
                 endif
             else
-                if not timerexists aspectswapoverheadtimer
-                    createtimer aspectswapoverheadtimer
-                    settimer aspectswapoverheadtimer 3000
-                endif
                 if cooldown "Aspect Armor"
-                    if timerexists aspectswapoverheadtimer
-                        if timer aspectswapoverheadtimer >= 3000
-                            overhead "Aspect swap Harvest cooling" 2086
-                            settimer aspectswapoverheadtimer 0
-                            if not timerexists harvestspam
-                                createtimer harvestspam
-                            endif
-                        endif
-                    endif
-                elseif cooldown "Aspect Proc"
-                    if timerexists aspectswapoverheadtimer
-                        if timer aspectswapoverheadtimer >= 3000
-                            overhead "Aspect proced recently..." 2086
-                            overhead "Aspect swap Harvest cooling" 2086
-                            settimer aspectswapoverheadtimer 0
-                            if not timerexists harvestspam
-                                createtimer harvestspam
-                            endif
-                        endif
+                    if not timerexists harvestspam
+                        createtimer harvestspam
                     endif
                 endif
-                if not cooldown "Aspect Armor"
+                if cooldown "Aspect Proc"
+                    if not timerexists harvestspam
+                        createtimer harvestspam
+                    endif
+                endif
+                if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
                     clearsysmsg
                     say "[AspectArmor Harvest"
                     getlabel backpack ping
-                    if insysmsg "Your armor is already of that aspect"
-                        overhead "Current Aspect is Harvest" 2086
-                    else 
-                        cooldown "Aspect Armor" 30000
-                    endif
+                endif
+            endif
+        endif
+        if cooldown "Aspect Book"
+            if not timerexists bookaspectspam
+                createtimer bookaspectspam
+            endif
+        endif
+        if cooldown "Aspect Proc"
+            if not timerexists bookaspectspam
+                createtimer bookaspectspam
+            endif
+        endif
+        if not cooldown "Aspect Book" and not cooldown "Aspect Proc" and findlayer self righthand as bookinhand
+            if timerexists bookaspectspam
+                removetimer bookaspectspam
+            endif
+            if timerexists bookaspectspam
+                removetimer bookaspectspam
+            endif
+            getlabel bookinhand bookdesc
+            if "Air Aspect Spellbook" = 1
+                if "air" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Air"
+                    getlabel backpack ping
+                endif
+            elseif "Arcane Aspect Spellbook" = 1
+                if "arcane" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Arcane"
+                    getlabel backpack ping
+                endif
+            elseif "Artisan Aspect Spellbook" = 1
+                if "artisan" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Artisan"
+                    getlabel backpack ping
+                endif
+            elseif "Blood Aspect Spellbook" = 1
+                if "blood" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Blood"
+                    getlabel backpack ping
+                endif
+            elseif "Command Aspect Spellbook" = 1
+                if "command" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Command"
+                    getlabel backpack ping
+                endif
+            elseif "Death Aspect Spellbook" = 1
+                if "death" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Death"
+                    getlabel backpack ping
+                endif
+            elseif "Discipline Aspect Spellbook" = 1
+                if "discipline" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Discipline"
+                    getlabel backpack ping
+                endif
+            elseif "Earth Aspect Spellbook" = 1
+                if "earth" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Earth"
+                    getlabel backpack ping
+                endif
+            elseif "Eldritch Aspect Spellbook" = 1
+                if "eldritch" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Eldritch"
+                    getlabel backpack ping
+                endif
+            elseif "Fire Aspect Spellbook" = 1
+                if "fire" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Fire"
+                    getlabel backpack ping
+                endif
+            elseif "Fortune Aspect Spellbook" = 1
+                if "fortune" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Fortune"
+                    getlabel backpack ping
+                endif
+            elseif "Frost Aspect Spellbook" = 1
+                if "frost" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Frost"
+                    getlabel backpack ping
+                endif
+            elseif "Harvest Aspect Spellbook" = 1
+                if "harvest" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Harvest"
+                    getlabel backpack ping
+                endif
+            elseif "Holy Aspect Spellbook" = 1
+                if "holy" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Holy"
+                    getlabel backpack ping
+                endif
+            elseif "Lightning Aspect Spellbook" = 1
+                if "lightning" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Lightning"
+                    getlabel backpack ping
+                endif
+            elseif "Lyric Aspect Spellbook" = 1
+                if "lyric" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Lyric"
+                    getlabel backpack ping
+                endif
+            elseif "Madness Aspect Spellbook" = 1
+                if "madness" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Madness"
+                    getlabel backpack ping
+                endif
+            elseif "Poison Aspect Spellbook" = 1
+                if "poison" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Poison"
+                    getlabel backpack ping
+                endif
+            elseif "Shadow Aspect Spellbook" = 1
+                if "shadow" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Shadow"
+                    getlabel backpack ping
+                endif
+            elseif "Void Aspect Spellbook" = 1
+                if "void" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Void"
+                    getlabel backpack ping
+                endif
+            elseif "Water Aspect Spellbook" = 1
+                if "water" in bookdesc
+                    //donothing
+                else 
+                    say "[AspectSpellbook Water"
+                    getlabel backpack ping
                 endif
             endif
         endif
@@ -428,9 +605,6 @@ elseif warmode
                 if not findtype "wooden chest|metal chest" ground -1 -1 2
                     break
                 endif
-                if insysmsg "resolved an aspect special" and not timerexists harvestspam
-                    createtimer harvestspam
-                endif
                 if timerexists harvestspam and not cooldown "Aspect Proc" and not cooldown "Aspect Armor"
                     if findlayer self innertorso as chestarmor
                         getlabel chestarmor desc
@@ -438,6 +612,158 @@ elseif warmode
                             removetimer harvestspam
                         else 
                             say "[AspectArmor Harvest"
+                            getlabel backpack ping
+                        endif
+                    endif
+                endif
+                if timerexists bookaspectspam and not cooldown "Aspect Proc" and not cooldown "Aspect Book" and findlayer self righthand as bookinhand
+                    getlabel bookinhand bookdesc
+                    if "Air Aspect Spellbook" = 1
+                        if "air" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Air"
+                            getlabel backpack ping
+                        endif
+                    elseif "Arcane Aspect Spellbook" = 1
+                        if "arcane" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Arcane"
+                            getlabel backpack ping
+                        endif
+                    elseif "Artisan Aspect Spellbook" = 1
+                        if "artisan" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Artisan"
+                            getlabel backpack ping
+                        endif
+                    elseif "Blood Aspect Spellbook" = 1
+                        if "blood" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Blood"
+                            getlabel backpack ping
+                        endif
+                    elseif "Command Aspect Spellbook" = 1
+                        if "command" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Command"
+                            getlabel backpack ping
+                        endif
+                    elseif "Death Aspect Spellbook" = 1
+                        if "death" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Death"
+                            getlabel backpack ping
+                        endif
+                    elseif "Discipline Aspect Spellbook" = 1
+                        if "discipline" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Discipline"
+                            getlabel backpack ping
+                        endif
+                    elseif "Earth Aspect Spellbook" = 1
+                        if "earth" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Earth"
+                            getlabel backpack ping
+                        endif
+                    elseif "Eldritch Aspect Spellbook" = 1
+                        if "eldritch" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Eldritch"
+                            getlabel backpack ping
+                        endif
+                    elseif "Fire Aspect Spellbook" = 1
+                        if "fire" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Fire"
+                            getlabel backpack ping
+                        endif
+                    elseif "Fortune Aspect Spellbook" = 1
+                        if "fortune" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Fortune"
+                            getlabel backpack ping
+                        endif
+                    elseif "Frost Aspect Spellbook" = 1
+                        if "frost" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Frost"
+                            getlabel backpack ping
+                        endif
+                    elseif "Harvest Aspect Spellbook" = 1
+                        if "harvest" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Harvest"
+                            getlabel backpack ping
+                        endif
+                    elseif "Holy Aspect Spellbook" = 1
+                        if "holy" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Holy"
+                            getlabel backpack ping
+                        endif
+                    elseif "Lightning Aspect Spellbook" = 1
+                        if "lightning" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Lightning"
+                            getlabel backpack ping
+                        endif
+                    elseif "Lyric Aspect Spellbook" = 1
+                        if "lyric" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Lyric"
+                            getlabel backpack ping
+                        endif
+                    elseif "Madness Aspect Spellbook" = 1
+                        if "madness" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Madness"
+                            getlabel backpack ping
+                        endif
+                    elseif "Poison Aspect Spellbook" = 1
+                        if "poison" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Poison"
+                            getlabel backpack ping
+                        endif
+                    elseif "Shadow Aspect Spellbook" = 1
+                        if "shadow" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Shadow"
+                            getlabel backpack ping
+                        endif
+                    elseif "Void Aspect Spellbook" = 1
+                        if "void" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Void"
+                            getlabel backpack ping
+                        endif
+                    elseif "Water Aspect Spellbook" = 1
+                        if "water" in bookdesc
+                            removetimer bookaspectspam
+                        else 
+                            say "[AspectSpellbook Water"
+                            getlabel backpack ping
                         endif
                     endif
                 endif
@@ -595,10 +921,12 @@ elseif warmode
                 if not find "TrapChain" backpack
                     //donothing
                 else
+                    drop backpack
                     lift bchain
                     drop backpack -1 -1 0
                     pause 500
                     getlabel backpack ping
+                    drop backpack
                     lift "TrapChain"
                     drop self Talisman
                     overhead "Trap Chain Equipped..." 44
@@ -607,49 +935,39 @@ elseif warmode
                     getlabel backpack ping
                 endif
             elseif varexist "TwoChain"
+                drop backpack
                 lift "TrapChain"
                 drop self Talisman
                 getlabel backpack ping
                 overhead "Trap Chain Equipped..." 44
                 cooldown "Chain Swap" 30000
             endif
-            if findlayer self innertorso as chestarmor
-                getlabel chestarmor desc
-                if "gadget" in desc
-                    if timerexists aspectswapoverheadtimer
-                        removetimer aspectswapoverheadtimer
-                    endif
-                else
-                    if not timerexists aspectswapoverheadtimer
-                        createtimer aspectswapoverheadtimer
-                        settimer aspectswapoverheadtimer 3000
-                    endif
-                    if cooldown "Aspect Armor"
-                        if timerexists aspectswapoverheadtimer
-                            if timer aspectswapoverheadtimer >= 3000
-                                overhead "Aspect swap Gadget cooling..." 2669
-                                settimer aspectswapoverheadtimer 0
-                            endif
+            if timerexists checkforgadget
+                if findlayer self innertorso as chestarmor
+                    getlabel chestarmor desc
+                    if "gadget" in desc
+                        if timerexists gobackformoregold
+                            removetimer gobackformoregold
                         endif
-                    elseif cooldown "Aspect Proc"
-                        if timerexists aspectswapoverheadtimer
-                            if timer aspectswapoverheadtimer >= 3000
-                                overhead "Aspect proced recently..." 2669
-                                overhead "Aspect swap Gadget cooling..." 2669
-                                settimer aspectswapoverheadtimer 0
-                            endif
+                        if timerexists gategold
+                            removetimer gategold
+                        endif
+                    else
+                        if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
+                            clearsysmsg
+                            say "[AspectArmor Gadget"
+                            getlabel backpack ping
                         endif
                     endif
-                    if not cooldown "Aspect Armor"
-                        clearsysmsg
-                        say "[AspectArmor Gadget"
-                        getlabel backpack ping
-                        if insysmsg "Your armor is already of that aspect"
-                            overhead "Current Aspect is Gadget" 2669
+                    if not cooldown "Aspect Book" and not cooldown "Aspect Proc" and findlayer self righthand as bookinhand
+                        getlabel bookinhand righthanddesc
+                        if "gadget" in desc
+                            //donothing
                         else 
-                            cooldown "Aspect Armor" 30000
+                            say "[AspectSpellbook Gadget"
+                            getlabel backpack ping
                         endif
-                    endif
+                     endif
                 endif
             endif
             if timerexists gobackformoregold
@@ -657,6 +975,10 @@ elseif warmode
             endif
             if timerexists gategold
                 removetimer gategold
+            endif
+            if skill "Spirit Speak" >= 50
+                skill "Spirit Speak"
+                getlabel backpack ping
             endif
             overhead "Time to move on..." 88
             script "One Tile Dump & Restock"

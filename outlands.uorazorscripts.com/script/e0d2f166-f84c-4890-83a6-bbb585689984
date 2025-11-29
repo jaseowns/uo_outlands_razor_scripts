@@ -6,7 +6,7 @@
 
 # Map-Trap Script by Bapeth
 #
-# November 28th 2025 - Added Spellbook Aspect Swapping, Fixed an old lift/drop bug
+# November 29th 2025 - Added Spellbook Aspect Swapping, Added Selection Harvest/Fortune selection for opening chest phase, Added Inn room support for Auto-Gate, Fixed an old lift/drop bug
 #
 # "What it does":
 # Digs for treasure
@@ -19,8 +19,6 @@
 # Auto opens and loots treasure chests
 # Auto Gate Travels to users house if there is too much gold to carry
 # Auto demolishes chest when empty
-#
-# If you wish to edit the script to change Harvest to Fortune Edit the following lines : 372, 389, 605, 608  (Be specific with upper and lowercase letters)
 #
 # "Full variable reset"
 # If an error has occurred while the script is setting mastery chains, go into "WARMODE + Open the Party Menu", then play the script to wipe all variable memory and start fresh
@@ -45,6 +43,10 @@
 # The script can now swap your aspect spellbook from Gadget to any aspect you would like to gain XP on
 # This part if the script is activated during the "Lockpicking Phase"
 # See the list of aspects below to set your preferred aspect for XP gain
+#
+# "Default Aspect Armor"
+# The user may select from "Harvest or Fortune" as the aspect to open the chest with
+# See below for settings
 #
 # "Auto Loot Control"
 # This script uses the razor "Auto-Queue Object Delay" setting
@@ -78,11 +80,16 @@
 #
 # "Auto-Gate Travel"
 # If there is too much gold within the treasure chest for the player to carry, the auto-gate travel routine will activate
-# The script will gate to a rune named "House" within the users runebook/tome
+# The script will gate to a rune named "House" or a rune named "Inn" within the users runebook/tome
 # If a "Bank Deposit Safe" is nearby, the script will use it otherwise, it will drop gold at the users feet
-# Ensure you have a rune in your runebook/tome named "House" <---------- "Important information!"
+# Ensure you have a rune in your runebook/tome marked for and named "House" or "Inn" <---------- "Important information!"
+# To select between a House or Inn see below - Default is House
 #
-# "Note":
+# "Notes":
+# If Inn room is selected for Auto-Gate Travel know that it is only capable one a single gate-hop from the treasure site to the Inn room
+# In the extremely rare case that there is more than 60000 gold in the treasure chest (2 stacks or more) you will have to manually return to the chest to pick up the remaining gold
+# Houses on the other hand are capable of multiple gate-hops and do not have this potential issue
+#
 # Some antiquity items may not be on the loot list - If the chest does not auto delete, double-check it for an un-looted antiquity
 #
 #~~"Recommended Build"~~
@@ -98,8 +105,20 @@
 #
 # Script Starts Here
 #
+# To set your "Home Type" for the Auto-Gate Travel feature choose either "House" or "Inn" abd set the value to 1
+# One of these must always be set to 1 - do not set both to 1!
+#
+@setvar! "House" 1
+@setvar! "Inn" 0
+#
+# To set your lockpicking phase "Armor Aspect" choose either Harvest or Fortune and set the value to 1
+# One of these must always be set to 1 - do not set both to 1!
+#
+@setvar! "Harvest Armor" 1
+@setvar! "Fortune Armor" 0
+#
 # To set your "Spellbook Aspect" for XP gain during the lockpicking phase, choose an aspect and change the value from 0 to 1
-# Gadget is always the default book therefore it is not on the list - if you want to level gadget then leave all values at 0
+# Gadget is always the default book therefore it is not on the list - if you want to level gadget then leave all values below at 0
 #
 @setvar! "Air Aspect Spellbook" 0
 @setvar! "Arcane Aspect Spellbook" 0
@@ -294,15 +313,31 @@ if not warmode
             endif
         endif
     endif
-    if findtype "map" backpack 0 -1
-        //donothing
-    elseif findtype "map" backpack 2091 -1
-        //donothing
-    else
-        overhead "I will need a treasure map..." 38
+    if timerexists dugchest and not findtype "map" backpack
+        removetimer dugchest
+    endif
+    if not timerexists dugchest
+        if findtype "map" backpack 0 -1 as BapMap
+            getlabel BapMap Mapdesc
+            if "in progress" in Mapdesc
+                overhead "The chest has been dug up!" 45
+                createtimer dugchest
+            endif
+        elseif findtype "map" backpack 2091 -1 as BapMap
+            if "in progress" in Mapdesc
+                overhead "The chest has been dug!" 45
+                createtimer dugchest
+            endif
+        else
+            overhead "I will need a treasure map..." 38
+            stop
+        endif
+    endif
+    if not findtype "shovel" backpack
+        overhead "I will need a shovel..." 38
         stop
     endif
-    if findtype "shovel" backpack as bshovel
+    if not timerexists dugchest and findtype "shovel" backpack as bshovel
         dclick bshovel
         pause 1200
         if insysmsg "Perhaps you should step outdoors."
@@ -341,9 +376,6 @@ if not warmode
             overhead "Time to slay monsters!!!" 88
             stop
         endif
-    else
-        overhead "I will need a shovel..." 38
-        stop
     endif
 elseif warmode
     if varexist "TwoChain" and findlayer self talisman as bchain
@@ -379,6 +411,10 @@ elseif warmode
                 if timerexists harvestspam
                     removetimer harvestspam
                 endif
+            elseif "fortune" in desc
+                if timerexists harvestspam
+                    removetimer harvestspam
+                endif                
             else
                 if cooldown "Aspect Armor"
                     if not timerexists harvestspam
@@ -392,7 +428,11 @@ elseif warmode
                 endif
                 if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
                     clearsysmsg
-                    say "[AspectArmor Harvest"
+                    if "Harvest Armor" = 1
+                        say "[AspectArmor Harvest"
+                    elseif "Fortune Armor" = 1
+                        say "[AspectArmor Fortune"
+                    endif
                     getlabel backpack ping
                 endif
             endif
@@ -609,9 +649,19 @@ elseif warmode
                     if findlayer self innertorso as chestarmor
                         getlabel chestarmor desc
                         if "harvest" in desc
-                            removetimer harvestspam
-                        else 
-                            say "[AspectArmor Harvest"
+                            if timerexists harvestspam
+                                removetimer harvestspam
+                            endif
+                        elseif "fortune" in desc
+                            if timerexists harvestspam
+                                removetimer harvestspam
+                            endif                
+                        else
+                            if "Harvest Armor" = 1
+                                say "[AspectArmor Harvest"
+                            elseif "Fortune Armor" = 1
+                                say "[AspectArmor Fortune"
+                            endif
                             getlabel backpack ping
                         endif
                     endif
@@ -850,7 +900,11 @@ elseif warmode
         endwhile
         while timerexists gategold and findtype "gold coin" bchest as heavygold
             if mana >= 40 and not findtype 3948 ground 0 -1 2
-                say "[gate House"
+                if "House" = 1
+                    say "[gate House"
+                elseif "Inn" = 1
+                    say "[gate Inn"
+                endif
             endif
             getlabel backpack ping
             drop backpack
@@ -860,11 +914,21 @@ elseif warmode
             endwhile
             getlabel backpack ping
             pause 350
-            if findtype "gold coin" bchest
+            if "House" = 1 and findtype "gold coin" bchest
                 createtimer gobackformoregold
             else 
                 if timerexists gobackformoregold
                     removetimer gobackformoregold
+                endif
+            endif
+            if "Inn" = 1
+                getlabel bchest Innitemdesc
+                if "0 items, 0 stones" in Innitemdesc
+                    warmode off
+                    menu bchest 1
+                else 
+                    overhead "I left some gold in the chest!" 45
+                    overhead "I should go back!" 45
                 endif
             endif
             if findtype 3948 ground 0 -1 2 as bluegate
@@ -872,6 +936,18 @@ elseif warmode
                 waitforgump 3899019871 1600
                 gumpresponse 2
                 getlabel backpack ping
+                pause 350
+            endif
+            if "Inn" = 1
+                say 'Room' 88
+                waitforgump 2393832411 500
+                if ingump "Enter Your Room" 2393832411
+                    gumpresponse 4
+                elseif ingump "Rent This Room" 2393832411
+                    gumpresponse 5
+                    waitforgump 2393832411 500
+                    gumpresponse 100
+                endif
                 pause 350
             endif
             if findtype "bank deposit safe" ground -1 -1 2 as bankdepot
@@ -887,7 +963,72 @@ elseif warmode
                 endwhile
                 getlabel backpack ping
             endif
-            if timerexists gobackformoregold
+            if "Inn" = 1 
+                if varexist "TwoChain" and findlayer self talisman as bchain
+                    getlabel bchain desc
+                    if not find "TrapChain" backpack
+                        //donothing
+                    else
+                        drop backpack
+                        lift bchain
+                        drop backpack -1 -1 0
+                        pause 500
+                        getlabel backpack ping
+                        drop backpack
+                        lift "TrapChain"
+                        drop self Talisman
+                        overhead "Trap Chain Equipped..." 44
+                        cooldown "Chain Swap" 30000
+                        pause 500
+                        getlabel backpack ping
+                    endif
+                elseif varexist "TwoChain"
+                    drop backpack
+                    lift "TrapChain"
+                    drop self Talisman
+                    getlabel backpack ping
+                    overhead "Trap Chain Equipped..." 44
+                    cooldown "Chain Swap" 30000
+                endif
+                if findlayer self innertorso as chestarmor
+                    getlabel chestarmor desc
+                    if "gadget" in desc
+                        if timerexists gobackformoregold
+                            removetimer gobackformoregold
+                        endif
+                        if timerexists gategold
+                            removetimer gategold
+                        endif
+                    else
+                        if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
+                            clearsysmsg
+                            say "[AspectArmor Gadget"
+                            getlabel backpack ping
+                        endif
+                    endif
+                    if not cooldown "Aspect Book" and not cooldown "Aspect Proc" and findlayer self righthand as bookinhand
+                        getlabel bookinhand righthanddesc
+                        if "gadget" in desc
+                            //donothing
+                        else 
+                            say "[AspectSpellbook Gadget"
+                            getlabel backpack ping
+                        endif
+                     endif
+                endif
+                if timerexists gobackformoregold
+                    removetimer gobackformoregold
+                endif
+                if timerexists gategold
+                    removetimer gategold
+                endif
+                if timerexists dugchest and not findtype "map" backpack
+                    removetimer dugchest
+                endif
+                overhead "Time to move on..." 88
+                stop
+            endif
+            if "House" = 1 and timerexists gobackformoregold
                 if findtype 3948 ground 0 -1 2 as bluegate
                     dclick bluegate
                     waitforgump 3899019871 1600
@@ -910,7 +1051,7 @@ elseif warmode
         getlabel backpack ping
         pause 350
     endif
-    if findtype "wooden chest|metal chest" ground -1 -1 1 as bchest
+    if "House" = 1 and findtype "wooden chest|metal chest" ground -1 -1 1 as bchest
         @setvar "newchest" bchest
         getlabel "newchest" itemdesc
         if "0 items, 0 stones" in itemdesc
@@ -973,6 +1114,9 @@ elseif warmode
             endif
             if timerexists gategold
                 removetimer gategold
+            endif
+            if timerexists dugchest and not findtype "map" backpack
+                removetimer dugchest
             endif
             if skill "Spirit Speak" >= 50
                 skill "Spirit Speak"

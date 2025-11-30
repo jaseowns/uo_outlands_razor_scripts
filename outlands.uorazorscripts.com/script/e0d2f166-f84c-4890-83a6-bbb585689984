@@ -6,7 +6,7 @@
 
 # Map-Trap Script by Bapeth
 #
-# November 29th 2025 - Added Spellbook Aspect Swapping, Added Selection Harvest/Fortune selection for opening chest phase, Added Inn room support for Auto-Gate, Fixed an old lift/drop bug
+# November 30th 2025 - Improved gold sorting during Auto-Gate routine to ensure maximum gold carried per gate hop
 #
 # "What it does":
 # Digs for treasure
@@ -862,35 +862,49 @@ elseif warmode
             endwhile
         endwhile
         while findtype "gold coin" "newchest" as goldcoinz
+            clearsysmsg 
             hotkey 'Grab Item' 
             target goldcoinz
             while queued
                 //donothing
             endwhile
+            getlabel backpack ping
             if insysmsg "That container cannot hold more weight"
-                drop backpack
-                lift goldcoinz 60000
-                drop bchest -1 -1 0
-                while queued
+                for 15
+                    if findtype "gold coin" "newchest" as grabsome
+                        drop backpack
+                        lift grabsome 1444
+                        drop backpack -1 -1 0
+                    endif
+                    while queued
+                        //donothing
+                    endwhile
+                    getlabel backpack ping
+                    if insysmsg "That container cannot hold more weight"
+                        break
+                    endif
+                endfor
+                if findtype "gold coin" "newchest" as firstdrop
+                    drop backpack
+                    lift firstdrop 60000
+                    drop "newchest" -1 -1 0
+                endif
+                while queued 
                     //donothing
                 endwhile
+                if findtype "gold coin" "newchest" as seconddrop
+                    drop backpack
+                    lift seconddrop 60000
+                    drop "newchest" -1 -1 0
+                    while queued 
+                        //donothing
+                    endwhile
+                endif
                 if not timerexists gategold
                     createtimer gategold
                 endif
                 break
             endif
-        endwhile
-        while diffweight <= 0 and findtype "gold coin" backpack as dropgold
-            if not timerexists gategold
-                createtimer gategold
-            endif
-            overhead "My cup runneth over..." 1779
-            drop backpack
-            lift dropgold 2222
-            drop bchest -1 -1 0
-            while queued
-                //donothing
-            endwhile
         endwhile
         if not timerexists gategold and findtype "gold coin" bchest
             createtimer gategold
@@ -959,12 +973,23 @@ elseif warmode
                     //donothing
                 endwhile
                 getlabel backpack ping
+                if findtype "gold coin" backpack
+                    menu bankdepot 0
+                endif
             else 
                 drop 0
                 while queued
                     //donothing
                 endwhile
                 getlabel backpack ping
+                while findtype "gold coin" backpack as goldremaining
+                    drop backpack
+                    lift goldremaining 60000
+                    drop 0
+                    while queued
+                        //donothing
+                    endwhile
+                endwhile
             endif
             if "Inn" = 1 
                 if varexist "TwoChain" and findlayer self talisman as bchain

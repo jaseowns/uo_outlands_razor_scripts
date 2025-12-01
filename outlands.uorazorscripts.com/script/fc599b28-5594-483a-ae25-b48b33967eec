@@ -6,7 +6,7 @@
 
 # Bapeths One Tile Item Dump & Restock
 #
-# November 29th 2025 - Added Inn room auto-recall support
+# November 30th 2025 - Improved logic for wand / exempt item handling
 #
 # "What it does" 
 # Recall to your house warp tile or your Inn room (See settings below)
@@ -25,7 +25,7 @@
 # It is recommended to not fill any containers up to maximum capacity - leave some space
 #
 # "Exempt Magic Items from Magic Item Vault and Change Wand Type"
-# If you wish to select up the three expemt magic items from the Magic Item Vault, as well as use the ID Wand restocker, "Open The Atlas" and play the script to activate the selector feature - You must also keep your "Wand Container" stocked with ID Wands and/or Container ID wands
+# If you wish to select up the three exepmt magic items from the Magic Item Vault, as well as use the ID Wand restocker, "Open The Atlas" and play the script to activate the selector feature - You must also keep your "Wand Container" stocked with ID Wands and/or Container ID wands
 # Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
 #
 # "Full varible reset"
@@ -897,6 +897,10 @@ endif
 if gumpexists 341416395
     hotkey "Cancel Current Target"
     gumpclose 341416395
+    dclick "wandcontainer"
+    while queued
+        //donothing
+    endwhile
     if varexist regwand
         @unsetvar regwand
     endif
@@ -929,6 +933,8 @@ if gumpexists 341416395
     getlabel lasttarget desc
     if "backpack" in desc
         overhead "No Wand Set!" 88
+        @unsetvar conwand
+        @unsetvar regwand
     elseif "container" in desc
         @setvar conwand lasttarget 
         overhead "Container Wand Set!" 88
@@ -1101,32 +1107,38 @@ endwhile
 while queued
     //donothing
 endwhile
-if varexist saveitem1
-    getlabel backpack ping
-    drop backpack
-    lift saveitem1 60000
-    drop lootchestdump3 -1 -1 0
+if find "saveitem1" backpack or find "saveitem2" backpack or find "saveitem3" backpack
+    dclick "lootchestdump3"
     while queued
         //donothing
     endwhile
-endif
-if varexist saveitem2
-    getlabel backpack ping
-    drop backpack
-    lift saveitem2 60000
-    drop lootchestdump3 -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endif
-if varexist saveitem3
-    getlabel backpack ping
-    drop backpack
-    lift saveitem3 60000
-    drop lootchestdump3 -1 -1 0
-    while queued
-        //donothing
-    endwhile
+    if varexist saveitem1
+        getlabel backpack ping
+        drop backpack
+        lift saveitem1 60000
+        drop lootchestdump3 -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endif
+    if varexist saveitem2
+        getlabel backpack ping
+        drop backpack
+        lift saveitem2 60000
+        drop lootchestdump3 -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endif
+    if varexist saveitem3
+        getlabel backpack ping
+        drop backpack
+        lift saveitem3 60000
+        drop lootchestdump3 -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endif
 endif
 
 //Dumping Gear
@@ -1173,32 +1185,34 @@ menu deposafe 0
 while queued
     //donothing
 endwhile
-if varexist saveitem1
-    getlabel backpack ping
-    drop backpack
-    lift saveitem1 60000
-    drop backpack -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endif
-if varexist saveitem2
-    getlabel backpack ping
-    drop backpack
-    lift saveitem2 60000
-    drop backpack -1 -1 0
-    while queued
-        //donothing
-    endwhile
-endif
-if varexist saveitem3
-    getlabel backpack ping
-    drop backpack
-    lift saveitem3 60000
-    drop backpack -1 -1 0
-    while queued
-        //donothing
-    endwhile
+if find "saveitem1" "lootchestdump3" or find "saveitem2" "lootchestdump3" or find "saveitem3" "lootchestdump3"
+    if varexist saveitem1
+        getlabel backpack ping
+        drop backpack
+        lift saveitem1 60000
+        drop backpack -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endif
+    if varexist saveitem2
+        getlabel backpack ping
+        drop backpack
+        lift saveitem2 60000
+        drop backpack -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endif
+    if varexist saveitem3
+        getlabel backpack ping
+        drop backpack
+        lift saveitem3 60000
+        drop backpack -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endif
 endif
 
 while findtype "void orb|research materials|spell hue deed|black market goods|redline bottle" backpack as chest1dump
@@ -1281,6 +1295,17 @@ elseif varexist "regwand"
         endif
     endwhile
 endif
+if not varexist "regwand"
+    while findtype "20496" backpack as removewand
+        drop backpack
+        lift removewand
+        drop "wandcontainer"
+        while queued
+            //donothing
+        endwhile
+    endwhile
+endif
+    
 if counttype "20495" >= 2 backpack
     //do nothing
 elseif varexist "conwand"
@@ -1296,6 +1321,16 @@ elseif varexist "conwand"
             pause 500
             getlabel backpack ping
         endif
+    endwhile
+endif
+if not varexist "conwand"
+    while findtype "20495" backpack as removewand
+        drop backpack
+        lift removewand
+        drop "wandcontainer"
+        while queued
+            //donothing
+        endwhile
     endwhile
 endif
 

@@ -6,7 +6,7 @@
 
 # Map-Trap Script by Bapeth
 #
-# November 30th 2025 - Improved gold sorting during Auto-Gate routine to ensure maximum gold carried per gate hop
+# December 1st 2025 - Added auto buff potions while digging, added Auto-Gate termination when inside faction zone
 #
 # "What it does":
 # Digs for treasure
@@ -141,7 +141,7 @@
 @setvar! "Lyric Aspect Spellbook" 0
 @setvar! "Madness Aspect Spellbook" 0
 @setvar! "Poison Aspect Spellbook" 0
-@setvar! "Shadow Aspect Spellbook" 1
+@setvar! "Shadow Aspect Spellbook" 0
 @setvar! "Void Aspect Spellbook" 0
 @setvar! "Water Aspect Spellbook" 0
 
@@ -357,6 +357,30 @@ if not warmode
             getlabel backpack ping
             pause 500
             dclick "baptrap"
+            while queued
+                //donothing
+            endwhile
+            if not findbuff "Strength" and findtype "white potion" backpack as wpot
+                dclick wpot
+                while queued
+                    //donothing
+                endwhile
+                getlabel backpack ping
+            endif
+            if not findbuff "Agility" and findtype "blue potion" backpack as bpot
+                dclick bpot
+                while queued
+                    //donothing
+                endwhile
+                getlabel backpack ping
+            endif
+            if not findbuff "Magic Resist Potion" and findtype "black potion" backpack as respot
+                dclick respot
+                while queued
+                    //donothing
+                endwhile
+                getlabel backpack ping
+            endif
             while findbuff "Entangle"
                 if not find "bsummon1" ground and findtype "an earth elemental|a fire elemental|a water elemental|an air elemental|a daemon" ground -1 -1 1 as sum1  
                     if noto sum1 = "friend"
@@ -932,6 +956,7 @@ elseif warmode
         endwhile
         while timerexists gategold and findtype "gold coin" bchest as heavygold
             if mana >= 40 and not findtype 3948 ground 0 -1 2
+                clearsysmsg 
                 if "House" = 1
                     say "[gate House"
                 elseif "Inn" = 1
@@ -939,139 +964,49 @@ elseif warmode
                 endif
             endif
             getlabel backpack ping
-            drop backpack
-            lift heavygold 60000
-            while casting 
-                //donothing
-            endwhile
-            getlabel backpack ping
-            pause 350
-            if "House" = 1 and findtype "gold coin" bchest
-                createtimer gobackformoregold
-            else 
-                if timerexists gobackformoregold
-                    removetimer gobackformoregold
-                endif
-            endif
-            if "Inn" = 1
-                getlabel bchest Innitemdesc
-                if "0 items, 0 stones" in Innitemdesc
-                    warmode off
-                    menu bchest 1
-                else 
-                    overhead "I left some gold in the chest!" 45
-                    overhead "I should go back!" 45
-                endif
-            endif
-            if findtype 3948 ground 0 -1 2 as bluegate
-                dclick bluegate
-                waitforgump 3899019871 1600
-                gumpresponse 2
-                getlabel backpack ping
-                pause 350
-            endif
-            if "Inn" = 1
-                say 'Room' 88
-                waitforgump 2393832411 500
-                if ingump "Enter Your Room" 2393832411
-                    gumpresponse 4
-                elseif ingump "Rent This Room" 2393832411
-                    gumpresponse 5
-                    waitforgump 2393832411 500
-                    gumpresponse 100
-                endif
-                pause 350
-            endif
-            if findtype "bank deposit safe" ground -1 -1 2 as bankdepot
-                drop bankdepot -1 -1 0
-                while queued
-                    //donothing
-                endwhile
-                getlabel backpack ping
-                if findtype "gold coin" backpack
-                    menu bankdepot 0
-                endif
-            else 
-                drop 0
-                while queued
-                    //donothing
-                endwhile
-                getlabel backpack ping
-                while findtype "gold coin" backpack as goldremaining
+            if insysmsg "Players may only travel to or from a waypost"
+                removetimer gategold
+                warmode off
+                overhead "I am within a Faction Zone" 45
+                overhead "Auto-Gate terminated" 45
+                if diffweight >= 0 and findtype "gold coin" backpack as failgategold
                     drop backpack
-                    lift goldremaining 60000
-                    drop 0
+                    lift failgategold
+                    drop "newchest" -1 -1 0
                     while queued
                         //donothing
                     endwhile
-                endwhile
-            endif
-            if "Inn" = 1 
-                if varexist "TwoChain" and findlayer self talisman as bchain
-                    getlabel bchain desc
-                    if not find "TrapChain" backpack
-                        //donothing
-                    else
-                        drop backpack
-                        lift bchain
-                        drop backpack -1 -1 0
-                        pause 500
-                        getlabel backpack ping
-                        drop backpack
-                        lift "TrapChain"
-                        drop self Talisman
-                        overhead "Trap Chain Equipped..." 44
-                        cooldown "Chain Swap" 30000
-                        pause 500
-                        getlabel backpack ping
-                    endif
-                elseif varexist "TwoChain"
-                    drop backpack
-                    lift "TrapChain"
-                    drop self Talisman
-                    getlabel backpack ping
-                    overhead "Trap Chain Equipped..." 44
-                    cooldown "Chain Swap" 30000
                 endif
-                if findlayer self innertorso as chestarmor
-                    getlabel chestarmor desc
-                    if "gadget" in desc
-                        if timerexists gobackformoregold
-                            removetimer gobackformoregold
-                        endif
-                        if timerexists gategold
-                            removetimer gategold
-                        endif
-                    else
-                        if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
-                            clearsysmsg
-                            say "[AspectArmor Gadget"
-                            getlabel backpack ping
-                        endif
-                    endif
-                    if not cooldown "Aspect Book" and not cooldown "Aspect Proc" and findlayer self righthand as bookinhand
-                        getlabel bookinhand righthanddesc
-                        if "gadget" in desc
-                            //donothing
-                        else 
-                            say "[AspectSpellbook Gadget"
-                            getlabel backpack ping
-                        endif
-                     endif
-                endif
-                if timerexists gobackformoregold
-                    removetimer gobackformoregold
-                endif
-                if timerexists gategold
-                    removetimer gategold
-                endif
-                if timerexists dugchest and not findtype "map" backpack
-                    removetimer dugchest
-                endif
+                say "[AspectSpellbook Gadget"
+                getlabel backpack ping
+                say "[AspectArmor Gadget"
                 overhead "Time to move on..." 88
                 stop
-            endif
-            if "House" = 1 and timerexists gobackformoregold
+            else
+                drop backpack
+                lift heavygold 60000
+                while casting 
+                    //donothing
+                endwhile
+                getlabel backpack ping
+                pause 350
+                if "House" = 1 and findtype "gold coin" bchest
+                    createtimer gobackformoregold
+                else 
+                    if timerexists gobackformoregold
+                        removetimer gobackformoregold
+                    endif
+                endif
+                if "Inn" = 1
+                    getlabel bchest Innitemdesc
+                    if "0 items, 0 stones" in Innitemdesc
+                        warmode off
+                        menu bchest 1
+                    else 
+                        overhead "I left some gold in the chest!" 45
+                        overhead "I should go back!" 45
+                    endif
+                endif
                 if findtype 3948 ground 0 -1 2 as bluegate
                     dclick bluegate
                     waitforgump 3899019871 1600
@@ -1079,11 +1014,121 @@ elseif warmode
                     getlabel backpack ping
                     pause 350
                 endif
-                dclick bchest 
-                while queued
-                    //donothing
-                endwhile
-                getlabel backpack ping
+                if "Inn" = 1
+                    say 'Room' 88
+                    waitforgump 2393832411 500
+                    if ingump "Enter Your Room" 2393832411
+                        gumpresponse 4
+                    elseif ingump "Rent This Room" 2393832411
+                        gumpresponse 5
+                        waitforgump 2393832411 500
+                        gumpresponse 100
+                    endif
+                    pause 350
+                endif
+                if findtype "bank deposit safe" ground -1 -1 2 as bankdepot
+                    drop bankdepot -1 -1 0
+                    while queued
+                        //donothing
+                    endwhile
+                    getlabel backpack ping
+                    if findtype "gold coin" backpack
+                        menu bankdepot 0
+                    endif
+                else 
+                    drop 0
+                    while queued
+                        //donothing
+                    endwhile
+                    getlabel backpack ping
+                    while findtype "gold coin" backpack as goldremaining
+                        drop backpack
+                        lift goldremaining 60000
+                        drop 0
+                        while queued
+                            //donothing
+                        endwhile
+                    endwhile
+                endif
+                if "Inn" = 1 
+                    if varexist "TwoChain" and findlayer self talisman as bchain
+                        getlabel bchain desc
+                        if not find "TrapChain" backpack
+                            //donothing
+                        else
+                            drop backpack
+                            lift bchain
+                            drop backpack -1 -1 0
+                            pause 500
+                            getlabel backpack ping
+                            drop backpack
+                            lift "TrapChain"
+                            drop self Talisman
+                            overhead "Trap Chain Equipped..." 44
+                            cooldown "Chain Swap" 30000
+                            pause 500
+                            getlabel backpack ping
+                        endif
+                    elseif varexist "TwoChain"
+                        drop backpack
+                        lift "TrapChain"
+                        drop self Talisman
+                        getlabel backpack ping
+                        overhead "Trap Chain Equipped..." 44
+                        cooldown "Chain Swap" 30000
+                    endif
+                    if findlayer self innertorso as chestarmor
+                        getlabel chestarmor desc
+                        if "gadget" in desc
+                            if timerexists gobackformoregold
+                                removetimer gobackformoregold
+                            endif
+                            if timerexists gategold
+                                removetimer gategold
+                            endif
+                        else
+                            if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
+                                clearsysmsg
+                                say "[AspectArmor Gadget"
+                                getlabel backpack ping
+                            endif
+                        endif
+                        if not cooldown "Aspect Book" and not cooldown "Aspect Proc" and findlayer self righthand as bookinhand
+                            getlabel bookinhand righthanddesc
+                            if "gadget" in desc
+                                //donothing
+                            else 
+                                say "[AspectSpellbook Gadget"
+                                getlabel backpack ping
+                            endif
+                         endif
+                    endif
+                    if timerexists gobackformoregold
+                        removetimer gobackformoregold
+                    endif
+                    if timerexists gategold
+                        removetimer gategold
+                    endif
+                    if timerexists dugchest and not findtype "map" backpack
+                        removetimer dugchest
+                    endif
+                    overhead "Time to move on..." 88
+                    stop
+                endif
+                if "House" = 1 and timerexists gobackformoregold
+                    if findtype 3948 ground 0 -1 2 as bluegate
+                        dclick bluegate
+                        waitforgump 3899019871 1600
+                        gumpresponse 2
+                        getlabel backpack ping
+                        pause 350
+                    endif
+                    dclick bchest 
+                    while queued
+                        //donothing
+                    endwhile
+                    getlabel backpack ping
+                endif
             endif
         endwhile
     endif
@@ -1166,7 +1211,7 @@ elseif warmode
                 pause 250
             endif
             overhead "Time to move on..." 88
-            script "One Tile Dump & Restock"
+            #script "One Tile Dump & Restock"
             stop
         endif
     endif

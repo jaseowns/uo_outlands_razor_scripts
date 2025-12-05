@@ -6,7 +6,7 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# Nov 17th 2025 - Added smart recall feature - enabled by successfully boarding a ship using "Bapeths Simple Boarding" script
+# Dec 5th 2025 - Added heal potion cooldown (XML Updated), Added logic to re-enable warmode when Shadow Aspect procs on an enemy ship
 # 
 # Script is designed for Necro and Chiv  (Mage or Pooner)
 #
@@ -65,10 +65,10 @@
 #
 # Script starts here
 
-if skill "Healing" >= 20 
-    if hp = maxhp
+if not hidden and skill "Healing" >= 20 
+    if diffhits < 35
         if timerexists crewhealrepeat
-            if timer crewhealrepeat >= 5250 and findtype 3617 backpack as baids
+            if not hidden and timer crewhealrepeat >= 5250 and findtype 3617 backpack as baids
                 while queued
                     // do nothing
                 endwhile
@@ -95,13 +95,13 @@ if skill "Healing" >= 20
                 endif
             endif
         endif
-    elseif not bandaging and findtype 3617 backpack
+    elseif diffhits > 35 and not hidden and not bandaging and findtype 3617 backpack
         hotkey "Bandage Self"
         cooldown "Bandage" 7000
     endif
 endif
 
-while poisoned and not targetexists 
+while poisoned and not targetexists and not hidden
     if findtype "Orange Potion" backpack as curepot
         dclick curepot
         pause 500
@@ -112,7 +112,7 @@ endwhile
 if skill "Fishing" >= 80
     if not find "MainPoon"
         if findlayer self lefthand as pooninhand
-            @setvar "MainPoon" pooninhand
+            @setvar! "MainPoon" pooninhand
         endif
     elseif find "MainPoon" backpack
         dclick "MainPoon"
@@ -122,24 +122,24 @@ if skill "Fishing" >= 80
 endif
     
 if skill "Alchemy" >= 0 and not hidden and not targetexists 
-    if not findbuff "Strength" and findtype "White Potion" backpack as wpot
+    if not hidden and not findbuff "Strength" and findtype "White Potion" backpack as wpot
         dclick wpot
         pause 500
         getlabel backpack ping
     endif
-    if not findbuff "Agility" and findtype "Blue Potion" backpack as bpot
+    if not hidden and not findbuff "Agility" and findtype "Blue Potion" backpack as bpot
         dclick bpot
         pause 500
         getlabel backpack ping
     endif
-    if not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as mpot
+    if not hidden and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as mpot
         dclick mpot
         pause 500
         getlabel backpack ping
     endif
 endif
 
-if not targetexists and not casting and not findbuff "Food Satisfaction"
+if not targetexists and not casting and not findbuff "Food Satisfaction" and not hidden
     if findtype 2429|28885|29774|29773|28880|28888|28881|28883|28886|28879 backpack as food
         dclick food
         cooldown "Food" 3600000
@@ -279,7 +279,7 @@ if timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|
         createtimer netwait
         settimer netwait 4000
     endif
-    if not queued and timer netwait >= 3400 and findtype "fishing net" backpack as net
+    if not hidden and not queued and timer netwait >= 3400 and findtype "fishing net" backpack as net
         dclick net
         wft 500
         target net
@@ -288,12 +288,22 @@ if timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|
     endif
     if insysmsg "You have completely fished out that location."
         overhead "Fishing spot depleated..." 88
-        script "Master Background"
-        stop
     endif
 endif
 
 if not warmode
+    if timerexists boardingsuccess and not find "oceantarget" ground -1 -1
+        removetimer boardingsuccess
+    endif
+    if timerexists boardingsuccess and not warmode and hidden
+        warmode on
+        getlabel backpack ping
+        hotkey "Attack Last Combatant"
+    endif
+    if hidden
+        hotkey "Attack Last Combatant"
+    endif
+    
     if not timerexists onetimewarmode
         createtimer onetimewarmode
     endif
@@ -325,7 +335,7 @@ if not warmode
         createtimer petguard
         settimer petguard 5000
     endif
-    if followers >= 1 and timer petguard >= 14000 and not findbuff "Actively Meditating"
+    if not hidden and followers >= 1 and timer petguard >= 14000 and not findbuff "Actively Meditating"
         say "all guard me" 45
         settimer petguard 0
     endif
@@ -358,7 +368,7 @@ if not warmode
             createtimer reactive
         endif
     endif
-    if skill "Tracking" >= 10 and not findbuff "Tracking Hunting"
+    if not hidden and skill "Tracking" >= 10 and not findbuff "Tracking Hunting"
         skill 'tracking'
         waitforgump 4267467659 500
         gumpresponse 6
@@ -366,7 +376,7 @@ if not warmode
         gumpclose 4267467659
         cooldown "Disco" 10000
     endif
-    if not targetexists 
+    if not hidden and not targetexists 
         while hp < 33 and skill "Magery" >= 30
             hotkey 'Cancel Current Target'
             cast 'Heal'
@@ -375,7 +385,7 @@ if not warmode
             hotkey 'Cancel Current Target'
             pause 250
         endwhile
-        if hp < 77 and findtype "Yellow Potion" backpack as healpot
+        if not cooldown "Heal Pot" and not hidden and diffhits > 25 and findtype "Yellow Potion" backpack as healpot
             dclick healpot
         endif
         if hp < 55 and skill "Magery" >= 60
@@ -394,10 +404,10 @@ if not warmode
             hotkey 'Cancel Current Target'
             pause 250   
         endif
-        while poisoned and not targetexists 
-            if findtype "Orange Potion" backpack as curepot
+        while not hidden and poisoned and not targetexists 
+            if not hidden and findtype "Orange Potion" backpack as curepot
                 dclick curepot
-        elseif mana >= 6 and skill "Magery" >= 40
+            elseif mana >= 6 and skill "Magery" >= 40
                 cast "Cure"
                 wft 2500
                 target self
@@ -452,15 +462,15 @@ if not warmode
         endif
         hotkey "Next Enemy Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Grey Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Murderer Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         settimer oceanscan 0
     elseif timer oceanscan >= 300 and skill "Fishing" >= 80 and cooldown "Fray"
@@ -470,15 +480,15 @@ if not warmode
         endif
         hotkey "Next Enemy Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Grey Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Murderer Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         settimer oceanscan 0
     endif
@@ -512,10 +522,10 @@ if not warmode
         endif        
     endif
     
-    if find "shiphold" ground -1 -1 1
+    if not hidden and find "shiphold" ground -1 -1 1
         clearsysmsg 
         // Arcane Runes removed from loot drop string
-        while findtype "chain link|3712|3648|3650|3708|3648|2475|3649|29833|29832|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|shattered weapon|bird cage|widows grief|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7127|3861|24343|3821" backpack as bitem
+        while findtype "chain link|29368|18660|3712|3648|3650|3708|3648|2475|3649|29833|29832|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|shattered weapon|bird cage|widows grief|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7127|3861|24343|3821" backpack as bitem
             drop backpack
             lift bitem 60000
             drop shiphold -1 -1 0
@@ -531,12 +541,20 @@ if not warmode
                 //dotnothing
             endwhile
         endwhile
+        if skill "Magery" = 0
+            while findtype 7981|7982|7983|7984|7985|7986|7987|7988|7989|7990|7991|7992|7993|7994|7995|7996|7997|7998|7999|8000|8001|8002|8003|8004|8005|8006|8007|8008|8009|8010|8011|8012|8013|8014|8015|8016|8017|8018|8019|8020|8021|8022|8023|8024|8025|8026|8027|8028|8029|8031|8032|8033|8034|8035|8036|8037|8038|8039|8041|8042|8043|8044|3962|3963|3972|3973|3974|3976|3980|3981 backpack as supplyitems
+                drop backpack
+                lift supplyitems 60000
+                drop shiphold -1 -1 0
+                while queued
+                    //dotnothing
+                endwhile
+            endwhile
+        endif
     endif
 elseif warmode 
-    if skill "Healing" >= 20 
-        if hp = maxhp
-            //donothing
-        elseif not bandaging and findtype 3617 backpack
+    if not hidden and skill "Healing" >= 20
+        if diffhits > 35 and not hidden and not bandaging and findtype 3617 backpack
             hotkey "Bandage Self"
         endif
     endif
@@ -605,15 +623,15 @@ elseif warmode
         endif
         hotkey "Next Enemy Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Grey Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Murderer Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         settimer oceanscan 0
     elseif timer oceanscan >= 300 and skill "Fishing" >= 80
@@ -623,15 +641,15 @@ elseif warmode
         endif
         hotkey "Next Enemy Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Grey Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Murderer Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         settimer oceanscan 0
     endif
@@ -679,7 +697,7 @@ elseif warmode
         say "[recallboarding"
     endif
         
-    if not targetexists 
+    if not hidden and not targetexists 
         while hp < 33 and skill "Magery" >= 30
             hotkey 'Cancel Current Target'
             cast 'Heal'
@@ -688,7 +706,7 @@ elseif warmode
             hotkey 'Cancel Current Target'
             pause 250
         endwhile
-        if hp < 77 and findtype "Yellow Potion" backpack as healpot
+        if not cooldown "Heal Pot" and not hidden and diffhits > 25 and findtype "Yellow Potion" backpack as healpot
             dclick healpot
         endif
         if hp < 55 and skill "Magery" >= 60
@@ -707,10 +725,10 @@ elseif warmode
             hotkey 'Cancel Current Target'
             pause 250   
         endif
-        while poisoned and not targetexists 
-            if findtype "Orange Potion" backpack as curepot
+        while not hidden and poisoned and not targetexists and not hidden
+            if not hidden and findtype "Orange Potion" backpack as curepot
                 dclick curepot
-        elseif mana >= 6 and skill "Magery" >= 40
+            elseif mana >= 6 and skill "Magery" >= 40
                 cast "Cure"
                 wft 2500
                 target self
@@ -765,10 +783,10 @@ elseif warmode
     endif
     if find "shiphold" ground -1 -1 1
         //donothing
-    elseif not queued and findtype "hatch" ground -1 -1 1 as mobship
+    elseif not hidden and not queued and findtype "hatch" ground -1 -1 1 as mobship
         dclick mobship
         getlabel backpack ping
-        while findtype "chain link|3712|3648|3650|3708|3648|2475|3649|29833|29832|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|shattered weapon|bird cage|widows grief|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7127|rune|3861|24343|3821" mobship as bitem
+        while findtype "chain link|29368|18660|3712|3648|3650|3708|3648|2475|3649|29833|29832|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|shattered weapon|bird cage|widows grief|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7127|rune|3861|24343|3821" mobship as bitem
             if not timerexists openhull
                 createtimer openhull
                 overhead "Yarr the booty be mine!" 2091
@@ -785,15 +803,15 @@ elseif warmode
         clearsysmsg 
         hotkey "Next Enemy Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Grey Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         hotkey "Next Murderer Monster Target"
         if not insysmsg "No one matching"
-            @setvar "oceantarget" lasttarget 
+            @setvar! "oceantarget" lasttarget 
         endif
         settimer oceanscan 0
     endif
@@ -831,7 +849,7 @@ elseif warmode
         endif
     endif
     
-    if skill "Necromancy" >= 80 and findtype "corpse" ground -1 -1 12
+    if not hidden and skill "Necromancy" >= 80 and findtype "corpse" ground -1 -1 12
         if ingump '20/' 622436516
             createtimer pain
         elseif ingump '19/' 622436516
@@ -881,9 +899,9 @@ elseif warmode
         removetimer pain
         endif
     endif
-    if find "oceantarget" ground -1 -1 12
+    if not hidden and find "oceantarget" ground -1 -1 12
         clearsysmsg 
-        if skill "Alchemy" >= 80 and not queued and not cooldown "Explosion Potion" and findtype "Purple Potion" backpack as purp
+        if not hidden and skill "Alchemy" >= 80 and not queued and not cooldown "Explosion Potion" and findtype "Purple Potion" backpack as purp
             clearsysmsg 
             dclick purp
             wft 500
@@ -909,7 +927,7 @@ elseif warmode
             wft 3000
             hotkey 'Target Closest Grey Monster'
             hotkey 'Target Closest Murderer Monster'
-            @setvar "telemastertarget" lasttarget 
+            @setvar! "telemastertarget" lasttarget 
             getlabel backpack ping
             if insysmsg "Target cannot be seen"
                 cooldown "Explosion Potion" 15000
@@ -955,18 +973,18 @@ elseif warmode
             endif
         endif
         if skill "Necromancy" >= 80 and timerexists necroab and find "oceantarget" ground -1 -1 12
-            if not cooldown "Strangle"
+            if not hidden and not cooldown "Strangle"
                 pause 550
                 say '[Strangle'
                 cooldown "Strangle" 30000
                 pause 550
             endif
-            if not cooldown "Evil Omen"
+            if not hidden and not cooldown "Evil Omen"
                 say '[EvilOmen'
                 cooldown "Evil Omen" 30000
                 pause 550
             endif
-            if not cooldown "Corpse Skin"
+            if not hidden and not cooldown "Corpse Skin"
                 say '[CorpseSkin'
                 cooldown "Corpse Skin" 30000
                 pause 550
@@ -1002,15 +1020,15 @@ elseif warmode
             endif
         endif
         if skill "Chivalry" >= 80 and timerexists chivab and find "oceantarget" ground -1 -1 12
-            if not findbuff "Divine Fury"
+            if not hidden and not findbuff "Divine Fury"
                 say '[DivineFury'
                 pause 550
             endif
-            if not findbuff "Enemy of One"
+            if not hidden and not findbuff "Enemy of One"
                 say '[EnemyofOne'
                 pause 550
             endif
-            if not findbuff "Consecrate Weapon"
+            if not hidden and not findbuff "Consecrate Weapon"
                 say '[ConsecrateWeapon'
                 pause 550
             endif

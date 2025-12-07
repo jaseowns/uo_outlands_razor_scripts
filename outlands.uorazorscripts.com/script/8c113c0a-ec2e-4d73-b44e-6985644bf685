@@ -1,13 +1,13 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/8c113c0a-ec2e-4d73-b44e-6985644bf685 for latest
 # Automation by Jaseowns
-## Script: Lord Glacier's Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v1.0.7
+## Script: Lord Glacier's Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v1.0.8
 ## Created by: danstock._98439#0
 #############################################
 
 /////////
-////////                                          Lord Glaciers Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 1.0.7
+////////                                          Lord Glaciers Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 1.0.8
 /////// 
-//////                                                  UO Outlands Razor script - Released Sept 17, 2025 - Last updated December 6, 2025
+//////                                                  UO Outlands Razor script - Released Sept 17, 2025 - Last updated December 7, 2025
 /////                                                     Compiled by DanStock. (aka. Lord Glacier)
 ////
 ///
@@ -63,8 +63,9 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
+#       Dec 07 2025 - version 1.0.8:  I lied.  Fixed some stuff in the loadout reset and added a PVP cooldown for potion kegs
 #       Dec 06 2025 - version 1.0.7:  Mispelled timer and overhead message.  Now it is done.... I think.
-#       Dec 05 2025 - version 1.0.6:  Tweaks and finishing touches - hoping this will be the 'final' version!
+#       Dec 05 2025 - version 1.0.6:  Final touches and tweaks
 #       Dec 04 2025 - version 1.0.5:  Fixed some missing timers, a mispelling in the fire elemental summons and adjusted the targeting code
 #       Dec 03 2025 - version 1.0.4:  Minor tweaks to the order of things and some additional heal potion checks added
 #       Dec 02 2025 - version 1.0.3:  Added target attack range variable - you can reduce this to avoid stealing other peoples MOBs 
@@ -705,6 +706,8 @@
                     @setvar! EnableAutoRecallOverheadMessages 1
                         # Controls overhead messages for recall section only
 
+                        @setvar! EnableDispelSummonsAfterRecall 1 
+                            # Casts Mass Dispel on your summons after Recall success
                         @setvar! EnableSafeDeposit 0
                             # Will deposit all gold and doubloons found in inventory
                         @setvar! EnableRepairBench 0
@@ -843,7 +846,6 @@ pushlist animalsIgnoreList "ADD MOBS TO IGNORE HERE"
 /////////////////////////
 //  END OF VARIABLES!  //
 /////////////////////////
-
 
 
 
@@ -1214,6 +1216,11 @@ if not timerexists 'CurseTimer'
     settimer 'CurseTimer' 60000
 endif
 
+if not timerexists 'PotionKegPVPCooldown'
+    createtimer 'PotionKegPVPCooldown'
+    settimer 'PotionKegPVPCooldown' 30000
+endif 
+
 if not timerexists 'ManaDrainTimer'
     createtimer 'ManaDrainTimer'
     settimer 'ManaDrainTimer' 60000
@@ -1268,6 +1275,11 @@ if not timerexists 'AllFollowMeTimer'
     createtimer 'AllFollowMeTimer'
     settimer 'AllFollowMeTimer' 30000
 endif
+
+if not timerexists 'NoHealRegsTimer'
+    createtimer 'NoHealRegsTimer'
+    settimer 'NoHealRegsTimer' 4500
+endif 
 
 if not timerexists 'WitherTimer'
     createtimer 'WitherTimer'
@@ -1543,9 +1555,9 @@ if not dead
     if not varexist SummonerAutoPilot
         overhead "Lord Glacier's Chill Summoner Auto Pilot Script" 2234
         # '
-        overhead "version 1.0.7" 2234
+        overhead "version 1.0.8" 2234
         wait 1000
-        overhead "Last Updated: December 6, 2025" 2663
+        overhead "Last Updated: December 7, 2025" 2663
         wait 2500
         overhead "Thank you for trying my Summoner AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
@@ -1948,7 +1960,7 @@ while not dead
         replay
     endif
 
-    if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and diffhits < ActivateAutoHealHPdiff 
+    if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and diffhits < ActivateAutoHealHPdiff and timer 'PotionKegPVPCooldown' > 30000
         @setvar! PotionStockCheck 0
         while PotionStockCheck < 7 and findtype 'empty bottle%s%' self
             if PotionStockCheck = 0 and ExplosionPotionAmount != 0
@@ -2019,6 +2031,10 @@ while not dead
                     endif
                     break
                 endif
+                if insysmsg "You have been in combat with another player"
+                    settimer "PotionKegPVPCooldown" 0
+                    break
+                endif 
             endwhile
             
             if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self 
@@ -2216,7 +2232,7 @@ while not dead
             sysmsg "Script will automatically revert after {{DungeonEscapeTimeLimit}}ms or upon dungeon exit" 88 
             wait 250 
             sysmsg "Please proceed to the nearest exit gate!  It will indicated by overhead arrows!" 153
-
+            say "All follow me" 2234
             while timer "DungeonEscape" < DungeonEscapeTimeLimit 
                 if insysmsg "world is saving"
                     settimer "WorldSaveTimer" 0
@@ -2496,6 +2512,7 @@ while not dead
                     else
                         overhead " Ï " 149
                     endif
+                    say "All guard me" 2234
                     @setvar! TimeToGo 0
                     settimer "DungeonEscape" DungeonEscapeTimeLimit
                     replay
@@ -2716,6 +2733,19 @@ while not dead
         else
             wait 500
         endif
+        
+        if EnableDispelSummonsAfterRecall = 1 and skill "Magery" >= 70 and mana >= 40 and findtype '3962' self and findtype '3972' self and findtype '3974' self and findtype '3980' self and IHAVEDIED != 1
+            wait 500
+            cast "Mass Dispel"
+            while not targetexists
+                wait 100
+            endwhile
+            if EnableAutoRecallOverheadMessages = 1
+                overhead "[ RELEASING SUMMONS... ]" 22
+            endif 
+            target self
+            wait 500
+        endif
 
         if HideAtHomeorInn = 1
             useskill "Hiding"
@@ -2768,6 +2798,7 @@ while not dead
                                 target lockbox
                                 wait 500
                                 dclick lockbox
+                                wait 500
                             endif
                         endif
                     elseif EnableAutoRecallOverheadMessages = 1
@@ -2777,7 +2808,7 @@ while not dead
             endif
 
             wait 500
-
+            
             if EnableSafeDeposit = 1
                 if findtype "bank deposit safe" ground -1 -1 2 as safe
                     clearignore
@@ -3054,17 +3085,6 @@ while not dead
         if EnableResetInventoryAfterDeath = 1 and IHAVEDIED = 1
             clearignore
 
-            if skill 'healing' > 0 and hp < maxhp and not bandaging
-                if findtype 'clean bandage%s%' self
-                    hotkey 'Bandage Self'
-                    if EnableAutoRecallOverheadMessages = 1
-                        overhead "[ BANDAGING... ]" 88
-                        wait 500
-                    endif
-                endif
-                wait 500
-            endif
-
             if not varexist maininventorybag or not find maininventorybag self
                 overhead "[ SELECT MAIN POUCH... ]" 253
                 @setvar! maininventorybag
@@ -3131,7 +3151,6 @@ while not dead
                 wait 500
                 drop maininventorybag -1 -1 -1
                 wait 500
-                @ignore maininventorybag
             endif
 
             while findtype 'scissors' self
@@ -3182,21 +3201,6 @@ while not dead
                 endif
             endwhile
 
-            if skill 'healing' > 0 and hp < maxhp and not bandaging
-                if findtype 'clean bandage%s%' self
-                    hotkey 'Bandage Self'
-                    if EnableAutoRecallOverheadMessages = 1
-                        overhead "[ BANDAGING... ]" 88
-                        wait 500
-                    endif
-                else
-                    if EnableAutoRecallOverheadMessages = 1
-                        overhead "[ NO BANDAGES! ]" 337
-                        wait 500
-                    endif
-                endif
-            endif
-
             if findtype 'atlas' backpack as hidemypouchstack
                 lift hidemypouchstack
                 drop backpack 72 66 0
@@ -3218,17 +3222,16 @@ while not dead
 
             say "[aspect"
             waitforgump 2424293173
-            gumpresponse 8
+            gumpresponse 13
             wait 500
-            gumpresponse 8
+            gumpresponse 13
             wait 250
             gumpresponse 17
             wait 500
             gumpresponse 17
             wait 250
             gumpclose 2424293173
-            dclick backpack
-            wait 250
+            wait 500
 
             if skill 'magery' >= 60 and hp < maxhp and mana >= 11 and not casting
                 while hp < maxhp
@@ -3278,8 +3281,7 @@ while not dead
             wait 500
         endif
 
-
-        if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self
+        if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and timer 'PotionKegPVPCooldown' > 30000
             @setvar! PotionStockCheck 0
             while PotionStockCheck < 7 and findtype 'empty bottle%s%' self
                 if PotionStockCheck = 0 and ExplosionPotionAmount != 0
@@ -3346,6 +3348,10 @@ while not dead
                         endif
                         break
                     endif
+                    if insysmsg "You have been in combat with another player"
+                        settimer "PotionKegPVPCooldown" 0
+                        break
+                    endif 
                 endwhile
                 
                 if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self 
@@ -4382,7 +4388,7 @@ while not dead
             endif
         endif
 
-        if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self
+        if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and timer 'PotionKegPVPCooldown' > 30000
             @setvar! PotionStockCheck 0
 
             while PotionStockCheck < 7 and findtype 'empty bottle%s%' backpack
@@ -4462,6 +4468,10 @@ while not dead
                         wait 250 
                         clearsysmsg
                     endif
+                    if insysmsg "You have been in combat with another player"
+                        settimer "PotionKegPVPCooldown" 0
+                        break
+                    endif 
                 endwhile
 
                 if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' backpack
@@ -4611,7 +4621,7 @@ while not dead
         stop
     endif
 
-    if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and TimeToGo != 1 and diffhits < ActivateAutoHealHPdiff 
+    if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and TimeToGo != 1 and diffhits < ActivateAutoHealHPdiff and timer 'PotionKegPVPCooldown' > 30000
         @setvar! PotionStockCheck 0
         while PotionStockCheck < 7 and findtype 'empty bottle%s%' self 
             if diffhits < ActivateAutoHealHPdiff 
@@ -4689,6 +4699,10 @@ while not dead
                     endif
                     break
                 endif
+                if insysmsg "You have been in combat with another player"
+                    settimer "PotionKegPVPCooldown" 0
+                    break
+                endif 
             endwhile
         
             if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self
@@ -4948,7 +4962,7 @@ while not dead
                     settimer MushroomTimer 0
                     cooldown "Mushroom" MagicMushroomCooldown
                     if EnableOverheadMessages = 1
-                        overhead "[ EATING SHROOMS... ]" 12
+                        overhead "[ EATING SHROOMS... ]" 13
                     endif
                 endif
             elseif EnableOverheadMessages = 1
@@ -5138,7 +5152,7 @@ while not dead
                         settimer MushroomTimer 0
                         cooldown "Mushroom" MagicMushroomCooldown
                         if EnableOverheadMessages = 1
-                            overhead "[ EATING SHROOMS... ]" 12
+                            overhead "[ EATING SHROOMS... ]" 13
                         endif
                     endif
                 elseif EnableOverheadMessages = 1
@@ -7429,145 +7443,150 @@ while not dead
                 hotkey 'cancel current target'
             endif
         elseif not dead TargetToAnalyze
-            while diffhits < ActivateAutoHealHPdiff and find TargetToAnalyze ground -1 -1 12
-                if timer AnalyzingTargetsTimer > 15000
-                    if EnableOverheadMessages = 1
-                        overhead '[ ANALYZING TARGETS... ]' 90
-                    endif
-                    settimer AnalyzingTargetsTimer 0
-                endif
-
-                if index != 0
-                    hotkey "next non-friendly monster target"
-                    @setvar! TargetToAnalyze lasttarget
-                endif
-
-                if not warmode
-                    break
-                endif 
-
-                if dead 
-                    replay
-                endif 
-
-                if diffhits > ActivateAutoHealHPdiff
-                    replay
-                endif 
-
-                if insysmsg "world is saving"
-                    settimer "WorldSaveTimer" 0
-                    if EnableOverheadMessages = 1
-                        overhead "[ WORLD SAVING... ]" 253
-                    endif 
-                    while timer "WorldSaveTimer" < 4500
-                        if insysmsg "save complete"
-                            break
-                        endif
-                        wait 100
-                    endwhile   
-                    if EnableOverheadMessages = 1
-                        overhead "[ SAVE COMPLETE! ]" 253
-                    endif 
-                endif
-
-                if find TargetToAnalyze ground -1 -1 12
-                    getlabel TargetToAnalyze tempLabel
-
-                    while "-" in tempLabel
-                        getlabel TargetToAnalyze tempLabel
-                    endwhile
-
-                    if inlist animalsIgnoreList tempLabel
+            if warmode 
+                while diffhits < ActivateAutoHealHPdiff and find TargetToAnalyze ground -1 -1 12
+                    if timer AnalyzingTargetsTimer > 15000
                         if EnableOverheadMessages = 1
-                            overhead "[ IGNORING MOB! ]" 333 TargetToAnalyze
-                        else 
-                            overhead " Ï " 333 TargetToAnalyze
-                        endif 
-                        getlabel backpack backpacklabel
-                        @ignore TargetToAnalyze
-                    else
-                        skill 'begging'
-                        while not targetexists
-                           if insysmsg 'you must wait'
-                                break
-                           endif
-                        endwhile
-                        if not insysmsg 'you must wait'
-                            target TargetToAnalyze
-                            getlabel backpack packdesc
-                            wait 250
+                            overhead '[ ANALYZING TARGETS... ]' 90
                         endif
+                        settimer AnalyzingTargetsTimer 0
+                    endif
 
-                        if not dead TargetToAnalyze
-                            if insysmsg "Target cannot be seen"
-                                if timer "CannotSeeTargetTimer" > 4500 and EnableOverheadMessages = 1
-                                    overhead  "[ CANNOT BE SEEN! ]" 44 TargetToAnalyze
-                                    settimer "CannotSeeTargetTimer" 0
-                                elseif timer "CannotSeeTargetTimer" > 4500 and EnableOverheadMessages = 0
-                                    overhead " ¼ " 44 TargetToAnalyze
-                                    settimer "CannotSeeTargetTimer" 0
-                                endif
-                                replay
-                            elseif insysmsg "That is too far away."
-                                if timer "TargetIsTooFarTimer" > 4500 and EnableOverheadMessages = 1
-                                    overhead "[ TOO FAR AWAY! ]" 44 TargetToAnalyze
-                                    overhead "[ GET CLOSER! ]" 69
-                                    settimer "TargetIsTooFarTimer" 0
-                                elseif timer "TargetIsTooFarTimer" > 4500 and EnableOverheadMessages = 0
-                                    overhead " ¼ " 44 TargetToAnalyze
-                                    settimer "TargetIsTooFarTimer" 0
-                                endif
-                                replay
-                            elseif insysmsg "Perhaps" or insysmsg "You are too far away from them." or insysmsg "They do not appear to have anything to offer you." or insysmsg "You must wait"
-                                if find TargetToAnalyze ground -1 -1 TargetAttackRange
-                                    if insysmsg "You must wait"
-                                        hotkey 'target closest grey monster'
-                                        @setvar! TargetToAnalyze lasttarget
-                                    endif
+                    if index != 0
+                        hotkey "next non-friendly monster target"
+                        @setvar! TargetToAnalyze lasttarget
+                    endif
 
-                                    if ClosestTarget != TargetToAnalyze
-                                        settimer CurseTimer 60000
-                                        settimer ManaDrainTimer 60000
-                                    endif
- 
-                                    @setvar! ClosestTarget TargetToAnalyze
-                                    @setvar! previousTarget ClosestTarget
-                                    settimer 'PainSpikeDelayTimer' 0
-                                    @setvar! ClosestTargetisSticky 0
-                                    say "All kill" 2234
-                                    wft 1500
-                                    target ClosestTarget
-                                    wait 500
-                                
-                                    if timer "AttackTargetTimer" > 15000
-                                        if EnableOverheadMessages = 1
-                                            overhead "[ ATTACKING! ]" 69
-                                            settimer "AttackTargetTimer" 0
-                                        else
-                                            settimer "AttackTargetTimer" 0
-                                        endif
-                                    endif
+                    if not warmode
+                        break
+                    endif 
+
+                    if dead 
+                        replay
+                    endif 
+
+                    if diffhits > ActivateAutoHealHPdiff
+                        replay
+                    endif 
+
+                    if insysmsg "world is saving"
+                        settimer "WorldSaveTimer" 0
+                        if EnableOverheadMessages = 1
+                            overhead "[ WORLD SAVING... ]" 253
+                        endif 
+                        while timer "WorldSaveTimer" < 4500
+                            if insysmsg "save complete"
+                                break
+                            endif
+                            wait 100
+                        endwhile   
+                        if EnableOverheadMessages = 1
+                            overhead "[ SAVE COMPLETE! ]" 253
+                        endif 
+                    endif
+
+                    if find TargetToAnalyze ground -1 -1 12
+                        getlabel TargetToAnalyze tempLabel
+
+                        while "-" in tempLabel
+                            getlabel TargetToAnalyze tempLabel
+                        endwhile
+
+                        if inlist animalsIgnoreList tempLabel
+                            if EnableOverheadMessages = 1
+                                overhead "[ IGNORING MOB! ]" 333 TargetToAnalyze
+                            else 
+                                overhead " Ï " 333 TargetToAnalyze
+                            endif 
+                            getlabel backpack backpacklabel
+                            @ignore TargetToAnalyze
+                        else
+                            skill 'begging'
+                            while not targetexists
+                               if insysmsg 'you must wait'
                                     break
-                                else 
+                               endif
+                            endwhile
+                            if not insysmsg 'you must wait'
+                                target TargetToAnalyze
+                                getlabel backpack packdesc
+                                wait 250
+                            endif
+
+                            if not dead TargetToAnalyze
+                                if insysmsg "Target cannot be seen"
+                                    if timer "CannotSeeTargetTimer" > 4500 and EnableOverheadMessages = 1
+                                        overhead  "[ CANNOT BE SEEN! ]" 44 TargetToAnalyze
+                                        settimer "CannotSeeTargetTimer" 0
+                                    elseif timer "CannotSeeTargetTimer" > 4500 and EnableOverheadMessages = 0
+                                        overhead " ¼ " 44 TargetToAnalyze
+                                        settimer "CannotSeeTargetTimer" 0
+                                    endif
+                                    replay
+                                elseif insysmsg "That is too far away."
                                     if timer "TargetIsTooFarTimer" > 4500 and EnableOverheadMessages = 1
+                                        overhead "[ TOO FAR AWAY! ]" 44 TargetToAnalyze
                                         overhead "[ GET CLOSER! ]" 69
                                         settimer "TargetIsTooFarTimer" 0
                                     elseif timer "TargetIsTooFarTimer" > 4500 and EnableOverheadMessages = 0
-                                        overhead " ¼ " 69 TargetToAnalyze
+                                        overhead " ¼ " 44 TargetToAnalyze
                                         settimer "TargetIsTooFarTimer" 0
-                                    endif                                    
-                                endif 
+                                    endif
+                                    replay
+                                elseif insysmsg "Perhaps" or insysmsg "You are too far away from them." or insysmsg "They do not appear to have anything to offer you." or insysmsg "You must wait"
+                                    if find TargetToAnalyze ground -1 -1 TargetAttackRange
+                                        if insysmsg "You must wait"
+                                            hotkey 'target closest grey monster'
+                                            @setvar! TargetToAnalyze lasttarget
+                                        endif
+
+                                        if ClosestTarget != TargetToAnalyze
+                                            settimer CurseTimer 60000
+                                            settimer ManaDrainTimer 60000
+                                        endif
+     
+                                        @setvar! ClosestTarget TargetToAnalyze
+                                        @setvar! previousTarget ClosestTarget
+                                        settimer 'PainSpikeDelayTimer' 0
+                                        @setvar! ClosestTargetisSticky 0
+                                        say "All kill" 2234
+                                        wft 1500
+                                        target ClosestTarget
+                                        wait 500
+                                    
+                                        if timer "AttackTargetTimer" > 15000
+                                            if EnableOverheadMessages = 1
+                                                overhead "[ ATTACKING! ]" 69
+                                                settimer "AttackTargetTimer" 0
+                                            else
+                                                settimer "AttackTargetTimer" 0
+                                            endif
+                                        endif
+                                        break
+                                    else 
+                                        if timer "TargetIsTooFarTimer" > 4500 and EnableOverheadMessages = 1
+                                            overhead "[ GET CLOSER! ]" 69
+                                            settimer "TargetIsTooFarTimer" 0
+                                        elseif timer "TargetIsTooFarTimer" > 4500 and EnableOverheadMessages = 0
+                                            overhead " ¼ " 69 TargetToAnalyze
+                                            settimer "TargetIsTooFarTimer" 0
+                                        endif                                    
+                                    endif 
+                                endif
                             endif
                         endif
                     endif
-                endif
-                if targetexists
-                    hotkey 'cancel current target'
-                endif
-                if casting
-                    interrupt
-                endif
-            endwhile
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    if casting
+                        interrupt
+                    endif
+                endwhile
+            else 
+                @setvar! TimeToGo 1
+                replay
+            endif 
         endif
     endif
 
@@ -7932,7 +7951,7 @@ while not dead
             @setvar! MissingRegs 0
         endif
 
-        if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and diffhits < ActivateAutoHealHPdiff
+        if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and diffhits < ActivateAutoHealHPdiff and timer 'PotionKegPVPCooldown' > 30000
             @setvar! PotionStockCheck 0
             while PotionStockCheck < 7 and findtype 'empty bottle%s%' self
                 if PotionStockCheck = 0 and ExplosionPotionAmount != 0
@@ -8009,6 +8028,10 @@ while not dead
                         endif
                         break
                     endif
+                    if insysmsg "You have been in combat with another player"
+                        settimer "PotionKegPVPCooldown" 0
+                        break
+                    endif 
                 endwhile
                 
                 if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self 
@@ -8152,19 +8175,17 @@ while not dead
             endwhile
         endif
 
-        if EnableEatMagicMushrooms = 1 and diffhits < ActivateAutoHealHPdiff
-            if diffmana > EatMushroomManadiff and MakeMushroomAmount > 0 and timer MushroomTimer > MagicMushroomCooldown
+        if EnableEatMagicMushrooms = 1
+            if diffmana > EatMushroomManadiff and timer MushroomTimer > MagicMushroomCooldown
                 if counttype 29012 backpack
-
                     dclicktype 29012 backpack
                     getlabel backpack packdesc
                     wait 250
-
                     if insysmsg "You consume a magic mushroom"
                         settimer MushroomTimer 0
                         cooldown "Mushroom" MagicMushroomCooldown
                         if EnableOverheadMessages = 1
-                            overhead "[ EATING SHROOMS... ]" 12
+                            overhead "[ EATING SHROOMS... ]" 13
                         endif
                     endif
                 elseif EnableOverheadMessages = 1
@@ -8704,7 +8725,7 @@ while not dead
 
             if CastingWasInterrupted = 0
                 if EnableOverheadMessages = 1
-                    overhead '[ CORPSE SKIN ]' 2117
+                    overhead '[ CORPSE SKIN ]' 40
                 endif
                 settimer CorpseSkinTimer 0
                 cooldown "Corpse Skin" 30000
@@ -8810,7 +8831,7 @@ while not dead
 
             if CastingWasInterrupted = 0
                 if EnableOverheadMessages = 1
-                    overhead '[ MIND ROT ]' 330
+                    overhead '[ MIND ROT ]' 223
                 endif
                 settimer MindRotTimer 0
                 cooldown "Mind Rot" 30000
@@ -8913,7 +8934,7 @@ while not dead
 
             if CastingWasInterrupted = 0
                 if EnableOverheadMessages = 1
-                    overhead '[ EVIL OMEN ]' 2114
+                overhead '[ EVIL OMEN ]' 238
                 endif
                 settimer EvilOmenTimer 0
                 cooldown "Evil Omen" 30000
@@ -9025,7 +9046,7 @@ while not dead
 
             if CastingWasInterrupted = 0
                 if EnableOverheadMessages = 1
-                    overhead '[ PAIN SPIKE! ]' 333
+                    overhead '[ PAIN SPIKE! ]' 337
                 endif
                 settimer PainSpikeTimer 0
                 cooldown "Pain Spike" 30000
@@ -9445,6 +9466,25 @@ while not dead
                         clearsysmsg
                     endif 
                 endif 
+
+                if EnableEatMagicMushrooms = 1 
+                    if diffmana > EatMushroomManadiff and timer MushroomTimer > MagicMushroomCooldown
+                        if counttype 29012 backpack
+                            dclicktype 29012 backpack
+                            getlabel backpack packdesc
+                            wait 250
+                            if insysmsg "You consume a magic mushroom"
+                                settimer MushroomTimer 0
+                                cooldown "Mushroom" MagicMushroomCooldown
+                                if EnableOverheadMessages = 1
+                                    overhead "[ EATING SHROOMS... ]" 13
+                                endif
+                            endif
+                        elseif EnableOverheadMessages = 1
+                            overhead "[ OUT OF SHROOMS! ]" 337
+                        endif
+                    endif
+                endif
 
                 if EnableCastFlamestrike = 1 and mana > 40 and findtype 3981 self and findtype 3980 self
                     cast 'flamestrike'

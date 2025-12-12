@@ -1,13 +1,13 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/8c113c0a-ec2e-4d73-b44e-6985644bf685 for latest
 # Automation by Jaseowns
-## Script: Lord Glacier's Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v1.1.2
+## Script: Lord Glacier's Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v1.1.3
 ## Created by: danstock._98439#0
 #############################################
 
 /////////
-////////                                          Lord Glaciers Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 1.1.2
+////////                                          Lord Glaciers Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 1.1.3
 ///////
-//////                                                  UO Outlands Razor script - Released Sept 17, 2025 - Last updated December 11, 2025
+//////                                                  UO Outlands Razor script - Released Sept 17, 2025 - Last updated December 12, 2025
 /////                                                     Compiled by DanStock. (aka. Lord Glacier)
 ////
 ///
@@ -63,6 +63,7 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
+#       Dec 11 2025 - version 1.1.3:  Everything seems to work now!  One final tweak to the escape loop and I think it is done... email any bugs to dan@danstockman.com
 #       Dec 11 2025 - version 1.1.2:  Still having issues with advanced Summon Creature loop.  Hoping it is better now (also fixed timing issues with g.heal spell)
 #       Dec 10 2025 - version 1.1.1:  Last update was a mess... tons of errors.  I think I sorted it all out.  
 #       Dec 10 2025 - version 1.1.0:  Fixed a bug when summoning creature spell is upgraded to creature pools 2, 3 or 4 - also cleaned up some overhead spam
@@ -118,6 +119,10 @@
 #       If enabled INVENTORY RESET will stack trapped pouches on your main inventory pouch (after putting scissors inside to protect them from shelf restocking) and then hide the stack
 #       MANY FEATURES ARE TURNED 'OFF' BY DEFAULT!  MAKE SURE TO CHECK THE VARIABLE SECTION BELOW CLOSELY PRIOR TO FIRST USE!!
 #       This script is a compilation of many existing scripts married to my own new stuff, but BIG thanks to user dennozz for many features I learned from studying their scripts!
+
+
+#       I believe everything is FINALLY working as intended.  Hopefully build version 1.1.3 is the final product, but always check back for new updates!!
+#       Let me know if you find any mistakes that I missed (dan@danstockman.com) or if there is anything that needs to be added.  Good luck and thanks for your support.
 
 
 
@@ -1569,9 +1574,9 @@ if not dead
     if not varexist SummonerAutoPilot
         overhead "Lord Glacier's Chill Summoner Auto Pilot Script" 2234
         # '
-        overhead "version 1.1.2" 2234
+        overhead "version 1.1.3" 2234
         wait 1000
-        overhead "Last Updated: December 11, 2025" 2663
+        overhead "Last Updated: December 12, 2025" 2663
         wait 2500
         overhead "Thank you for trying my Summoner AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
@@ -2280,6 +2285,10 @@ while not dead
                     endif
                 endif
 
+                if dead
+                    replay
+                endif 
+
                 if find MurdererTarget ground -1 -1 12
                     if timer "MURDERTARGET" > 4000
                         if EnableOverheadMessages = 1
@@ -2317,6 +2326,45 @@ while not dead
                                 overhead "[ NO STRENGTH POTS! ]" 337
                                 settimer WhitePotionMessageTimer 0
                             endif
+                        endif
+                    endif
+                endif
+
+                if EnableHealPotion = 1 and diffhits >= 20
+                    if findtype "Yellow Potion" self as HealPot
+                        getlabel HealPot HealPotlabel
+                        if "next" in HealPotlabel
+                            // Do nothing
+                        else
+                            @setvar! HealPotionCheck 0
+
+                            if counttype 3852 self as HealPotCount
+                                @setvar! HealPotionCheck HealPotCount
+                            endif
+
+                            clearsysmsg
+                            dclicktype 3852
+                            getlabel backpack backpackdesc
+                            wait 250
+
+                            if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
+                                settimer 'HealPotionTimer' 0
+                                cooldown "Healing Potion" HealingPotionCooldown
+                                if EnableOverheadMessages = 1 and timer 'YellowPotionMessageTimer' > 4500
+                                    if insysmsg "potion satchel used"
+                                        overhead '[ FREE HEAL POTION ]' 253
+                                    else
+                                        overhead "[ HEAL POTION ]" 253
+                                    endif
+                                    settimer 'YellowPotionMessageTimer' 0
+                                endif
+                                clearsysmsg
+                            endif
+                        endif
+                    else
+                        if timer 'YellowPotionMessageTimer' > 4500
+                            overhead "[ NO HEAL POTS! ]" 337
+                            settimer 'YellowPotionMessageTimer' 0
                         endif
                     endif
                 endif
@@ -2437,45 +2485,6 @@ while not dead
                     endif
                 endif
 
-                if EnableHealPotion = 1 and diffhits >= HealPotionHPdiff
-                    if findtype "Yellow Potion" self as HealPot
-                        getlabel HealPot HealPotlabel
-                        if "next" in HealPotlabel
-                            // Do nothing
-                        else
-                            @setvar! HealPotionCheck 0
-
-                            if counttype 3852 self as HealPotCount
-                                @setvar! HealPotionCheck HealPotCount
-                            endif
-
-                            clearsysmsg
-                            dclicktype 3852
-                            getlabel backpack backpackdesc
-                            wait 250
-
-                            if HealPotionCheck != counttype 3852 self or insysmsg "potion satchel used"
-                                settimer 'HealPotionTimer' 0
-                                cooldown "Healing Potion" HealingPotionCooldown
-                                if EnableOverheadMessages = 1 and timer 'YellowPotionMessageTimer' > 4500
-                                    if insysmsg "potion satchel used"
-                                        overhead '[ FREE HEAL POTION ]' 253
-                                    else
-                                        overhead "[ HEAL POTION ]" 253
-                                    endif
-                                    settimer 'YellowPotionMessageTimer' 0
-                                endif
-                                clearsysmsg
-                            endif
-                        endif
-                    else
-                        if timer 'YellowPotionMessageTimer' > 4500
-                            overhead "[ NO HEAL POTS! ]" 337
-                            settimer 'YellowPotionMessageTimer' 0
-                        endif
-                    endif
-                endif
-
                 if EnableRefreshPotion = 1 and diffstam > RefreshPotionSPdiff
                     if findtype "Red Potion" self
                         dclicktype "Red Potion"
@@ -2555,6 +2564,10 @@ while not dead
                     say "All guard me" 2234
                     @setvar! TimeToGo 0
                     settimer "DungeonEscape" DungeonEscapeTimeLimit
+                    replay
+                endif
+
+                if dead
                     replay
                 endif
 

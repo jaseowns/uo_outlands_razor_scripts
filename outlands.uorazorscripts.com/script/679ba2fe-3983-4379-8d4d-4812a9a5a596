@@ -6,7 +6,7 @@
 
 # Bapeths Butler 
 #
-# December 16th 2025 - Shield will only be equipped if paragon chest routine is active
+# December 16th 2025 - Shield will only be equipped if paragon chest routine is active, added Latnern Switch setting for Magery Buffs
 #
 # What it does:
 # "Casts Bless and Protection on your main character" - Create an entry in the Razor Friends tab called "Friends" and add your main character
@@ -107,9 +107,26 @@
 #
 # Script starts here
 #
-# Toggle Bless on/off - 1 = on  0 = off
+#########################################################################################################################################
+#
+# "SCRIPT SETTINGS"
+#
+# Toggle Bless on/off during the Magery Buff Routine (Arch Protection will always be on) 1 = on  0 = off
+# 
+# ENABLE/DISABLE BLESS
 @setvar! "EnableBless" 1
 #
+#########################################################################################################################################
+#
+# Toggle Lantern Switch for the entire Magery Bless/Protect Routine
+# To use this feature lock down a lantern near your Butler character (Within 2 tiles)
+# Double click the lantern in game to toggle the Magery Bless/Protect Routine on/off (Lit = On Unlit = Off)
+# Set Lantern Mode to 1 to enable or 0 to disable this feature - Default is 0 (off)
+#
+# LANTERN SWITCH
+@setvar! "LanternSwitch" 0
+#
+#########################################################################################################################################
 if warmode and gumpexists 3527489586
     gumpclose 3527489586
     overhead "VARIBLE RESET..." 38
@@ -981,7 +998,62 @@ if timer shelfrestock >= 25000
 endif
 
 // Magery Buffer
-if skill "Magery" >= 60 and mana >= 20
+if "LanternSwitch" = 1 and skill "Magery" >= 60 and mana >= 20 and findtype 2594 ground -1 -1 2
+    if not timerexists bufftimer
+        createtimer bufftimer
+        settimer bufftimer 15000
+    endif
+    if timer bufftimer >= 15000
+        clearsysmsg 
+        hotkey "Clear Target Queue"
+        hotkey "Next Friend Target"
+        getlabel backpack ping
+        if insysmsg "No one matching that"
+            //donothing
+        else 
+            @setvar "BuffTarget" lasttarget 
+            skill "Begging"
+            wft 1000
+            target "BuffTarget"
+            getlabel backpack ping
+            if insysmsg "Target cannot be seen"
+                pause 300
+            elseif insysmsg "Perhaps just asking them would work better."
+                if findlayer self innertorso as checkaspect
+                    while cooldown "Aspect Armor"
+                        //donoting
+                    endwhile
+                    getlabel checkaspect desc
+                    if "eldritch" in desc
+                        //donothing
+                    else 
+                        if cooldown "Aspect"
+                            while cooldown "Aspect"
+                                //donothing
+                            endwhile
+                            getlabel backpack ping
+                        endif   
+                        say "[AspectArmor Eldritch"
+                    endif
+                endif
+                settimer bufftimer 0
+                menu myshelf 1
+                if "EnableBless" = 1
+                    cast "bless"
+                    wft 2500
+                    target "BuffTarget"
+                    hotkey "Clear Target Queue" 
+                endif
+                pause 350
+                cast "arch protection"
+                wft 2500
+                target "BuffTarget"
+                pause 350
+                hotkey "Clear Target Queue"
+            endif
+        endif
+    endif
+elseif "LanternSwitch" = 0 and skill "Magery" >= 60 and mana >= 20
     if not timerexists bufftimer
         createtimer bufftimer
         settimer bufftimer 15000
@@ -1037,7 +1109,7 @@ if skill "Magery" >= 60 and mana >= 20
         endif
     endif
 endif
-
+    
 // Item Id and Recycler
 if skill "Item ID" = 120
     if not timerexists recycletimer

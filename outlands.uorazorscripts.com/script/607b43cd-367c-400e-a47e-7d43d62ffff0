@@ -1,0 +1,311 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/607b43cd-367c-400e-a47e-7d43d62ffff0 for latest
+# Automation by Jaseowns
+## Script: Yuckmouth
+## Created by: sic3466#0
+#############################################
+
+// SELFCARE TAMER BOT BY YUCKMOUTH
+// =======================================
+// ONE-TIME STARTUP ACTIONS
+// =======================================
+hotkey 'Dress: Yuckmouth'
+wait 500
+
+
+@setvar! heal_potion 1
+@setvar! cure_potion 1
+@setvar! pouch 1
+@setvar! refresh_potion 1
+@setvar! buffs_potion 1
+@setvar! petHealLOOP 1
+@setvar! food 1
+@setvar! amountOfGoldToDrop 666
+
+
+// -----------------------------
+// MAX HEALTH CONFIG
+// -----------------------------
+@setvar! MaxHealth 120
+
+
+// -----------------------------
+// VET HEART COUNTDOWN STATE
+// -----------------------------
+@setvar! VetPulseActive 0
+@setvar! VetPulseStep 0
+@setvar! VetPulseCD 1000
+settimer VetPulseTimer 0
+
+
+// -----------------------------
+// SELFCARE ACTIVE PULSE
+// -----------------------------
+@setvar! SelfcarePulseCD 10000
+settimer SelfcarePulseTimer 0
+
+
+// -----------------------------
+// Vet supply cooldown (ms)
+// -----------------------------
+@setvar! VetSuppTimerCD 6000
+settimer VetSuppTimer 999999
+
+
+// -----------------------------
+// Potion throttles (ms)
+// -----------------------------
+@setvar! HealPotionCD 900
+@setvar! CurePotionCD 900
+@setvar! RefreshPotionCD 800
+@setvar! BuffPotionCD 1800
+@setvar! PouchCD 700
+
+settimer HealPotionTimer 0
+settimer CurePotionTimer 0
+settimer RefreshPotionTimer 0
+settimer BuffPotionTimer 0
+settimer PouchTimer 0
+
+
+// -----------------------------
+// Overweight message throttle
+// -----------------------------
+@setvar! overweightMessageCD 2000
+settimer overweightMessageTimer 0
+
+
+// -----------------------------
+// INITIAL OVERHEAD
+// -----------------------------
+overhead 'SELFCARE ACTIVE'
+
+
+while not dead
+
+    // =====================================================
+    // SELFCARE ACTIVE PULSE (EVERY 10 SECONDS)
+    // =====================================================
+    if VetPulseActive = 0
+        if timer SelfcarePulseTimer > SelfcarePulseCD
+            overhead 'SELFCARE ACTIVE' 53
+            settimer SelfcarePulseTimer 0
+        endif
+    endif
+
+
+    // =====================================================
+    // VET HEART COUNTDOWN (NON-BLOCKING)
+    // =====================================================
+    if VetPulseActive = 1
+        if timer VetPulseTimer > VetPulseCD
+
+            if VetPulseStep = 4
+                overhead 'eeee' 53
+                @setvar! VetPulseStep 3
+
+            else
+                if VetPulseStep = 3
+                    overhead 'eee' 53
+                    @setvar! VetPulseStep 2
+
+                else
+                    if VetPulseStep = 2
+                        overhead 'ee' 53
+                        @setvar! VetPulseStep 1
+
+                    else
+                        if VetPulseStep = 1
+                            overhead 'e' 53
+                            @setvar! VetPulseStep 0
+                        endif
+                    endif
+                endif
+            endif
+
+            settimer VetPulseTimer 0
+
+            if VetPulseStep = 0
+                @setvar! VetPulseActive 0
+                overhead 'SELFCARE ACTIVE' 53
+                settimer SelfcarePulseTimer 0
+            endif
+
+        endif
+    endif
+
+
+    // =====================================================
+    // 1) VET SUPPLY  HIGHEST PRIORITY
+    // =====================================================
+    if petHealLOOP = 1
+        if hp < MaxHealth
+            if not bandaging
+                if timer VetSuppTimer > VetSuppTimerCD
+                    if findtype 'veterinary supplies' backpack as vetsupp
+
+                        dclick vetsupp
+                        settimer VetSuppTimer 0
+                        wait 400
+
+                        if VetPulseActive = 0
+                            @setvar! VetPulseActive 1
+                            overhead 'eeeee' 53
+                            @setvar! VetPulseStep 4
+                            settimer VetPulseTimer 0
+                        endif
+
+                    endif
+                endif
+            endif
+        endif
+    endif
+
+
+    // =====================================================
+    // 2) HEAL POTION
+    // =====================================================
+    if heal_potion = 1
+        if hp < 60
+            if timer HealPotionTimer > HealPotionCD
+                hotkey 'Drink Heal'
+                overhead 'Heal Potion' 53
+                settimer HealPotionTimer 0
+                wait 350
+            endif
+        endif
+    endif
+
+
+    // =====================================================
+    // 3) CURE / PANACEA
+    // =====================================================
+    if cure_potion = 1
+        if timer CurePotionTimer > CurePotionCD
+
+            if poisoned
+                hotkey 'Drink Cure'
+                overhead 'Cure (Poison)' 53
+                settimer CurePotionTimer 0
+                wait 350
+
+            else
+                if findbuff 'Diseased'
+                    hotkey 'Drink Cure'
+                    overhead 'Cure (Disease)' 53
+                    settimer CurePotionTimer 0
+                    wait 350
+
+                else
+                    if findbuff 'Bleeding'
+                        hotkey 'Drink Cure'
+                        overhead 'Cure (Bleed)' 53
+                        settimer CurePotionTimer 0
+                        wait 350
+                    endif
+                endif
+            endif
+
+        endif
+    endif
+
+
+    // =====================================================
+    // 4) REFRESH POTION
+    // =====================================================
+    if refresh_potion = 1
+        if stam < 50
+            if timer RefreshPotionTimer > RefreshPotionCD
+                hotkey 'Drink Refresh'
+                overhead 'Refresh Potion' 53
+                settimer RefreshPotionTimer 0
+                wait 300
+            endif
+        endif
+    endif
+
+
+    // =====================================================
+    // 5) BUFF POTIONS  WARMODE ONLY
+    // =====================================================
+    if buffs_potion = 1
+        if warmode 1
+            if timer BuffPotionTimer > BuffPotionCD
+
+                if not findbuff 'Strength'
+                    hotkey 'Drink Strength'
+                    overhead 'STR Potion' 53
+                    settimer BuffPotionTimer 0
+                    wait 900
+                endif
+
+                if not findbuff 'Agility'
+                    hotkey 'Drink Agility'
+                    overhead 'AGI Potion' 53
+                    settimer BuffPotionTimer 0
+                    wait 900
+                endif
+
+                if not findbuff 'Magic Resist'
+                    hotkey 'Drink Magic Resist'
+                    overhead 'MR Potion' 53
+                    settimer BuffPotionTimer 0
+                    wait 900
+                endif
+
+            endif
+        endif
+    endif
+
+
+    // =====================================================
+    // 6) POUCH  PARALYSIS
+    // =====================================================
+    if pouch = 1
+        if paralyzed
+            if timer PouchTimer > PouchCD
+                say [pouch
+                settimer PouchTimer 0
+                wait 200
+            endif
+        endif
+    endif
+
+
+    // =====================================================
+    // 7) OVERWEIGHT GOLD DROP
+    // =====================================================
+    if weight > maxweight
+
+        if timer overweightMessageTimer > overweightMessageCD
+            overhead 'Overweight !!' 34
+            settimer overweightMessageTimer 0
+        endif
+
+        if amountOfGoldToDrop > 0
+            if findtype 3821 backpack as goldpile
+                lift goldpile amountOfGoldToDrop
+                droprelloc 0 0
+                wait 300
+                overhead '* Gold Dropped *' 55
+            endif
+        endif
+
+    endif
+
+
+    // =====================================================
+    // 8) FOOD / AUTO-EAT
+    // =====================================================
+    if food = 1
+        if not findbuff 'Food Satisfaction'
+            if findtype 'tray' backpack as foodtray
+                dclick foodtray
+                wait 300
+            endif
+        endif
+    endif
+
+
+    wait 60
+
+endwhile

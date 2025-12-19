@@ -6,7 +6,7 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# Dec 5th 2025 - Added heal potion cooldown (XML Updated), Added logic to re-enable warmode when Shadow Aspect procs on an enemy ship
+# Dec 18th 2025 - Fixed bug that recalled crew too early, fixed some queue delays with various actions
 # 
 # Script is designed for Necro and Chiv  (Mage or Pooner)
 #
@@ -102,12 +102,13 @@ if not hidden and skill "Healing" >= 20
     endif
 endif
 
-while poisoned and not targetexists and not hidden
-    if findtype "Orange Potion" backpack as curepot
-        dclick curepot
-        pause 500
-        getlabel backpack ping
-    endif
+while poisoned and not targetexists and not hidden and findtype "Orange Potion" backpack as curepot
+    while queued
+        //donothing
+    endwhile
+    dclick curepot
+    pause 500
+    getlabel backpack ping
 endwhile
 
 if skill "Fishing" >= 80
@@ -122,37 +123,49 @@ if skill "Fishing" >= 80
     endif
 endif
     
-if skill "Alchemy" >= 0 and not hidden and not targetexists 
-    if not hidden and not findbuff "Strength" and findtype "White Potion" backpack as wpot
-        dclick wpot
-        pause 500
-        getlabel backpack ping
-    endif
-    if not hidden and not findbuff "Agility" and findtype "Blue Potion" backpack as bpot
-        dclick bpot
-        pause 500
-        getlabel backpack ping
-    endif
-    if not hidden and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as mpot
-        dclick mpot
-        pause 500
-        getlabel backpack ping
-    endif
+
+if not targetexists and not hidden and not findbuff "Strength" and findtype "White Potion" backpack as wpot
+    while queued
+        //donothing
+    endwhile
+    dclick wpot
+    pause 500
+    getlabel backpack ping
+endif
+if not targetexists and not hidden and not findbuff "Agility" and findtype "Blue Potion" backpack as bpot
+    while queued
+        //donothing
+    endwhile
+    dclick bpot
+    pause 500
+    getlabel backpack ping
+endif
+if not targetexists and not hidden and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as mpot
+    while queued
+        //donothing
+    endwhile
+    dclick mpot
+    pause 500
+    getlabel backpack ping
 endif
 
-if not targetexists and not casting and not findbuff "Food Satisfaction" and not hidden
-    if findtype 2429|28885|29774|29773|28880|28888|28881|28883|28886|28879 backpack as food
-        dclick food
-        cooldown "Food" 3600000
-        getlabel backpack ping
-    endif
+if not targetexists and not casting and not findbuff "Food Satisfaction" and not hidden and findtype 2429|28885|29774|29773|28880|28888|28881|28883|28886|28879 backpack as food
+    while queued
+        //donothing
+    endwhile
+    dclick food
+    pause 500
+    getlabel backpack ping
 endif
+
 
 if not targetexists and not hidden and not casting and stam < maxstam and findtype "Red Potion" backpack as redpot
     while queued
         //donothing
     endwhile
     dclick redpot
+    pause 500
+    getlabel backpack ping
 endif
 
 if hp < 77 and not hidden and not timerexists brew and not targetexists and findbuff "Bleed" and findtype 50675 backpack as cbrew
@@ -161,6 +174,7 @@ if hp < 77 and not hidden and not timerexists brew and not targetexists and find
         //donothing
     endwhile
     dclick cbrew
+    pause 500
     getlabel backpack ping
     if insysmsg "You drink a cleansing brew"
         createtimer brew
@@ -170,6 +184,7 @@ elseif hp < 77 and not hidden and not timerexists brew and not targetexists and 
         //donothing
     endwhile
     dclick cbrew
+    pause 500
     getlabel backpack ping
     if insysmsg "You drink a cleansing brew"
         createtimer brew
@@ -281,6 +296,9 @@ if timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|
         settimer netwait 4000
     endif
     if not hidden and not queued and timer netwait >= 3400 and findtype "fishing net" backpack as net
+        while queued
+            //donothing
+        endwhile
         dclick net
         wft 500
         target net
@@ -387,7 +405,12 @@ if not warmode
             pause 250
         endwhile
         if not cooldown "Heal Pot" and not hidden and diffhits > 25 and findtype "Yellow Potion" backpack as healpot
+            while queued
+                //donothing
+            endwhile
             dclick healpot
+            pause 500
+            getlabel backpack ping
         endif
         if hp < 55 and skill "Magery" >= 60
             hotkey 'Cancel Current Target'
@@ -407,7 +430,12 @@ if not warmode
         endif
         while not hidden and poisoned and not targetexists 
             if not hidden and findtype "Orange Potion" backpack as curepot
+                while queued
+                    //donothing
+                endwhile
                 dclick curepot
+                pause 500
+                getlabel backpack ping
             elseif mana >= 6 and skill "Magery" >= 40
                 cast "Cure"
                 wft 2500
@@ -416,7 +444,12 @@ if not warmode
             endif
         endwhile
         if skill "Magery" >= 80 and mana <= 20 and not findbuff "Actively Meditating" and not cooldown "Magic Mushroom"
+            while queued
+                //donothing
+            endwhile
             dclicktype 'mushroom'
+            pause 500
+            getlabel backpack ping
         endif
         if skill "Provocation" >= 10 and not findbuff "Actively Meditating" and not cooldown "Disco" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not findbuff "Song of provocation"
             hotkey "Cancel Current Target"    
@@ -450,7 +483,12 @@ if not warmode
         pause 250
     endif
     if findtype "5188" ground -1 -1 2 as bomb
+        while queued
+            //donothing
+        endwhile
         dclick bomb
+        pause 500
+        getlabel backpack ping
     endif
     if findtype "5188" ground -1 -1 22 as bomb
         overhead "***BOMB***" 34 bomb
@@ -693,9 +731,13 @@ elseif warmode
     endif
     
     if timerexists boardingsuccess and not find "oceantarget" ground -1 -1 and timer recallboardingchecker >= 1000
-        getlabel backpack ping
-        removetimer boardingsuccess
-        say "[recallboarding"
+        clearsysmsg 
+        hotkey "Next Enemy Monster Target"
+        if insysmsg "No one matching that was found on your screen"
+            getlabel backpack ping
+            removetimer boardingsuccess
+            say "[recallboarding"
+        endif
     endif
         
     if not hidden and not targetexists 
@@ -708,7 +750,12 @@ elseif warmode
             pause 250
         endwhile
         if not cooldown "Heal Pot" and not hidden and diffhits > 25 and findtype "Yellow Potion" backpack as healpot
+            while queued
+                //donothing
+            endwhile
             dclick healpot
+            pause 500
+            getlabel backpack ping
         endif
         if hp < 55 and skill "Magery" >= 60
             hotkey 'Cancel Current Target'
@@ -728,7 +775,12 @@ elseif warmode
         endif
         while not hidden and poisoned and not targetexists and not hidden
             if not hidden and findtype "Orange Potion" backpack as curepot
+                while queued
+                    //donothing
+                endwhile
                 dclick curepot
+                pause 500
+                getlabel backpack ping
             elseif mana >= 6 and skill "Magery" >= 40
                 cast "Cure"
                 wft 2500
@@ -742,6 +794,7 @@ elseif warmode
                 //donothing
             endwhile
             dclick cbrew
+            pause 500
             getlabel backpack ping
             if insysmsg "You drink a cleansing brew"
                 createtimer brew
@@ -751,6 +804,7 @@ elseif warmode
                 //donothing
             endwhile
             dclick cbrew
+            pause 500
             getlabel backpack ping
             if insysmsg "You drink a cleansing brew"
                 createtimer brew
@@ -762,7 +816,12 @@ elseif warmode
             endif
         endif
         if skill "Magery" >= 80 and mana <= 80 and not findbuff "Actively Meditating" and not cooldown "Magic Mushroom"
+            while queued
+                //donothing
+            endwhile
             dclicktype 'mushroom'
+            pause 500
+            getlabel backpack ping
         endif
     endif
     
@@ -785,7 +844,11 @@ elseif warmode
     if find "shiphold" ground -1 -1 1
         //donothing
     elseif not hidden and not queued and findtype "hatch" ground -1 -1 1 as mobship
+        while queued
+            //donothing
+        endwhile
         dclick mobship
+        pause 500
         getlabel backpack ping
         while findtype "chain link|29368|18660|3712|3648|3650|3708|3648|2475|3649|29833|29832|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|shattered weapon|bird cage|widows grief|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7127|rune|3861|24343|3821" mobship as bitem
             if not timerexists openhull

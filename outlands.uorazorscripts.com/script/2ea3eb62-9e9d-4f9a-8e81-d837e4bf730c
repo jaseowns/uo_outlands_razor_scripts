@@ -1,0 +1,76 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/2ea3eb62-9e9d-4f9a-8e81-d837e4bf730c for latest
+# Automation by Jaseowns
+## Script: Pker Scan Runner
+## Created by: twsow#0
+#############################################
+
+#################################
+# STANDALONE PK ESCAPE SCRIPT
+#################################
+# --- STANDALONE PK ESCAPE SETUP ---
+if not varexist EscapeRunebook
+    overhead "SELECT YOUR ESCAPE RUNEBOOK" 38
+    setvar EscapeRunebook
+endif
+# --- PK DETECTION ---
+@setvar! PK_Found 0
+
+# Clear messages to ensure fresh detection
+clearsysmsg
+interrupt
+hotkey 'Cancel Current Target'
+clearall
+hotkey 'Next Murderer Player Target'
+wait 200
+
+# Check if the "No one matching" message is NOT present
+if not insysmsg "No one matching"
+    @setvar! PK_Found 1
+    overhead "!!! RED NAME DETECTED !!!" 38
+endif
+
+# Tracking Check (if Skill >= 50)
+if PK_Found = 0 and skill 'Tracking' >= 50
+    if not findbuff "tracking"
+        useskill 'tracking'
+        waitforgump 4267467659 500
+        if gumpexists 4267467659
+            gumpresponse 6 4267467659
+        endif
+    endif
+    
+    if insysmsg "step" or insysmsg "space"
+        @setvar! PK_Found 1
+        overhead "!!! TRACKING WARNING !!!" 38
+    endif
+endif
+
+# --- EXECUTE ESCAPE ---
+if PK_Found = 1
+    # Stop fighting and try to escape
+    hotkey 'Cancel Current Target'
+    hotkey 'Toggle Peace Only'
+    
+    for 3
+        overhead 'Attempting to Recall...' 68
+        # Use the book variable instead of hardcoded ID
+        dclick EscapeRunebook
+        waitforgump 167090027 2000
+        # Button 110 is usually the "Default" Recall button in most runebooks
+        gumpresponse 110 167090027
+        
+        # Wait to see if we moved (checking mana or system message is safer)
+        wait 1000
+        
+        # If we are still here (not dead and no target), it might have failed
+        if not insysmsg "Something is blocking" and not insysmsg "fizzles"
+            # Successfully casted or moved
+            @setvar! PK_Found 0
+            stop
+        endif
+    endfor
+    
+    # If the loop finishes and we are still here, talk to the PK
+    say "I am a newbie, nothing worth on me... please don't kill me!"
+    @setvar! PK_Found 0
+    endif

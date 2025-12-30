@@ -5,7 +5,7 @@
 #############################################
 
 # "Bapeths Trapper Background"
-# December 28th 2025 - Refined auto attack / weapon ability / bullwark (Use Bapths "BOOM BOOM" script as an activator for these)
+# December 29th 2025 - Added setting to enable / disable Auto Buff Pots
 #
 # "REQUIRED": <---------- "Important information!"
 # User must create two cooldowns named:
@@ -13,7 +13,7 @@
 # "Move" --- Cooldown : 0.3
 #    
 # "Bandage" --- No data needed
-# Bandage cooldown assumes you have max points in "Self Treatment" (Healers Codex)
+# Bandage cooldown assumes you have max points in "Self Treatment" (Healers Codex) and 100 dex
 #
 # Cooldowns can be found in the in-game options menu
 #
@@ -23,7 +23,8 @@
 # Auto Bandage
 # Auto Cure
 # Use Cleansing Brew (activate by going into warmode while bleeding/diseased)
-# Warn when str/resist/reflect/reactive are needed
+# Auto Drink str/resist/agi or Warn when needed (See setting below)
+# Warn when reflect/reactive are needed
 # Auto pouch when paralyzed 
 # Auto str pot when weakened
 # Auto re-equip after disarmed
@@ -47,6 +48,14 @@
 @setvar! "BapWeaponAbility-1" 0
 @setvar! "BapWeaponAbility-2" 1
 @setvar! "BapWeaponAbility-3" 0
+#
+#########################################################################################################################################
+#
+# To enable "Auto-Drink Buff Pots" set the below setting to 1
+# The script will drink Strength, Agility, and Magic Resist if it doesnt detect a buff
+#
+# AUTO BUFF POTS
+@setvar! "AutoBuffPots" 0
 #
 #########################################################################################################################################
 #
@@ -540,41 +549,83 @@ if not hidden and not casting and findbuff "Weaken" and not targetexists and fin
         //donothing
     endwhile
     dclick stpot
+    getlabel backpack ping
 endif
-if not timerexists topupstr
-    createtimer topupstr
-    settimer topupstr 30000
-elseif timer topupstr >= 30000 and not hidden and not casting and str = 100 and findtype "White Potion" backpack as stpot
-    while queued
-        //donothing
-    endwhile
-    overhead "--Drink Strength--" 2041
-    settimer topupstr 0
+if "AutoBuffPots" = 1
+    if not targetexists and not hidden and not casting and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as respot
+        while queued
+            //donothing
+        endwhile
+        dclick respot
+        pause 500
+    endif
+    if not targetexists and not hidden and not casting and not findbuff "Strength" and findtype "White Potion" backpack as wpot
+        while queued
+            //donothing
+        endwhile
+        dclick wpot
+        pause 500
+    endif
+    if not targetexists and not hidden and not casting and not findbuff "Agility" and findtype "Blue Potion" backpack as bpot
+        while queued
+            //donothing
+        endwhile
+        dclick bpot
+        pause 500
+    endif
 endif
-if not timerexists topupres
-    createtimer topupres
-    settimer topupres 30000
-elseif timer topupres >= 30000 and not hidden and not casting and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as respot
-    while queued
-        //donothing
-    endwhile
-    overhead "--Drink Resist--" 2031
-    settimer topupres 0
+if "AutoBuffPots" = 0
+    if not timerexists topupstr
+        createtimer topupstr
+        settimer topupstr 30000
+    elseif timer topupstr >= 30000 and not hidden and not casting and str = 100 and findtype "White Potion" backpack as stpot
+        while queued
+            //donothing
+        endwhile
+        overhead "--Drink Strength--" 2041
+        settimer topupstr 0
+    endif
+    if not timerexists topupdex
+        createtimer topupdex
+        settimer topupdex 30000
+        elseif timer topupdex >= 30000 and not hidden and not casting and str = 100 and findtype "Blue Potion" backpack as agipot
+        while queued
+            //donothing
+        endwhile
+        overhead "--Drink Agility--" 2041
+        settimer topupdex 0
+    endif
+    if not timerexists topupres
+        createtimer topupres
+        settimer topupres 30000
+    elseif timer topupres >= 30000 and not hidden and not casting and not findbuff "Magic Resist Potion" and findtype "Black Potion" backpack as respot
+        while queued
+            //donothing
+        endwhile
+        overhead "--Drink Resist--" 2041
+        settimer topupres 0
+    endif
 endif
 if not targetexists and not hidden and not casting and stam <= 4 and findtype "Red Potion" backpack as redpot
     while queued
         //donothing
     endwhile
     dclick redpot
+    pause 500
 endif
 if not hidden and paralyzed and not targetexists and findtype "pouch" backpack 38
+    while queued
+        //donothing
+    endwhile
     say "[Pouch"
+    pause 500
 endif
 if not hidden and not casting and poisoned and not targetexists and findtype "Orange Potion" backpack as curepot
     while queued
         //donothing
     endwhile
     dclick curepot
+    pause 500
 endif
 if not targetexists and not casting and not findbuff "Food Satisfaction"
     if findtype 2429|28885|29774|29773|28880|28888|28881|28883|28886|28879 backpack as food
@@ -583,7 +634,6 @@ if not targetexists and not casting and not findbuff "Food Satisfaction"
         endwhile
         dclick food
         pause 500
-        getlabel backpack ping
     endif
 endif
 // End of Utility Routine

@@ -55,7 +55,7 @@
 # The script will drink Strength, Agility, and Magic Resist if it doesnt detect a buff
 #
 # AUTO BUFF POTS
-@setvar! "AutoBuffPots" 0
+@setvar! "AutoBuffPots" 1
 #
 ##########################################################################################################################################################################
 #
@@ -74,10 +74,10 @@
 # Select which stance you wish to defualt to with a 1, leave the rest at 0
 #
 # DEFAULT PARRY STANCE
-@setvar! "DefaultShieldBash" 1
+@setvar! "DefaultShieldBash" 0
 @setvar! "DefaultTestudo" 0
 @setvar! "DefaultMirror" 0
-@setvar! "DefaultBulwark" 0
+@setvar! "DefaultBulwark" 1
 #
 ##########################################################################################################################################################################
 #
@@ -127,12 +127,16 @@ endif
 // End of Named Summon Routine
 
 // Overhead Notification that script is active
-if not timerexists bapactive
-    createtimer bapactive
-    settimer bapactive 5000
-elseif timer bapactive >= 5000
-    overhead "Boom time..." 78
-    settimer bapactive 0
+if skill "Parrying" >= 80
+    //donothing
+else
+    if not timerexists bapactive
+        createtimer bapactive
+        settimer bapactive 5000
+    elseif timer bapactive >= 5000
+        overhead "Boom time..." 78
+        settimer bapactive 0
+    endif
 endif
 // End of overhead notification
 
@@ -389,7 +393,7 @@ endif
 // End of Auto Re-equip after disarm routine
 
 // Auto Shield Stance Routine
-if skill "Parrying" >= 80 and mana >= 6
+if skill "Parrying" >= 80
     if not timerexists checkshieldcodex
         createtimer checkshieldcodex
         settimer checkshieldcodex 13000
@@ -397,7 +401,7 @@ if skill "Parrying" >= 80 and mana >= 6
         settimer checkshieldcodex 0
         if findtype "shield codex" backpack as scodex
             getlabel scodex desc
-            if not findbuff "Bleed" and not findbuff "Diseased"
+        if not findbuff "Bleed" and not findbuff "Diseased" and mana >= 3
                 if "DefaultShieldBash" = 1
                     if "Shield Bash" in desc
                         //donothing
@@ -441,10 +445,10 @@ if skill "Parrying" >= 80 and mana >= 6
                 endif  
             endif
             if "Shield Bash" in desc
-                overhead "--Shield Bash Active--" 2490
+                overhead "--Shield Bash Stance--" 2490
             elseif "Warding" in desc
-                overhead "--Warding Active--" 2087
-                if not findbuff "Bleed" and not findbuff "Diseased"
+                overhead "--Warding Stance--" 2087
+                if not findbuff "Bleed" and not findbuff "Diseased" and mana >= 3
                     if "DefaultShieldBash" = 1
                         say "[ShieldsStance1"
                     elseif "DefaultTestudo" = 1
@@ -458,33 +462,48 @@ if skill "Parrying" >= 80 and mana >= 6
                     say "[ShieldsFinisher1" 45
                 endif
             elseif "Testudo" in desc
-                overhead "--Testudo Active--" 2503
+                overhead "--Testudo Stance--" 2503
             elseif "Mirror" in desc
-                overhead "--Mirror Active--" 2615
+                overhead "--Mirror Stance--" 2615
             elseif "Bulwark" in desc
-                overhead "--Bulwark Active--" 2767
+                overhead "--Bulwark Stance--" 2767
             else 
-                overhead "No Stance Active" 45
-                overhead "Default Stance Enabled" 45
-                if "DefaultShieldBash" = 1
-                    say "[ShieldsStance1"
-                elseif "DefaultTestudo" = 1
-                    say "[ShieldsStance3"
-                elseif "DefaultMirror" = 1
-                    say "[ShieldsStance4"
-                elseif "DefaultBulwark" = 1
-                    say "[ShieldsStance5"
+                if mana >= 3
+                    if "DefaultShieldBash" = 1
+                        say "[ShieldsStance1"
+                    elseif "DefaultTestudo" = 1
+                        say "[ShieldsStance3"
+                    elseif "DefaultMirror" = 1
+                        say "[ShieldsStance4"
+                    elseif "DefaultBulwark" = 1
+                        say "[ShieldsStance5"
+                    endif
                 endif
             endif
         endif
     endif
-    if not timerexists bleedbuffcheck and findbuff "Bleed" and not findbuff "Diseased"
+    if "DefaultBulwark" = 1
+        if not timerexists standstill
+            createtimer standstill
+        endif
+        if cooldown "Move"
+            createtimer OTBulwarkIndicator
+            settimer standstill 0
+        endif
+        if timer standstill >= 3000
+            if timerexists OTBulwarkIndicator
+                overhead "Bulwark Fortified!" 88
+                removetimer OTBulwarkIndicator
+            endif
+        endif
+    endif
+    if not timerexists bleedbuffcheck and findbuff "Bleed" and not findbuff "Diseased" and mana >= 3
         removetimer bullwarkactive
         createtimer bleedbuffcheck
         say "[ShieldsStance2" 45
         getlabel backpack ping
         say "[ShieldsFinisher2" 45
-    elseif timerexists bleedbuffcheck and not findbuff "Bleed" and not findbuff "Diseased"
+    elseif timerexists bleedbuffcheck and not findbuff "Bleed" and not findbuff "Diseased" and mana >= 3
         removetimer bleedbuffcheck
         pause 800
         getlabel backpack ping
@@ -500,13 +519,13 @@ if skill "Parrying" >= 80 and mana >= 6
         getlabel backpack ping
         say "[ShieldsFinisher1" 45
     endif
-    if not timerexists diseasebuffcheck and findbuff "Diseased" and not findbuff "Bleed"
+    if not timerexists diseasebuffcheck and findbuff "Diseased" and not findbuff "Bleed" and mana >= 3
         removetimer bullwarkactive
         createtimer diseasebuffcheck
         say "[ShieldsStance2" 45
         getlabel backpack ping
         say "[ShieldsFinisher2" 45
-    elseif timerexists diseasebuffcheck and not findbuff "Diseased" and not findbuff "Bleed"
+    elseif timerexists diseasebuffcheck and not findbuff "Diseased" and not findbuff "Bleed" and mana >= 3
         removetimer diseasebuffcheck
         pause 800
         getlabel backpack ping
@@ -522,7 +541,7 @@ if skill "Parrying" >= 80 and mana >= 6
         getlabel backpack ping
         say "[ShieldsFinisher1" 45
     endif
-    if timerexists baptrapbullwark
+    if timerexists baptrapbullwark and mana >= 3
         if not findbuff "Diseased" and not findbuff "Bleed" and not timerexists defaultstance and timer baptrapbullwark <= 10000
             if not timerexists "bullwarktime"
                 createtimer bullwarktime
@@ -539,7 +558,7 @@ if skill "Parrying" >= 80 and mana >= 6
     if cooldown "Move"
         settimer bullwarktime 0
     endif
-    if timerexists bullwarkactive
+    if timerexists bullwarkactive and mana >= 3
         if timer bullwarktime < 3000
             if "DefaultShieldBash" = 1
                 say "[ShieldsStance1"

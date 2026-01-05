@@ -1,13 +1,13 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/47716944-772c-422f-b3db-034d9a88ae76 for latest
 # Automation by Jaseowns
-## Script: Lord Glacier's Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v1.1.5
+## Script: Lord Glacier's Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v1.1.6
 ## Created by: danstock._98439#0
 #############################################
 
 /////////
-////////                                          Lord Glaciers Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 1.1.5
+////////                                          Lord Glaciers Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 1.1.6
 ///////
-//////                                                  UO Outlands Razor script - Released May 16, 2025 - Last updated January 3, 2026
+//////                                                  UO Outlands Razor script - Released May 16, 2025 - Last updated January 4, 2026
 /////                                                     Compiled by DanStock. (aka. Lord Glacier)
 ////
 ///
@@ -62,7 +62,8 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
-#       Nov 26 2025 - version 1.1.5:  Minor updates to a couple overheads and added a Storage Tome Container variable to the Auto Recall section
+#       Jan 04 2026 - version 1.1.6:  Added poison potion option to keg filling and added skinning to dungeon escape loop
+#       Jan 03 2026 - version 1.1.5:  Minor updates to a couple overheads and added a Storage Tome Container variable to the Auto Recall section
 #       Nov 26 2025 - version 1.1.4:  Fixed small bugs in Auto PK Dungeon Gating and Auto Recall After Resurrection sections
 #       Nov 21 2025 - version 1.1.3:  Big update! Overhauled entire script to include my latest upgrades and tweaks. Default is now WAR mode for COMBAT and PEACE mode for ESCAPE/RECALL
 #       Nov 16 2025 - version 1.1.2:  Squashed bugs in Flamestrike, Potion Keg and Necromancy parts of script.  Sorry it took so long (have not played my Arcane Mage echo in a while)
@@ -301,6 +302,7 @@
         @setvar! AgilityPotionAmount 1
         @setvar! ResistPotionAmount 1
         @setvar! ExplosionPotionAmount 5
+        @setvar! PoisonPotionAmount 0
     endif
 
 @setvar! EnableManaSnacking 0
@@ -1122,9 +1124,9 @@ if not dead
     if not varexist ArcaneMageAutoPilot
         overhead "Lord Glacier's Chill Arcane Mage Auto Pilot Script" 2234
         # '
-        overhead "version 1.1.5" 2234
+        overhead "version 1.1.6" 2234
         wait 1000
-        overhead "Last Updated: January 3, 2026" 88
+        overhead "Last Updated: January 4, 2026" 88
         wait 2500
         overhead "Thank you for trying my Arcane Mage AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
@@ -1997,6 +1999,39 @@ while not dead
                     endif
                 endif
 
+                if EnableAutoCarving = 1 and findtype 11552 self
+                    while findtype "corpse" ground -1 -1 2 as deadbody and diffhits < ActivateAutoHealHPdiff 
+                       if findtype 11552 self
+                            if targetexists
+                               hotkey 'cancel current target'
+                            endif
+                            while not targetexists
+                                skill 'forensicevaluation'
+                            endwhile
+                            if targetexists and find deadbody ground -1 -1 2
+                                target 'self'
+                                @ignore deadbody
+                                wait 500
+                            endif
+                            if insysmsg "You dont see anything nearby"
+                                clearsysmsg 
+                                break
+                            else
+                                if EnableOverheadMessages = 1 and timer SkinningTimer > 3000 
+                                    overhead "[ SKINNING... ]" 333
+                                    settimer SkinningTimer 0
+                                endif
+                            endif 
+                        else 
+                            if EnableOverheadMessages = 1 and timer SkinningTimer > 15000
+                                overhead "[ NO SKINNING KNIFE ]" 337
+                                settimer SkinningTimer 0
+                                break
+                            endif  
+                        endif 
+                    endwhile
+                endif 
+
                 if warmode
                     if EnableOverheadMessages = 1
                     overhead "[ ESCAPE CANCELLED! ]" 149
@@ -2830,9 +2865,15 @@ while not dead
         endif
 
 
-        if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self
+       if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self
+            if not timerexists PotionKegTimer
+                createtimer PotionKegTimer
+                settimer PotionKegTimer 5000
+            endif
+            
             @setvar! PotionStockCheck 0
-            while PotionStockCheck < 7 and findtype 'empty bottle%s%' self
+            
+            while PotionStockCheck < 8 and findtype 'empty bottle%s%' self
                 if PotionStockCheck = 0 and ExplosionPotionAmount != 0
                     @setvar! PotionType 3853
                     @setvar! KegColour 419
@@ -2868,41 +2909,46 @@ while not dead
                     @setvar! KegColour 1109
                     @setvar! PotionAmounttoFill ResistPotionAmount
                     @setvar! PotionStockCheck 7
+                elseif PotionStockCheck = 7 and PoisonPotionAmount != 0
+                    @setvar! PotionType 3850
+                    @setvar! KegColour 363
+                    @setvar! PotionAmounttoFill PoisonPotionAmount
+                    @setvar! PotionStockCheck 8
                 else
                     break
                 endif
-                
+
                 while counttype PotionType self < PotionAmounttoFill
                     if not findtype 'empty bottle%s%' self
                         if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
                             overhead "[ NO EMPTY BOTTLES... ]" 337
-                            settimer 'PotionKegTimer' 0 
+                            settimer 'PotionKegTimer' 0
                         endif
                         break
                     endif
-                    
+
                     if findtype 'keg' self KegColour as myKeg
                         dclick myKeg
                         wait 250
-                        if EnableAutoRecallOverheadMessages = 1
+                        if EnableOverheadMessages = 1
                             if timer 'PotionKegTimer' > 2000
                                 overhead '[ FILLING POTS... ]' KegColour
                                 settimer 'PotionKegTimer' 0
                             endif
                         endif
-                    else 
+                    else
                         if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
                             overhead "[ NO KEG TO USE... ]" KegColour
-                            settimer 'PotionKegTimer' 0 
+                            settimer 'PotionKegTimer' 0
                         endif
                         break
                     endif
                 endwhile
-                
-                if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self 
+
+                if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self
                     if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
                         overhead "[ NO EMPTY BOTTLES... ]" 337
-                        settimer 'PotionKegTimer' 0 
+                        settimer 'PotionKegTimer' 0
                     endif
                     break
                 endif
@@ -3949,14 +3995,15 @@ while not dead
             endif
         endif
 
-        if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and diffhits < ActivateAutoHealHPdiff 
+       if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self
+            if not timerexists PotionKegTimer
+                createtimer PotionKegTimer
+                settimer PotionKegTimer 5000
+            endif
+            
             @setvar! PotionStockCheck 0
-
-            while PotionStockCheck < 7 and findtype 'empty bottle%s%' backpack
-                if diffhits > ActivateAutoHealHPdiff 
-                    replay
-                endif 
-
+            
+            while PotionStockCheck < 8 and findtype 'empty bottle%s%' self
                 if PotionStockCheck = 0 and ExplosionPotionAmount != 0
                     @setvar! PotionType 3853
                     @setvar! KegColour 419
@@ -3990,55 +4037,53 @@ while not dead
                 elseif PotionStockCheck = 6 and ResistPotionAmount != 0
                     @setvar! PotionType 3846
                     @setvar! KegColour 1109
-                    @setvar! PotionAmounttoFill ResistPotionAmount 
+                    @setvar! PotionAmounttoFill ResistPotionAmount
                     @setvar! PotionStockCheck 7
-                else 
-                    replay
+                elseif PotionStockCheck = 7 and PoisonPotionAmount != 0
+                    @setvar! PotionType 3850
+                    @setvar! KegColour 363
+                    @setvar! PotionAmounttoFill PoisonPotionAmount
+                    @setvar! PotionStockCheck 8
+                else
+                    break
                 endif
 
                 while counttype PotionType self < PotionAmounttoFill
-                    if diffhits > ActivateAutoHealHPdiff 
-                        replay
-                    endif 
-
                     if not findtype 'empty bottle%s%' self
-                        if EnableOverheadMessages = 1
-                            overhead "[ NO EMPTY BOTTLES ]" 337
-                        endif 
-                        replay
+                        if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
+                            overhead "[ NO EMPTY BOTTLES... ]" 337
+                            settimer 'PotionKegTimer' 0
+                        endif
+                        break
                     endif
 
                     if findtype 'keg' self KegColour as myKeg
                         dclick myKeg
-                        while queued
-                            wait 250
-                        endwhile   
-                    else 
-                        break      
-                    endif 
-
-                    if insysmsg 'You pour some'
-                        if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 3500
-                            overhead '[ FILLING POTS... ]' KegColour
-                            clearsysmsg
+                        wait 250
+                        if EnableOverheadMessages = 1
+                            if timer 'PotionKegTimer' > 2000
+                                overhead '[ FILLING POTS... ]' KegColour
+                                settimer 'PotionKegTimer' 0
+                            endif
+                        endif
+                    else
+                        if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
+                            overhead "[ NO KEG TO USE... ]" KegColour
                             settimer 'PotionKegTimer' 0
-                        else 
-                            overhead ' ¼ ' KegColour
-                        endif 
-                    elseif insysmsg 'You must wait'
-                        wait 250 
-                        clearsysmsg
+                        endif
+                        break
                     endif
                 endwhile
 
-                if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' backpack
-                    if EnableOverheadMessages = 1
-                        overhead "[ NO EMPTY BOTTLES ]" 337
-                    endif 
-                    replay
+                if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self
+                    if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
+                        overhead "[ NO EMPTY BOTTLES... ]" 337
+                        settimer 'PotionKegTimer' 0
+                    endif
+                    break
                 endif
             endwhile
-        endif 
+        endif
     endwhile
 
     ////////////////////////
@@ -4049,14 +4094,15 @@ while not dead
     //      CHECKS:      //
     ///////////////////////
 
-    if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and diffhits < ActivateAutoHealHPdiff 
+    if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self
+        if not timerexists PotionKegTimer
+            createtimer PotionKegTimer
+            settimer PotionKegTimer 5000
+        endif
+        
         @setvar! PotionStockCheck 0
-
-        while PotionStockCheck < 7 and findtype 'empty bottle%s%' backpack
-            if diffhits > ActivateAutoHealHPdiff 
-                replay
-            endif 
-
+        
+        while PotionStockCheck < 8 and findtype 'empty bottle%s%' self
             if PotionStockCheck = 0 and ExplosionPotionAmount != 0
                 @setvar! PotionType 3853
                 @setvar! KegColour 419
@@ -4090,55 +4136,53 @@ while not dead
             elseif PotionStockCheck = 6 and ResistPotionAmount != 0
                 @setvar! PotionType 3846
                 @setvar! KegColour 1109
-                @setvar! PotionAmounttoFill ResistPotionAmount 
+                @setvar! PotionAmounttoFill ResistPotionAmount
                 @setvar! PotionStockCheck 7
-            else 
-                replay
+            elseif PotionStockCheck = 7 and PoisonPotionAmount != 0
+                @setvar! PotionType 3850
+                @setvar! KegColour 363
+                @setvar! PotionAmounttoFill PoisonPotionAmount
+                @setvar! PotionStockCheck 8
+            else
+                break
             endif
 
             while counttype PotionType self < PotionAmounttoFill
-                if diffhits > ActivateAutoHealHPdiff 
-                    replay
-                endif 
-
                 if not findtype 'empty bottle%s%' self
-                    if EnableOverheadMessages = 1
-                        overhead "[ NO EMPTY BOTTLES ]" 337
-                    endif 
-                    replay
+                    if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
+                        overhead "[ NO EMPTY BOTTLES... ]" 337
+                        settimer 'PotionKegTimer' 0
+                    endif
+                    break
                 endif
 
                 if findtype 'keg' self KegColour as myKeg
                     dclick myKeg
-                    while queued
-                        wait 250
-                    endwhile        
-                else 
-                    break 
-                endif 
-
-                if insysmsg 'You pour some'
-                    if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 3500
-                        overhead '[ FILLING POTS... ]' KegColour
-                        clearsysmsg
+                    wait 250
+                    if EnableOverheadMessages = 1
+                        if timer 'PotionKegTimer' > 2000
+                            overhead '[ FILLING POTS... ]' KegColour
+                            settimer 'PotionKegTimer' 0
+                        endif
+                    endif
+                else
+                    if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
+                        overhead "[ NO KEG TO USE... ]" KegColour
                         settimer 'PotionKegTimer' 0
-                    else 
-                        overhead ' ¼ ' KegColour
-                    endif 
-                elseif insysmsg 'You must wait'
-                    wait 250 
-                    clearsysmsg
+                    endif
+                    break
                 endif
             endwhile
 
-            if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' backpack
-                if EnableOverheadMessages = 1
-                    overhead "[ NO EMPTY BOTTLES ]" 337
-                endif 
-                replay
+            if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self
+                if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
+                    overhead "[ NO EMPTY BOTTLES... ]" 337
+                    settimer 'PotionKegTimer' 0
+                endif
+                break
             endif
         endwhile
-    endif 
+    endif
 
     if EnableGoldVacuum = 1 and DisableVacuums != 1
         if findtype "gold coin" ground -1 -1 12 as droppedmoney and timer "GoldRadar" > 3500
@@ -4612,9 +4656,15 @@ while not dead
                 endif
             endif
 
-            if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and diffhits < 10
+   if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self
+                if not timerexists PotionKegTimer
+                    createtimer PotionKegTimer
+                    settimer PotionKegTimer 5000
+                endif
+                
                 @setvar! PotionStockCheck 0
-                while PotionStockCheck < 7 and findtype 'empty bottle%s%' self and diffhits < 10
+                
+                while PotionStockCheck < 8 and findtype 'empty bottle%s%' self
                     if PotionStockCheck = 0 and ExplosionPotionAmount != 0
                         @setvar! PotionType 3853
                         @setvar! KegColour 419
@@ -4650,23 +4700,24 @@ while not dead
                         @setvar! KegColour 1109
                         @setvar! PotionAmounttoFill ResistPotionAmount
                         @setvar! PotionStockCheck 7
+                    elseif PotionStockCheck = 7 and PoisonPotionAmount != 0
+                        @setvar! PotionType 3850
+                        @setvar! KegColour 363
+                        @setvar! PotionAmounttoFill PoisonPotionAmount
+                        @setvar! PotionStockCheck 8
                     else
                         break
                     endif
-                    
-                    while counttype PotionType self < PotionAmounttoFill and diffhits < 10
-                        if diffhits > 10
-                            replay
-                        endif 
 
+                    while counttype PotionType self < PotionAmounttoFill
                         if not findtype 'empty bottle%s%' self
                             if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
                                 overhead "[ NO EMPTY BOTTLES... ]" 337
-                                settimer 'PotionKegTimer' 0 
+                                settimer 'PotionKegTimer' 0
                             endif
                             break
                         endif
-                        
+
                         if findtype 'keg' self KegColour as myKeg
                             dclick myKeg
                             wait 250
@@ -4676,19 +4727,19 @@ while not dead
                                     settimer 'PotionKegTimer' 0
                                 endif
                             endif
-                        else 
+                        else
                             if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
                                 overhead "[ NO KEG TO USE... ]" KegColour
-                                settimer 'PotionKegTimer' 0 
+                                settimer 'PotionKegTimer' 0
                             endif
                             break
                         endif
                     endwhile
-                        
-                    if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self 
+
+                    if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self
                         if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
                             overhead "[ NO EMPTY BOTTLES... ]" 337
-                            settimer 'PotionKegTimer' 0 
+                            settimer 'PotionKegTimer' 0
                         endif
                         break
                     endif
@@ -5564,14 +5615,15 @@ while not dead
             @setvar! missingRegs 0
         endif
 
-        if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self and diffhits < ActivateAutoHealHPdiff 
+   if EnableUsePotionKegs = 1 and findtype 'empty bottle%s%' self and findtype 'keg' self
+            if not timerexists PotionKegTimer
+                createtimer PotionKegTimer
+                settimer PotionKegTimer 5000
+            endif
+            
             @setvar! PotionStockCheck 0
-
-            while PotionStockCheck < 7 and findtype 'empty bottle%s%' backpack
-                if diffhits > ActivateAutoHealHPdiff 
-                    replay
-                endif 
-
+            
+            while PotionStockCheck < 8 and findtype 'empty bottle%s%' self
                 if PotionStockCheck = 0 and ExplosionPotionAmount != 0
                     @setvar! PotionType 3853
                     @setvar! KegColour 419
@@ -5605,55 +5657,53 @@ while not dead
                 elseif PotionStockCheck = 6 and ResistPotionAmount != 0
                     @setvar! PotionType 3846
                     @setvar! KegColour 1109
-                    @setvar! PotionAmounttoFill ResistPotionAmount 
+                    @setvar! PotionAmounttoFill ResistPotionAmount
                     @setvar! PotionStockCheck 7
-                else 
-                    replay
+                elseif PotionStockCheck = 7 and PoisonPotionAmount != 0
+                    @setvar! PotionType 3850
+                    @setvar! KegColour 363
+                    @setvar! PotionAmounttoFill PoisonPotionAmount
+                    @setvar! PotionStockCheck 8
+                else
+                    break
                 endif
 
                 while counttype PotionType self < PotionAmounttoFill
-                    if diffhits > ActivateAutoHealHPdiff 
-                        replay
-                    endif 
-
                     if not findtype 'empty bottle%s%' self
-                        if EnableOverheadMessages = 1
-                            overhead "[ NO EMPTY BOTTLES ]" 337
-                        endif 
-                        replay
+                        if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
+                            overhead "[ NO EMPTY BOTTLES... ]" 337
+                            settimer 'PotionKegTimer' 0
+                        endif
+                        break
                     endif
 
                     if findtype 'keg' self KegColour as myKeg
                         dclick myKeg
-                        while queued
-                            wait 250
-                        endwhile        
-                    else 
-                        break 
-                    endif 
-
-                    if insysmsg 'You pour some'
-                        if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 3500
-                            overhead '[ FILLING POTS... ]' KegColour
-                            clearsysmsg
+                        wait 250
+                        if EnableOverheadMessages = 1
+                            if timer 'PotionKegTimer' > 2000
+                                overhead '[ FILLING POTS... ]' KegColour
+                                settimer 'PotionKegTimer' 0
+                            endif
+                        endif
+                    else
+                        if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
+                            overhead "[ NO KEG TO USE... ]" KegColour
                             settimer 'PotionKegTimer' 0
-                        else 
-                            overhead ' ¼ ' KegColour
-                        endif 
-                    elseif insysmsg 'You must wait'
-                        wait 250 
-                        clearsysmsg
+                        endif
+                        break
                     endif
                 endwhile
 
-                if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' backpack
-                    if EnableOverheadMessages = 1
-                        overhead "[ NO EMPTY BOTTLES ]" 337
-                    endif 
-                    replay
+                if counttype PotionType self < PotionAmounttoFill and not findtype 'empty bottle%s%' self
+                    if EnableOverheadMessages = 1 and timer 'PotionKegTimer' > 5000
+                        overhead "[ NO EMPTY BOTTLES... ]" 337
+                        settimer 'PotionKegTimer' 0
+                    endif
+                    break
                 endif
             endwhile
-        endif 
+        endif
 
         if EnableStrengthPotion = 1 and diffhits < ActivateAutoHealHPdiff 
             if skill 'Alchemy' > 0 and skill 'Alchemy' < 2

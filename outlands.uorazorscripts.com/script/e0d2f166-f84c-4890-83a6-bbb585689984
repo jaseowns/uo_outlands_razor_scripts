@@ -6,17 +6,18 @@
 
 # Map-Trap Script by Bapeth
 #
-# Jan 1st 2026 - Script will now dump arrows/bolts on the ground if they overburden you while looting the chest
+# Jan 5th 2026 - Added a feature that will auto equip a chain link to a "Dump Chain", Script will now use detect hidden + target self while digging up a fresh chest
 #
 # "What it does":
 # Digs for treasure
 # Uses explorer pack
 # Places initial trap
 # Summons an Earth Elemental
-# Uses both "Harvest and Gadget" aspect to maximize damage and loot
-# Uses two mastery chains - one for "Trap Damage" and one for "Special/Rare Loot Chance" (optional)
+# Uses both "Harvest/Fortune and Gadget" aspect to maximize damage and loot/xp
+# Uses up to three mastery chains - one for "Trap Damage", one for "Special/Rare Loot Chance" (optional), and one for T8 Link dumping (optional)
 # Swaps to your preferred Aspect Spell Book for XP gain (optional)
 # Auto opens and loots treasure chests
+# Auto equiups a looted link from a T8 chest
 # Auto Gate Travels to users house if there is too much gold to carry
 # Auto demolishes chest when empty
 #
@@ -161,10 +162,10 @@
 @setvar! "Fire Aspect Spellbook" 0
 @setvar! "Fortune Aspect Spellbook" 0
 @setvar! "Frost Aspect Spellbook" 0
-@setvar! "Gadget Aspect Spellbook" 0
+@setvar! "Gadget Aspect Spellbook" 1
 @setvar! "Harvest Aspect Spellbook" 0
 @setvar! "Holy Aspect Spellbook" 0
-@setvar! "Lightning Aspect Spellbook" 1
+@setvar! "Lightning Aspect Spellbook" 0
 @setvar! "Lyric Aspect Spellbook" 0
 @setvar! "Madness Aspect Spellbook" 0
 @setvar! "Poison Aspect Spellbook" 0
@@ -193,10 +194,10 @@
 @setvar! "Combat Fire Aspect Spellbook" 0
 @setvar! "Combat Fortune Aspect Spellbook" 0
 @setvar! "Combat Frost Aspect Spellbook" 0
-@setvar! "Combat Gadget Aspect Spellbook" 0
+@setvar! "Combat Gadget Aspect Spellbook" 1
 @setvar! "Combat Harvest Aspect Spellbook" 0
 @setvar! "Combat Holy Aspect Spellbook" 0
-@setvar! "Combat Lightning Aspect Spellbook" 1
+@setvar! "Combat Lightning Aspect Spellbook" 0
 @setvar! "Combat Lyric Aspect Spellbook" 0
 @setvar! "Combat Madness Aspect Spellbook" 0
 @setvar! "Combat Poison Aspect Spellbook" 0
@@ -222,6 +223,12 @@ if warmode and gumpexists 3527489586
     endif
     if varexist "LootChain"
         @unsetvar "LootChain"
+    endif
+    if varexist "linkdumpchain"
+        @unsetvar "linkdumpchain"
+    endif
+    if varexist "enabledlinkdump"
+        @unsetvar "enabledlinkdump"
     endif
     overhead "MEMORY WIPED..." 38
     pause 2000
@@ -271,6 +278,7 @@ if varexist "TwoChain"
         endwhile
         @setvar "TrapChain" lasttarget 
         overhead "Trap Chain Set..." 88
+        overhead "Trap Chain Set..." 88 "TrapChain"
         pause 1500
     endif
     if timerexists chainselect
@@ -290,10 +298,39 @@ if varexist "TwoChain"
         endwhile
         @setvar "LootChain" lasttarget 
         overhead "Loot Chain Set..." 78
+        overhead "Loot Chain Set..." 78 "LootChain"
+        pause 1500
     endif
 endif
 if timerexists chainselect
     removetimer chainselect
+endif
+
+if not varexist "linkdumpchain"
+    hotkey "Cancel Current Target"
+    hotkey "Set Last Target"
+    wft 500
+    while targetexists
+        if not timerexists lootcontainerselect
+            createtimer lootcontainerselect
+            settimer lootcontainerselect 4500
+        elseif timer lootcontainerselect >= 4500
+            settimer lootcontainerselect 0
+            overhead "Set Chain to Dump Links" 96
+            overhead "This is for T8 looted links" 96
+            overhead "Select Backpack if none..." 45
+        endif
+    endwhile
+    getlabel lasttarget desc
+    if "backpack" in desc
+        @setvar "linkdumpchain" lasttarget
+    else
+        @setvar "linkdumpchain" lasttarget
+        @setvar "enabledlinkdump" 0
+        overhead "Link Dump Chain Set!" 96
+        overhead "Link Dump Chain Set!" 96 "linkdumpchain"
+        pause 1500
+    endif
 endif
 
 if skill "Cartography" >= 10 and findtype "adventure pack" backpack as advpack
@@ -313,6 +350,9 @@ endif
 if timerexists bchestopen
     removetimer bchestopen
 endif
+if timerexists fullchaincheck
+    removetimer fullchaincheck
+endif
 
 if not targetexists and not casting and not findbuff "Food Satisfaction"
     if findtype 2429|28885|29774|29773|28880|28888|28881|28883|28886|28879 backpack as food
@@ -331,6 +371,7 @@ if not warmode
             menu "TrapChain" 0
             getlabel backpack ping
             overhead "Trap Chain Activated" 2669
+            overhead "Trap Chain Activated" 2669 "TrapChain"
             cooldown "Chain Swap" 30000
         endif
     endif
@@ -550,6 +591,17 @@ if not warmode
             pause 2000 
             replay
         elseif findbuff "Entangle"
+            if not timerexists detectdig
+                createtimer detectdig
+                settimer detectdig 11000
+            endif
+            if timer detectdig >= 11000 and skill "detectinghidden" >= 20
+                settimer detectdig 0
+                skill "detectinghidden"
+                wft 500
+                target self
+                hotkey "Cancel Current Target"
+            endif
             if mana >= 64 and not findbuff "Magic Reflection"
                 cast "Magic Reflection"
                 getlabel backpack ping
@@ -643,8 +695,10 @@ elseif warmode
             getlabel backpack ping
             if "Harvest Armor" = 1
                 overhead "Loot Chain Activated" 2086
+                overhead "Loot Chain Activated" 2086 "LootChain"
             elseif "Fortune Armor" = 1
                 overhead "Loot Chain Activated" 2843
+                overhead "Loot Chain Activated" 2843 "LootChain"
             endif
             cooldown "Chain Swap" 30000
         endif
@@ -1117,6 +1171,23 @@ elseif warmode
             while queued
                 //donothing
             endwhile
+            if not timerexists fullchaincheck and varexist "enabledlinkdump" and findtype "chain link" backpack as lootedlink
+                clearsysmsg 
+                dclick "linkdumpchain"
+                waitforgump 2785326818 500
+                gumpresponse 31
+                waitforgump 2785326818 500
+                gumpresponse 31
+                waitforgump 2785326818 500
+                gumpclose 2785326818
+                if insysmsg "You install 1 link into"
+                    overhead "Link added to Dump Chain" 88
+                elseif insysmsg "You do not have any slots available to install"
+                    overhead "Warning!" 38
+                    overhead "Dump Chain Full!" 38
+                    createtimer fullchaincheck
+                endif
+            endif
             if insysmsg "That container cannot hold more weight"
                 if findtype "gold coin" backpack as goldcoinz
                     drop backpack
@@ -1257,6 +1328,7 @@ elseif warmode
                         menu "TrapChain" 0
                         getlabel backpack ping
                         overhead "Trap Chain Activated" 2669
+                        overhead "Trap Chain Activated" 2669 "TrapChain"
                         cooldown "Chain Swap" 30000
                     endif
                 endif
@@ -1442,6 +1514,7 @@ elseif warmode
                         menu "TrapChain" 0
                         getlabel backpack ping
                         overhead "Trap Chain Activated" 2669
+                        overhead "Trap Chain Activated" 2669 "TrapChain"
                         cooldown "Chain Swap" 30000
                     endif
                 endif
@@ -1683,6 +1756,7 @@ elseif warmode
                             menu "TrapChain" 0
                             getlabel backpack ping
                             overhead "Trap Chain Activated" 2669
+                            overhead "Trap Chain Activated" 2669 "TrapChain"
                             cooldown "Chain Swap" 30000
                         endif
                     endif
@@ -1915,6 +1989,7 @@ elseif warmode
                     menu "TrapChain" 0
                     getlabel backpack ping
                     overhead "Trap Chain Activated" 2669
+                    overhead "Trap Chain Activated" 2669 "TrapChain"
                     cooldown "Chain Swap" 30000
                 endif
             endif

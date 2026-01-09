@@ -4,61 +4,142 @@
 ## Created by: oakman8490#0
 #############################################
 
-#~# [KoU] - Oak's Easy Backstab Script #~#
+#~# Oak's [KoU] Easy Backstab Script #~#
+# Discord: Oakman8490 - Message me if you encounter any errors not addressed below.
 
 #Pre-Requisites for script to work correctly#
-## Cooldown "WeaponAbility" set up in UO. The only trigger it needs is for sysmsg: "Weapon ability ready." to 0 ##
+## Cooldowns to set up inside UO
+    // "WeaponAbility" : Triggers upon sysmsg "Weapon ability ready." to 0
+    // "SmokeBomb Used" : Triggers upon adding the buff "Smoke Bomb Cooldown" to 5
+## Agents Required inside Razor (will still work without the Agents, but QoL improvements)
+    // Dress Agent named "Burst" where you add the weapon you use. This will prevent "wrestling" the mob if you forget to equip weapon.
+    // Organizer Agent 1 - I use this for Moving Gold, Leather, and Black Goods into a specific bag.
+    // Organizer Agent 2 - I use this for Moving Rares (Cores, MCD's, etc) into a trapped pouch. 
+
 ## Dress Agent named "Burst" where you add the type of weapon you use. This will prevent "wrestling" the mob if you forget to equip weapon." ##
 ## Organizer Agent 20 for moving gold & black goods (and anything else you want to add) to the bag you want them. ##
 ## forceTracking will turn on tracking (if you have skill) and stop the script after, if tracking is not on ##
 
+#How Script works
+## You assign the script to a Hot-Key. Hit the hotkey and you will hide & attempt to use a smoke bomb if that fails.
+## The script will give you overhead messages to tell you when it is ok to move/attack.
+## After the kill, the script will auto skin the corpse if you have that active.
+## While not hidden, it will apply bandages, consume potions & cleansing brews as needed. When you have the appropriate skill.
+## In order to re-hide, you will hit the Hot-Key again or use a separate Hide Hotkey (but not a script)
+
 #Overhead Messages#
 ## "Waiting for Stealth" - You will unhide if you move, attacks will not be Backstabs ##
-## "Move into place" - You may move using your stealth steps. You can attack by going into War Mode, but you will not be able to immediately hide after ##
+## "Move into Place" - You may move using your stealth steps. You can attack by going into War Mode, but you will not be able to immediately hide after ##
 ## "Warmode to Attack" - You may move using your stealth steps, go into War Mode to attack, and you will be able to immediately re-hide after Backstab when you hit the hotkey. ##
 
-
-
-clearsysmsg 
+clearignore
 clearall 
-@setvar! autoSkinning 1
-@setvar! showCodexHotbar 1
-@setvar! forceTracking 1
+@setvar! stealthStatus 0
 
-if not timerexists "TargetTimer"
-    createtimer "TargetTimer"
-    settimer TargetTimer 10000
-endif
 
-if skill "Tracking" > 0 and forceTracking = 1
-    if not findbuff "tracking"
-        overhead "i should track.."
-        while cooldown "Skill" != 0
-            wait 100
-        endwhile   
-        while not gumpexists 4267467659
-            useskill "tracking"
-            wait 250
-        endwhile
-        if gumpexists 4267467659
-            while not insysmsg "You will now hunt all hostile players."
-                gumpresponse 8 4267467659
-                waitforgump 4267467659 5000
-            endwhile
-            gumpresponse 6 4267467659
-            wait 1000
-            clearsysmsg                     
-        endif
-        gumpclose 4267467659
-        stop
+###--- SETTINGS ---###
+
+// codex points into Without a Trace
+    @setvar! codexWithoutTrace 3
+// Do you have points in Panacea and want to use cure pots instead of brews? 1 = Cure Pots, 0 = Brews
+    @setvar! codexPanacea 0
+
+# Settings #
+// autoSkinning = 0 to deactivate, 1 for only grey corpses, 2 for all corpses
+    @setvar! autoSkinning 1
+// auto open corpses
+    @setvar! autoOpenCorpses 1
+// automatically bring up your weapon hotbar
+    @setvar! showCodexHotbar 1
+// force tracking to start if you have >= 80 skill
+    @setvar! forceTracking 1
+// auto treat poison/bleed/disease with potion or brew.
+    @setvar! autoTreat 1
+// WizHatMode: 0 = off, 1 = Wizard Hat will be used to keep stamina less than full (to prevent walking through creatures)
+    ## Must be wearing your normal headgear upon starting the script ##
+    @setvar! WizHatMode 1
+// AttackRange: Melee = 1 , Ranged Attack should enter their attack range based upon weapon & Codex
+    @setvar! AttackRange 1
+// AutoTarget: 1 = Closest target is automatically selected (tab out of warmode to reset), 0 = Manual Target Selection
+    @setvar! AutoTarget 1
+// Overhead Timer = How many milliseconds between overhead alerts
+    @setvar! OverheadTimerCD 5000
+// Show the hotbar for the weapon Codex
+    @setvar! showCodexHotbar 1
+// Organize Agents Timer Cooldown (in milliseconds)
+    @setvar! OrganizeTimerCD 30000
+// Overweight: Gold Toss Amount
+    @setvar! OverWeightGold 1234
+// Items to Throw on Ground if looted (add as many items as you want) #    
+    if not listexists "TrashItems"
+        createlist "TrashItems"
     endif
+    clearlist "TrashItems"
+    # Trash Items #
+    pushlist 'TrashItems' 'cut%s% of raw ribs'
+    pushlist 'TrashItems' 'raw fish steak%s%'
+    pushlist 'TrashItems' 'raw chicken leg%s%'
+    pushlist 'TrashItems' 'feather%s'
+    # Trash Scrolls #
+    pushlist 'TrashItems' 8013|8014|8015|8018|8019|8020|8021|8025|8026|8027|8028
+
+###--- END OF SETTINGS ---###
+clearsysmsg
+if hidden
+    @setvar! stealthStatus 1
+else 
+    @setvar! stealthStatus 0
+    useskill "Hiding"
 endif
 
+if skill "Archery" >= 80
+    // Will use Range Settings Above
+else 
+    // Will override to 1 in case of error
+    @setvar! AttackRange 1
+endif
+if not varexist my_head
+    setvar my_head 0
+endif
+if find my_head self
+    // do nothing
+elseif findlayer self head as item
+    setvar my_head item
+else 
+    overhead "Headpiece not equipped" 33
+endif
+if WizHatMode = 1 
+    if findtype 5912 self as item
+        setvar my_wizhat item
+    else 
+        overhead "No WizHat Found" 33
+        setvar my_wizhat 0
+        @setvar! WizHatMode 0
+    endif
+    if not timerexists "WizHatTimer"
+        createtimer "WizHatTimer"
+        settimer "WizHatTimer" 4000
+    endif
+else 
+    setvar my_wizhat 0
+endif
+if my_head = my_wizhat
+    overhead "Wizard Hat is equipped, unable to set Headgear" 33
+    @setvar! WizHatMode 0
+    setvar my_head 0
+endif
+    
 
-while not hidden
-## Applying Bandages if damaged or poisoned ##    
-    if diffhits > 0 or poisoned 
-        if not bandaging and skill "Healing" > 10
+if not timerexists "OverheadTimer"
+    createtimer "OverheadTimer"
+    settimer OverheadTimer OverheadTimerCD
+endif
+if hidden
+    @setvar! stealthStatus 1
+else 
+## Applying Bandages if damaged ##    
+    if diffhits > 0 and skill "Healing" >= 10
+        if not bandaging
             if findtype "clean bandage%s%" self
                 hotkey "Bandage Self"
                 wait 200
@@ -68,7 +149,7 @@ while not hidden
         endif
     endif
 ## Taking Heal Potion if low health ##    
-    if diffhits > 40
+    if diffhits > 40 and autoTreat = 1
         if findtype "Yellow Potion" self
             hotkey "Drink Heal"
             wait 1000
@@ -76,7 +157,51 @@ while not hidden
             overhead "No Heal Pots"
         endif
     endif
-## Hiding ##    
+    
+    if autoTreat = 1    
+## Poisoned ##
+        for 10
+            if poisoned
+                if findtype "Orange Potion" self
+                    hotkey "Drink Cure"
+                    wait 200
+                else
+                    overhead "No Cure Pots"
+                    break
+                endif
+            else
+                break
+            endif
+        endfor
+## Disease / Bleed ##
+        if findbuff "Disease" or findbuff "Bleed"
+            if codexPanacea = 1 and skill "Alchemy" >= 80
+                if findtype "Orange Potion" self
+                    hotkey "Drink Cure"
+                    wait 200
+                else
+                    overhead "No Cure Pots"
+                    if findtype 50675 self 2935 as cBrew
+                        dclick cBrew
+                        wait 200
+                    else
+                        overhead "No Brew"
+                    endif                    
+                endif
+            else 
+                if findtype 50675 self 2935 as cBrew
+                    dclick cBrew
+                    wait 200
+                else
+                    overhead "No Brew"
+                endif
+            endif                    
+        endif
+    endif
+## Hiding ##   
+    if targetexists 
+        hotkey "cancel current target"
+    endif
     warmode "off"
     useskill "hiding"
     wait 400
@@ -85,199 +210,327 @@ while not hidden
         if findtype 52149 backpack 2876
             say "[SmokeBomb"
             wait 600
-            if hidden
-                sysmsg "You feel comfortable enough to begin stealthing."
-            endif
+        else
+             overhead "No Smokebombs found" 33
         endif
-    endif
-## Use Magery to Invis if Hiding & Smoke Bomb Failed (if able) ##
+    endif 
+## Still not hidden ##    
     if not hidden
-        if skill "Magery" >= 80
-            while not targetexists beneficial
-                cast "Invisibility"
-                wait 50
-            endwhile
-            while targetexists
-                hotkey "target self"
-            endwhile
-        endif
-        wait 1000
-        if hidden
-            wait 9000
-            overhead "Hiding"
-            skill "Hiding"
-            wait 200
-        endif
-    endif
-## If you still aren't Hidden, you need to break line of sight and try again ##    
-    if not hidden
+        @setvar! stealthStatus 0
         overhead "Run for it!!! - Break Line of Sight and try again." 33
         stop
+    else 
+        @setvar! stealthStatus 1
     endif
-endwhile
+endif
 
-if hidden 
-    organizer 20
-    while queued
-        wait 100
-    endwhile
-    if findtype 30765 self as WizSatchel
-        menu WizSatchel 0
-    endif
-    if mounted
-        hotkey "Dismount"
-    endif
-    if showCodexHotbar = 1 and not gumpexists 2016719803
-        say "[codexhotbar"
-    endif
-endif  
- 
-while hidden
-## waiting for initial Stealth Timer ##    
-    while not insysmsg "You feel comfortable enough to begin stealthing."
-        if not timerexists "StealthTimer"
-            createtimer "StealthTimer"
-            settimer "StealthTimer" 4000
+while not dead
+    
+    if not hidden
+        if stealthStatus != 0
+            @setvar! stealthStatus 0
         endif
-        if timer "StealthTimer" > 4000
-            overhead "Waiting for Stealth" 33
-            settimer "StealthTimer" 0
-        endif
-        wait 100
-    endwhile
-## Starting Re-Stealth Timer ## 
-    wait 400
-    hotkey "Stealth"
-    clearsysmsg
-## You will need need to set up a Dress Agent to equip your Weapon. This is to ensure we don't accidentally Wrestle the target ##
-    hotkey "Dress: Burst"
-    @setvar! StealthReady 0
-    while not warmode 
-        wait 100
-## Go into War Mode to auto-select target ##    
-        if not timerexists "AttackTimer"
-            createtimer "AttackTimer"
-            settimer "AttackTimer" 5000
-        endif
-        if timer AttackTimer > 5000
-            if StealthReady = 0
-                overhead "Move into place" 253
-                settimer AttackTimer 0
-            elseif StealthReady = 1
-                overhead "Warmode to attack" 167
-                settimer AttackTimer 0      
+    ## Applying Bandages if damaged or poisoned ##    
+        if diffhits > 0 or poisoned 
+            if not bandaging and skill "Healing" > 10
+                if findtype "clean bandage%s%" self
+                    hotkey "Bandage Self"
+                    wait 200
+                else 
+                    overhead "No Bandages"
+                endif
             endif
         endif
-        if insysmsg "You begin to move quietly."
-            @setvar! StealthReady 0
-        elseif insysmsg "You will automatically stealth when out of steps."
-            @setvar! StealthReady 1
+    ## Taking Heal Potion if low health ##    
+        if diffhits > 40 and autoTreat = 1
+            if findtype "Yellow Potion" self
+                hotkey "Drink Heal"
+                wait 1000
+            else 
+                overhead "No Heal Pots"
+            endif
         endif
-    endwhile
-    if warmode 
-        break
-    endif
-endwhile
-while hidden
-    if warmode 
-        if not targetexists
-            hotkey "Target Closest Grey Monster" as MyTarget
-        endif
-## Auto-Attack target when in range. This is defaulted for Mugging, but Ranged can change the distance manually ##        
-        while find lasttarget ground any
-            if find lasttarget ground -1 -1 1
-                if findbuff "Stationary Penalty"
-                    overhead "Stationary Penalty - Move Around"
+        if autoTreat = 1    
+    ## Poisoned ##
+            for 10
+                if poisoned
+                    if findtype "Orange Potion" self
+                        hotkey "Drink Cure"
+                        wait 200
+                    else
+                        overhead "No Cure Pots"
+                        break
+                    endif
                 else
-                    hotkey "Attack Last Target"
-                    wait 500
                     break
+                endif
+            endfor
+    ## Disease / Bleed ##
+            if findbuff "Disease" or findbuff "Bleed"
+                if codexPanacea = 0
+                    if findtype 50675 self 2935 as cBrew
+                        dclick cBrew
+                        wait 200
+                    else
+                        overhead "No Brew"
+                    endif
+                else
+                    if findtype "Orange Potion" self
+                        hotkey "Drink Cure"
+                        wait 200
+                    else
+                        overhead "No Cure Pots"
+                    endif
+                endif                    
+            endif
+        endif
+## Auto-Skinning any corpses around ##        
+        if autoSkinning = 2
+            if findtype "Elven Spellblade" backpack and findtype 8198 ground -1 -1 2 as aCorpse
+            getlabel aCorpse desc
+                if "the remains" in desc
+                    overhead "Skipping: {{desc}}" 11 aCorpse
+                    // do nothing
+                    @ignore aCorpse
+                else
+                    overhead "Skinning: {{desc}}" 88 aCorpse
+                    while not targetexists 
+                        useskill 'forensicevaluation'
+                    endwhile
+                    if targetexists 
+                        target aCorpse
+                        @ignore aCorpse
+                    endif
+                endif
+            endif
+        endif
+        if autoSkinning = 1
+            if findtype 8198 ground -1 -1 2 as aCorpse
+                if findtype "Elven Spellblade" backpack
+                    dclicktype "Elven Spellblade" backpack
+                    waitfortarget 1500
+                    target 'self'
+                    if insysmsg "You carve materials from the corpse"
+                        ignore aCorpse
+                    elseif insysmsg "That corpse has already been carved"
+                        ignore aCorpse
+                    endif
+                else
+                    overhead 'No Skinning Knife!'
+                endif
+            endif
+        endif
+        if autoOpenCorpses = 1
+            if findtype "corpse|bones" ground -1 -1 2 as jorpse
+                getlabel jorpse desc
+                dclick jorpse
+                @ignore jorpse
+                wait 650
+            endif     
+         endif   
+    endif
+    if hidden
+        if mounted
+            hotkey "Dismount"
+        endif
+        if insysmsg "Vanish activated."
+            @setvar! stealthStatus 3
+            overhead "Warmode to Attack - Aspect Proc" 167
+            @settimer "OverheadTimer" 0
+            clearsysmsg
+        elseif insysmsg "You will automatically stealth when out of steps."
+            @setvar! stealthStatus 3 
+            overhead "Warmode to Attack" 167
+            @settimer "OverheadTimer" 0 
+            clearsysmsg
+        elseif cooldown "SmokeBomb Used"
+            @setvar! stealthStatus 2
+            overhead "Move into Place" 253
+            cooldown "SmokeBomb Used" 0
+            @settimer "OverheadTimer" 0
+            clearsysmsg
+        elseif insysmsg "You feel comfortable enough to begin stealthing."
+            skill "Stealth"
+            @setvar! stealthStatus 2
+            overhead "Move into Place" 253
+            @settimer "OverheadTimer" 0  
+            clearsysmsg
+        elseif insysmsg "You begin to move quietly."
+            @setvar! stealthStatus 2
+            overhead "Move into Place" 253
+            @settimer "OverheadTimer" 0 
+            clearsysmsg
+        endif
+        if stealthStatus = 0
+            @setvar! stealthStatus 1
+        endif
+        if stealthStatus = 1 and not cooldown "skill"
+            wait 100
+            skill "Stealth"
+        endif
+        if not warmode 
+            @setvar! MyTarget 0
+        endif
+    elseif stealthStatus != 0
+        @setvar! stealthStatus 0
+    endif
+    if timer "OverheadTimer" > OverheadTimerCD
+        if stealthStatus = 0
+            overhead "Not Hidden" 33
+        elseif stealthStatus = 1
+            overhead "Waiting for Stealth" 33
+        elseif stealthStatus = 2
+            overhead "Move into Place" 253
+        elseif stealthStatus = 3
+            overhead "Warmode to Attack" 167
+        else 
+            overhead "Error in determining stealth status" 33
+        endif
+        settimer "OverheadTimer" 0
+    endif
+    if hidden and WizHatMode = 1
+        if timer "WizHatTimer" > 3000
+            if maxstam = stam 
+                dclick my_wizhat
+                wait 200
+                dclick my_head
+                settimer "WizHatTimer" 0
+            endif
+        endif
+    endif
+    if not timerexists "TrackingRedminder"
+        createtimer "TrackingRedminder"
+        settimer "TrackingRedminder" 10000
+    endif
+    if hidden and skill "Tracking" >= 80
+        if not findbuff "tracking"
+            if forceTracking = 1
+                while cooldown "skill"
+                    wait 100
+                endwhile   
+                while not gumpexists 4267467659
+                    useskill "tracking"
+                    wait 250
+                endwhile
+                if gumpexists 4267467659
+                    while not insysmsg "You will now hunt all hostile players."
+                        gumpresponse 8 4267467659
+                        waitforgump 4267467659 5000
+                    endwhile
+                    gumpresponse 6 4267467659
+                    wait 1000
+                    clearsysmsg                     
+                endif
+                gumpclose 4267467659
+            elseif timer "TrackingRedminder" > 10000
+                overhead "Turn on Tracking" 33
+                settimer "TrackingRedminder" 0
+                while cooldown "skill"
+                    wait 100
+                endwhile 
+                useskill "Stealth" 
+            endif
+        endif
+    endif    
+    if not timerexists TargetTimer
+        createtimer TargetTimer
+        settimer TargetTimer 0
+    endif
+ 
+    if hidden and warmode and stealthStatus != 1
+        if lhandempty and rhandempty
+            overhead "No Weapon Equipped"
+            dress! 'Burst'
+        else 
+            if AutoTarget = 1
+                if not find MyTarget ground any
+                    hotkey "Target Closest Non-Friendly Monster"
+                    wait 200
+                    @setvar! MyTarget lasttarget
+                endif
+            else 
+                if not find MyTarget ground any
+                    @setvar! MyTarget
+                    wait 200
+                endif  
+            endif
+            if find MyTarget ground -1 -1 AttackRange
+                if findbuff "Stationary Penalty"
+                overhead "Stationary Penalty - Move Around"
+                else
+                    attack MyTarget
+                    wait 1000
                 endif
             elseif timer TargetTimer > 2500
                 overhead "¼ OUT OF RANGE ¼" 88 lasttarget
                 settimer TargetTimer 0
             endif
-        endwhile
-    endif
-endwhile
-
-while not hidden
-## If target is not dead, will attempt to finish them off. You can always run off, break LoS and hide or use smoke bomb (just hit hotkey again) ##   
-    if cooldown "WeaponAbility" = 0
-        say "[weaponability3"
-        cooldown "WeaponAbility" 120000
-    endif
-## Applying Bandages if damaged or poisoned ##    
-    if diffhits > 0 or poisoned 
-        if not bandaging and skill "Healing" > 10
-            if findtype "clean bandage%s%" self
-                hotkey "Bandage Self"
-                wait 200
-            else 
-                overhead "No Bandages"
-            endif
         endif
     endif
-## Taking Heal Potion if low health ##    
-    if diffhits > 40
-        if findtype "Yellow Potion" self
-            hotkey "Drink Heal"
-            wait 1000
-        else 
-            overhead "No Heal Pots"
+    if not hidden and find MyTarget ground any
+        if not cooldown "WeaponAbility"
+            say "[weaponability3"
+            cooldown "WeaponAbility" 120000
         endif
     endif
-## Taking Cure Potion if poisoned ##    
-    if poisoned
-        if findtype "Orange Potion" self
-            hotkey "Drink Cure"
-            wait 1000
-        else 
-            overhead "No Cure Pots"
+    if showCodexHotbar = 1 and not gumpexists 2016719803
+        say "[codexhotbar"
+    endif       
+    if hidden
+        if not timerexists "OrganizeTimer"
+            createtimer "OrganizeTimer"
+            settimer "OrganizeTimer" OrganizeTimerCD
+            wait 100
         endif
-    endif 
-## Auto-Skinning any corpses around ##        
-    if autoSkinning = 2
-        if findtype "Elven Spellblade" backpack and findtype 8198 ground -1 -1 2 as aCorpse
-        getlabel aCorpse desc
-            if "the remains" in desc
-                overhead "Skipping: {{desc}}" 11 aCorpse
-                // do nothing
-                @ignore aCorpse
-            else
-                overhead "Skinning: {{desc}}" 88 aCorpse
-                while not targetexists 
-                    useskill 'forensicevaluation'
+        if timer "OrganizeTimer" > OrganizeTimerCD
+            overhead "Organizing Pack"
+            organizer 1
+            while queued
+                wait 100
+            endwhile   
+            organizer 2
+            while queued
+                wait 100
+            endwhile             
+            foreach item in 'TrashItems'
+                while findtype item self
+                    if findtype item self as found
+                        @drop self
+                        lift found 60000
+                        droprelloc 0 0 0
+                        @ignore found
+                    endif
+                    while queued
+                        wait 50
+                    endwhile
                 endwhile
-                if targetexists 
-                    target aCorpse
-                    @ignore aCorpse
+            endfor
+            if not varexist WizSatchel
+                @setvar! WizSatchel 0
+                wait 100
+            endif
+            if not find WizSatchel self            
+                if findtype 30765 self as found
+                    setvar! WizSatchel found
+                    wait 100
                 endif
             endif
-        endif
-    endif
-    if autoSkinning = 1
-        if findtype 8198 ground -1 -1 2 as aCorpse
-            if findtype "Elven Spellblade" backpack
-                dclicktype "Elven Spellblade" backpack
-                waitfortarget 1500
-                target 'self'
-                if insysmsg "You carve materials from the corpse"
-                    ignore aCorpse
-                elseif insysmsg "That corpse has already been carved"
-                    ignore aCorpse
-                endif
-            else
-                overhead 'No Skinning Knife!'
+            if find WizSatchel self
+                menu WizSatchel 0
             endif
+            settimer "OrganizeTimer" 0
         endif
     endif
-    if not timerexists "HideReminder"
-        createtimer "HideReminder"
-        settimer "HideReminder" 0
+    if weight > maxweight 
+        if findtype "gold coin" backpack as myMoney
+            @drop self
+            lift myMoney OverWeightGold
+            droprelloc 0 0 0
+            @ignore myMoney
+            wait 500
+        endif
     endif
-    if cooldown "skill" = 0 and timer "HideReminder" > 10000
-        overhead "Ready to Hide"
-        settimer "HideReminder" 0
-    endif
+
+@clearignore    
+
 endwhile

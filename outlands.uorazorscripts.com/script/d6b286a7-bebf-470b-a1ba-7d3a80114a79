@@ -5,7 +5,7 @@
 #############################################
 
 # Bapeths Modern Dungeon Picker
-# Jan 2nd 2026 - Removed tongs from Auto Recycle Routine as they cannot be used without a forge/anvil - added description of what items are not recycled
+# Jan 13th 2026 - Removed ACP, removed auto-frost shell setting, changed manual item recycler to "Open Party Menu" to activate, added setting for "Loot Vacuum" to toggle overhead display on/off
 #
 # "REQUIRED GAME SETTINGS" :
 #
@@ -77,30 +77,10 @@
 #
 #######################################################################################################################################################################################################################################
 #
-# "Auto Chest Protection"
-# "ACP" feature will instantly cast (Minimum "50 Magery" required to use)
-# Wall of stone, Earth Elemental, Tele + Rope, or Reveal when you are detected
-# Does not work when player is revealed by the reveal spell
-# Toggle "Wall" "Earth" "Tele" "Reveal" or "None" by doubleclicking an "Atlas"
-# Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
-# Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
-#
-#######################################################################################################################################################################################################################################
-#
-# "Auto Frost Shell Protection"
-# Create a cooldown in game called "Aspect"
-# Frost shell is a powerful 5 second "cheat death" effect that can be instantly enabled for the cost of 5 essence through "activating the Frost Aspect"
-# The script will automatically hot swap to "Frost Aspect" when you are Detected by another player (skill not spell), or, if you fall to 35 or less HP
-# It is highly reccomended that you make a manual hotkey for "say [AspectArmor Frost"
-# You may want to activate "Frost Armor" on your own terms outside of the scope of the script
-# To toggle Auto Frost Shell Protection feature on/off "open the party menu" while the script is playing - the party menu acts like a switch (if you require the party menu for normal means, stop the script first before using)
-#
-#######################################################################################################################################################################################################################################
-#
 # "Auto-Recycler"
 # This feature will auto recycle bad items and keep the good ones - To use this feature:
 # You must be carrying at least one "item identification wand" and at least one "recycler tool" type (Tinker Tools, Sewing Kit, Saw, or Scribes Pen)
-# The recycle will happen when the player begins picking a fresh chest (Double Click Scissors to activate auto recycle manually)
+# The recycle will happen when the player begins picking a fresh chest (Open the "Party Menu" to manually activate this feature)
 # The script keeps the following items:
 # Magic Armor: Fortification, Invulnerability
 # Magic Weapons: Power, Vanq
@@ -113,6 +93,8 @@
 # This function will overhead display *loot* above items on the ground and pick them up as you pass by (2 tiles)
 # Be aware that this may make you overweight from large gold piles from time to time
 # To toggle this feature on/off (default is off) "Double click a Wizard Grimoire"
+# To use special overhead indicators to show where loot/gold is on the ground set the below setting to 1 (This will make chest overheads slightly slower)
+@setvar! "LootVacuumOverheads" 0
 #
 #######################################################################################################################################################################################################################################
 #
@@ -152,7 +134,7 @@
 #######################################################################################################################################################################################################################################
 # 
 # "Summoners Name Your Elemental"                                                         
-# See "line 195 & 203" if you would like to custom name your earth elemental(s)
+# See "line 177 & 185" if you would like to custom name your earth elemental(s)
 # Default is "LootGolem"
 #
 #######################################################################################################################################################################################################################################
@@ -484,37 +466,6 @@ if skill "Detect" >= 50
     endif
 endif
 
-if not timerexists frostshelltimer
-    createtimer frostshelltimer
-    settimer frostshelltimer 5000
-endif
-if timerexists frostshellswitch and timer frostshelltimer > 5000 and not cooldown "Aspect" and hp <= 35
-    say "[AspectArmor Frost"
-    getlabel backpack ping
-    if insysmsg "Your armor is already of that aspect"
-        //donothing
-    else
-        cooldown "Aspect" 30000
-        overhead "--Frost Shell Primed--" 2234
-    endif
-    settimer frostshelltimer 0
-endif
-
-if not timerexists frostshellswitch
-    if gumpexists 3527489586
-        gumpclose 3527489586
-        createtimer frostshellswitch
-        overhead "--Auto Shell Enabled--" 2085
-    endif
-endif
-if timerexists frostshellswitch
-    if gumpexists 3527489586
-        gumpclose 3527489586
-        removetimer frostshellswitch
-        overhead "--Auto Shell Disabled--" 1779
-    endif
-endif
-
 if not timerexists checkaspect
     createtimer checkaspect
     settimer checkaspect 60000
@@ -586,10 +537,6 @@ endif
 
 if not timerexists tab
     createtimer tab
-endif
-
-if not timerexists ACPcheck
-    createtimer ACPcheck
 endif
 
 if skill "Magery" >= 80
@@ -1069,17 +1016,6 @@ if not casting and skill "Lockpicking" >= 50 and findtype "wooden chest|metal ch
                 endwhile
                 pause 330
             endif
-            if timerexists frostshellswitch and timer frostshelltimer > 5000 and not cooldown "Aspect" and hp <= 35
-                say "[AspectArmor Frost"
-                getlabel backpack ping
-                if insysmsg "Your armor is already of that aspect"
-                    //donothing
-                else
-                    cooldown "Aspect" 30000
-                    overhead "--Frost Shell Primed--" 2234
-                endif
-                settimer frostshelltimer 0
-            endif
             if not cooldown "Move" and not hidden and not cooldown "Hiding" and not cooldown "Stealth" and not cooldown "Stealing" and not warmode and skill "Hiding" >= 80
                 warmode on
                 warmode off
@@ -1177,141 +1113,8 @@ if not casting and skill "Lockpicking" >= 50 and findtype "wooden chest|metal ch
                     endif
                 endwhile
             endif
-            if ingump "Shrines" 341416395
-                if not timerexists "Wacp" and skill "Magery" >= 50
-                    gumpclose 341416395
-                    overhead "Wall of Stone ACP ------Enabled------" 2031
-                    createtimer "Wall"
-                    createtimer "Wacp"
-                    removetimer "Nacp"
-                    removetimer "Eacp"
-                    removetimer "Tacp"
-                    removetimer "Racp"
-                    removetimer "Elemental"
-                    removetimer "Tele"
-                    removetimer "None"
-                    removetimer "Reveal" 
-                elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80 and skill "Magery" >= 100
-                    gumpclose 341416395
-                    overhead "Earth Elemental ACP ------Enabled------" 1501
-                    createtimer "Elemental"
-                    createtimer "Eacp"
-                    removetimer "Nacp"
-                    removetimer "Tacp"
-                    removetimer "Racp"
-                    removetimer "Wall"
-                    removetimer "Tele"
-                    removetimer "None"
-                    removetimer "Reveal" 
-                elseif not timerexists "Tacp" and skill "Magery" >= 50
-                    gumpclose 341416395
-                    overhead "Teleport + Rope ACP ------Enabled------" 1272
-                    createtimer "Tele"
-                    createtimer "Tacp"
-                    removetimer "Nacp"
-                    removetimer "Racp"
-                    removetimer "Wall"
-                    removetimer "Elemental"
-                    removetimer "None" 
-                    removetimer "Reveal"  
-                elseif not timerexists "Racp" and skill "Magery" >= 80
-                    gumpclose 341416395
-                    overhead "Reveal Spellcast ACP ------Enabled------" 2040
-                    createtimer "Racp"
-                    createtimer "Reveal"
-                    removetimer "Nacp"
-                    removetimer "Wall"
-                    removetimer "Elemental"
-                    removetimer "Tele"  
-                    removetimer "None"    
-                elseif not timerexists "Nacp"
-                    gumpclose 341416395
-                    overhead "Auto Chest Protection ------Disabled------" 38
-                    createtimer "Nacp"
-                    removetimer "Eacp"
-                    removetimer "Tacp"
-                    removetimer "Wacp"
-                    removetimer "Wall"
-                    removetimer "Elemental"
-                    removetimer "Tele"
-                    removetimer "Reveal" 
-                endif
-            endif
             if insysmsg "You have been revealed!" 
-                if timerexists "Tele" and mana >= 9
-                    say "[Anger"
-                    cast 'Teleport'
-                    if findtype "rope" backpack as rope
-                        dclick rope
-                    else 
-                        overhead "I am out of rope..." 34
-                    endif
-                    removetimer "Tacp"
-                    removetimer "Tele"
-                    createtimer "Eacp"
-                    createtimer "Nacp"
-                    createtimer "Wacp"
-                    createtimer "Racp"
-                    dclicktype "atlas" backpack
-                elseif timerexists "Wall" and mana >= 9
-                    say "[Anger"
-                    cast 'Wall of Stone'
-                    removetimer "Wacp"
-                    removetimer "Wall"
-                    createtimer "Eacp"
-                    createtimer "Nacp"
-                    createtimer "Tacp"
-                    createtimer "Racp"
-                    dclicktype "atlas" backpack
-                elseif timerexists "Elemental" and mana >= 50
-                    say "[Anger"
-                    cast 'Earth Elemental'
-                    removetimer "Eacp"
-                    removetimer "Elemental"
-                    createtimer "Wacp"
-                    createtimer "Nacp"
-                    createtimer "Tacp"
-                    createtimer "Racp"
-                    dclicktype "atlas" backpack
-                elseif timerexists "Reveal" and mana >= 20
-                    say "[Anger"
-                    cast 'Reveal'
-                    removetimer "Racp"
-                    removetimer "Reveal"
-                    createtimer "Wacp"
-                    createtimer "Nacp"
-                    createtimer "Tacp"
-                    createtimer "Eacp"
-                    dclicktype "atlas" backpack
-                else
-                    say "[Anger"
-                endif
-                if timerexists frostshellswitch and not cooldown "Aspect"
-                    say "[AspectArmor Frost"
-                    getlabel backpack ping
-                    if insysmsg "Your armor is already of that aspect"
-                        //donothing
-                    else
-                        cooldown "Aspect" 30000
-                        overhead "--Frost Shell Primed--" 2234
-                    endif
-                    settimer frostshelltimer 0
-                endif
-            endif
-            if timer ACPcheck > 42000
-                if timerexists "Tele"
-                    overhead "Teleport ACP active" 1272
-                endif
-                if timerexists "Wall"
-                    overhead "Wall ACP active" 2031
-                endif
-                if timerexists "Elemental"
-                    overhead "Elemental ACP active" 1501
-                endif
-                if timerexists "Reveal"
-                    overhead "Reveal ACP active" 2040
-                endif
-                settimer ACPcheck 0
+                say "[Anger"
             endif
             if insysmsg "Another player"
                 gumpclose 736038070
@@ -1526,17 +1329,6 @@ if not casting and skill "Lockpicking" >= 50 and findtype "wooden chest|metal ch
                 endwhile
                 pause 330
             endif
-            if timerexists frostshellswitch and timer frostshelltimer > 5000 and not cooldown "Aspect" and hp <= 35
-                say "[AspectArmor Frost"
-                getlabel backpack ping
-                if insysmsg "Your armor is already of that aspect"
-                    //donothing
-                else
-                    cooldown "Aspect" 30000
-                    overhead "--Frost Shell Primed--" 2234
-                endif
-                settimer frostshelltimer 0
-            endif
             if not cooldown "Move" and not hidden and not cooldown "Hiding" and not cooldown "Stealth" and not cooldown "Stealing" and not warmode and skill "Hiding" >= 80
                 warmode on
                 warmode off
@@ -1663,141 +1455,8 @@ if not casting and skill "Lockpicking" >= 50 and findtype "wooden chest|metal ch
                     getlabel backpack ping
                 endif
             endif
-            if ingump "Shrines" 341416395
-                if not timerexists "Wacp" and skill "Magery" >= 50
-                    gumpclose 341416395
-                    overhead "Wall of Stone ACP ------Enabled------" 2031
-                    createtimer "Wall"
-                    createtimer "Wacp"
-                    removetimer "Nacp"
-                    removetimer "Eacp"
-                    removetimer "Tacp"
-                    removetimer "Racp"
-                    removetimer "Elemental"
-                    removetimer "Tele"
-                    removetimer "None"
-                    removetimer "Reveal" 
-                elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80 and skill "Magery" >= 100
-                    gumpclose 341416395
-                    overhead "Earth Elemental ACP ------Enabled------" 1501
-                    createtimer "Elemental"
-                    createtimer "Eacp"
-                    removetimer "Nacp"
-                    removetimer "Tacp"
-                    removetimer "Racp"
-                    removetimer "Wall"
-                    removetimer "Tele"
-                    removetimer "None"
-                    removetimer "Reveal" 
-                elseif not timerexists "Tacp" and skill "Magery" >= 50
-                    gumpclose 341416395
-                    overhead "Teleport + Rope ACP ------Enabled------" 1272
-                    createtimer "Tele"
-                    createtimer "Tacp"
-                    removetimer "Nacp"
-                    removetimer "Racp"
-                    removetimer "Wall"
-                    removetimer "Elemental"
-                    removetimer "None" 
-                    removetimer "Reveal"  
-                elseif not timerexists "Racp" and skill "Magery" >= 80
-                    gumpclose 341416395
-                    overhead "Reveal Spellcast ACP ------Enabled------" 2040
-                    createtimer "Racp"
-                    createtimer "Reveal"
-                    removetimer "Nacp"
-                    removetimer "Wall"
-                    removetimer "Elemental"
-                    removetimer "Tele"  
-                    removetimer "None"    
-                elseif not timerexists "Nacp"
-                    gumpclose 341416395
-                    overhead "Auto Chest Protection ------Disabled------" 38
-                    createtimer "Nacp"
-                    removetimer "Eacp"
-                    removetimer "Tacp"
-                    removetimer "Wacp"
-                    removetimer "Wall"
-                    removetimer "Elemental"
-                    removetimer "Tele"
-                    removetimer "Reveal" 
-                endif
-            endif
             if insysmsg "You have been revealed!" 
-                if timerexists "Tele" and mana >= 9
-                    say "[Anger"
-                    cast 'Teleport'
-                    if findtype "rope" backpack as rope
-                        dclick rope
-                    else 
-                        overhead "I am out of rope..." 34
-                    endif
-                    removetimer "Tacp"
-                    removetimer "Tele"
-                    createtimer "Eacp"
-                    createtimer "Nacp"
-                    createtimer "Wacp"
-                    createtimer "Racp"
-                    dclicktype "atlas" backpack
-                elseif timerexists "Wall" and mana >= 9
-                    say "[Anger"
-                    cast 'Wall of Stone'
-                    removetimer "Wacp"
-                    removetimer "Wall"
-                    createtimer "Eacp"
-                    createtimer "Nacp"
-                    createtimer "Tacp"
-                    createtimer "Racp"
-                    dclicktype "atlas" backpack
-                elseif timerexists "Elemental" and mana >= 50
-                    say "[Anger"
-                    cast 'Earth Elemental'
-                    removetimer "Eacp"
-                    removetimer "Elemental"
-                    createtimer "Wacp"
-                    createtimer "Nacp"
-                    createtimer "Tacp"
-                    createtimer "Racp"
-                    dclicktype "atlas" backpack
-                elseif timerexists "Reveal" and mana >= 20
-                    say "[Anger"
-                    cast 'Reveal'
-                    removetimer "Racp"
-                    removetimer "Reveal"
-                    createtimer "Wacp"
-                    createtimer "Nacp"
-                    createtimer "Tacp"
-                    createtimer "Eacp"
-                    dclicktype "atlas" backpack
-                else
-                    say "[Anger"
-                endif
-                if timerexists frostshellswitch and not cooldown "Aspect"
-                    say "[AspectArmor Frost"
-                    getlabel backpack ping
-                    if insysmsg "Your armor is already of that aspect"
-                        //donothing
-                    else
-                        cooldown "Aspect" 30000
-                        overhead "--Frost Shell Primed--" 2234
-                    endif
-                    settimer frostshelltimer 0
-                endif
-            endif
-            if timer ACPcheck > 42000
-                if timerexists "Tele"
-                    overhead "Teleport ACP active" 1272
-                endif
-                if timerexists "Wall"
-                    overhead "Wall ACP active" 2031
-                endif
-                if timerexists "Elemental"
-                    overhead "Elemental ACP active" 1501
-                endif
-                if timerexists "Reveal"
-                    overhead "Reveal ACP active" 2040
-                endif
-                settimer ACPcheck 0
+                say "[Anger"
             endif
             if insysmsg "Another player"
                 gumpclose 736038070
@@ -1920,129 +1579,9 @@ if timer chestsensetimer >= 200
     endif
     settimer chestsensetimer 0
 endif
-
-if ingump "Shrines" 341416395
-    if not timerexists "Wacp" and skill "Magery" >= 50
-        gumpclose 341416395
-        overhead "Wall of Stone ACP ------Enabled------" 2031
-        createtimer "Wall"
-        createtimer "Wacp"
-        removetimer "Nacp"
-        removetimer "Eacp"
-        removetimer "Tacp"
-        removetimer "Racp"
-        removetimer "Elemental"
-        removetimer "Tele"
-        removetimer "None"
-        removetimer "Reveal" 
-    elseif not timerexists "Eacp" and skill "Spirit Speak" >= 80 and skill "Magery" >= 100
-        gumpclose 341416395
-        overhead "Earth Elemental ACP ------Enabled------" 1501
-        createtimer "Elemental"
-        createtimer "Eacp"
-        removetimer "Nacp"
-        removetimer "Tacp"
-        removetimer "Racp"
-        removetimer "Wall"
-        removetimer "Tele"
-        removetimer "None"
-        removetimer "Reveal" 
-    elseif not timerexists "Tacp" and skill "Magery" >= 50
-        gumpclose 341416395
-        overhead "Teleport + Rope ACP ------Enabled------" 1272
-        createtimer "Tele"
-        createtimer "Tacp"
-        removetimer "Nacp"
-        removetimer "Racp"
-        removetimer "Wall"
-        removetimer "Elemental"
-        removetimer "None" 
-        removetimer "Reveal"  
-    elseif not timerexists "Racp" and skill "Magery" >= 80
-        gumpclose 341416395
-        overhead "Reveal Spellcast ACP ------Enabled------" 2040
-        createtimer "Racp"
-        createtimer "Reveal"
-        removetimer "Nacp"
-        removetimer "Wall"
-        removetimer "Elemental"
-        removetimer "Tele"  
-        removetimer "None"    
-    elseif not timerexists "Nacp"
-        gumpclose 341416395
-        overhead "Auto Chest Protection ------Disabled------" 38
-        createtimer "Nacp"
-        removetimer "Eacp"
-        removetimer "Tacp"
-        removetimer "Wacp"
-        removetimer "Wall"
-        removetimer "Elemental"
-        removetimer "Tele"
-        removetimer "Reveal" 
-    endif
-endif
 if insysmsg "You have been revealed!" 
-    if timerexists "Tele" and mana >= 9
-        say "[Anger"
-        cast 'Teleport'
-        if findtype "rope" backpack as rope
-            dclick rope
-        else 
-            overhead "I am out of rope..." 34
-        endif
-        removetimer "Tacp"
-        removetimer "Tele"
-        createtimer "Eacp"
-        createtimer "Nacp"
-        createtimer "Wacp"
-        createtimer "Racp"
-        dclicktype "atlas" backpack
-    elseif timerexists "Wall" and mana >= 9
-        say "[Anger"
-        cast 'Wall of Stone'
-        removetimer "Wacp"
-        removetimer "Wall"
-        createtimer "Eacp"
-        createtimer "Nacp"
-        createtimer "Tacp"
-        createtimer "Racp"
-        dclicktype "atlas" backpack
-    elseif timerexists "Elemental" and mana >= 50
-        say "[Anger"
-        cast 'Earth Elemental'
-        removetimer "Eacp"
-        removetimer "Elemental"
-        createtimer "Wacp"
-        createtimer "Nacp"
-        createtimer "Tacp"
-        createtimer "Racp"
-        dclicktype "atlas" backpack
-    elseif timerexists "Reveal" and mana >= 20
-        say "[Anger"
-        cast 'Reveal'
-        removetimer "Racp"
-        removetimer "Reveal"
-        createtimer "Wacp"
-        createtimer "Nacp"
-        createtimer "Tacp"
-        createtimer "Eacp"
-        dclicktype "atlas" backpack
-    else
-        say "[Anger"
-    endif
-    if timerexists frostshellswitch and not cooldown "Aspect"
-        say "[AspectArmor Frost"
-        getlabel backpack ping
-        if insysmsg "Your armor is already of that aspect"
-            //donothing
-        else
-            cooldown "Aspect" 30000
-            overhead "--Frost Shell Primed--" 2234
-        endif
-        settimer frostshelltimer 0
-    endif
+    say "[Anger"
 endif
-
 if not findtype "wooden chest|metal chest" ground -1 -1 2
     removetimer activaterecycle
     gumpclose 736038070
@@ -2080,23 +1619,6 @@ if not findtype "wooden chest|metal chest" ground -1 -1 2
         endif
     endif
 endif
-
-if timer ACPcheck > 42000
-    if timerexists "Tele"
-        overhead "Teleport ACP active" 1272
-    endif
-    if timerexists "Wall"
-        overhead "Wall ACP active" 2031
-    endif
-    if timerexists "Elemental"
-        overhead "Elemental ACP active" 1501
-    endif
-    if timerexists "Reveal"
-        overhead "Reveal ACP active" 2040
-    endif
-    settimer ACPcheck 0
-endif
-
 if not timerexists lootvacuumswitch
     if gumpexists 1281623709
         gumpclose 1281623709
@@ -2156,13 +1678,15 @@ if timerexists lootvacuumswitch
             if diffweight >= 8 and findtype "3821" ground -1 -1 2
                 break
             endif
-            if index > 0 and findtype "chain link|37477|29368|18660|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|bird cage|widows grief|54684|27612|49223|54591|54601|54718|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|43423|7154|4225|7127|3861|24343" ground -1 -1 index as lootlocation
-                overhead "*loot*" 116 lootlocation
-                @ignore lootlocation
-            endif
-            if diffweight >= 8 and index > 0 and findtype "3821" ground -1 -1 index as lootlocation
-                overhead "*gold*" 2091 lootlocation
-                @ignore lootlocation
+            if "LootVacuumOverheads" = 1
+                if index > 0 and findtype "chain link|37477|29368|18660|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|bird cage|widows grief|54684|27612|49223|54591|54601|54718|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|19979|43423|7154|4225|7127|3861|24343" ground -1 -1 index as lootlocation
+                    overhead "*loot*" 116 lootlocation
+                    @ignore lootlocation
+                endif
+                if diffweight >= 8 and index > 0 and findtype "3821" ground -1 -1 index as lootlocation
+                    overhead "*gold*" 2091 lootlocation
+                    @ignore lootlocation
+                endif
             endif
             if warmode and findtype 4239|4240 ground -1 -1 2
                 break
@@ -2272,7 +1796,8 @@ if not targetexists and not hidden and not casting and findtype "11552" backpack
         endif
     endif
 endif
-if insysmsg "What should I use these scissors on?" and findtype "3997|4148|4032|7864" backpack as breakdowntool
+if gumpexists 3527489586 and findtype "3997|4148|4032|7864" backpack as breakdowntool
+    gumpclose 3527489586
     hotkey "Cancel Current Target"
     if findtype 20496 backpack as IDwand
         clearsysmsg 

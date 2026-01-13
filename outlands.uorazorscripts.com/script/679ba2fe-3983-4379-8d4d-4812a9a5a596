@@ -6,7 +6,7 @@
 
 # Bapeths Butler 
 #
-# Jan 2nd 2026 - Added some Time items to organizer strings
+# Jan 13th 2026 - Removed Harvest Aspect Activator for opening paragon chests in light of the new aspect swap nerf, added a Greater heal routine in case a Graeater paragon chest damages the butler
 #
 # What it does:
 # "Casts Bless and Protection on your main character" - Create an entry in the Razor Friends tab called "Friends" and add your main character
@@ -60,14 +60,12 @@
 # Set Trigger text to "aspect armor activated"
 #
 # "Eldritch Aspect" For enhancing Magery Buffs
-# "Harvest Aspect" So you dont die opening Pargon Chests
 # The higher level your Eldritch the longer the buffs last - Enhance this further by using Inscription mastery chain links
-# Harvest will need to be Tier 8 in order to get the Greater Paragon chest from 1% to 0% chance to trigger a trap
-# Alternatively you can use "Chest success/Progress" mastery chain links to get the chance to 0%
-# Wear Heavy Armor to protect against traps if you have low harvest
+# Wear Heavy Armor to protect against Greater Paragon traps
 # Use a Chaos, Order, or Heater Shield to further protect yourself
 # The script will auto detect your shield
 # To avoid the shield being sorted or recycled please use "any accessory dye" on it
+# You can also use "Chest success/Progress" mastery chain links to get the greater paragon trap chance to 0%
 #
 # Items this script uses are as follows:
 #
@@ -124,7 +122,7 @@
 # Set Lantern Mode to 1 to enable or 0 to disable this feature - Default is 0 (off)
 #
 # LANTERN SWITCH
-@setvar! "LanternSwitch" 0
+@setvar! "LanternSwitch" 1
 #
 #########################################################################################################################################
 if warmode and gumpexists 3527489586
@@ -1004,8 +1002,15 @@ if timer shelfrestock >= 25000
     menu myshelf 1
 endif
 
+if diffhits >= 1
+    cast "Greater Heal"
+    wft 2000
+    target self
+    pause 330
+endif
+
 // Magery Buffer
-if "LanternSwitch" = 1 and skill "Magery" >= 60 and mana >= 20 and findtype 2594 ground -1 -1 2
+if "LanternSwitch" = 1 and skill "Magery" >= 60 and mana >= 20 and findtype 2594 ground 1790 -1 2
     if not timerexists bufftimer
         createtimer bufftimer
         settimer bufftimer 15000
@@ -1448,25 +1453,8 @@ if skill "Lockpicking" = 120 and skill "Detect" = 120 and findtype "lockpicks" b
             getlabel backpack ping
         endif
         if findtype 3712|3648|3650|3708|3648|2475|3649|29833|29832 backpack as ParagonChest
-            while cooldown "Aspect Armor"
-                //donoting
-            endwhile
             dclick ParagonChest
             getlabel backpack ping
-            if gumpexists 736038070 and findlayer self innertorso as checkaspect
-                getlabel checkaspect desc
-                if "harvest" in desc
-                    //donothing
-                else 
-                    if cooldown "Aspect"
-                        while cooldown "Aspect"
-                            //donothing
-                        endwhile
-                        getlabel backpack ping
-                    endif   
-                    say "[AspectArmor Harvest"
-                endif
-            endif
             if not casting and findtype "Heater Shield|Chaos shield|Order shield" backpack as ParagonBlastProtection
                 if not findlayer self lefthand
                     while queued

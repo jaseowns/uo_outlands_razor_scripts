@@ -7,7 +7,7 @@
 # Bapeths Stabber Background 
 # This script it in a preliminary state, some things may change, some things may be added
 #
-# Jan 13th 2026 - Added anti-retaliate logic for melee switching in some cases (Greater Air ele push), increase range to 4 for melee/ranged swaps
+# Jan 14th 2026 - Added equip delay for bow (dual wep build) after melee strike to allow a manual smokebomb to take action priority
 #
 # What it does:
 #    
@@ -69,6 +69,16 @@ if casting
         //donothing
     endwhile
     pause 330
+endif
+
+if not timerexists rangeequipdelay
+    createtimer rangeequipdelay
+endif
+
+if insysmsg "You strike your target from the shadows!"
+    if timer rangeequipdelay >= 1200
+        settimer rangeequipdelay 0
+    endif
 endif
 
 //Auto stealth activator
@@ -152,11 +162,13 @@ if skill "Archery" >= 50 and find "Melee Stabber Wep" and find "Ranged Stabber W
                 while queued
                     //donothing
                 endwhile
-                dclick "Ranged Stabber Wep"
-                overhead "*Ranged*" 88
-                getlabel backpack ping
-                warmode on
-                warmode off
+                if timer rangeequipdelay >= 1200
+                    dclick "Ranged Stabber Wep"
+                    overhead "*Ranged*" 88
+                    getlabel backpack ping
+                    warmode on
+                    warmode off
+                endif
             endif
         endif
     elseif find "BapStabTarget" ground
@@ -201,11 +213,13 @@ if skill "Archery" >= 50 and find "Melee Stabber Wep" and find "Ranged Stabber W
                 while queued
                     //donothing
                 endwhile
-                dclick "Ranged Stabber Wep"
-                overhead "*Ranged*" 88
-                getlabel backpack ping
-                warmode on
-                warmode off
+                if timer rangeequipdelay >= 1200
+                    dclick "Ranged Stabber Wep"
+                    overhead "*Ranged*" 88
+                    getlabel backpack ping
+                    warmode on
+                    warmode off
+                endif
             endif
         endif        
     endif
@@ -222,6 +236,9 @@ if warmode and find "Manual Override" ground and hidden and not cooldown "Steali
     endif
     if insysmsg "You strike your target from the shadows!"
         skill "Hiding"
+        if timer rangeequipdelay >= 1200
+            settimer rangeequipdelay 0
+        endif
         getlabel backpack ping
         if not hidden and not cooldown "Smoke Bomb"
             if findtype "bombs" backpack as sbomb
@@ -262,6 +279,9 @@ elseif warmode and find "BapStabTarget" ground and hidden and not cooldown "Stea
     endif
     if insysmsg "You strike your target from the shadows!"
         skill "Hiding"
+        if timer rangeequipdelay >= 1200
+            settimer rangeequipdelay 0
+        endif
         getlabel backpack ping
         if not hidden and not cooldown "Smoke Bomb"
             if findtype "bombs" backpack as sbomb
@@ -301,7 +321,7 @@ if not timerexists newstabtarget
     createtimer newstabtarget
     settimer newstabtarget 600
 endif
-if not find "Manual Override" and timer newstabtarget >= 600
+if not targetexists and not find "Manual Override" and timer newstabtarget >= 600
     settimer newstabtarget 0
     clearsysmsg 
     hotkey 'Target Closest Grey Monster'

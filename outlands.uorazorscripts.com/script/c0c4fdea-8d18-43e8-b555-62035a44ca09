@@ -1,0 +1,193 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/c0c4fdea-8d18-43e8-b555-62035a44ca09 for latest
+# Automation by Jaseowns
+## Script: Tamer Care
+## Created by: vadimkara.#0
+#############################################
+
+#Vars
+@setvar! heal_potion 1
+@setvar! cure_potion 1
+@setvar! refresh_potion 1
+@setvar! strength_potion 1
+@setvar! agility_potion 1
+@setvar! resist_potion 1
+@setvar! pet_heal 1
+@setvar! crook 1
+@setvar! pouch 1
+@setvar! food 1
+@setvar! amount_of_gold_drop 670
+
+#Overhead
+@setvar! overhead_cooldown 10000
+settimer overhead_timer 0
+
+#Vet supplies cooldown (ms)
+@setvar! vet_supplies_cooldown 5000
+settimer vet_supplies_timer 0
+
+#Crook cooldown (ms)
+@setvar! crook_cooldown 5000
+settimer crook_timer 0
+
+#Potions cooldown (ms)
+@setvar! heal_potion_cooldown 900
+@setvar! cure_potion_cooldown 900
+@setvar! refresh_potion_cooldown 900
+@setvar! strength_potion_cooldown 1800
+@setvar! agility_potion_cooldown 1800
+@setvar! resist_potion_cooldown 1800
+@setvar! pouch_cooldown 700
+
+settimer heal_potion_timer 0
+settimer cure_potion_timer 0
+settimer refresh_potion_timer 0
+settimer strength_potion_timer 0
+settimer agility_potion_timer 0
+settimer resist_potion_timer 0
+settimer pouch_timer 0
+
+#Overweight message throttle
+@setvar! overweight_message_cooldown 2000
+settimer overweight_message_timer 0
+
+while not dead
+    if timer overhead_timer > overhead_cooldown
+        overhead "PVM ready" 53
+        settimer overhead_timer 0
+    endif
+    
+    if pet_heal = 1
+        if followers > 0 or hp < 100
+            if not bandaging and timer vet_supplies_timer > vet_supplies_cooldown
+                if findtype "veterinary supplies" backpack as vetsupp
+                    dclick vetsupp
+                    settimer vet_supplies_timer 0
+                    wait 350
+                endif
+            endif
+        endif
+    endif
+
+    if crook = 1
+        if followers > 0 and timer crook_timer > crook_cooldown
+            if findtype "shepherd's crook" backpack as crook
+                getlabel crook crook_status
+                if 'activated' in crook_status
+                    #It is already active, do nothing
+                else
+                    dclick crook
+                    settimer crook_timer 0
+                    wait 350
+                endif
+            endif
+        endif
+    endif
+
+    if heal_potion = 1
+        if findtype "Yellow Potion" backpack
+            if hp < 60 and timer heal_potion_timer > heal_potion_cooldown
+                hotkey "Drink Heal"
+                overhead "Heal Potion" 53
+                settimer heal_potion_timer  0
+                wait 350
+            endif
+        endif
+    endif
+
+    if cure_potion = 1
+        if findtype "Orange Potion" backpack and timer cure_potion_timer > cure_potion_cooldown
+            if poisoned
+                hotkey "Drink Cure"
+                overhead "Cure Potion" 53
+                settimer cure_potion_timer 0
+                wait 350
+            endif
+            if findbuff "Diseased" or findbuff "Bleeding"
+                hotkey "Drink Cure"
+                overhead "Cure Potion" 53
+                settimer cure_potion_timer 0
+                wait 350
+            endif
+        endif
+    endif
+
+    if refresh_potion = 1
+        if findtype "Red Potion" backpack
+            if stam < 50 and timer refresh_potion_timer  > refresh_potion_cooldown
+                hotkey "Drink Refresh" 
+                overhead "Refresh Potion" 53
+                settimer refresh_potion_timer 0
+                wait 350
+            endif
+        endif
+    endif
+
+    if strength_potion = 1
+        if findtype "White Potion" backpack and not findbuff "Strength"
+            if warmode = 1 and timer strength_potion_timer > strength_potion_cooldown
+                hotkey "Drink Strength"
+                overhead "Strength Potion" 53
+                wait 900
+                settimer strength_potion_timer 0
+            endif
+        endif
+    endif
+    
+    if agility_potion = 1
+        if findtype "Blue Potion" backpack and not findbuff "Agility"
+            if warmode = 1 and timer agility_potion_timer > agility_potion_cooldown
+                hotkey "Drink Agility"
+                overhead "Agility Potion" 53
+                wait 900
+                settimer agility_potion_timer 0
+            endif
+        endif
+    endif
+
+    if resist_potion = 1
+        if findtype "Black Potion" backpack and not findbuff "Magic Resist"
+            if warmode = 1 and timer resist_potion_timer > resist_potion_cooldown
+                hotkey "Drink Magic Resist"
+                overhead "Magic Resist Potion" 53
+                wait 900
+                settimer resist_potion_timer 0
+            endif
+        endif
+    endif
+
+    if pouch = 1
+        if paralyzed  and timer pouch_timer > pouch_cooldown
+            say [pouch
+            settimer pouch_timer 0
+            wait 350
+            if findtype "a rune tome" as rc
+                dclick rc
+                waitforgump 167090027
+                gumpresponse 202 167090027
+                waitforgump 167090027
+                gumpresponse 11 167090027
+            endif
+        endif
+    endif
+
+    if weight > maxweight and timer overweight_message_timer > overweight_message_cooldown
+        overhead "Overweight" 34
+        settimer overweightMessageTimer 0
+        if amount_of_gold_drop > 0
+            if findtype "gold coin" backpack as goldpile
+                lift goldpile amount_of_gold_drop
+                droprelloc 0 0
+                wait 350
+                overhead "Gold Dropped" 55
+            endif
+        endif
+    endif
+
+    if food = 1 and not findbuff "Food Satisfaction"
+        if findtype "tray" backpack as foodtray
+            dclick foodtray
+            wait 350
+        endif
+    endif
+endwhile
+replay

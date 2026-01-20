@@ -7,7 +7,7 @@
 # Bapeths Stabber Background 
 # This script it in a preliminary state, some things may change, some things may be added
 #
-# Jan 18th 2026 - The script now uses the Thieves Codex to set your weapons and the Atlas to switch between your default carry weapon.  The script will now switch between melee/ranged only when in warmode while doing an insta hide/smokebomb routine
+# Jan 20th 2026 - Added "Always Smokebomb" setting when using the warmode auto attack, added requirement for smokebomb cooldown, added 120 Item ID to recycle routine
 #
 # What it does:
 #    
@@ -44,6 +44,12 @@
 # Trigger Text: You begin to move
 # -------------- Cooldown : 10.3
 #
+# "Smoke Bomb"
+# Type: Regular
+# Trigger: N/A
+# Trigger Text: N/A
+# -------------- N/A
+#
 # "Manual Override" script found here -----> https://outlands.uorazorscripts.com/script/80d24cbc-c121-484d-af2f-8fe45c765a2b
 #
 # SET YOUR WEAPON(S) <---------- "Important information!"
@@ -57,12 +63,23 @@
 #
 # Auto Drink Strength Potion/Magic Res when Weakened/Res Decreased (0 = off 1 = on)
 @setvar! "EnableResistPot" 1
+#
+##########################################################################################################################################################################
+#
 # WITHOUT A TRACE (0,1,2,3 to match thief codex perks)
 @setvar! "WithoutTracePerk" 3
+#
+##########################################################################################################################################################################
+#
 # GOLD DROPPER (1 or 0 - set to increase amount of gold dropped if over weight)
 @setvar! "Drop444" 1
 @setvar! "Drop2222" 0
 @setvar! "Drop3444" 0
+#
+##########################################################################################################################################################################
+#
+# ALWAYS ATTEMPT SMOKEBOME AFTER STRIKE (Warmode Feature)
+@setvar! "AlwaysSmokebomb" 0
 #
 ##########################################################################################################################################################################
 # THIS FEATURE IS NOT CURRENTLY ACTIVATED IN THE SCRIPT
@@ -200,9 +217,40 @@ if warmode and find "Manual Override" ground and hidden and not cooldown "Steali
         removetimer BapCancelAttack
     endif
     if insysmsg "You strike your target from the shadows!"
-        skill "Hiding"
-        getlabel backpack ping
-        if not hidden and not cooldown "Smoke Bomb"
+        if "AlwaysSmokebomb" = 1
+            if not hidden and not cooldown "Smoke Bomb"
+                if findtype "bombs" backpack as sbomb
+                    clearsysmsg 
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick sbomb
+                    getlabel backpack ping
+                    if insysmsg "You begin to move"
+                        createtimer StabberOTS
+                        if "WithoutTracePerk" = 0
+                            cooldown "Smoke bomb" 120000
+                        endif
+                        if "WithoutTracePerk" = 1
+                            cooldown "Smoke bomb" 100000
+                        endif
+                        if "WithoutTracePerk" = 2
+                            cooldown "Smoke bomb" 80000
+                        endif
+                        if "WithoutTracePerk" = 3
+                            cooldown "Smoke bomb" 60000
+                        endif
+                    endif
+                else
+                    overhead "Out of Smoke Bombs..." 38
+                endif
+            endif
+        endif  
+        if not hidden
+            skill "Hiding"
+            getlabel backpack ping
+        endif
+        if  "AlwaysSmokebomb" = 0 and not hidden and not cooldown "Smoke Bomb"
             if findtype "bombs" backpack as sbomb
                 clearsysmsg 
                 while queued
@@ -270,9 +318,40 @@ elseif warmode and find "BapStabTarget" ground and hidden and not cooldown "Stea
         removetimer BapCancelAttack
     endif
     if insysmsg "You strike your target from the shadows!"
-        skill "Hiding"
-        getlabel backpack ping
-        if not hidden and not cooldown "Smoke Bomb"
+        if "AlwaysSmokebomb" = 1
+            if not hidden and not cooldown "Smoke Bomb"
+                if findtype "bombs" backpack as sbomb
+                    clearsysmsg 
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick sbomb
+                    getlabel backpack ping
+                    if insysmsg "You begin to move"
+                        createtimer StabberOTS
+                        if "WithoutTracePerk" = 0
+                            cooldown "Smoke bomb" 120000
+                        endif
+                        if "WithoutTracePerk" = 1
+                            cooldown "Smoke bomb" 100000
+                        endif
+                        if "WithoutTracePerk" = 2
+                            cooldown "Smoke bomb" 80000
+                        endif
+                        if "WithoutTracePerk" = 3
+                            cooldown "Smoke bomb" 60000
+                        endif
+                    endif
+                else
+                    overhead "Out of Smoke Bombs..." 38
+                endif
+            endif
+        endif  
+        if not hidden
+            skill "Hiding"
+            getlabel backpack ping
+        endif
+        if  "AlwaysSmokebomb" = 0 and not hidden and not cooldown "Smoke Bomb"
             if findtype "bombs" backpack as sbomb
                 clearsysmsg 
                 while queued
@@ -497,19 +576,23 @@ if skill "Tracking" >= 10 and not cooldown "Tracking" and not findbuff "Tracking
 endif
 // End of Tracking hunting mode enabler routine
 
-// Fast container ID wand recycle (use Party Menu) routine
+// Fast container ID wand/skill recycle (use Party Menu) routine
 if gumpexists 3527489586 and findtype "3997|4148|4032|7864" backpack as breakdowntool
     gumpclose 3527489586
     hotkey "Cancel Current Target"
     if not find "ContainerIDWand" and findtype 20495 backpack as contIDwand
         @setvar! "ContainerIDWand" contIDwand
     endif
-    if find "ContainerIDWand" backpack
+    if skill "Item ID" = 120 or find "ContainerIDWand" backpack
         clearsysmsg 
         while queued
             //donothing
         endwhile
-        dclick "ContainerIDWand"
+        if skill "Item ID" = 120
+            skill "Item ID"
+        elseif find "ContainerIDWand" backpack
+            dclick "ContainerIDWand"
+        endif
         wft 500
         overhead "Select Container to ID..." 88
         while targetexists 
@@ -552,7 +635,9 @@ if gumpexists 3527489586 and findtype "3997|4148|4032|7864" backpack as breakdow
             else
                 @ignore IDitem
             endif
-            if not find "ContainerIDWand" backpack
+            if skill "Item ID" = 120
+                //donothing
+            elseif not find "ContainerIDWand" backpack
                 break
             endif
         endwhile

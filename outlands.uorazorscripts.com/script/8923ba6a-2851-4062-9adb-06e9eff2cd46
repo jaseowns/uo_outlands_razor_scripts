@@ -57,31 +57,60 @@
 # Open the Thieves Codex while the script is playing to trigger the "Weapon Setter"
 # Open The Atlas to switch between Melee or Ranged weapon as your default carry
 #
-##########################################################################################################################################################################
+##############################################################################################################################################################################################################
 #
 # "SCRIPT SETTINGS"
 #
-# AUTO DRINK RESIST POT WHEN DECREASED (0 = off 1 = on) Disable this if you have a "Time Gem"
+##############################################################################################################################################################################################################
+#
+# AUTO DRINK RESIST POT WHEN DECREASED
+# (0 = off 1 = on) 
+# Disable this if you have a "Time Gem"
+#
 @setvar! "EnableResistPot" 1
 #
-##########################################################################################################################################################################
+##############################################################################################################################################################################################################
 #
-# WITHOUT A TRACE (0,1,2,3 to match thief codex perks)
+# "Utility Features"
+# Utility Features: Cure Potion, Cleansing Brew (use warmode), Trapped Pouch, Strength Potion (when weakened by another player), Refresh Potion when low stam, Eat delectable food
+# Revealing actions will not be used while hidden
+# (0 = off 1 = on) 
+#
+# UTILITY FEATURES
+@setvar! "Utility" 1
+#
+##############################################################################################################################################################################################################
+#
+# AUTO EQUIP AFTER DISARM
+# (0 = off 1 = on) 
+#
+@setvar! "DisarmEquip" 1
+#
+##############################################################################################################################################################################################################
+#
+# WITHOUT A TRACE 
+# 0,1,2,3 to match thief codex perks
+#
 @setvar! "WithoutTracePerk" 3
 #
-##########################################################################################################################################################################
+##############################################################################################################################################################################################################
 #
-# GOLD DROPPER (1 or 0 - set to increase amount of gold dropped if over weight)
+# GOLD DROPPER (set to increase amount of gold dropped if over weight)
+# (0 = off 1 = on) 
+#
+@setvar! "DisableGoldDropper" 0
 @setvar! "Drop444" 1
 @setvar! "Drop2222" 0
 @setvar! "Drop3444" 0
 #
-##########################################################################################################################################################################
+##############################################################################################################################################################################################################
 #
-# ALWAYS ATTEMPT SMOKEBOME AFTER STRIKE (Warmode Feature)
+# ALWAYS ATTEMPT SMOKE BOMB AFTER STRIKE (Warmode Feature)
+# (0 = off 1 = on) 
+#
 @setvar! "AlwaysSmokebomb" 0
 #
-##########################################################################################################################################################################
+##############################################################################################################################################################################################################
 # THIS FEATURE IS NOT CURRENTLY ACTIVATED IN THE SCRIPT
 #
 # Set your "Weapon Ability" to auto use it while in combat
@@ -96,7 +125,7 @@
 @setvar! "RangedBapWeaponAbility-1" 0
 @setvar! "RangedBapWeaponAbility-2" 0
 @setvar! "RangedBapWeaponAbility-3" 1
-##########################################################################################################################################################################
+##############################################################################################################################################################################################################
 #
 if casting 
     while casting 
@@ -124,6 +153,7 @@ endif
 if gumpexists 2955404556
     gumpclose 2955404556
     overhead "Setting Weapons..." 45
+    overhead "Set both as the same if only one weapon" 45
     pause 400
     overhead "Set Melee Wep..." 38
     hotkey "Set Last Target"
@@ -556,18 +586,8 @@ if varexist "bwiz" and find "bmain" self and skill "Stealth" >= 80
 endif
 // End of Stealth Wiz Hat Routine
 
-//Auto eat food routine
-if not targetexists and not casting and not findbuff "Food Satisfaction"
-    if findtype 2429|28885|29774|29773|28880|28888|28881|28883|28886|28879 backpack as food
-        dclick food
-        cooldown "Food" 3600000
-        getlabel backpack ping
-    endif
-endif
-//End of Auto eat food routine
-
 // Tracking hunting mode enabler routine
-if skill "Tracking" >= 10 and not cooldown "Tracking" and not findbuff "Tracking Hunting"
+if skill "Tracking" >= 10 and not findbuff "Tracking Hunting"
     skill 'tracking'
     waitforgump 4267467659 500
     gumpresponse 6
@@ -720,178 +740,40 @@ elseif timer checkaspect >= 60000
 endif
 // End of aspect checker routine
 
-// Auto cure routine
-while poisoned and not targetexists and not hidden
-    if findtype "Orange Potion" backpack as curepot
+// Utility Routine
+if "Utility" = 1
+    if not targetexists and not casting and not findbuff "Food Satisfaction"
+        if findtype 2429|28885|29774|29773|28880|28888|28881|28883|28886|28879 backpack as food
+            while queued
+                //donothing
+            endwhile
+            dclick food
+            pause 500
+            getlabel backpack ping
+        endif
+    endif
+    if not targetexists and not hidden and not casting and stam <= 4 and findtype "Red Potion" backpack as redpot
+        while queued
+            //donothing
+        endwhile
+        dclick redpot
+        pause 500
+        getlabel backpack ping
+    endif
+    while not hidden and paralyzed and not targetexists and findtype "pouch" backpack 38
+        while queued
+            //donothing
+        endwhile
+        say "[Pouch"
+    endwhile
+    while not hidden and not casting and poisoned and not targetexists and findtype "Orange Potion" backpack as curepot
         while queued
             //donothing
         endwhile
         dclick curepot
         pause 500
         getlabel backpack ping
-    endif
-endwhile
-// End of Auto cure routine
-
-// Auto pop paralyze pouch routine
-while not hidden and paralyzed and not casting and not targetexists and findtype "pouch" backpack 38
-    while queued
-        //donothing
     endwhile
-    say "[Pouch"
-    pause 500
-    getlabel backpack ping
-endwhile
-// End of Auto pop paralyze pouch routine
-
-//Auto Drink Strength Potion/Magic Res when Weakened/Res Decreased Routune
-if not hidden and not casting and findbuff "Weaken" and not targetexists and findtype "White Potion" backpack as stpot
-    while queued
-        //donothing
-    endwhile
-    dclick stpot
-    pause 500
-    getlabel backpack ping
-endif
-if "EnableResistPot" = 1
-    if not hidden and not casting and findbuff "Magic Resist Decrease" and not targetexists and findtype "Black Potion" backpack as mpot
-        while queued
-            //donothing
-        endwhile
-        dclick mpot
-        pause 500
-        getlabel backpack ping
-    endif
-endif
-// End of Auto Drink Strength Potion/Magic Res when Weakened/Res Decreased Routune
-
-// Auto Re-equip after disarm routine
-if insysmsg "disarms you!"
-    createtimer disarmtimerright
-    createtimer disarmtimerleft
-    getlabel backpack ping
-endif
-if not findlayer self righthand and not findlayer self lefthand
-    //donothing
-else
-    if not timerexists checkequippeditems
-        createtimer checkequippeditems
-        settimer checkequippeditems 15000
-    elseif timerexists checkequippeditems
-        if timer checkequippeditems >= 15000
-            settimer checkequippeditems 0
-            if timerexists equippedrighthand and not timerexists disarmtimerright
-                removetimer equippedrighthand
-                @unsetvar "myrighthanditem"
-            endif
-            if timerexists equippedlefthand and not timerexists disarmtimerleft
-                removetimer equippedlefthand
-                @unsetvar "mylefthanditem"
-            endif
-        endif
-    endif
-endif
-if timerexists disarmtimerright and findlayer self righthand
-    removetimer disarmtimerright
-endif
-if timerexists disarmtimerleft and findlayer self lefthand
-    removetimer disarmtimerleft
-endif
-if not timerexists disarmtimerright or not timerexists disarmtimerleft
-    if not varexist myrighthanditem and timerexists equippedrighthand
-        removetimer equippedrighthand
-    endif
-    if not varexist mylefthanditem and timerexists equippedlefthand
-        removetimer equippedlefthand
-    endif
-    if not find "myrighthanditem" self and findlayer self righthand
-        removetimer equippedrighthand
-    endif
-    if not find "mylefthanditem" self and findlayer self lefthand
-        removetimer equippedlefthand
-    endif
-    if not timerexists equippedrighthand and findlayer self righthand as rheqitem
-        getlabel rheqitem desc
-        if "spells" in desc
-            createtimer exceptionalspellbook
-        elseif timerexists exceptionalspellbook
-            removetimer exceptionalspellbook
-        endif
-        @setvar! "myrighthanditem" rheqitem
-        createtimer equippedrighthand
-    endif
-    if not timerexists equippedlefthand and findlayer self lefthand as lheqitem
-        @setvar! "mylefthanditem" lheqitem
-        createtimer equippedlefthand
-    endif
-endif
-if timerexists disarmtimerright
-    if timer disarmtimerright >= 5000
-        while not targetexists and not casting and varexist myrighthanditem and not timerexists exceptionalspellbook and not findlayer self righthand
-            dclick "myrighthanditem"
-            while queued
-                //dn
-            endwhile
-        endwhile
-        while not targetexists and not casting and varexist myrighthanditem and timerexists exceptionalspellbook and not findlayer self righthand
-            while queued
-                //dn
-            endwhile
-            drop backpack
-            lift "myrighthanditem"
-            drop self righthand
-            while queued
-                //dn
-            endwhile
-        endwhile
-        while targetexists and not casting and varexist myrighthanditem and not findlayer self righthand
-            while queued
-                //dn
-            endwhile
-            drop backpack
-            lift "myrighthanditem"
-            drop self righthand
-            while queued
-                //dn
-            endwhile
-        endwhile
-    endif
-endif
-if timerexists disarmtimerleft  
-    if timer disarmtimerleft >= 5000
-        while not targetexists and not casting and varexist mylefthanditem and not findlayer self lefthand
-            dclick "mylefthanditem"
-            while queued
-                //dn
-            endwhile
-        endwhile
-        while targetexists and not casting and varexist mylefthanditem and not findlayer self lefthand
-            while queued
-                //dn
-            endwhile
-            drop backpack
-            lift "mylefthanditem"
-            drop self lefthand
-            while queued
-                //dn
-            endwhile
-        endwhile
-    endif
-endif
-if find "mylefthanditem" backpack and not casting and not targetexists and skill "Tactics" >= 80 and not findlayer self lefthand
-    dclick "mylefthanditem"
-    pause 500
-    getlabel backpack ping
-endif
-if find "myrighthanditem" backpack and not casting and not targetexists and skill "Tactics" >= 80 and not findlayer self righthand
-    dclick "myrighthanditem"
-    pause 500
-    getlabel backpack ping
-endif
-// End of Auto Re-equip after disarm routine
-
-// Drink cleasning brew in warmode routine
-if not findtype 4239|4240 ground -1 -1 2
     if warmode and not hidden and not timerexists brew and not targetexists and findbuff "Bleed" and findtype 50675 backpack as cbrew
         clearsysmsg 
         while queued
@@ -917,33 +799,183 @@ if not findtype 4239|4240 ground -1 -1 2
             removetimer brew
         endif
     endif
-endif
-// End of Drink cleasning brew in warmode routine
-
-// Gold Dropper Routine
-while diffweight <= 0 and findtype "gold coin" backpack as dropgold
-    if not hidden and stam <= 4 and findtype "Red Potion" backpack as redpot
+    if not hidden and not casting and findbuff "Weaken" and not targetexists and findtype "White Potion" backpack as stpot
         while queued
             //donothing
         endwhile
-        dclick redpot
+        dclick stpot
         pause 500
         getlabel backpack ping
     endif
-    overhead "My cup runneth over..." 1194
-    drop backpack
-    if "Drop444" = 1
-        lift dropgold 444
-    elseif "Drop2222" = 1
-        lift dropgold 2222
-    elseif "Drop3444" = 1
-        lift dropgold 3444
+endif
+//End of Utility Routine
+
+// End of Auto Drink Res Decreased Routune
+if "EnableResistPot" = 1
+    if not hidden and not casting and findbuff "Magic Resist Decrease" and not targetexists and findtype "Black Potion" backpack as mpot
+        while queued
+            //donothing
+        endwhile
+        dclick mpot
+        pause 500
+        getlabel backpack ping
     endif
-    drop 0
-    while queued
+endif
+// End of Auto Drink Res Decreased Routune
+
+// Auto Re-equip after disarm routine
+if "DisarmEquip" = 1
+    if insysmsg "disarms you!"
+        createtimer disarmtimerright
+        createtimer disarmtimerleft
+        getlabel backpack ping
+    endif
+    if not findlayer self righthand and not findlayer self lefthand
         //donothing
+    else
+        if not timerexists checkequippeditems
+            createtimer checkequippeditems
+            settimer checkequippeditems 15000
+        elseif timerexists checkequippeditems
+            if timer checkequippeditems >= 15000
+                settimer checkequippeditems 0
+                if timerexists equippedrighthand and not timerexists disarmtimerright
+                    removetimer equippedrighthand
+                    @unsetvar "myrighthanditem"
+                endif
+                if timerexists equippedlefthand and not timerexists disarmtimerleft
+                    removetimer equippedlefthand
+                    @unsetvar "mylefthanditem"
+                endif
+            endif
+        endif
+    endif
+    if timerexists disarmtimerright and findlayer self righthand
+        removetimer disarmtimerright
+    endif
+    if timerexists disarmtimerleft and findlayer self lefthand
+        removetimer disarmtimerleft
+    endif
+    if not timerexists disarmtimerright or not timerexists disarmtimerleft
+        if not varexist myrighthanditem and timerexists equippedrighthand
+            removetimer equippedrighthand
+        endif
+        if not varexist mylefthanditem and timerexists equippedlefthand
+            removetimer equippedlefthand
+        endif
+        if not find "myrighthanditem" self and findlayer self righthand
+            removetimer equippedrighthand
+        endif
+        if not find "mylefthanditem" self and findlayer self lefthand
+            removetimer equippedlefthand
+        endif
+        if not timerexists equippedrighthand and findlayer self righthand as rheqitem
+            getlabel rheqitem desc
+            if "spells" in desc
+                createtimer exceptionalspellbook
+            elseif timerexists exceptionalspellbook
+                removetimer exceptionalspellbook
+            endif
+            @setvar! "myrighthanditem" rheqitem
+            createtimer equippedrighthand
+        endif
+        if not timerexists equippedlefthand and findlayer self lefthand as lheqitem
+            @setvar! "mylefthanditem" lheqitem
+            createtimer equippedlefthand
+        endif
+    endif
+    if timerexists disarmtimerright
+        if timer disarmtimerright >= 5000
+            while not targetexists and not casting and varexist myrighthanditem and not timerexists exceptionalspellbook and not findlayer self righthand
+                dclick "myrighthanditem"
+                while queued
+                    //dn
+                endwhile
+            endwhile
+            while not targetexists and not casting and varexist myrighthanditem and timerexists exceptionalspellbook and not findlayer self righthand
+                while queued
+                    //dn
+                endwhile
+                drop backpack
+                lift "myrighthanditem"
+                drop self righthand
+                while queued
+                    //dn
+                endwhile
+            endwhile
+            while targetexists and not casting and varexist myrighthanditem and not findlayer self righthand
+                while queued
+                    //dn
+                endwhile
+                drop backpack
+                lift "myrighthanditem"
+                drop self righthand
+                while queued
+                    //dn
+                endwhile
+            endwhile
+        endif
+    endif
+    if timerexists disarmtimerleft  
+        if timer disarmtimerleft >= 5000
+            while not targetexists and not casting and varexist mylefthanditem and not findlayer self lefthand
+                dclick "mylefthanditem"
+                while queued
+                    //dn
+                endwhile
+            endwhile
+            while targetexists and not casting and varexist mylefthanditem and not findlayer self lefthand
+                while queued
+                    //dn
+                endwhile
+                drop backpack
+                lift "mylefthanditem"
+                drop self lefthand
+                while queued
+                    //dn
+                endwhile
+            endwhile
+        endif
+    endif
+    if find "mylefthanditem" backpack and not casting and not targetexists and skill "Tactics" >= 80 and not findlayer self lefthand
+        dclick "mylefthanditem"
+        pause 500
+        getlabel backpack ping
+    endif
+    if find "myrighthanditem" backpack and not casting and not targetexists and skill "Tactics" >= 80 and not findlayer self righthand
+        dclick "myrighthanditem"
+        pause 500
+        getlabel backpack ping
+    endif
+endif
+// End of Auto Re-equip after disarm routine
+
+// Gold Dropper Routine
+if "DisableGoldDropper" = 0
+    while diffweight <= 0 and findtype "gold coin" backpack as dropgold
+        if not hidden and stam <= 4 and findtype "Red Potion" backpack as redpot
+            while queued
+                //donothing
+            endwhile
+            dclick redpot
+            pause 500
+            getlabel backpack ping
+        endif
+        overhead "My cup runneth over..." 1194
+        drop backpack
+        if "Drop444" = 1
+            lift dropgold 444
+        elseif "Drop2222" = 1
+            lift dropgold 2222
+        elseif "Drop3444" = 1
+            lift dropgold 3444
+        endif
+        drop 0
+        while queued
+            //donothing
+        endwhile
     endwhile
-endwhile
+endif
 // End of Gold Dropper Routine
 
 if dead 

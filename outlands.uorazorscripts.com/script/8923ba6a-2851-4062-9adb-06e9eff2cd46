@@ -6,7 +6,7 @@
 
 # Bapeths Stabber Background 
 #
-# Jan 22th 2026 - Added Auto Use Weapon Ability
+# Jan 28th 2026 - Added logic to weapon ability use, Added tab buffer of 200ms (it now takes 200ms of being in warmode to auto attack, this allows players to tab in/out when needed without auto attacking)
 #
 # What it does:
 #    
@@ -210,49 +210,88 @@ endif
 //End of Base Weapon Scheme for Multi Weapon Builds
 
 //Hide after attack routine
-if warmode and find "Manual Override" ground and hidden and not cooldown "Stealing" and not cooldown "Stealth" and not cooldown "Hiding" and not timerexists StabberOTS
-    clearsysmsg 
-    if timerexists BapCancelAttack
-        removetimer BapCancelAttack
-    endif
-    if skill "Archery" >= 50 or skill "Fishing" >= 50
-        if find "Manual Override" ground -1 -1 1
-            if find "Melee Stabber Wep" backpack
+if warmode and not timerexists baptabtimer
+    createtimer baptabtimer
+endif
+if not warmode and timerexists baptabtimer
+    removetimer  baptabtimer
+endif
+if timerexists baptabtimer
+    if timer baptabtimer >= 200 and warmode and find "Manual Override" ground and hidden and not cooldown "Stealing" and not cooldown "Stealth" and not cooldown "Hiding" and not timerexists StabberOTS
+        clearsysmsg 
+        if timerexists BapCancelAttack
+            removetimer BapCancelAttack
+        endif
+        if skill "Archery" >= 50 or skill "Fishing" >= 50
+            if find "Manual Override" ground -1 -1 1
+                if find "Melee Stabber Wep" backpack
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "Melee Stabber Wep"
+                    getlabel backpack ping
+                endif
+            elseif find "Manual Override" ground -1 -1 2
+                createtimer BapCancelAttack
+            elseif find "Manual Override" ground -1 -1 3
+                createtimer BapCancelAttack
+            elseif find "Manual Override" ground -1 -1 4
+                createtimer BapCancelAttack
+            elseif find "Ranged Stabber Wep" backpack
                 while queued
                     //donothing
                 endwhile
-                dclick "Melee Stabber Wep"
+                dclick "Ranged Stabber Wep"
                 getlabel backpack ping
             endif
-        elseif find "Manual Override" ground -1 -1 2
-            createtimer BapCancelAttack
-        elseif find "Manual Override" ground -1 -1 3
-            createtimer BapCancelAttack
-        elseif find "Manual Override" ground -1 -1 4
-            createtimer BapCancelAttack
-        elseif find "Ranged Stabber Wep" backpack
-            while queued
-                //donothing
-            endwhile
-            dclick "Ranged Stabber Wep"
+        endif
+        if timerexists BapCancelAttack
+            //donothing
+        else
+            attack "Manual Override"
             getlabel backpack ping
         endif
-    endif
-    if timerexists BapCancelAttack
-        //donothing
-    else
-        attack "Manual Override"
-        getlabel backpack ping
-    endif
-    if warmode
-        warmode off
-    endif
-    if timerexists BapCancelAttack
-        removetimer BapCancelAttack
-    endif
-    if insysmsg "You strike your target from the shadows!"
-        if "AlwaysSmokebomb" = 1
-            if not hidden and not cooldown "Smoke Bomb"
+        if warmode
+            warmode off
+        endif
+        if timerexists BapCancelAttack
+            removetimer BapCancelAttack
+        endif
+        if insysmsg "You strike your target from the shadows!"
+            if "AlwaysSmokebomb" = 1
+                if not hidden and not cooldown "Smoke Bomb"
+                    if findtype "bombs" backpack as sbomb
+                        clearsysmsg 
+                        while queued
+                            //donothing
+                        endwhile
+                        dclick sbomb
+                        getlabel backpack ping
+                        if insysmsg "You begin to move"
+                            createtimer StabberOTS
+                            if "WithoutTracePerk" = 0
+                                cooldown "Smoke bomb" 120000
+                            endif
+                            if "WithoutTracePerk" = 1
+                                cooldown "Smoke bomb" 100000
+                            endif
+                            if "WithoutTracePerk" = 2
+                                cooldown "Smoke bomb" 80000
+                            endif
+                            if "WithoutTracePerk" = 3
+                                cooldown "Smoke bomb" 60000
+                            endif
+                        endif
+                    else
+                        overhead "Out of Smoke Bombs..." 38
+                    endif
+                endif
+            endif  
+            if not hidden
+                skill "Hiding"
+                getlabel backpack ping
+            endif
+            if "AlwaysSmokebomb" = 0 and not hidden and not cooldown "Smoke Bomb"
                 if findtype "bombs" backpack as sbomb
                     clearsysmsg 
                     while queued
@@ -279,81 +318,81 @@ if warmode and find "Manual Override" ground and hidden and not cooldown "Steali
                     overhead "Out of Smoke Bombs..." 38
                 endif
             endif
-        endif  
-        if not hidden
-            skill "Hiding"
-            getlabel backpack ping
+        else 
+            overhead "No shot..." 38
         endif
-        if "AlwaysSmokebomb" = 0 and not hidden and not cooldown "Smoke Bomb"
-            if findtype "bombs" backpack as sbomb
-                clearsysmsg 
+    elseif timer baptabtimer >= 200 and warmode and find "BapStabTarget" ground and hidden and not cooldown "Stealing" and not cooldown "Stealth" and not cooldown "Hiding" and not timerexists StabberOTS
+        clearsysmsg 
+        if skill "Archery" >= 50 or skill "Fishing" >= 50
+            if find "BapStabTarget" ground -1 -1 1
+                if find "Melee Stabber Wep" backpack
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick "Melee Stabber Wep"
+                    getlabel backpack ping
+                endif
+            elseif find "BapStabTarget" ground -1 -1 2
+                createtimer BapCancelAttack
+            elseif find "BapStabTarget" ground -1 -1 3
+                createtimer BapCancelAttack
+            elseif find "BapStabTarget" ground -1 -1 4
+                createtimer BapCancelAttack
+            elseif find "Ranged Stabber Wep" backpack
                 while queued
                     //donothing
                 endwhile
-                dclick sbomb
+                dclick "Ranged Stabber Wep"
                 getlabel backpack ping
-                if insysmsg "You begin to move"
-                    createtimer StabberOTS
-                    if "WithoutTracePerk" = 0
-                        cooldown "Smoke bomb" 120000
-                    endif
-                    if "WithoutTracePerk" = 1
-                        cooldown "Smoke bomb" 100000
-                    endif
-                    if "WithoutTracePerk" = 2
-                        cooldown "Smoke bomb" 80000
-                    endif
-                    if "WithoutTracePerk" = 3
-                        cooldown "Smoke bomb" 60000
+            endif
+        endif
+        if timerexists BapCancelAttack
+            //donothing
+        else
+            attack "BapStabTarget"
+            getlabel backpack ping
+        endif
+        if warmode
+            warmode off
+        endif
+        if timerexists BapCancelAttack
+            removetimer BapCancelAttack
+        endif
+        if insysmsg "You strike your target from the shadows!"
+            if "AlwaysSmokebomb" = 1
+                if not hidden and not cooldown "Smoke Bomb"
+                    if findtype "bombs" backpack as sbomb
+                        clearsysmsg 
+                        while queued
+                            //donothing
+                        endwhile
+                        dclick sbomb
+                        getlabel backpack ping
+                        if insysmsg "You begin to move"
+                            createtimer StabberOTS
+                            if "WithoutTracePerk" = 0
+                                cooldown "Smoke bomb" 120000
+                            endif
+                            if "WithoutTracePerk" = 1
+                                cooldown "Smoke bomb" 100000
+                            endif
+                            if "WithoutTracePerk" = 2
+                                cooldown "Smoke bomb" 80000
+                            endif
+                            if "WithoutTracePerk" = 3
+                                cooldown "Smoke bomb" 60000
+                            endif
+                        endif
+                    else
+                        overhead "Out of Smoke Bombs..." 38
                     endif
                 endif
-            else
-                overhead "Out of Smoke Bombs..." 38
-            endif
-        endif
-    else 
-        overhead "No shot..." 38
-    endif
-elseif warmode and find "BapStabTarget" ground and hidden and not cooldown "Stealing" and not cooldown "Stealth" and not cooldown "Hiding" and not timerexists StabberOTS
-    clearsysmsg 
-    if skill "Archery" >= 50 or skill "Fishing" >= 50
-        if find "BapStabTarget" ground -1 -1 1
-            if find "Melee Stabber Wep" backpack
-                while queued
-                    //donothing
-                endwhile
-                dclick "Melee Stabber Wep"
+            endif  
+            if not hidden
+                skill "Hiding"
                 getlabel backpack ping
             endif
-        elseif find "BapStabTarget" ground -1 -1 2
-            createtimer BapCancelAttack
-        elseif find "BapStabTarget" ground -1 -1 3
-            createtimer BapCancelAttack
-        elseif find "BapStabTarget" ground -1 -1 4
-            createtimer BapCancelAttack
-        elseif find "Ranged Stabber Wep" backpack
-            while queued
-                //donothing
-            endwhile
-            dclick "Ranged Stabber Wep"
-            getlabel backpack ping
-        endif
-    endif
-    if timerexists BapCancelAttack
-        //donothing
-    else
-        attack "BapStabTarget"
-        getlabel backpack ping
-    endif
-    if warmode
-        warmode off
-    endif
-    if timerexists BapCancelAttack
-        removetimer BapCancelAttack
-    endif
-    if insysmsg "You strike your target from the shadows!"
-        if "AlwaysSmokebomb" = 1
-            if not hidden and not cooldown "Smoke Bomb"
+            if "AlwaysSmokebomb" = 0 and not hidden and not cooldown "Smoke Bomb"
                 if findtype "bombs" backpack as sbomb
                     clearsysmsg 
                     while queued
@@ -380,40 +419,9 @@ elseif warmode and find "BapStabTarget" ground and hidden and not cooldown "Stea
                     overhead "Out of Smoke Bombs..." 38
                 endif
             endif
-        endif  
-        if not hidden
-            skill "Hiding"
-            getlabel backpack ping
+        else 
+            overhead "No shot..." 38
         endif
-        if "AlwaysSmokebomb" = 0 and not hidden and not cooldown "Smoke Bomb"
-            if findtype "bombs" backpack as sbomb
-                clearsysmsg 
-                while queued
-                    //donothing
-                endwhile
-                dclick sbomb
-                getlabel backpack ping
-                if insysmsg "You begin to move"
-                    createtimer StabberOTS
-                    if "WithoutTracePerk" = 0
-                        cooldown "Smoke bomb" 120000
-                    endif
-                    if "WithoutTracePerk" = 1
-                        cooldown "Smoke bomb" 100000
-                    endif
-                    if "WithoutTracePerk" = 2
-                        cooldown "Smoke bomb" 80000
-                    endif
-                    if "WithoutTracePerk" = 3
-                        cooldown "Smoke bomb" 60000
-                    endif
-                endif
-            else
-                overhead "Out of Smoke Bombs..." 38
-            endif
-        endif
-    else 
-        overhead "No shot..." 38
     endif
 endif
 // End of Hide after attack routine
@@ -521,10 +529,17 @@ elseif timer baprangecheck >= 1200
     endif
 endif
 // End of Target Range Overhead Routine
-
+// "You cannot perform that ability yet"
 //Auto Use Weapon Ability
 if "AutoWeaponAbility" = 1
-    if hidden and not timerexists BapWepAbilityOff
+    if not timerexists abilitynotready
+        createtimer abilitynotready
+        settimer abilitynotready 4000
+    endif
+    if insysmsg "Weapon ability ready" and not hidden and timerexists BapWepAbilityOn
+        removetimer BapWepAbilityOn
+    endif
+    if timer abilitynotready >= 4000 and hidden and not timerexists BapWepAbilityOff
         createtimer BapWepAbilityOff
         removetimer BapWepAbilityOn
         if not timerexists BapBaseStabberWep
@@ -546,9 +561,10 @@ if "AutoWeaponAbility" = 1
             endif
         endif
     endif
-    if not hidden and not timerexists BapWepAbilityOn
-        removetimer  BapWepAbilityOff
-        createtimer  BapWepAbilityOn
+    if timer abilitynotready >= 4000 and not hidden and not timerexists BapWepAbilityOn
+        clearsysmsg 
+        removetimer BapWepAbilityOff
+        createtimer BapWepAbilityOn
         if not timerexists BapBaseStabberWep
             if "MeleeBapWeaponAbility-1" = 1
                 say "[WeaponAbility1"
@@ -566,6 +582,12 @@ if "AutoWeaponAbility" = 1
             elseif "RangedBapWeaponAbility-3" = 1
                 say "[WeaponAbility3"
             endif
+        endif
+        getlabel backpack ping
+        if insysmsg "You cannot perform that ability yet"
+            removetimer BapWepAbilityOn
+            createtimer BapWepAbilityOff
+            settimer abilitynotready 0
         endif
     endif
 endif

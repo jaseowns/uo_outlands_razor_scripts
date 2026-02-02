@@ -6,7 +6,7 @@
 
 # Bapeths Stabber Background 
 #
-# Jan 28th 2026 - Added auto skin before auto hide feature, Added logic to weapon ability use, Added tab buffer of 200ms (it now takes 200ms of being in warmode to auto attack, this allows players to tab in/out when needed without auto attacking)
+# Feb 2nd 2026 - Added Gold Sacker Routine (Activate with Checkbook)
 #
 # What it does:
 #
@@ -28,6 +28,7 @@
 # Aspect checker (Shows your current armor aspect overhead periodically)
 # Auto Use Weapon Ability ---> Ability turns on when visible and off when hidden (toggle feature below)
 # ID Items + Recycle using a "Container ID Wand/120 Item ID Skill" and any recycle tool (Open the "Party Menu" while the script is playing to activate)
+# Gold Sacker - Open a "Checkbook" while the script is playing to set a bag (on the ground) to designate as a gold drop bag
 #
 #
 # "REQUIRED": <---------- "Important information!"
@@ -162,6 +163,15 @@ if casting
         //donothing
     endwhile
     pause 330
+endif
+
+if not timerexists invistab and findbuff "Invisibility"
+    warmode on
+    warmode off
+    createtimer invistab
+endif
+if timerexists invistab and not hidden
+    removetimer invistab
 endif
 
 //Auto stealth activator
@@ -1098,6 +1108,49 @@ if "DisableGoldDropper" = 0
     endwhile
 endif
 // End of Gold Dropper Routine
+
+// Gold Sacker Routine
+if not timerexists goldsacker
+    if gumpexists 2224904711
+        gumpclose 2224904711
+        createtimer goldsacker
+        overhead "--Gold Sacker Enabled--" 2085
+        hotkey "Set Last Target"
+        wft 500
+        overhead "Target Gold Drop Bag" 88
+        while targetexists 
+            //donothing
+        endwhile
+        @setvar "bgoldbag" lasttarget 
+        overhead "Gold Drop Bag Set" 78
+    endif
+elseif timerexists goldsacker
+    if gumpexists 2224904711
+        gumpclose 2224904711
+        removetimer goldsacker
+        overhead "--Gold Sacker Disabled--" 1779
+    endif
+endif
+if not timerexists sacktracker
+    createtimer sacktracker
+    settimer sacktracker 5000
+elseif timer sacktracker >= 5000 and find "bgoldbag" ground
+    overhead "*gold sack*" 2843 "bgoldbag"
+    settimer sacktracker 0
+endif
+if find "bgoldbag" ground -1 -1 2
+    while findtype "gold coin" backpack as fatcoins
+        while queued
+            //donothing
+        endwhile
+        drop backpack
+        lift fatcoins 60000
+        drop bgoldbag -1 -1
+        pause 500
+        getlabel backpack ping
+    endwhile
+endif
+// End of Gold Sacker Routine
 
 if dead 
     overhead "I need a new body..." 88

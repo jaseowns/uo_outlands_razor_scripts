@@ -1,0 +1,859 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/26785aa0-b051-419b-a52a-f204af185556 for latest
+# Automation by Jaseowns
+## Script: Auto Splitter
+## Created by: abianche#0
+#############################################
+
+# Auto Splitter  Reagents, Potions, Ammo & Misc (Outlands)
+
+#********** INFORMATION **********# 
+
+# Made by @abianche on discord (Artemis).
+# Inspired by @dennozz12 auto splitter script.
+
+# Automatically splits stackable items into multiple smaller stacks
+# and distributes them into chosen containers (anti-theft).
+
+# Supported: 
+# - Reagents + Recall Scrolls
+# - Potions
+# - Bandages, Vet Supplies, Rope
+# - Arrows + Bolts
+
+#********** SETTINGS **********# 
+
+# Auto select bags follows this order: satchel > pouch > backpack bag > rounded bag > main backpack
+
+# 0 - let you pick the reagents bag
+# 1 - auto select
+@setvar! autoSelectRegBag 1
+
+# 0 - let you pick the potions bag
+# 1 - auto select
+@setvar! autoSelectPotionBag 1
+
+# 0 - let you pick the misc bag
+# 1 - auto select
+@setvar! autoSelectMiscBag 1
+
+# 0 - let you pick the quiver bag
+# 1 - auto select: quiver if found, otherwise fallback to misc bag
+@setvar! autoSelectQuiverBag 1
+
+#********** DO NOT EDIT FROM HERE **********#
+
+clearignore 
+
+@setvar! amount 0
+@setvar! myRegBag 0
+@setvar! myPotionBag 0
+@setvar! myMiscBag 0
+@setvar! myQuiverBag 0
+
+@setvar! maxwaittimeinms 650
+
+#********** Bags **********#
+
+if autoSelectRegBag = 1
+    if findtype 30765 self as b
+        @setvar! myRegBag b
+    elseif findtype 3705 self as b
+        @setvar! myRegBag b
+    elseif findtype 3701 self as b
+        @setvar! myRegBag b
+    elseif findtype 3702 self as b
+        @setvar! myRegBag b
+    else 
+        @setvar! myRegBag backpack
+    endif
+else 
+    clearsysmsg
+    overhead "Select bag:" 68
+    @setvar! myRegBag
+    wait 200
+    while not targetexists and not insysmsg "Select"
+        @setvar! myRegBag    
+    endwhile
+    
+    if find myRegBag self
+        getlabel myRegBag bagLabel
+        
+        if "wizard's satchel" in bagLabel or "pouch" in bagLabel or "bag" in bagLabel or "backpack" in bagLabel
+            sysmsg "new bag set" 55
+        else 
+            @setvar! myRegBag 0
+            overhead "That is not a bag" 34
+            sysmsg "That is not a bag" 34
+            stop
+        endif
+    else 
+        overhead "No bag found!" 34
+        stop    
+    endif
+endif
+
+
+if autoSelectPotionBag = 1
+    if findtype 31262 self as b
+        @setvar! myPotionBag b
+    elseif findtype 3705 self as b
+        @setvar! myPotionBag b
+    elseif findtype 3701 self as b
+        @setvar! myPotionBag b
+    elseif findtype 3702 self as b
+        @setvar! myPotionBag b
+    else 
+        @setvar! myPotionBag backpack
+    endif
+else 
+    clearsysmsg
+    overhead "Select Potion bag:" 68
+    @setvar! myPotionBag
+    wait 200
+    while not targetexists and not insysmsg "Select"
+        @setvar! myPotionBag    
+    endwhile
+    
+    if find myPotionBag self
+        getlabel myPotionBag bagLabel
+        
+        if "alchemists satchel" in bagLabel or "pouch" in bagLabel or "bag" in bagLabel or "backpack" in bagLabel
+            sysmsg "new bag set" 55
+        else 
+            @setvar! myPotionBag 0
+            overhead "That is not a bag" 34
+            sysmsg "That is not a bag" 34
+            stop
+        endif
+    else 
+        overhead "No bag found!" 34
+        stop    
+    endif
+endif
+
+if autoSelectMiscBag = 1
+    if findtype 3705 self as b
+        @setvar! myMiscBag b
+    elseif findtype 3701 self as b
+        @setvar! myMiscBag b
+    elseif findtype 3702 self as b
+        @setvar! myMiscBag b
+    else 
+        @setvar! myMiscBag backpack
+    endif
+else 
+    clearsysmsg
+    overhead "Select Misc bag:" 68
+    @setvar! myMiscBag
+    wait 200
+    while not targetexists and not insysmsg "Select"
+        @setvar! myMiscBag    
+    endwhile
+    
+    if find myMiscBag self
+        getlabel myMiscBag bagLabel
+        
+        if "wizard's satchel" in bagLabel or "pouch" in bagLabel or "bag" in bagLabel or "backpack" in bagLabel
+            sysmsg "new bag set" 55
+        else 
+            @setvar! myMiscBag 0
+            overhead "That is not a bag" 34
+            sysmsg "That is not a bag" 34
+            stop
+        endif
+    else 
+        overhead "No bag found!" 34
+        stop    
+    endif
+endif
+
+# fallback to misc for quiver
+@setvar! myQuiverBag myMiscBag
+
+if autoSelectQuiverBag = 1
+    # Auto: prefer actual quiver if found, else fallback to misc bag
+    if findtype 12215 self as q
+        @setvar! myQuiverBag q
+    endif
+else
+    clearsysmsg
+    overhead "Select Quiver bag:" 68
+    @setvar! myQuiverBag
+    wait 200
+    while not targetexists and not insysmsg "Select"
+        @setvar! myQuiverBag
+    endwhile
+
+    if find myQuiverBag self
+        getlabel myQuiverBag bagLabel
+
+        # allow quiver OR any normal container
+        if "quiver" in bagLabel or "pouch" in bagLabel or "bag" in bagLabel or "backpack" in bagLabel or "satchel" in bagLabel
+            sysmsg "new quiver bag set" 55
+        else
+            @setvar! myQuiverBag 0
+            overhead "That is not a quiver" 34
+            sysmsg "That is not a quiver" 34
+            stop
+        endif
+    else
+        overhead "No bag found!" 34
+        stop
+    endif
+endif
+
+overhead "Auto Spitter started..." 55
+
+#***** Reagents + Recall *****
+
+if not listexists 'reg_ids'
+    createlist 'reg_ids'
+endif
+if not listexists 'reg_drop_y'
+    createlist 'reg_drop_y'
+endif
+if not listexists 'reg_amt_profile'
+    createlist 'reg_amt_profile'
+endif
+
+clearlist 'reg_ids'
+clearlist 'reg_drop_y'
+clearlist 'reg_amt_profile'
+
+# SPIDER SILK
+pushlist 'reg_ids' 3981 back
+pushlist 'reg_drop_y' 65 back
+pushlist 'reg_amt_profile' 1 back
+
+# BLACK PEARL
+pushlist 'reg_ids' 3962 back
+pushlist 'reg_drop_y' 75 back
+pushlist 'reg_amt_profile' 1 back
+
+# NIGHTSHADE
+pushlist 'reg_ids' 3976 back
+pushlist 'reg_drop_y' 85 back
+pushlist 'reg_amt_profile' 1 back
+
+# MANDRAKE ROOT
+pushlist 'reg_ids' 3974 back
+pushlist 'reg_drop_y' 95 back
+pushlist 'reg_amt_profile' 1 back
+
+# SULFUROUS ASH
+pushlist 'reg_ids' 3980 back
+pushlist 'reg_drop_y' 105 back
+pushlist 'reg_amt_profile' 1 back
+
+# GINSENG
+pushlist 'reg_ids' 3973 back
+pushlist 'reg_drop_y' 115 back
+pushlist 'reg_amt_profile' 1 back
+
+# BLOSSMOSS
+pushlist 'reg_ids' 3963 back
+pushlist 'reg_drop_y' 125 back
+pushlist 'reg_amt_profile' 1 back
+
+# GARLIC
+pushlist 'reg_ids' 3972 back
+pushlist 'reg_drop_y' 135 back
+pushlist 'reg_amt_profile' 1 back
+
+# RECALL SCROLL
+pushlist 'reg_ids' 8012 back
+pushlist 'reg_drop_y' 145 back
+pushlist 'reg_amt_profile' 2 back
+
+
+for 9
+
+    if atlist 'reg_ids' index as regIdTmp
+        @setvar! regID regIdTmp
+    else
+        overhead "Reg list error (ids)" 34
+        stop
+    endif
+
+    if atlist 'reg_drop_y' index as regYTmp
+        @setvar! dropY regYTmp
+    else
+        overhead "Reg list error (dropY)" 34
+        stop
+    endif
+
+    if atlist 'reg_amt_profile' index as profTmp
+        @setvar! amtProfile profTmp
+    else
+        overhead "Reg list error (profile)" 34
+        stop
+    endif
+
+
+    @setvar! myCounter 0
+
+    while findtype regID self as r
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+
+    if amtProfile = 2
+        # Recall scroll profile
+        if counttype regID self <= 5
+            @setvar! amount 1
+        elseif counttype regID self <= 10
+            @setvar! amount 2
+        elseif counttype regID self <= 20
+            @setvar! amount 4
+        elseif counttype regID self <= 40
+            @setvar! amount 8
+        else
+            @setvar! amount 15
+        endif
+    else
+        # Standard reagent profile
+        if counttype regID self <= 10
+            @setvar! amount 2
+        elseif counttype regID self <= 20
+            @setvar! amount 4
+        elseif counttype regID self <= 50
+            @setvar! amount 10
+        elseif counttype regID self <= 100
+            @setvar! amount 20
+        elseif counttype regID self <= 150
+            @setvar! amount 30
+        elseif counttype regID self <= 200
+            @setvar! amount 40
+        else
+            @setvar! amount 50
+        endif
+    endif
+
+
+    while findtype regID self as regs
+        @setvar! moveRegs 0
+
+        if myCounter = 0
+            @setvar! moveRegs 1
+        elseif myCounter != 0 and not find regs myRegBag
+            @setvar! moveRegs 1
+        endif
+
+        if moveRegs = 1
+
+            if regID = 3981
+                overhead "splitting spider's silks..." 0
+            elseif regID = 3962
+                overhead "splitting black pearls..." 11
+            elseif regID = 3976
+                overhead "splitting nightshades..." 66
+            elseif regID = 3974
+                overhead "splitting mandrake roots..." 439
+            elseif regID = 3980
+                overhead "splitting sulfurous ashes..." 56
+            elseif regID = 3973
+                overhead "splitting ginsengs..." 149
+            elseif regID = 3963
+                overhead "splitting bloodmosses..." 35
+            elseif regID = 3972
+                overhead "splitting garlics..." 910
+            elseif regID = 8012
+                overhead "splitting recall scrolls..." 0
+            else
+                overhead "splitting regs..." 55
+            endif
+
+
+            if index = 0
+                lift regs amount
+                drop myRegBag 44 dropY 0
+            elseif index = 1
+                lift regs amount
+                drop myRegBag 68 dropY 0
+            elseif index = 2
+                lift regs amount
+                drop myRegBag 96 dropY 0
+            elseif index = 3
+                lift regs amount
+                drop myRegBag 121 dropY 0
+            else
+                lift regs amount
+                drop myRegBag 142 dropY 0
+            endif
+        endif
+
+        @ignore regs
+
+        if moveRegs = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+endfor
+
+#***** Potions *****
+
+if not listexists 'potion_ids'
+    createlist 'potion_ids'
+endif
+if not listexists 'potion_overhead_hues'
+    createlist 'potion_overhead_hues'
+endif
+if not listexists 'potion_drop_y'
+    createlist 'potion_drop_y'
+endif
+if not listexists 'potion_amt_profile'
+    createlist 'potion_amt_profile'
+endif
+
+clearlist 'potion_ids'
+clearlist 'potion_overhead_hues'
+clearlist 'potion_drop_y'
+clearlist 'potion_amt_profile'
+
+# Greater Heal
+pushlist 'potion_ids' 3852 back
+pushlist 'potion_overhead_hues' 48 back
+pushlist 'potion_drop_y' 65 back
+pushlist 'potion_amt_profile' 1 back
+
+# Greater Cure
+pushlist 'potion_ids' 3847 back
+pushlist 'potion_overhead_hues' 44 back
+pushlist 'potion_drop_y' 75 back
+pushlist 'potion_amt_profile' 1 back
+
+# Greater Agility
+pushlist 'potion_ids' 3848 back
+pushlist 'potion_overhead_hues' 93 back
+pushlist 'potion_drop_y' 85 back
+pushlist 'potion_amt_profile' 2 back
+
+# Total Refresh
+pushlist 'potion_ids' 3851 back
+pushlist 'potion_overhead_hues' 38 back
+pushlist 'potion_drop_y' 95 back
+pushlist 'potion_amt_profile' 1 back
+
+# Greater Magic Resist
+pushlist 'potion_ids' 3846 back
+pushlist 'potion_overhead_hues' 897 back
+pushlist 'potion_drop_y' 105 back
+pushlist 'potion_amt_profile' 3 back
+
+# Greater Strength
+pushlist 'potion_ids' 3849 back
+pushlist 'potion_overhead_hues' 2041 back
+pushlist 'potion_drop_y' 115 back
+pushlist 'potion_amt_profile' 1 back
+
+# Greater Explode
+pushlist 'potion_ids' 3853 back
+pushlist 'potion_overhead_hues' 1275 back
+pushlist 'potion_drop_y' 125 back
+pushlist 'potion_amt_profile' 1 back
+
+# Lethal Poison
+pushlist 'potion_ids' 3850 back
+pushlist 'potion_overhead_hues' 1267 back
+pushlist 'potion_drop_y' 135 back
+pushlist 'potion_amt_profile' 1 back
+
+
+for 8
+
+    if atlist 'potion_ids' index as potIdTmp
+        @setvar! potionID potIdTmp
+    else
+        overhead "Potion list error (ids)" 34
+        stop
+    endif
+
+    if atlist 'potion_overhead_hues' index as potHueTmp
+        @setvar! potionHue potHueTmp
+    else
+        overhead "Potion list error (hues)" 34
+        stop
+    endif
+
+    if atlist 'potion_drop_y' index as potYTmp
+        @setvar! dropY potYTmp
+    else
+        overhead "Potion list error (dropY)" 34
+        stop
+    endif
+
+    if atlist 'potion_amt_profile' index as profTmp
+        @setvar! amtProfile profTmp
+    else
+        overhead "Potion list error (profile)" 34
+        stop
+    endif
+
+
+    @setvar! myCounter 0
+
+    while findtype potionID self as r
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+
+    if amtProfile = 2
+        # Greater Agility profile
+        if counttype potionID self <= 10
+            @setvar! amount 1
+        elseif counttype potionID self <= 20
+            @setvar! amount 2
+        elseif counttype potionID self <= 50
+            @setvar! amount 4
+        elseif counttype potionID self <= 100
+            @setvar! amount 10
+        elseif counttype potionID self <= 150
+            @setvar! amount 20
+        elseif counttype potionID self <= 200
+            @setvar! amount 30
+        else
+            @setvar! amount 40
+        endif
+
+    elseif amtProfile = 3
+        # Greater Magic Resist profile
+        if counttype potionID self <= 10
+            @setvar! amount 1
+        elseif counttype potionID self <= 20
+            @setvar! amount 2
+        elseif counttype potionID self <= 50
+            @setvar! amount 5
+        elseif counttype potionID self <= 100
+            @setvar! amount 10
+        elseif counttype potionID self <= 150
+            @setvar! amount 20
+        elseif counttype potionID self <= 200
+            @setvar! amount 30
+        else
+            @setvar! amount 40
+        endif
+
+    else
+        # Standard profile
+        if counttype potionID self <= 10
+            @setvar! amount 2
+        elseif counttype potionID self <= 20
+            @setvar! amount 4
+        elseif counttype potionID self <= 50
+            @setvar! amount 10
+        elseif counttype potionID self <= 100
+            @setvar! amount 20
+        elseif counttype potionID self <= 150
+            @setvar! amount 30
+        elseif counttype potionID self <= 200
+            @setvar! amount 40
+        else
+            @setvar! amount 50
+        endif
+    endif
+
+
+    while findtype potionID self as pots
+        @setvar! movePots 0
+
+        if myCounter = 0
+            @setvar! movePots 1
+        elseif myCounter != 0 and not find pots myPotionBag
+            @setvar! movePots 1
+        endif
+
+        if movePots = 1
+
+            if potionID = 3852
+                overhead "splitting greater heals..." potionHue
+            elseif potionID = 3847
+                overhead "splitting greater cures..." potionHue
+            elseif potionID = 3848
+                overhead "splitting greater agilities..." potionHue
+            elseif potionID = 3851
+                overhead "splitting total refreshes..." potionHue
+            elseif potionID = 3846
+                overhead "splitting greater magic resists..." potionHue
+            elseif potionID = 3849
+                overhead "splitting greater strengths..." potionHue
+            elseif potionID = 3853
+                overhead "splitting greater explodes..." potionHue
+            elseif potionID = 3850
+                overhead "splitting lethal poisons..." potionHue
+            else
+                overhead "splitting potions..." potionHue
+            endif
+
+            if index = 0
+                lift pots amount
+                drop myPotionBag 44 dropY 0
+            elseif index = 1
+                lift pots amount
+                drop myPotionBag 68 dropY 0
+            elseif index = 2
+                lift pots amount
+                drop myPotionBag 96 dropY 0
+            elseif index = 3
+                lift pots amount
+                drop myPotionBag 121 dropY 0
+            else
+                lift pots amount
+                drop myPotionBag 142 dropY 0
+            endif
+        endif
+
+        @ignore pots
+
+        if movePots = 1
+            wait maxwaittimeinms
+        endif
+    endwhile
+
+endfor
+
+#***** Misc (Bandages + VetSupplies + Rope) *****
+
+if not listexists 'misc_ids'
+    createlist 'misc_ids'
+endif
+if not listexists 'misc_drop_y'
+    createlist 'misc_drop_y'
+endif
+
+clearlist 'misc_ids'
+clearlist 'misc_drop_y'
+
+# Bandages
+pushlist 'misc_ids' 3617 back
+pushlist 'misc_drop_y' 45 back
+
+# VetSupplies
+pushlist 'misc_ids' 25750 back
+pushlist 'misc_drop_y' 70 back
+
+# Rope
+pushlist 'misc_ids' 5370 back
+pushlist 'misc_drop_y' 105 back
+
+
+for 3
+
+    if atlist 'misc_ids' index as miscIdTmp
+        @setvar! miscID miscIdTmp
+    else
+        overhead "Misc list error (ids)" 34
+        stop
+    endif
+
+    if atlist 'misc_drop_y' index as miscYTmp
+        @setvar! dropY miscYTmp
+    else
+        overhead "Misc list error (dropY)" 34
+        stop
+    endif
+
+
+    @setvar! myCounter 0
+
+    while findtype miscID self as r
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+
+    if counttype miscID self <= 10
+        @setvar! amount 2
+    elseif counttype miscID self <= 20
+        @setvar! amount 4
+    elseif counttype miscID self <= 50
+        @setvar! amount 10
+    elseif counttype miscID self <= 100
+        @setvar! amount 20
+    elseif counttype miscID self <= 150
+        @setvar! amount 30
+    elseif counttype miscID self <= 200
+        @setvar! amount 40
+    else
+        @setvar! amount 50
+    endif
+
+
+    while findtype miscID self as miscs
+        @setvar! moveMisc 0
+
+        if myCounter = 0
+            @setvar! moveMisc 1
+        elseif myCounter != 0 and not find miscs myMiscBag
+            @setvar! moveMisc 1
+        endif
+
+        if moveMisc = 1
+
+            if miscID = 3617
+                overhead "splitting bandages..." 0
+            elseif miscID = 25750
+                overhead "splitting vet supplies..." 15
+            elseif miscID = 5370
+                overhead "splitting ropes..." 360
+            else
+                overhead "splitting miscs..." 55
+            endif
+
+            if index = 0
+                lift miscs amount
+                drop myMiscBag 45 dropY 0
+            elseif index = 1
+                lift miscs amount
+                drop myMiscBag 65 dropY 0
+            elseif index = 2
+                lift miscs amount
+                drop myMiscBag 85 dropY 0
+            elseif index = 3
+                lift miscs amount
+                drop myMiscBag 105 dropY 0
+            else
+                lift miscs amount
+                drop myMiscBag 125 dropY 0
+            endif
+        endif
+
+        @ignore miscs
+
+        if moveMisc = 1
+            wait maxwaittimeinms
+        endif
+
+    endwhile
+
+endfor
+
+
+#***** Ammo (Arrows + Bolts) *****
+
+if not listexists 'ammo_ids'
+    createlist 'ammo_ids'
+endif
+if not listexists 'ammo_overhead_hues'
+    createlist 'ammo_overhead_hues'
+endif
+if not listexists 'ammo_drop_y'
+    createlist 'ammo_drop_y'
+endif
+
+clearlist 'ammo_ids'
+clearlist 'ammo_overhead_hues'
+clearlist 'ammo_drop_y'
+
+# Arrows
+pushlist 'ammo_ids' 3903 back
+pushlist 'ammo_overhead_hues' 38 back
+pushlist 'ammo_drop_y' 45 back
+
+# Bolts
+pushlist 'ammo_ids' 7163 back
+pushlist 'ammo_overhead_hues' 93 back
+pushlist 'ammo_drop_y' 65 back
+
+
+for 2
+
+    if atlist 'ammo_ids' index as ammoIdTmp
+        @setvar! ammoID ammoIdTmp
+    else
+        overhead "Ammo list error (ids)" 34
+        stop
+    endif
+
+    if atlist 'ammo_overhead_hues' index as ammoHueTmp
+        @setvar! ammoHue ammoHueTmp
+    else
+        overhead "Ammo list error (hues)" 34
+        stop
+    endif
+
+    if atlist 'ammo_drop_y' index as dropYTmp
+        @setvar! dropY dropYTmp
+    else
+        overhead "Ammo list error (dropY)" 34
+        stop
+    endif
+
+
+    @setvar! myCounter 0
+
+    while findtype ammoID self as r
+        @setvar! myCounter index
+        @ignore r
+    endwhile
+    @clearignore
+
+    if counttype ammoID self <= 10
+        @setvar! amount 2
+    elseif counttype ammoID self <= 20
+        @setvar! amount 4
+    elseif counttype ammoID self <= 50
+        @setvar! amount 10
+    elseif counttype ammoID self <= 100
+        @setvar! amount 20
+    elseif counttype ammoID self <= 150
+        @setvar! amount 30
+    elseif counttype ammoID self <= 200
+        @setvar! amount 40
+    else
+        @setvar! amount 50
+    endif
+
+    while findtype ammoID self as ammo
+        @setvar! moveAmmo 0
+
+        if myCounter = 0
+            @setvar! moveAmmo 1
+        elseif myCounter != 0 and not find ammo myQuiverBag
+            @setvar! moveAmmo 1
+        endif
+
+        if moveAmmo = 1
+
+            if ammoID = 3903
+                overhead "splitting arrows..." ammoHue
+            elseif ammoID = 7163
+                overhead "splitting bolts..." ammoHue
+            else
+                overhead "splitting ammo..." ammoHue
+            endif
+
+            if index = 0
+                lift ammo amount
+                drop myQuiverBag 35 dropY 0
+            elseif index = 1
+                lift ammo amount
+                drop myQuiverBag 40 dropY 0
+            elseif index = 2
+                lift ammo amount
+                drop myQuiverBag 45 dropY 0
+            elseif index = 3
+                lift ammo amount
+                drop myQuiverBag 50 dropY 0
+            else
+                lift ammo amount
+                drop myQuiverBag 55 dropY 0
+            endif
+        endif
+
+        @ignore ammo
+
+        if moveAmmo = 1
+            wait maxwaittimeinms
+        endif
+    endwhile
+
+endfor
+
+overhead "Splitter completed!" 55

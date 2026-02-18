@@ -6,11 +6,35 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# Jan 20th 2026 - Added Fray timer logic in light of the recent Fray change, if PvP flagged auto recall is now blocked
+# Feb 18th 2026 - Removed Target Scheme and various old code, Added "Ship Sense" - see below, refined script information, added "Maximum Self Heal" setting
 # 
 # Script is designed for Necro and Chiv  (Mage or Pooner)
 #
 # Mage build is not recommended at this time as Pooner is PvM Meta
+#
+# What it does:
+#
+# This script is a background script that should be running at all times
+# Generally you should be in "Peace Mode" when on your own ship and in "War Mode" when on an enemy ship
+# Use "War Mode" on your own ship for fighting mobs on your own ship (bosses and fishing)
+#
+# "Peace Mode"
+# Auto Bandage and Heal/Cure Potion
+# Sense Closest Ship with Tracking Arrow (Toggle with Atlas)
+# Auto Deposit Loot into Ship Hatch (Must use Bapeths Ocean Launch Script to Select Hatch)
+# Auto Pick-Up Bomb - This will snuff out any active bomb within 2 tiles of your character
+# Auto Net Cast at Fishing Spots (Toggle with Party Menu)
+# Auto Attack closest enemy when Fray Cooldown is active - This is to ensure ship to ship combat is always happening (Be aware this will attack players)
+#
+# "War Mode"
+# Auto Bandage, Heal/Cure Potion, and Cleansing Brew when Bleeding/Diseased
+# For Casters it will Auto Spell Heal
+# Auto Use Optimal Necro/Chiv Abilities (Do not use the in game auto ability in the Chiv/Necro gump)
+# For Necro casters - Auto Spell Cast/Explode Potion (With Telekenesis)
+# For Alchemy Users - Auto Explode Potion
+# Auto Attack closest enemy when Fray Cooldown is active
+# Auto Loot Enemy Ship Hatches (Stand near enemy hatch when enemy crew is dead)
+# 
 #
 # "Recommended Pooner Build"
 # Arms Lore -- 120
@@ -26,33 +50,52 @@
 #
 # Armor Aspects: Fortune, Lightning, or Water
 # Weapon Aspect: Select for XP or preferred Aspect Special
+#   
+##############################################################################################################################################################################################################################################################################
 #
-# SCRIPT MUST BE NAMED "Master Background" OR IT WONT LINK TO OTHER SCRIPTS
+# "Other Scripts"
 #
-# "****REQUIRED****"
+# THIS SCRIPT MUST BE NAMED "Master Background" OR IT WONT LINK TO OTHER SCRIPTS
+# All of the following scripts will link into this Master Background Script to keep it playing continuously
+# 
+# "Manual Override"
+# This script is used to force targets for Auto Attack, Auto Spell Cast, or Auto Cannon Fire
+# https://outlands.uorazorscripts.com/script/80d24cbc-c121-484d-af2f-8fe45c765a2b
+#
+# "Bapeths Ocean Scripts"
+# This is a catalouge of scripts that the user may find helpful on the Ocean
+# https://outlands.uorazorscripts.com/search?st=&q=Bapeths+Ocean
+#
+# "Bapeths Auto Ability Scripts"
+# These scripts are meant to be used to hotkey any ship ability that you used
+# Each script represents an ability slot that you slot into your ship and will create a cooldown when used (See Required Section Below)
+# https://outlands.uorazorscripts.com/search?st=&q=Bapeths+Ship+Slot#
+#
+##############################################################################################################################################################################################################################################################################
+#
+# "REQUIRED <---------"
+#
 # Bapeths Ship Cooldowns xml file (copy paste into your characters Cooldown file)
 # "COPY" Link to get Bapeths Cooldowns "https://outlands.uorazorscripts.com/script/f1e41e2d-411e-461e-9fd0-c4fc2dc234b1"
 # "PASTE" FILE PATH : C:\Program Files (x86)\Ultima Online Outlands\ClassicUO\Data\Profiles\"YOUR-ACCOUNT-NAME"\UO Outlands\"YOUR-CHARACTER" Open file in notepad
 # The cooldowns with "Tigger Text" Must be adjusted to "your ships stats" and "your Wizard Grimoire upgrades" in the UO in game Options
 #
-# This script is the default background script that should be running most of the time
-# In defensive mode (peace mode) it will auto heal, auto cure, top up bard buffs, auto spyglass, auto drop loot to hold, and auto pick up bombs on your own deck
-# In offensive mode (war mode) it will use necro/chiv abilities, auto spell cast, auto heal, auto cure, auto cleanse, auto explode pot, and auto loot enemy holds
-# Generally you should be in peace mode when on your own ship and in war mode when on an enemy ship
-# Use warmode on your own ship for fighting mobs on your own ship (bosses and fishing)
-# Toggle "war mode on" for offensive stance and "war mode off" for defensive stance
 #
-# "Target Scheme"
-# This script can change into Target Closest or Target Random - default is Target Closest
+#
+# "OPTIONAL <---------"
+#
+# "Ship Sense"
+# This feature will constantly use the tracking arrow on the closest ship on your radar
 # Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
-# Double click the atlas while this script is playing to switch between "Closest and Random"
+# Double click the atlas while this script is playing to toggle ship sense on/off
 # Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
+# Only works in Peace Mode
 #
 # "Auto Net Caster"
 # Open the "Party Menu" while the script is playing to toggle this feature on/off
 # The script will auto throw nets on fishing spots when nearby
 #
-# "Auto Loot Control"
+# "Auto Loot Control" <----- Important!
 # This script uses razor "Auto-Queue Object Delay" setting
 # Make sure this setting is turned ON in the razor Options tab > Targeting & Queues sub-tab
 # And set "object delay to 503" AUTO LOOTING WILL BE SLOW IF YOU DONT DO THIS!
@@ -63,8 +106,33 @@
 # Filters tab > Text & Messages subtab > Check "Filter Repeating Razor Messages" ONLY
 # Replace your system messages with your Journal - See Journal options "Hide Messages in Viewport"
 #
+##############################################################################################################################################################################################################################################################################
+#
+# "SCRIPT SETTINGS"
+#
+##############################################################################################################################################################################################################################################################################
+#
+# "Maximum Self Heal"
+#
+# This feature will self bandage when as little as 1 hp is missing
+# Otherwise self heal will only be used when missing 35 or more HP
+# Do not use this feature if you use bandages to primarily heal crewmwmbers
+#
+@setvar! "MaxSelfHeal" 0
+#
+##############################################################################################################################################################################################################################################################################
+#
 # Script starts here
-
+if "MaxSelfHeal" = 1
+    if skill "Healing" >= 20
+        if hp = maxhp
+            //donothing
+        elseif not bandaging and findtype 3617 backpack
+            hotkey "Bandage Self"
+            cooldown "Bandage" 10100
+        endif
+    endif
+endif
 if not hidden and skill "Healing" >= 20 
     if diffhits < 35
         if timerexists crewhealrepeat
@@ -121,7 +189,6 @@ if skill "Fishing" >= 80
         getlabel backpack ping
     endif
 endif
-    
 
 if not targetexists and not hidden and not findbuff "Strength" and findtype "White Potion" backpack as wpot
     while queued
@@ -207,14 +274,22 @@ if findtype 7029 backpack as joustignore
         @ignore joustignore
     endif
 endif
-if gumpexists 341416395 and not timerexists changetarget
+if gumpexists 341416395 and not timerexists senseship
     gumpclose 341416395
-    createtimer changetarget
-    overhead "Random Target Enabled" 87
-elseif gumpexists 341416395 and timerexists changetarget
+    createtimer senseship
+    overhead "Ship Sense Enabled" 87
+elseif gumpexists 341416395 and timerexists senseship
     gumpclose 341416395
-    removetimer changetarget
-    overhead "Closest Target Enabled" 2085
+    removetimer senseship
+    overhead "Ship Sense Disabled" 2085
+endif
+
+if not warmode and timerexists senseship
+    if timer senseship >= 6000 and gumpexists 2890020940
+        settimer senseship 0
+        gumpresponse 100
+        waitforgump 2890020940 500
+    endif
 endif
 
 if not timerexists oceanscan
@@ -225,14 +300,6 @@ endif
 if not timerexists checktarget
     createtimer checktarget
     settimer checktarget 18000
-endif
-
-if timerexists changetarget and timer checktarget >= 18000
-    overhead "Random Target Enabled" 87
-    settimer checktarget 0
-elseif not timerexists changetarget and timer checktarget >= 18000
-    overhead "Closest Target Enabled" 2085
-    settimer checktarget 0
 endif
 
 if not timerexists sacredjourncheck
@@ -559,20 +626,7 @@ if not warmode
         endif
         settimer oceanscan 0
     endif
-    if timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and cooldown "Fray"
-        if find "Manual Override" ground and noto "Manual Override" = hostile
-            attack "Manual Override"
-        elseif noto "Manual Override" = criminal
-            attack "Manual Override"
-        elseif noto "Manual Override" = enemy
-            attack "Manual Override"
-        elseif noto "Manual Override" = murderer
-            attack "Manual Override"
-        else       
-            attack "oceantarget"
-        endif
-        cooldown "Fray" 60000
-    elseif not timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and cooldown "Fray"
+    if find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and cooldown "Fray"
         if find "Manual Override" ground and noto "Manual Override" = hostile
             attack "Manual Override"
         elseif noto "Manual Override" = criminal
@@ -690,14 +744,14 @@ elseif warmode
         settimer oceanscan 300
     endif
     
-    if gumpexists 341416395 and not timerexists changetarget
+    if gumpexists 341416395 and not timerexists senseship
         gumpclose 341416395
-        createtimer changetarget
-        overhead "Random Target Enabled" 87
-    elseif gumpexists 341416395 and timerexists changetarget
+        createtimer senseship
+        overhead "Ship Sense Enabled" 87
+    elseif gumpexists 341416395 and timerexists senseship
         gumpclose 341416395
-        removetimer changetarget
-        overhead "Closest Target Enabled" 2085
+        removetimer senseship
+        overhead "Ship Sense Disabled" 2085
     endif
     
     if timer oceanscan >= 300 and skill "Arcane" >= 80
@@ -737,20 +791,7 @@ elseif warmode
         endif
         settimer oceanscan 0
     endif
-    if timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating"
-        if find "Manual Override" ground and noto "Manual Override" = hostile
-            attack "Manual Override"
-        elseif noto "Manual Override" = criminal
-            attack "Manual Override"
-        elseif noto "Manual Override" = enemy
-            attack "Manual Override"
-        elseif noto "Manual Override" = murderer
-            attack "Manual Override"
-        else       
-            attack "oceantarget"
-        endif
-        cooldown "Fray" 60000
-    elseif not timerexists changetarget and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating"
+    if find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating"
         if find "Manual Override" ground and noto "Manual Override" = hostile
             attack "Manual Override"
         elseif noto "Manual Override" = criminal
@@ -928,40 +969,7 @@ elseif warmode
         endif
         settimer oceanscan 0
     endif
-    
-    if find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and not cooldown "Disco" and skill "Discordance" >= 50
-        clearsysmsg 
-        hotkey 'Cancel Current Target'
-        skill 'Discordance'
-        wft 500
-        if timerexists changetarget
-            hotkey 'Target self'
-        elseif not timerexists changetarget
-            // I took Manual Override out here because single target discord was hitting the ship hamburger bars.  I could simply retarget the crew I want to hit but its an extra step when I can just place myself next to closest.  This may have been needed for boss fights.
-            hotkey 'Target Closest Grey Monster'
-            hotkey 'Target Closest Murderer Monster'
-        endif
-        hotkey 'Cancel Current Target'
-        getlabel backpack ping
-        if insysmsg  "Song of Discordance"
-            overhead "Argh!! Manual Override is not on a target that can be Discorded" 38
-        endif
-        if insysmsg "creatures"
-            overhead "Hear my sea song!" 91
-            cooldown "Disco" 5000
-        elseif insysmsg "You play successfully"
-            overhead "Hear my sea song!" 91
-            cooldown "Disco" 5000
-        elseif insysmsg "You fail to discord"
-            overhead "Argh, I missed a note..." 38
-            cooldown "Disco" 5000
-            if cooldown "Barding Reset"
-                cooldown "Disco" 0
-            replay
-            endif
-        endif
-    endif
-    
+        
     if not hidden and skill "Necromancy" >= 80 and findtype "corpse" ground -1 -1 12
         if ingump '20/' 622436516
             createtimer pain
@@ -1153,57 +1161,32 @@ elseif warmode
                 hotkey 'Cancel Current Target'
                 cast "Magic Arrow"
                 wft 1000
-                if timerexists changetarget
-                    hotkey 'Target Random Grey Monster'
-                    hotkey 'Target Random Murderer Monster'
-                elseif not timerexists changetarget
-                    hotkey 'Target Closest Grey Monster'
-                    hotkey 'Target Closest Murderer Monster'
-                endif
+                hotkey 'Target Closest Grey Monster'
+                hotkey 'Target Closest Murderer Monster'
             elseif not cooldown "Harm" and mana >= 6
                 hotkey 'Cancel Current Target'
                 cast "Harm"
                 wft 1500
-                if timerexists changetarget
-                    hotkey 'Target Random Grey Monster'
-                    hotkey 'Target Random Murderer Monster'
-                elseif not timerexists changetarget
-                    hotkey 'Target Closest Grey Monster'
-                    hotkey 'Target Closest Murderer Monster'
-                endif
+                hotkey 'Target Closest Grey Monster'
+                hotkey 'Target Closest Murderer Monster'
             elseif not cooldown "Lightning" and mana >= 11
                 hotkey 'Cancel Current Target'
                 cast "Lightning"
                 wft 2500
-                if timerexists changetarget
-                    hotkey 'Target Random Grey Monster'
-                    hotkey 'Target Random Murderer Monster'
-                elseif not timerexists changetarget
-                    hotkey 'Target Closest Grey Monster'
-                    hotkey 'Target Closest Murderer Monster'
-                endif
+                hotkey 'Target Closest Grey Monster'
+                hotkey 'Target Closest Murderer Monster'
             elseif not cooldown "Chain Lightning" and cooldown "Lightning" and cooldown "Harm" and cooldown "Magic Arrow" and mana >= 40
                 hotkey 'Cancel Current Target'
                 cast "Chain Lightning"
                 wft 3000
-                if timerexists changetarget
-                    hotkey 'Target Random Grey Monster'
-                    hotkey 'Target Random Murderer Monster'
-                elseif not timerexists changetarget
-                    hotkey 'Target Closest Grey Monster'
-                    hotkey 'Target Closest Murderer Monster'
-                endif
+                hotkey 'Target Closest Grey Monster'
+                hotkey 'Target Closest Murderer Monster'
             elseif cooldown "Lightning" and cooldown "Harm" and cooldown "Magic Arrow" and mana >= 40
                 hotkey 'Cancel Current Target'
                 cast "Flamestrike"
                 wft 3000
-                if timerexists changetarget
-                    hotkey 'Target Random Grey Monster'
-                    hotkey 'Target Random Murderer Monster'
-                elseif not timerexists changetarget
-                    hotkey 'Target Closest Grey Monster'
-                    hotkey 'Target Closest Murderer Monster'
-                endif
+                hotkey 'Target Closest Grey Monster'
+                hotkey 'Target Closest Murderer Monster'
             endif
             pause 150
         endif

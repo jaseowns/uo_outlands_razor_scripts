@@ -6,7 +6,7 @@
 
 # Bapeths Butler 
 #
-# Feb 25th 2026 - Recoded the way Bless is handled on characters - Read Below, Second Loot container is now the sole container for decoding maps/RMs as unlocking paragon chests
+# Feb 27th 2026 - Added Self Bless Setting, Recoded the way Bless is handled on characters - Read Below, Second Loot container is now the sole container for decoding maps/RMs as unlocking paragon chests
 #
 # What it does:
 # "Casts Bless and Protection on up to 6 characters" - Open the "Atlas" to set up to 6 players to be Blessed and Protected (Type [atlas in game to generate a free Atlas)
@@ -106,17 +106,27 @@
 #
 # "SCRIPT SETTINGS"
 #
-# Toggle Bless on/off during the Magery Buff Routine (Arch Protection will always be on) 1 = on  0 = off
+# "Toggle Bless on/off"
+# 1 = on  0 = off
 # 
 # ENABLE/DISABLE BLESS
 @setvar! "EnableBless" 1
 #
 #########################################################################################################################################
 #
+# "Self Bless"
+# This setting will enable the butler to always Self Bless first
+#1 = on  0 = off
+# 
+# ENABLE/DISABLE BLESS
+@setvar! "SelfBless" 0
+#
+#########################################################################################################################################
+#
 # Toggle Lantern Switch for the entire Magery Bless/Protect Routine
 # To use this feature lock down a lantern near your Butler character (Within 2 tiles)
 # Double click the lantern in game to toggle the Magery Bless/Protect Routine on/off (Lit = On Unlit = Off)
-# Set Lantern Mode to 1 to enable or 0 to disable this feature - Default is 0 (off)
+# 1 = on  0 = off
 #
 # LANTERN SWITCH
 @setvar! "LanternSwitch" 0
@@ -1244,6 +1254,16 @@ if "LanternSwitch" = 1 and skill "Magery" >= 60 and mana >= 20 and findtype 2594
                     say "[AspectArmor Eldritch"
                 endif
             endif
+            if "SelfBless" = 1
+                hotkey "Cancel Current Target"
+                createtimer activateprot
+                cast "bless"
+                wft 2500
+                target self
+                overhead "Blessed Self" 88
+                hotkey "Cancel Current Target"
+                pause 330
+            endif
             if varexist "BlessPlayer1"
                 hotkey "Cancel Current Target"
                 skill "Begging"
@@ -1367,6 +1387,14 @@ if "LanternSwitch" = 1 and skill "Magery" >= 60 and mana >= 20 and findtype 2594
                 pause 350
                 hotkey "Cancel Current Target"
             endif
+        elseif "EnableBless" = 0
+            settimer bufftimer 0
+            removetimer activateprot
+            cast "arch protection"
+            wft 2500
+            target self
+            pause 350
+            hotkey "Cancel Current Target"
         endif
     endif
 elseif "LanternSwitch" = 0 and skill "Magery" >= 60 and mana >= 20
@@ -1376,31 +1404,41 @@ elseif "LanternSwitch" = 0 and skill "Magery" >= 60 and mana >= 20
     endif
     if timer bufftimer >= 15000
         if "EnableBless" = 1
-            if varexist "BlessPlayer1"
-                clearsysmsg 
-                if findlayer self innertorso as checkaspect
-                    while cooldown "Aspect Armor"
-                        //donoting
-                    endwhile
-                    getlabel checkaspect desc
-                    if "eldritch" in desc
-                        //donothing
-                    else 
-                        if cooldown "Aspect"
-                            while cooldown "Aspect"
-                                //donothing
-                            endwhile
-                            getlabel backpack ping
-                        endif   
-                        say "[AspectArmor Eldritch"
-                    endif
+            clearsysmsg 
+            if findlayer self innertorso as checkaspect
+                while cooldown "Aspect Armor"
+                    //donoting
+                endwhile
+                getlabel checkaspect desc
+                if "eldritch" in desc
+                    //donothing
+                else 
+                    if cooldown "Aspect"
+                        while cooldown "Aspect"
+                            //donothing
+                        endwhile
+                        getlabel backpack ping
+                    endif   
+                    say "[AspectArmor Eldritch"
                 endif
-                menu myshelf 1
+            endif
+            if "SelfBless" = 1
+                hotkey "Cancel Current Target"
+                createtimer activateprot
+                cast "bless"
+                wft 2500
+                target self
+                overhead "Blessed Self" 88
+                hotkey "Cancel Current Target"
+                pause 330
+            endif
+            if varexist "BlessPlayer1"
                 hotkey "Cancel Current Target"
                 skill "Begging"
                 wft 500
                 target "BlessPlayer1"
                 getlabel backpack ping
+                hotkey "Cancel Current Target"
                 if insysmsg "Target cannot be seen"
                     pause 300
                 elseif insysmsg "Perhaps just asking them would work better."
@@ -1419,6 +1457,7 @@ elseif "LanternSwitch" = 0 and skill "Magery" >= 60 and mana >= 20
                 wft 500
                 target "BlessPlayer2"
                 getlabel backpack ping
+                hotkey "Cancel Current Target"
                 if insysmsg "Target cannot be seen"
                     pause 300
                 elseif insysmsg "Perhaps just asking them would work better."
@@ -1437,6 +1476,7 @@ elseif "LanternSwitch" = 0 and skill "Magery" >= 60 and mana >= 20
                 wft 500
                 target "BlessPlayer3"
                 getlabel backpack ping
+                hotkey "Cancel Current Target"
                 if insysmsg "Target cannot be seen"
                     pause 300
                 elseif insysmsg "Perhaps just asking them would work better."
@@ -1455,6 +1495,7 @@ elseif "LanternSwitch" = 0 and skill "Magery" >= 60 and mana >= 20
                 wft 500
                 target "BlessPlayer4"
                 getlabel backpack ping
+                hotkey "Cancel Current Target"
                 if insysmsg "Target cannot be seen"
                     pause 300
                 elseif insysmsg "Perhaps just asking them would work better."
@@ -1473,6 +1514,7 @@ elseif "LanternSwitch" = 0 and skill "Magery" >= 60 and mana >= 20
                 wft 500
                 target "BlessPlayer5"
                 getlabel backpack ping
+                hotkey "Cancel Current Target"
                 if insysmsg "Target cannot be seen"
                     pause 300
                 elseif insysmsg "Perhaps just asking them would work better."
@@ -1491,6 +1533,7 @@ elseif "LanternSwitch" = 0 and skill "Magery" >= 60 and mana >= 20
                 wft 500
                 target "BlessPlayer6"
                 getlabel backpack ping
+                hotkey "Cancel Current Target"
                 if insysmsg "Target cannot be seen"
                     pause 300
                 elseif insysmsg "Perhaps just asking them would work better."
@@ -1512,8 +1555,16 @@ elseif "LanternSwitch" = 0 and skill "Magery" >= 60 and mana >= 20
                 pause 350
                 hotkey "Cancel Current Target"
             endif
+        elseif "EnableBless" = 0
+            settimer bufftimer 0
+            removetimer activateprot
+            cast "arch protection"
+            wft 2500
+            target self
+            pause 350
+            hotkey "Cancel Current Target"
         endif
-   endif
+    endif
 endif
     
 // Item Id and Recycler

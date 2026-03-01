@@ -6,7 +6,7 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# Feb 18th 2026 - Added Tamer Support, Removed Target Scheme and various old code, Added "Ship Sense" - see below, refined script information, added "Maximum Self Heal" setting, added setting for auto buff pots
+# March 1st 2026 - Script will now ignore activated shepherds crooks when dropping loot into hold
 # 
 # Script is designed for Necro and Chiv  (Mage or Pooner)
 #
@@ -28,6 +28,7 @@
 # Auto Net Cast at Fishing Spots (Toggle with Party Menu)
 # Auto Attack/All Kill closest enemy when Fray Cooldown is active - This is to ensure ship to ship combat is always happening (Be aware this will attack players)
 # Warn when Sacred Journey wears off
+# Uses Explorer Pack if user has Carto Skill and buff is not detected
 #
 # "War Mode"
 # Auto Bandage, Heal/Cure Potion, and Cleansing Brew when Bleeding/Diseased
@@ -94,7 +95,6 @@
 # The cooldowns with "Tigger Text" Must be adjusted to "your ships stats" and "your Wizard Grimoire upgrades" in the UO in game Options
 #
 #
-#
 # "OPTIONAL <---------"
 #
 # "Ship Sense"
@@ -154,7 +154,7 @@
 # (0 = off 1 = on) 
 #
 # CANNON TARGET MODE GUMP
-@setvar! "CannonTargetModeGump" 1
+@setvar! "CannonTargetModeGump" 0
 #
 ##########################################################################################################################################################################
 # 
@@ -195,6 +195,16 @@ if "CannonTargetModeGump" = 1
 endif
 
 if "MaxSelfHeal" = 1
+    if skill "Healing" >= 20
+        if hp = maxhp
+            //donothing
+        elseif not bandaging and findtype 3617 backpack
+            hotkey "Bandage Self"
+            cooldown "Bandage" 10100
+        endif
+    endif
+endif
+if cooldown "PvP"
     if skill "Healing" >= 20
         if hp = maxhp
             //donothing
@@ -352,9 +362,16 @@ if timerexists brew
     endif
 endif
 
-if insysmsg "You now feel familiar with the area"
-    cooldown "Adv Pack" 720000
+if not timerexists epack and skill "Catrogrpahy" >= 10 and not findbuff "Explorer Pack" and findtype "adventure pack" backpack as expack
+    dclick expack
+    createtimer epack
 endif
+if timerexists epack
+    if timer epack >= 12000
+        removetimer epack
+    endif
+endif
+
 while findtype 3834 backpack 0 as bbook
     @ignore bbook
 endwhile
@@ -534,6 +551,12 @@ if not warmode
         getlabel joustignore joustdesc
         if "jousting" in joustdesc
             @ignore joustignore
+        endif
+    endif
+    if findtype 3713 backpack as crook
+        getlabel crook crookdesc
+        if "(activated)" in crookdesc
+            @ignore crook
         endif
     endif
     if not timerexists petguard

@@ -5,15 +5,18 @@
 #############################################
 
 # Bapeths Dock and Drop
+# March 11th 2026 - Added Free docking feature with warmode toggle on
 #
-# Sometimes its necessary to disembark and embark when razor fails to detect the dockmaster
+# "Peace Mode"
+# This script will search for a valid dockmaster NPC, and when ready, will crate and dock your ship
 #
-# This script will search for a dockmaster NPC, and when ready, will crate and dock your ship
+# "War Mode"
+# The script will attempt to Free Dock your ship - User must manually select docking location (click nearby land)
 # 
 # Script Starts Here
-for 50
+if not warmode
     hotkey "Next Monster Target"
-    @setvar bdockmaster lasttarget
+    @setvar! bdockmaster lasttarget
     if noto bdockmaster = "invulnerable"
         getlabel bdockmaster desc
         if "dockmaster" in desc
@@ -23,9 +26,9 @@ for 50
                 gumpresponse 8
                 getlabel backpack ping
                 if insysmsg "You pay"
-                    overhead "Shipping crate sent" 74
-                elseif insysmsg "not been stationary"
-                    overhead "Stationary cooldown..." 45
+                    overhead "Shipping crate sent" 88
+                elseif insysmsg "not been stationary long enough to dock"
+                    overhead "Stationary cooldown..." 38
                     gumpclose 3287496917
                     replay
                 elseif insysmsg "capable of being"
@@ -39,12 +42,12 @@ for 50
                 gumpresponse 7
                 getlabel backpack ping
                 if insysmsg "You dock the ship"
-                    overhead "Ship Docked Safley" 88
+                    overhead "Ship Docked Safely" 88
                     gumpclose 3287496917
                     hotkey "Cancel Current Target"
                     stop
-                elseif insysmsg "not been stationary"
-                    overhead "Stationary cooldown..." 45
+                elseif insysmsg "not been stationary long enough to dock."
+                    overhead "Stationary cooldown..." 38
                     gumpclose 3287496917
                     replay
                 endif
@@ -54,6 +57,24 @@ for 50
             break
         endif
     endif
-endfor
-overhead "Disembark / Embark to resync if dockmaster can not be found" 45
+elseif warmode 
+    clearsysmsg 
+    say "[dock" 88
+    getlabel backpack ping
+    if insysmsg "not been stationary"
+        overhead "Stationary cooldown..." 38
+    elseif insysmsg "Which location do you wish to dock at?"
+        wft 500
+        while targetexists 
+            //donothing
+        endwhile
+        getlabel backpack ping
+        if insysmsg "not been stationary long enough to free-dock"
+            overhead "Free Dock Stationary Cooldown..." 38
+        elseif insysmsg "You free-dock the ship"
+            overhead "Free Docked!" 88
+            stop
+        endif
+    endif
+endif
 loop

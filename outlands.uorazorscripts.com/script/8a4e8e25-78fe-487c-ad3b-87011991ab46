@@ -1,0 +1,572 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/8a4e8e25-78fe-487c-ad3b-87011991ab46 for latest
+# Automation by Jaseowns
+## Script: Sazeracs One-Tile Loot Drop - Dungeon + Boating (v1.0)
+## Created by: mrdies#0
+#############################################
+
+# Sazeracs One-Tile Loot Drop - Dungeon + Boating (v1.0)
+# Script by: Sazerac (Discord: mrdies)
+# Special Thanks: Chinga (Discord: phisn)
+#
+# This script stores both dungeon and boating loot while using nearby storage systems when available.
+# It first sends loot into supported world storage objects such as a Vault, Recycler, Storage Shelf,
+# Tomes, Resource Stockpile, and Magic Item Vault. It also deposits gold and doubloons from the
+# shipping crate into a nearby Bank Deposit Safe when one is present. It then moves remaining special
+# items from your backpack into assigned containers for Seeds, Valuables, and Black Market Goods.
+# The script then repeats this process for all loot within your ActiveLootBag (on the player).
+#
+# Change the ForceDropOffSetup variable to 1 if you want to reselect your ActiveShippingCrate. [Default: 0]
+# Change the ForceStorageSetup variable to 1 if you want to reselect your Seed, Valuable,
+# and Black Goods storage containers. [Default: 0]
+# Once you have set the variables in game, ensure you return both values to 0 for subsequent use of the script.
+    
+    
+@setvar ForceDropOffSetup 0
+@setvar ForceStorageSetup 0
+    
+
+# If you have continued problems with first-time setup, delete and retarget your saved variables.
+# Primary saved variables used by this script include:
+# ActiveShippingCrate, SeedStorage, ValuableStorage, and BlackGoodsStorage.
+# Tome and storage object aliases (such as YourOreTome or YourStockpile) are found during runtime.
+#
+# You should only need to run setup once, unless you die (resupply), move, or replace one of your assigned containers.
+# For this script to work reliably, all referenced storage objects must be within 2 tiles of the player.
+# For the script to recognize Tomes, they must be locked down on the ground, not inside containers.
+#
+# Notes:
+# - This script works best with ALL Prev TOMES & CONTAINERS (But many items will still store if your in-item-storage settings are properly tuned.)
+# - The script uses an assigned shipping crate as the primary loot source.
+# - Gold coins and doubloons are moved from the shipping crate into a nearby Bank Deposit Safe when available.
+# - Storage Shelf interactions are repeated multiple times to unload from the selected shipping crate.
+# - Valuables, Seeds, and Black Market Goods are moved from your backpack into their assigned containers.
+# - This script prioritizes Tomes and other supported storage targets when they are present nearby.
+#
+# Instructions:
+# - In an Inn Room or House, ensure all Chests & Prev Storage Containers / Tomes are locked down or secure within two tiles of the player.
+# - After a Boating Run, run this script while standing 1 tile away from a Shipping Crate. Follow the prompts during runtime.
+# - If you are just using this after a normal Dungeon Run, it will skip the boating loot drop.
+# - It will ask you to set storage containers only for items not captured and stored by Prev Storage Containers / Tomes.
+# - These containers MUST BE secure and within 2 Tiles. They CANNOT be placed within other containers.
+# -
+# CRITICAL Reminders:
+# - Shipping Crates MUST BE 1 TILE from the player, on the GROUND, for the boating loot drop portion to proceed.
+# - This script is for players who have the CORRECT 1-Tile setup (All Prev Containers are within 2-Tiles of Player).
+# - You can use this script for NORMAL DUNGEON RUNS or after placing a SHIPPING CRATE in your INN or HOME. (Not usable with banks.)
+# - Should you encounter any issues, please let me know :)
+
+    
+if not varexist 'ActiveLootBag' or ForceDropOffSetup = 1
+   overhead 'Please select the BAG in your backpack (or the BACKPACK itself) where you STORE your LOOT.'
+   @setvar ActiveLootBag
+   overhead 'Active Loot Bag set.'
+endif
+
+if not find 'ActiveLootBag'
+   overhead 'Previous loot bag undetected. Please select a new one.'
+   @setvar ActiveLootBag
+   overhead 'Active Loot Bag set.'
+endif
+
+if not varexist 'SeedStorage' or ForceStorageSetup = 1;
+   overhead 'Please select the container where you will store Seeds.'
+   @setvar SeedStorage
+endif
+
+if not find 'SeedStorage' ground
+   overhead 'Previous Seed Storage undetected. Please select a new one.'
+   @setvar SeedStorage
+endif
+
+if not varexist 'ValuableStorage' or ForceStorageSetup = 1;
+   overhead 'Please select the container where you will store Valuables.'
+   @setvar ValuableStorage
+endif
+
+if not find 'ValuableStorage' ground
+   overhead 'Previous Valuable Storage undetected. Please select a new one.'
+   @setvar ValuableStorage
+endif
+
+if not varexist 'BlackGoodsStorage' or ForceStorageSetup = 1;
+   overhead 'Please select the container where you will store Black Goods.'
+   @setvar BlackGoodsStorage
+endif
+
+if not find 'BlackGoodsStorage' ground
+   overhead 'Previous Black Goods Storage undetected. Please select a new one.'
+   @setvar BlackGoodsStorage
+endif
+
+overhead 'Searching for Shipping Crate within 1 Tile of Player.'
+
+if findtype 3645|3644 ground 0 any 1 as 'ActiveShippingCrate'
+    overhead 'Found Shipping Crate.' 18
+    wait 150
+    overhead 'Beginning Loot Drop.' 18
+    dclick 'ActiveShippingCrate'
+    wait 250
+    if findtype 'bank deposit safe' ground any any 2 as safe
+        overhead 'Found Safe.'
+    while findtype 'gold coin' ActiveShippingCrate as YourGold
+                overhead 'Depositing gold.'
+                @drop backpack
+                lift YourGold 60000
+                wait 250
+                drop safe -1 -1 0
+                wait 500
+        endwhile
+        while findtype 'doubloon' ActiveShippingCrate as YourDoubloons
+            overhead 'Depositing dubs'
+                @drop backpack
+                lift YourDoubloons 60000
+                wait 250
+                drop safe -1 -1 0
+                wait 500
+        endwhile
+    else 
+        overhead 'Safe not found.'
+    endif
+
+    wait 150
+
+    if findtype 'storage shelf' ground as 'YourShelf'
+       overhead 'Storage Shelf Found.' 50
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveShippingCrate'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveShippingCrate'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150   
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveShippingCrate'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150   
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveShippingCrate'
+       waitforgump 3232825965
+       gumpclose
+    endif
+
+    wait 150
+
+    if findtype 'magic item recycler' ground as 'YourRecycler'
+       overhead 'Recycler Found.' 50
+       dclick 'YourRecycler'
+       waitforgump 4045111101
+       gumpresponse 3
+       waitfortarget
+       target 'ActiveShippingCrate'
+    endif
+
+    wait 150
+
+    if findtype 3644 ground 0 any 2
+       lifttype 3644 1 ground
+       drop backpack
+    endif
+
+    if findtype 3645 ground 0 any 2
+       lifttype 3645 1 ground
+       drop backpack
+    endif
+
+    wait 150
+
+    if findtype 'bank deposit safe' ground as 'YourVault'
+       overhead 'Vault Found.' 50
+       menu 'YourVault' 0
+    endif
+
+    wait 150
+
+    if findtype 'sm magic item vault' ground as 'YourMagicItemVault'
+        overhead 'Magic Item Vault Found.' 50
+       menu 'YourMagicItemVault' 0
+       wft
+       target 'ActiveShippingCrate'
+    endif
+
+    wait 150
+
+    if findtype 29104 ground 2618 -1 2 as 'YourAspectTome'
+       overhead 'Tomes Found.' 50
+       menu 'YourAspectTome' 0
+    endif
+
+    if findtype 29104 ground 1495 -1 2 as 'YourClothTome'
+        overhead 'Cloth Tome Found.' 50
+       menu 'YourClothTome' 0
+    endif
+
+    if findtype 29104 ground 1494 -1 2 as 'YourDyeTome'
+       overhead 'Dye Tome Found.' 50
+       menu 'YourDyeTome' 0
+    endif
+
+    if findtype 29104 ground 2799 -1 2 as 'YourLumberTome'
+       overhead 'Lumber Tome Found.' 50
+       menu 'YourLumberTome' 0
+    endif
+
+    if findtype 29104 ground 2796 -1 2 as 'YourOreTome'
+       overhead 'Ore Tome Found.' 50
+       menu 'YourOreTome' 0
+    endif
+
+    if findtype 29104 ground 2651 -1 2 as 'YourSkinningTome'
+       overhead 'Skinning Tome Found.' 50
+       menu 'YourSkinningTome' 0
+    endif
+
+    if findtype 29104 ground 2722 -1 2 as 'YourFishingTome'
+       overhead 'Fishing Tome Found.' 50
+       menu 'YourFishingTome' 0
+    endif
+
+    if findtype 29104 ground 2990 -1 2 as 'YourTreasureTome'
+       overhead 'Treasure Tome Found.' 50
+       menu 'YourTreasureTome' 0
+    endif
+
+    if findtype 29104 ground 2991 -1 2 as 'YourLinkTome'
+        overhead 'Mastery Chain Link Tome Found.' 50
+       menu 'YourLinkTome' 0
+    endif
+
+    if findtype 29104 ground 2877 -1 2 as 'YourShipTome'
+        overhead 'Ship Upgrade Tome Found.' 50
+       menu 'YourShipTome' 0
+    endif
+
+    if findtype 29104 ground 2141 -1 2 as 'YourCardTome'
+        overhead 'Collectible Card Tome Found.' 50
+       menu 'YourCardTome' 0
+    endif
+
+    if findtype 29104 ground 2227 -1 2 as 'YourSpellTome'
+        overhead 'Spell Scroll Tome Found.' 50
+       menu 'YourSpellTome' 0
+    endif
+
+    if findtype 29104 ground 2963 -1 2 as 'YourSkillTome'
+       overhead 'Skill Scroll Tome Found.' 50
+       menu 'YourSkillTome' 0
+    endif
+
+    if findtype 29104 ground 2085 -1 2 as 'YourArcaneRuneTome'
+        overhead 'Arcane Rune Tome Found.' 50
+       menu 'YourArcaneRuneTome' 0
+    endif
+
+    wait 150
+
+    if findtype 'magic item recycler' ground as 'YourRecycler'
+       overhead 'Recycler Found.' 50
+       menu 'YourRecycler' 1
+    endif
+
+    wait 150
+
+    if findtype 'resource container' ground as 'YourStockpile'
+       overhead 'Resource Stockpile Found.' 50
+       menu 'YourStockpile' 0
+       wft
+       target 'ActiveShippingCrate'
+    endif
+
+    while findtype 'gem|carpet|void orb|chroma core|chroma distil|research materials|colonial marks|bag of gems|card|soul jar|candy corn|red envelope|hunting permit|spell hue deed|redline bottle|3712|3648|3650|3708|3648|2475|3649|29833|29832|8454|8455|27612|2463|2508|7710|5192|19199|29086|29077|17083|15178|19822|58326' backpack as YourValuables
+       overhead 'Storing Other Valuables.'
+       @drop backpack
+       lift YourValuables 60000
+       wait 250
+       drop ValuableStorage -1 -1 0
+       wait 500
+    endwhile
+
+    while findtype 'black market goods' backpack as YourBlackGoods
+        overhead 'Storing Black Market Goods.'
+       @drop backpack
+       lift YourBlackGoods 60000
+       wait 250
+       drop BlackGoodsStorage -1 -1 0
+       wait 500
+    endwhile
+
+    while findtype 'seed of renewal' backpack as YourSeeds
+       overhead 'Storing Seeds.'
+       @drop backpack
+       lift YourSeeds 60000
+       wait 250
+       drop SeedStorage -1 -1 0
+       wait 500
+    endwhile
+    
+    if findtype 'storage shelf' ground as 'YourShelf'
+        overhead 'Storing to Shelf for Remnant Bags / Pouches.' 50
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveShippingCrate'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveShippingCrate'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150   
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveShippingCrate'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150   
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveShippingCrate'
+       waitforgump 3232825965
+       gumpclose
+    endif
+    
+    overhead 'Loot from Shipping Crate stored.'
+    
+elseif findtype 3645|3644 backpack
+    
+    overhead 'A Shipping Crate must be placed within 1 Tile of the Player.'
+    
+else    
+    
+    overhead 'A Shipping Crate must be placed within 1 Tile of the Player.'
+
+endif
+
+overhead 'Depositing loot from Active Loot Bag.'
+
+if varexist ActiveLootBag
+
+   wait 150
+
+    if findtype 'bank deposit safe' ground as 'YourVault'
+       overhead 'Vault Found.' 50
+       menu 'YourVault' 0
+    endif
+
+    wait 150
+
+    if findtype 'magic item recycler' ground as 'YourRecycler'
+       overhead 'Recycler Found.' 50
+       menu 'YourRecycler' 1
+    endif
+
+    wait 150
+
+    if findtype 'storage shelf' ground as 'YourShelf'
+       overhead 'Storage Shelf Found.' 50
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveLootBag'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveLootBag'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150   
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveLootBag'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150   
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveLootBag'
+       waitforgump 3232825965
+       gumpclose
+    endif
+
+    wait 150
+
+    if findtype 29104 ground 2618 -1 2 as 'YourAspectTome'
+       overhead 'Tomes Found.' 50
+       menu 'YourAspectTome' 0
+    endif
+
+    if findtype 29104 ground 1495 -1 2 as 'YourClothTome'
+        overhead 'Cloth Tome Found.' 50
+       menu 'YourClothTome' 0
+    endif
+
+    if findtype 29104 ground 1494 -1 2 as 'YourDyeTome'
+       overhead 'Dye Tome Found.' 50
+       menu 'YourDyeTome' 0
+    endif
+
+    if findtype 29104 ground 2799 -1 2 as 'YourLumberTome'
+       overhead 'Lumber Tome Found.' 50
+       menu 'YourLumberTome' 0
+    endif
+
+    if findtype 29104 ground 2796 -1 2 as 'YourOreTome'
+       overhead 'Ore Tome Found.' 50
+       menu 'YourOreTome' 0
+    endif
+
+    if findtype 29104 ground 2651 -1 2 as 'YourSkinningTome'
+       overhead 'Skinning Tome Found.' 50
+       menu 'YourSkinningTome' 0
+    endif
+
+    if findtype 29104 ground 2722 -1 2 as 'YourFishingTome'
+       overhead 'Fishing Tome Found.' 50
+       menu 'YourFishingTome' 0
+    endif
+
+    if findtype 29104 ground 2990 -1 2 as 'YourTreasureTome'
+       overhead 'Treasure Tome Found.' 50
+       menu 'YourTreasureTome' 0
+    endif
+
+    if findtype 29104 ground 2991 -1 2 as 'YourLinkTome'
+       overhead 'Mastery Chain Link Tome Found.' 50
+       menu 'YourLinkTome' 0
+    endif
+
+    if findtype 29104 ground 2877 -1 2 as 'YourShipTome'
+       overhead 'Ship Upgrade Tome Found.' 50
+       menu 'YourShipTome' 0
+    endif
+
+    if findtype 29104 ground 2141 -1 2 as 'YourCardTome'
+       overhead 'Collectible Card Tome Found.' 50
+       menu 'YourCardTome' 0
+    endif
+
+    if findtype 29104 ground 2227 -1 2 as 'YourSpellTome'
+       overhead 'Spell Scroll Tome Found.' 50
+       menu 'YourSpellTome' 0
+    endif
+    
+    if findtype 29104 ground 2963 -1 2 as 'YourSkillTome'
+       overhead 'Skill Scroll Tome Found.' 50
+    menu 'YourSkillTome' 0
+    endif
+
+    if findtype 29104 ground 2085 -1 2 as 'YourArcaneRuneTome'
+       overhead 'Arcane Rune Tome Found.' 50
+       menu 'YourArcaneRuneTome' 0
+    endif
+
+    wait 150
+
+    if findtype 'resource container' ground as 'YourStockpile'
+       overhead 'Resource Stockpile Found.' 50
+       menu 'YourStockpile' 0
+       wft
+       target 'ActiveLootBag'
+    endif
+
+    wait 150
+
+    if findtype 'sm magic item vault' ground as 'YourMagicItemVault'
+        overhead 'Magic Item Vault Found.' 50
+       menu 'YourMagicItemVault' 0
+       wft
+       target 'ActiveLootBag'
+    endif
+    
+    while findtype 'gem|carpet|void orb|chroma core|chroma distil|research materials|colonial marks|bag of gems|card|soul jar|candy corn|red envelope|hunting permit|spell hue deed|redline bottle|3712|3648|3650|3708|3648|2475|3649|29833|29832|8454|8455|27612|2463|2508|7710|5192|19199|29086|29077|17083|15178|19822|58326' backpack as YourValuables
+       overhead 'Storing Other Valuables.'
+       @drop backpack
+       lift YourValuables 60000
+       wait 250
+       drop ValuableStorage -1 -1 0
+       wait 500
+    endwhile
+    
+    while findtype 'black market goods' backpack as YourBlackGoods
+        overhead 'Storing Black Market Goods.'
+       @drop backpack
+       lift YourBlackGoods 60000
+       wait 250
+       drop BlackGoodsStorage -1 -1 0
+       wait 500
+    endwhile
+
+    while findtype 'seed of renewal' backpack as YourSeeds
+       overhead 'Storing Seeds.'
+       @drop backpack
+       lift YourSeeds 60000
+       wait 250
+       drop SeedStorage -1 -1 0
+       wait 500
+    endwhile
+    
+    if findtype 'storage shelf' ground as 'YourShelf'
+        overhead 'Storing to Shelf for Remnant Bags / Pouches.' 50
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveLootBag'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveLootBag'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150   
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveLootBag'
+       waitforgump 3232825965
+       gumpclose
+       
+       wait 150   
+       
+       menu 'YourShelf' 0
+       wft
+       target 'ActiveLootBag'
+       waitforgump 3232825965
+       gumpclose
+    endif
+
+    overhead 'Loot from Active Loot Bag stored.'
+    
+endif
+
+overhead 'All loot has been stored.' 

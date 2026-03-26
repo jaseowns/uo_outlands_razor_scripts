@@ -6,12 +6,13 @@
 
 # Bapeths One Tile Item Dump & Restock
 #
-# Feb 21th 2026 - Added settings to restock Rage/Trap runes, Added a ground gold deposit feature/setting for pit trial spoils
+# March 26th 2026 - Added Ship Crate Sorting
 #
 # "What it does" 
 # Recall to your house warp tile or your Inn room (See settings below)
 # Repair Items
 # Quickly dump and sort all items you acquire while adventuring in Outlands
+# Sort Shipping Crates, Use the unlockable ship crate location in your house and make sure it is within 2 tiles of this character
 # Restock from your current storage shelf profile
 # Cast Reactive Armor and Magic Reflection if user has enough Magery/Mana
 # Restock ID wands if enabled (Container or Regular)
@@ -77,18 +78,6 @@
 #
 # ENABLE MAGIC ITEM VAULT
 @setvar! "EnableMagicItemVault" 1
-#
-#############################################################################################################################################
-# 
-# "Enable/Disable Deposit Ground Gold"
-#
-# Use this if your Archeology Desk is close enough to your Bank Safe
-# This feature will sort gold that falls to the ground into your safe when pulling spoils from the desk
-# Player must be standing in range of Bank Safe and close enough to gold piles
-# (1= on, 0 = off)
-#
-# ENABLE MAGIC ITEM VAULT
-@setvar! "DepositGroundGold" 0
 #
 #############################################################################################################################################
 # 
@@ -1053,10 +1042,8 @@ if gumpexists 341416395
     if timerexists wandselect
         removetimer wandselect
     endif
-    pause 1000
     while not dead 
         overhead "Select up to three magical items to be exempt from depo into the Magic Item Vault..." 53
-        pause 1500
         hotkey "Set Last Target"
         wft 1000
         while targetexists 
@@ -1362,6 +1349,178 @@ while findtype "3530" backpack as bspecialnets
     endif
 endwhile
 
+// Ship Crate Expediter
+if varexist newcrate
+    @unsetvar newcrate
+endif
+if findtype 3645|3644 ground 0 -1 2 as shipcrate
+    @setvar! "newcrate" shipcrate
+elseif findtype 3645|3644 backpack 0 as shipcrate
+    @setvar! "newcrate" shipcrate
+endif
+if varexist "newcrate"
+    hotkey "Cancel Current Target"
+    dclick newcrate
+    getlabel backpack ping
+    menu respile 0
+    wft 1000
+    target newcrate
+    menu myshelf 0
+    wft 1000
+    target newcrate
+    menu myshelf 0
+    wft 1000
+    target newcrate
+    menu myshelf 0
+    wft 1000
+    target newcrate
+    getlabel backpack ping
+    gumpclose 3232825965
+    while findtype 3705|3702|3701|2473 newcrate as shipinnercontainer
+        getlabel shipinnercontainer shipdesc
+        if "0 items, 0 stones" in shipdesc
+            @ignore shipinnercontainer
+        else 
+            while queued
+                //donothing
+            endwhile
+            dclick shipinnercontainer
+            pause 500
+            getlabel backpack ping
+            @ignore shipinnercontainer
+        endif
+    endwhile
+    @clearignore 
+    while findtype "doubloon|gold coin|void orb|research materials|spell hue deed|black market goods|redline bottle|3712|3648|3650|3708|3648|2475|3649|29833|29832" newcrate as chest1dump
+        drop backpack
+        lift chest1dump 60000
+        drop lootchestdump -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endwhile
+    while findtype "8454|8455|27612|2463|bag of gems|3530|2508|7710" newcrate as chest2dump
+        drop backpack
+        lift chest2dump 60000
+        drop lootchestdump2 -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endwhile
+    while findtype "5192|19199|29086|29077|17083|red envelope|hunting permit|15178|card|soul jar|candy corn|colonial marks|19822|58326|gem" newcrate as chest3dump
+        drop backpack
+        lift chest3dump 60000
+        drop lootchestdump3 -1 -1 0
+        while queued
+            //donothing
+        endwhile
+    endwhile
+    hotkey 'Set Grab Item HotBag'
+    wft 1000
+    target backpack
+    while findtype "chain link|29368|18660|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|55247|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|bottle set|entrail bucket|mounted stalaghorn|sea glass bulb|juggling daggers|st patricks cross|divination orb|mirror display|murder of crows|charmed cobra|prodigy fiddle|wilting rose belljar|scale of balance|screaming mandrake|statue of the siren|the final hour|55204|specimen jars|shattered weapon|bird cage|widows grief|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|statue|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|2594|51321|3838|51318|45259|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|39898|39896|39892|39918|39911|39916|39897|39905|39891|39917|39912|39909|39889|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|7947|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7127|3861|24343|3821" newcrate as bitem
+        hotkey 'Grab Item' 
+        target bitem
+        while queued
+            //donothing
+        endwhile
+        if insysmsg "That container cannot hold"
+            break
+        endif
+    endwhile
+    getlabel backpack ping
+    while findtype 5901|5899|5903|5905|5365 newcrate as bitem
+        hotkey 'Grab Item' 
+        target bitem
+        while queued
+            //donothing
+        endwhile
+        if insysmsg "That container cannot hold"
+            break
+        endif
+    endwhile
+    while findtype 5901|5899|5903|5905 backpack as footwear
+        getlabel footwear desc
+        if "[blessed]" in desc
+            @ignore footwear
+        elseif findtype "scissors" backpack as footcutter
+            while queued
+                //donothing
+            endwhile
+            dclick footcutter
+            wft 1000
+            target footwear
+            pause 500
+            getlabel backpack ping
+        else
+            drop backpack
+            lift footwear 60000
+            drop lootchestdump2 -1 -1 0
+        endif
+    endwhile   
+    //Dumping all items
+    menu respile 0
+    wft 1000
+    target 'self'
+    menu gardenshelf 0
+    wft 1000
+    target 'self'
+    menu flooringrack 0
+    wft 1000
+    target 'self'
+    menu chainlinktome 0
+    menu rareclothtome 0
+    menu lorepagetome 0
+    menu dyestome 0
+    menu arcanerunetome 0
+    menu treasuremaptome 0
+    menu shipupgradetome 0
+    menu skillmasterytome 0
+    menu collectablecardtome 0
+    menu oremaptome 0
+    menu skinningmaptome 0
+    menu lumbermaptome 0
+    menu fishingmaptome 0
+    menu magicrecycler 1
+    getlabel backpack ping
+    hotkey 'Grab Item' 
+    wft 1000
+    target newcrate
+    while queued
+        //donothing
+    endwhile
+    getlabel backpack ping
+    if varexist repbench
+        dclick repbench
+        pause 2000
+        getlabel backpack ping
+    endif
+    menu myshelf 0
+    wft 1000
+    target self
+    getlabel backpack ping
+    gumpclose 3232825965
+    menu myshelf 1
+    getlabel newcrate desc
+    if "0 items, 0 stones" in desc and findtype 3703 ground 0 -1 2 as trashbarrel
+        drop backpack
+        lift newcrate
+        drop trashbarrel
+        while queued
+            //donothing
+        endwhile
+        getlabel newcrate desc
+    elseif "0 items, 0 stones" in desc and findtype 3703 backpack as trashbarrel
+        drop backpack
+        lift newcrate
+        drop trashbarrel
+        while queued
+            //donothing
+        endwhile
+        getlabel newcrate desc
+    endif
+endif
+
 //Resupply
 menu myshelf 1
 getlabel backpack ping
@@ -1476,25 +1635,6 @@ if "RestockTrapRune" = 1
     waitforgump 3561255175 500
     gumpclose 3561255175
 endif
-@clearignore 
-if "DepositGroundGold" = 1
-    while findtype "gold coin" ground -1 -1 2 as bapgold
-        clearsysmsg 
-        drop backpack
-        lift bapgold 60000
-        drop deposafe -1 -1 0
-        getlabel backpack ping
-        if insysmsg "You deposit"
-            //donothing
-        else
-            @ignore bapgold
-        endif
-        while queued
-            //donothing
-        endwhile
-    endwhile
-endif
-
 clearall
 @clearignore 
 overhead '*dump done*' 181

@@ -1,0 +1,190 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/7a2b76de-d234-4e7e-af86-5043e4832e34 for latest
+# Automation by Jaseowns
+## Script: Tamer Background Script
+## Created by: demlar#0
+#############################################
+
+@setvar! skinning   0
+@setvar! vet        1
+#cast cure/heal
+@setvar! heals      1  
+@setvar! crook      1
+@setvar! overweight 1
+@setvar! pouch      1
+@setvar! food       0
+@setvar! grabgold   1
+
+#cooldowns
+@setvar! healCD         500
+@setvar! vetCD          5300
+@setvar! crookCD        20000
+@setvar! skinningCD     2000
+@setvar! overweightCD   1000
+@setvar! pouchCD        700
+
+
+@setvar! goldToDrop  600
+#MUST BE SET this will be gold you want to pick max weight limit
+@setvar! goldWeight  425
+
+
+if skinning = 1
+    if not varexist skinningTimer
+        createtimer skinningTimer 
+        settimer skinningTimer skinningCD
+    endif
+endif
+
+if vet = 1
+    if not varexist vetTimer
+    createtimer vetTimer
+    settimer vetTimer vetCD
+    endif
+endif
+
+
+if crook = 1
+    if not varexist crookTimer
+        createtimer crookTimer
+        settimer crookTimer crookCD
+    endif
+endif
+
+if overweight = 1
+    if not varexist overweightTimer
+        createtimer overweightTimer
+        settimer overweightTimer overweightCD
+    endif
+endif
+
+if pouch = 1
+    if not varexist pouchTimer
+    createtimer pouchTimer
+        settimer pouchTimer pouchCD
+    endif
+endif
+
+if heals = 1
+    if not varexist pouchTimer
+        createtimer healTimer
+        settimer healTimer healCD
+    endif
+endif
+
+
+while not dead
+    
+#if casting and lastTarget = self
+#    continue
+#endif
+    if heals = 1
+        if not casting
+            if timer healTimer > healCD
+                if poisoned
+                    cast 'cure'
+                    wft 
+                    target self
+                endif
+                if diffhits > 20  
+                    cast 'greater heal'
+                    wft 
+                    hotkey "Target Self"
+                    wft 
+                endif
+                if diffhits < 10 and diffhits != 0 
+                    cast 'heal'
+                    wft
+                    target self
+                endif
+                settimer healTimer 0
+            endif
+        endif
+    endif
+    if vet = 1
+        if not casting and not targetexists 
+            if timer vetTimer > vetCD
+                if findtype 'veterinary supplies' as bvet
+                    if not insysmsg 'You or your nearby'
+                        dclick bvet
+                        settimer vetTimer 0
+                        #wait 5300
+                    endif 
+                endif
+            endif
+        endif
+    endif
+    
+     if crook = 1
+         if not casting
+             if followers > 0 and timer crookTimer >= crookCD   
+                @clearignore
+                if findtype 3713 backpack as crook
+                    getlabel crook crook_status
+                    if 'activated' in crook_status
+                        #It is already active, do nothing
+                    else
+                        dclick crook
+                        wait 350
+                    endif
+                    settimer crookTimer 0
+                endif
+            endif
+        endif
+    endif
+    if skinning = 1
+        if not casting
+            if findtype "corpse" ground -1 -1 2 as skinCorpse
+                if findtype "Elven Spellblade" backpack and timer skinningTimer >= skinningCD
+                    while not targetexists 
+                        useskill 'forensicevaluation'
+                    endwhile
+                    if targetexists beneficial or targetexists neutral
+                        hotkey "Target Self"
+                        wait 200
+                        settimer skinningTimer 0
+                        @ignore skinCorpse
+                    endif
+                endif
+            endif
+        endif
+    endif
+    
+    if pouch = 1
+        if paralyzed and timer pouchTimer > pouchCD
+            say [pouch
+            settimer pouchTimer 0
+            wait 350
+            if findtype "a rune tome" as rc
+                dclick rc
+                waitforgump 167090027
+                gumpresponse 202 167090027
+                waitforgump 167090027
+                gumpresponse 11 167090027
+            endif
+        endif
+    endif
+    
+    if overweight = 1
+        if weight > maxweight and timer overweightTimer > overweightCD
+            overhead "Overweight" 34
+            settimer overweightTimer 0
+            if goldToDrop > 0
+                if findtype "gold coin" backpack as goldpile
+                    lift goldpile goldToDrop
+                    droprelloc 0 0
+                    wait 350
+                    overhead "Gold Dropped" 55
+                endif
+            endif
+        endif
+    endif
+
+    if food = 1 and not findbuff "Food Satisfaction"
+        if findtype "tray" backpack as foodtray
+            dclick foodtray
+            wait 350
+        endif
+    endif
+    
+    wait 50
+endwhile  

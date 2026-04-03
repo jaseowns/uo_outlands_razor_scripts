@@ -1,0 +1,531 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/9004d8a8-404c-46b5-9aa9-3125b3aa267d for latest
+# Automation by Jaseowns
+## Script: Magery/Eval Intel 0 to GM
+## Created by: nulreth#0
+#############################################
+
+// ==========================================================
+// MAGERY / EVAL INT TRAINER
+// Outlands Version - By Nulreth
+// ==========================================================
+//
+// TrainMode:
+//   1 = Magery only
+//   2 = Eval Int only
+//   3 = Both
+//
+// EvalTrainMode:
+//   1 = Greater Heal spam
+//   2 = Water Elemental spam
+//
+//
+// ==========================================================
+
+
+// =========================
+// --- USER SETTINGS ---
+// =========================
+
+// Master training mode
+// 1 = Magery only
+// 2 = Eval Int only
+// 3 = Both
+@setvar! "TrainMode" 1
+
+// After Magery 100, Eval training mode:
+// 1 = Greater Heal spam
+// 2 = Water Elemental spam
+@setvar! "EvalTrainMode" 1
+
+// If you are getting ^You have not recovered^ messages, increase by 100
+@setvar! "WaitTimer" 500
+
+// If somehow you have already unlocked Spirit Pact for Water Elemental, set this to 1
+@setvar! "WaterEleSpiritPact" 0
+
+// Set this to 1 if you want to train 50 to 80 outside shelter dungeon
+@setvar! "ShelterOverride" 0
+
+// Eat food for mana regen support
+@setvar! food 1
+
+
+// =========================
+// --- INTERNAL STATE ---
+// =========================
+@setvar! "in_shelter" 0
+@setvar! "restock_method" 0
+@setvar! "ManaThreshold" 20
+
+
+// =========================
+// --- SHELTER CHECK SETUP ---
+// =========================
+removelist "shelter_checklist"
+createlist "shelter_checklist"
+
+// 4150 hay
+// 3948 trash barrel
+// 3703 moongate
+
+if "TrainMode" = 1
+    if skill "Magery" < 80
+        if "ShelterOverride" = 1
+        elseif findtypelist "shelter_checklist" 4150|3948|3703 "ground" any 1 18
+            if atlist "shelter_checklist" 0 and atlist "shelter_checklist" 5 and not atlist "shelter_checklist" 6
+                @setvar! "in_shelter" 1
+            else
+                overhead "Go to the entrance of shelter dungeon first for increased skill gain!" 1159
+                stop
+            endif
+        else
+            overhead "Go to the entrance of shelter dungeon first for increased skill gain!" 1159
+            stop
+        endif
+    endif
+endif
+
+if "TrainMode" = 3
+    if skill "Magery" < 80
+        if "ShelterOverride" = 1
+        elseif findtypelist "shelter_checklist" 4150|3948|3703 "ground" any 1 18
+            if atlist "shelter_checklist" 0 and atlist "shelter_checklist" 5 and not atlist "shelter_checklist" 6
+                @setvar! "in_shelter" 1
+            else
+                overhead "Go to the entrance of shelter dungeon first for increased skill gain!" 1159
+                stop
+            endif
+        else
+            overhead "Go to the entrance of shelter dungeon first for increased skill gain!" 1159
+            stop
+        endif
+    endif
+endif
+
+
+// =========================
+// --- RESTOCK SETUP ---
+// =========================
+if findtype "storage shelf" ground 0 1 2 as myStorageShelf
+    @setvar! "restock_method" myStorageShelf
+else
+    overhead "No storage shelf nearby" 1159
+    overhead "Target your restock container" 1159
+    @setvar! "restock_container"
+endif
+
+
+// =========================
+// --- MAIN LOOP ---
+// =========================
+while not dead
+
+    // =========================
+    // --- STOP CONDITIONS ---
+    // =========================
+    if "TrainMode" = 1
+        if skill "Magery" >= 100
+            overhead "Magery finished!" 1159
+            stop
+        endif
+    endif
+
+    if "TrainMode" = 2
+        if skill "Evaluating Intelligence" >= 100
+            overhead "Evaluating Intelligence finished!" 1159
+            stop
+        endif
+    endif
+
+    if "TrainMode" = 3
+        if skill "Magery" >= 100
+            if skill "Evaluating Intelligence" >= 100
+                overhead "Magery and Evaluating Intelligence finished!" 1159
+                stop
+            endif
+        endif
+    endif
+
+
+    // =========================
+    // --- FOOD SUPPORT ---
+    // =========================
+    if food = 1
+        if not findbuff 'Food Satisfaction'
+            if findtype 'tray' backpack as foodtray
+                dclick foodtray
+                wait 300
+            endif
+        endif
+    endif
+
+
+    // ==========================================================
+    // --- MAGERY TRAINER ---
+    // ==========================================================
+    if "TrainMode" = 1
+        if skill "Magery" < 100
+
+            // --- RESTOCK FOR MAGERY OUTSIDE SHELTER ---
+            if "in_shelter" = 0
+                if counttype "Blood Moss" < 10 or counttype "Spider's Silk" < 10 or counttype "Mandrake Root%s%" < 10 or counttype "Nightshade" < 10 or counttype "Sulfurous Ash" < 10 or counttype "Garlic" < 10 or counttype "Ginseng" < 10
+                    if "restock_method" = 0
+                        restock 10
+                        wft 200
+                        target "restock_container"
+                    else
+                        menu "restock_method" 1
+                    endif
+                endif
+            endif
+
+            if mana < "ManaThreshold"
+                while diffmana > 3
+                    if not findbuff "actively meditating"
+                        hotkey "Meditation"
+                    endif
+                    wait 500
+
+                    if food = 1
+                        if not findbuff 'Food Satisfaction'
+                            if findtype 'tray' backpack as foodtray
+                                dclick foodtray
+                                wait 300
+                            endif
+                        endif
+                    endif
+                endwhile
+
+            elseif skill "Magery" < 50
+                overhead "Train Magery to 50 at an NPC first!" 1159
+                stop
+
+            elseif skill "Magery" < 60
+                @setvar! "ManaThreshold" 20
+
+                if hp < 40
+                    hotkey "Greater Heal"
+                else
+                    hotkey "lightning"
+                endif
+
+                wft 3500
+                hotkey "Target Self"
+
+            elseif skill "Magery" < 80
+                @setvar! "ManaThreshold" 20
+
+                if "in_shelter" = 0
+                    if "ShelterOverride" = 0
+                        overhead "You need Shelter Dungeon for 60-80 unless ShelterOverride = 1" 1159
+                        stop
+                    endif
+                endif
+
+                hotkey "Invisibility"
+                wft 5000
+                hotkey "Target Self"
+
+            else
+                if "in_shelter" = 1
+                    overhead "Time to leave shelter! Cannot gain over 80 in here" 1159
+                    stop
+                endif
+
+                @setvar! "ManaThreshold" 50
+
+                if findtype "a water elemental" true
+                    say "a water elemental release"
+                    wait 100
+                endif
+
+                hotkey "Water Elemental"
+
+                if "WaterEleSpiritPact" = 1
+                    wait 2500
+                else
+                    wait 5000
+                endif
+            endif
+        endif
+    endif
+
+
+    if "TrainMode" = 3
+        if skill "Magery" < 100
+
+            // --- RESTOCK FOR MAGERY OUTSIDE SHELTER ---
+            if "in_shelter" = 0
+                if counttype "Blood Moss" < 10 or counttype "Spider's Silk" < 10 or counttype "Mandrake Root%s%" < 10 or counttype "Nightshade" < 10 or counttype "Sulfurous Ash" < 10 or counttype "Garlic" < 10 or counttype "Ginseng" < 10
+                    if "restock_method" = 0
+                        restock 10
+                        wft 200
+                        target "restock_container"
+                    else
+                        menu "restock_method" 1
+                    endif
+                endif
+            endif
+
+            if mana < "ManaThreshold"
+                while diffmana > 3
+                    if not findbuff "actively meditating"
+                        hotkey "Meditation"
+                    endif
+                    wait 500
+
+                    if food = 1
+                        if not findbuff 'Food Satisfaction'
+                            if findtype 'tray' backpack as foodtray
+                                dclick foodtray
+                                wait 300
+                            endif
+                        endif
+                    endif
+                endwhile
+
+            elseif skill "Magery" < 50
+                overhead "Train Magery to 50 at an NPC first!" 1159
+                stop
+
+            elseif skill "Magery" < 60
+                @setvar! "ManaThreshold" 20
+
+                if hp < 40
+                    hotkey "Greater Heal"
+                else
+                    hotkey "lightning"
+                endif
+
+                wft 3500
+                hotkey "Target Self"
+
+            elseif skill "Magery" < 80
+                @setvar! "ManaThreshold" 20
+
+                if "in_shelter" = 0
+                    if "ShelterOverride" = 0
+                        overhead "You need Shelter Dungeon for 60-80 unless ShelterOverride = 1" 1159
+                        stop
+                    endif
+                endif
+
+                hotkey "Invisibility"
+                wft 5000
+                hotkey "Target Self"
+
+            else
+                if "in_shelter" = 1
+                    overhead "Time to leave shelter! Cannot gain over 80 in here" 1159
+                    stop
+                endif
+
+                @setvar! "ManaThreshold" 50
+
+                if findtype "a water elemental" true
+                    say "a water elemental release"
+                    wait 100
+                endif
+
+                hotkey "Water Elemental"
+
+                if "WaterEleSpiritPact" = 1
+                    wait 2500
+                else
+                    wait 5000
+                endif
+            endif
+        endif
+    endif
+
+
+    // ==========================================================
+    // --- EVAL INT TRAINER ---
+    // ==========================================================
+    if "TrainMode" = 2
+        if skill "Evaluating Intelligence" < 100
+
+            // --- RESTOCK FOR EVAL ---
+            if "EvalTrainMode" = 1
+                if counttype "Spider's Silk" < 10 or counttype "Garlic" < 10 or counttype "Ginseng" < 10 or counttype "Mandrake Root%s%" < 10
+                    if "restock_method" = 0
+                        restock 10
+                        wft 200
+                        target "restock_container"
+                    else
+                        menu "restock_method" 1
+                    endif
+                endif
+            endif
+
+            if "EvalTrainMode" = 2
+                if counttype "Blood Moss" < 10 or counttype "Spider's Silk" < 10 or counttype "Mandrake Root%s%" < 10
+                    if "restock_method" = 0
+                        restock 10
+                        wft 200
+                        target "restock_container"
+                    else
+                        menu "restock_method" 1
+                    endif
+                endif
+            endif
+
+            if "EvalTrainMode" = 1
+                @setvar! "ManaThreshold" 20
+
+                if mana < "ManaThreshold"
+                    while diffmana > 3
+                        if not findbuff "actively meditating"
+                            hotkey "Meditation"
+                        endif
+                        wait 500
+
+                        if food = 1
+                            if not findbuff 'Food Satisfaction'
+                                if findtype 'tray' backpack as foodtray
+                                    dclick foodtray
+                                    wait 300
+                                endif
+                            endif
+                        endif
+                    endwhile
+                else
+                    hotkey "Greater Heal"
+                    wft 3500
+                    hotkey "Target Self"
+                endif
+            endif
+
+            if "EvalTrainMode" = 2
+                @setvar! "ManaThreshold" 50
+
+                if mana < "ManaThreshold"
+                    while diffmana > 3
+                        if not findbuff "actively meditating"
+                            hotkey "Meditation"
+                        endif
+                        wait 500
+
+                        if food = 1
+                            if not findbuff 'Food Satisfaction'
+                                if findtype 'tray' backpack as foodtray
+                                    dclick foodtray
+                                    wait 300
+                                endif
+                            endif
+                        endif
+                    endwhile
+                else
+                    if findtype "a water elemental" true
+                        say "a water elemental release"
+                        wait 100
+                    endif
+
+                    hotkey "Water Elemental"
+
+                    if "WaterEleSpiritPact" = 1
+                        wait 2500
+                    else
+                        wait 5000
+                    endif
+                endif
+            endif
+        endif
+    endif
+
+
+    if "TrainMode" = 3
+        if skill "Magery" >= 100
+            if skill "Evaluating Intelligence" < 100
+
+                // --- RESTOCK FOR EVAL ---
+                if "EvalTrainMode" = 1
+                    if counttype "Spider's Silk" < 10 or counttype "Garlic" < 10 or counttype "Ginseng" < 10 or counttype "Mandrake Root%s%" < 10
+                        if "restock_method" = 0
+                            restock 10
+                            wft 200
+                            target "restock_container"
+                        else
+                            menu "restock_method" 1
+                        endif
+                    endif
+                endif
+
+                if "EvalTrainMode" = 2
+                    if counttype "Blood Moss" < 10 or counttype "Spider's Silk" < 10 or counttype "Mandrake Root%s%" < 10
+                        if "restock_method" = 0
+                            restock 10
+                            wft 200
+                            target "restock_container"
+                        else
+                            menu "restock_method" 1
+                        endif
+                    endif
+                endif
+
+                if "EvalTrainMode" = 1
+                    @setvar! "ManaThreshold" 20
+
+                    if mana < "ManaThreshold"
+                        while diffmana > 3
+                            if not findbuff "actively meditating"
+                                hotkey "Meditation"
+                            endif
+                            wait 500
+
+                            if food = 1
+                                if not findbuff 'Food Satisfaction'
+                                    if findtype 'tray' backpack as foodtray
+                                        dclick foodtray
+                                        wait 300
+                                    endif
+                                endif
+                            endif
+                        endwhile
+                    else
+                        hotkey "Greater Heal"
+                        wft 3500
+                        hotkey "Target Self"
+                    endif
+                endif
+
+                if "EvalTrainMode" = 2
+                    @setvar! "ManaThreshold" 50
+
+                    if mana < "ManaThreshold"
+                        while diffmana > 3
+                            if not findbuff "actively meditating"
+                                hotkey "Meditation"
+                            endif
+                            wait 500
+
+                            if food = 1
+                                if not findbuff 'Food Satisfaction'
+                                    if findtype 'tray' backpack as foodtray
+                                        dclick foodtray
+                                        wait 300
+                                    endif
+                                endif
+                            endif
+                        endwhile
+                    else
+                        if findtype "a water elemental" true
+                            say "a water elemental release"
+                            wait 100
+                        endif
+
+                        hotkey "Water Elemental"
+
+                        if "WaterEleSpiritPact" = 1
+                            wait 2500
+                        else
+                            wait 5000
+                        endif
+                    endif
+                endif
+            endif
+        endif
+    endif
+
+    wait "WaitTimer"
+endwhile

@@ -6,7 +6,7 @@
 
 # Bapeths Stabber Background 
 #
-# March 16th - potions are now used when a satchel is equipped on the player opposed to just in the backpack (both)
+# April 4th 2026 - Updated weapon set routine (with atlas) - it now properly sets Melee only, Ranged only, and both Melee and Ranged
 #
 # What it does:
 #
@@ -33,6 +33,8 @@
 # "Notes"
 # User should manually use Smoke Bombs and "Attack Last Target Hotkey" when not using Warmode Auto attack feature
 # Smoke Bomb hotkey script found below
+#
+# For Melee only users make sure you are within 9 tiles of your target before activating warmode Auto Attack otherwise the script will attack the mob and cause it to move around
 #
 # "REQUIRED": <---------- "Important information!"
 # User must create three cooldowns named:
@@ -172,7 +174,7 @@
 # (0 = off 1 = on) 
 #
 # AUTO SKIN BEFORE AUTO HIDE
-@setvar! "SkinBeforeHide" 1
+@setvar! "SkinBeforeHide" 0
 #
 ##############################################################################################################################################################################################################
 #
@@ -226,34 +228,48 @@ endif
 if gumpexists 2955404556
     gumpclose 2955404556
     overhead "Setting Weapons..." 45
-    overhead "Set both as the same if only one weapon" 45
     pause 400
-    overhead "Set Melee Wep..." 38
+    overhead "Set Melee Wep..." 68
+    overhead "Select Backpack if none..." 38
     hotkey "Set Last Target"
     wft 500
     while targetexists 
         //donothing
     endwhile
-    overhead "Melee Wep Set!" 38
-    @setvar "Melee Stabber Wep" lasttarget 
+    getlabel lasttarget wepdesc
+    if "backpack" in wepdesc
+        @unsetvar "Melee Stabber Wep"
+        overhead "No Melee Wep" 38
+    else
+        overhead "Melee Wep Set!" 68
+        @setvar "Melee Stabber Wep" lasttarget 
+    endif
     pause 400
-    overhead "Set Ranged Wep..." 88
+    overhead "Set Ranged Wep..." 83
+    overhead "Select Backpack if none..." 38
     hotkey "Set Last Target"
     wft 500
     while targetexists 
         //donothing
     endwhile
-    @setvar "Ranged Stabber Wep" lasttarget 
-    overhead "Ranged Wep Set!" 88
+    getlabel lasttarget wepdesc
+    if "backpack" in wepdesc
+        @unsetvar "Ranged Stabber Wep"
+        overhead "No Ranged Wep" 38
+    else
+        @setvar "Ranged Stabber Wep" lasttarget 
+        overhead "Ranged Wep Set!" 83
+    endif
+    hotkey "Cancel Current Target"
 endif
-if not timerexists BapBaseStabberWep
+if varexist "Ranged Stabber Wep" and not timerexists BapBaseStabberWep
     if gumpexists 341416395
         gumpclose 341416395
         createtimer BapBaseStabberWep
         overhead "*Ranged Set*" 2085
     endif
 endif
-if timerexists BapBaseStabberWep
+if varexist "Melee Stabber Wep" and timerexists BapBaseStabberWep
     if gumpexists 341416395
         gumpclose 341416395
         removetimer BapBaseStabberWep
@@ -291,28 +307,36 @@ if timerexists baptabtimer
         if timerexists BapCancelAttack
             removetimer BapCancelAttack
         endif
-        if skill "Archery" >= 50 or skill "Fishing" >= 50
-            if find "Manual Override" ground -1 -1 1
-                if find "Melee Stabber Wep" backpack
-                    while queued
-                        //donothing
-                    endwhile
-                    dclick "Melee Stabber Wep"
-                    getlabel backpack ping
-                endif
-            elseif find "Manual Override" ground -1 -1 2
-                createtimer BapCancelAttack
-            elseif find "Manual Override" ground -1 -1 3
-                createtimer BapCancelAttack
-            elseif find "Manual Override" ground -1 -1 4
-                createtimer BapCancelAttack
-            elseif find "Ranged Stabber Wep" backpack
+        if find "Manual Override" ground -1 -1 1
+            if find "Melee Stabber Wep" backpack
                 while queued
                     //donothing
                 endwhile
-                dclick "Ranged Stabber Wep"
+                dclick "Melee Stabber Wep"
                 getlabel backpack ping
             endif
+        elseif varexist "Melee Stabber Wep" and find "Manual Override" ground -1 -1 2
+            createtimer BapCancelAttack
+        elseif varexist "Melee Stabber Wep" and find "Manual Override" ground -1 -1 3
+            createtimer BapCancelAttack
+        elseif varexist "Melee Stabber Wep" and find "Manual Override" ground -1 -1 4
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "Manual Override" ground -1 -1 5
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "Manual Override" ground -1 -1 6
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "Manual Override" ground -1 -1 7
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "Manual Override" ground -1 -1 8
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "Manual Override" ground -1 -1 9
+            createtimer BapCancelAttack
+        elseif find "Ranged Stabber Wep" backpack
+            while queued
+                //donothing
+            endwhile
+            dclick "Ranged Stabber Wep"
+            getlabel backpack ping
         endif
         if timerexists BapCancelAttack
             //donothing
@@ -402,28 +426,36 @@ if timerexists baptabtimer
         endif
     elseif timer baptabtimer >= 200 and warmode and find "BapStabTarget" ground and hidden and not cooldown "Stealing" and not cooldown "Stealth" and not cooldown "Hiding" and not timerexists StabberOTS
         clearsysmsg 
-        if skill "Archery" >= 50 or skill "Fishing" >= 50
-            if find "BapStabTarget" ground -1 -1 1
-                if find "Melee Stabber Wep" backpack
-                    while queued
-                        //donothing
-                    endwhile
-                    dclick "Melee Stabber Wep"
-                    getlabel backpack ping
-                endif
-            elseif find "BapStabTarget" ground -1 -1 2
-                createtimer BapCancelAttack
-            elseif find "BapStabTarget" ground -1 -1 3
-                createtimer BapCancelAttack
-            elseif find "BapStabTarget" ground -1 -1 4
-                createtimer BapCancelAttack
-            elseif find "Ranged Stabber Wep" backpack
+        if find "BapStabTarget" ground -1 -1 1
+            if find "Melee Stabber Wep" backpack
                 while queued
                     //donothing
                 endwhile
-                dclick "Ranged Stabber Wep"
+                dclick "Melee Stabber Wep"
                 getlabel backpack ping
             endif
+        elseif varexist "Melee Stabber Wep" and find "BapStabTarget" ground -1 -1 2
+            createtimer BapCancelAttack
+        elseif varexist "Melee Stabber Wep" and find "BapStabTarget" ground -1 -1 3
+            createtimer BapCancelAttack
+        elseif varexist "Melee Stabber Wep" and find "BapStabTarget" ground -1 -1 4
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "BapStabTarget" ground -1 -1 5
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "BapStabTarget" ground -1 -1 6
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "BapStabTarget" ground -1 -1 7
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "BapStabTarget" ground -1 -1 8
+            createtimer BapCancelAttack
+        elseif not varexist "Ranged Stabber Wep" and find "BapStabTarget" ground -1 -1 9
+            createtimer BapCancelAttack
+        elseif find "Ranged Stabber Wep" backpack
+            while queued
+                //donothing
+            endwhile
+            dclick "Ranged Stabber Wep"
+            getlabel backpack ping
         endif
         if timerexists BapCancelAttack
             //donothing

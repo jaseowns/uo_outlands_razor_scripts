@@ -1,0 +1,1016 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/ad63faef-7f1e-444a-8079-1bc2af86053b for latest
+# Automation by Jaseowns
+## Script: AUTO DEXXER LEVELING TAMER
+## Created by: richard_78418#0
+#############################################
+
+#AUTO DEXXER LEVELING TAMER By ZentosPlay
+#This version is a modification of Jaseowns' original script (https://www.youtube.com/@Jaseowns)
+#The idea is to use it during Leveling, as it uses Bandages and not Veterinary Supply
+#It also spams Animal Lore
+# UO Outlands
+
+########################################
+# V 1.0  - Last Updated: 17/04/2026 ##
+########################################
+
+# Set the primary pet variable: https://outlands.uorazorscripts.com/script/eeddf9ef-078c-400a-b136-39499bfc1709
+
+## Targeting (Warmode)
+
+
+@setvar! requireWarModeToHealPets 1
+@setvar! ohCrapDrinkAHealthPotHpCheck 50
+@setvar! bandageCheckTimerCd 5000
+@setvar! petHealRange 5
+
+@setvar! automaticallySkinCorpses 1
+
+################################
+###### Potion Controllers
+################
+@setvar! automaticallyDrinkStrPot 0
+@setvar! automaticallyDrinkAgiPot 1
+@setvar! automaticallyDrinkMagicPot 1
+@setvar! automaticallyDrinkHealPot 1
+@setvar! automaticallyDrinkCurePot 1
+@setvar! automaticallyDrinkRefreshPot 1
+
+@setvar! hpCheckToTriggerHealPotion 45
+@setvar! hpCheckToTriggerCurePotion 45
+@setvar! stamDiffCheckToTriggerRedPotion 10
+
+@setvar! drinkPotionsEvenIfInWarModeAndYouLoseHealth 1
+
+
+################################
+###### Chiv abilities
+################
+@setvar! useCleanseByFireAutomatically 1
+@setvar! useCloseWoundsAutomatically 1
+@setvar! useHolyLightAutomatically 1
+@setvar! useDivineFuryAutomatically 1
+@setvar! hpTriggerForHolyLight 35
+@setvar! lowHealthTriggerForNobleSacrifice 40
+
+################################
+###### Chiv cooldowns
+################
+@setvar! cdCleanseByFire 31000
+@setvar! cdCloseWounds 31000
+@setvar! cdHolyLight 31000
+@setvar! cdDivineFury 31000
+@setvar! cdNobleSacrifice 31000
+
+################################
+###### Chiv abilities overheads
+################
+@setvar! showChivUsageAsOverhead 1
+@setvar! showChivUsageAsSystemMessage 1
+@setvar! showChivUsageAsOverheadColor 88
+@setvar! showChivUsageAsSystemMessageColor 88
+
+###########
+# If shit is not working right, adjust this number to ping
+#####
+@setvar! minimumWaitForPing 200
+@setvar! minimumWaitForPingUnequipping 650
+@setvar! cdPreventChivAbilitySpam 750
+@setvar! cdSkinningCheck 3000
+@setvar! cdPreventOverheadSpam 2000
+
+settimer bandageCheckTimer bandageCheckTimerCd
+settimer preventOverheadSpamTimer cdPreventOverheadSpam
+settimer preventChivAbilitySpamTimer cdPreventChivAbilitySpam
+settimer sCheck 12000
+@setvar! animalLoreCombatCd 5000
+settimer animalLoreCombatTimer animalLoreCombatCd
+
+@setvar! myRangeCheckForTarget 2
+@setvar! myPreviousKillTarget 0
+@setvar! jaseowns_OutputHerdingActiveOverheadHelper 0
+
+
+
+########
+### Legacy variable kept for compatibility
+######
+@setvar! singleHealPetWithBandaids 0
+
+
+#####
+##  Skill Check Timer
+####
+@setvar! jaseowns_SkillTimerCD 11500
+settimer jaseowns_SkillTimerCheck jaseowns_SkillTimerCD
+
+#####
+##  System Message Check Timer
+####
+@setvar! jaseowns_SystemMsgCheckCD 1000
+settimer jaseowns_SystemMsgCheck jaseowns_SystemMsgCheckCD
+
+#####
+##  Kill Target Check Timer
+####
+@setvar! jaseowns_KillTimerCD 1000
+settimer jaseowns_KillTimer jaseowns_KillTimerCD
+
+#####
+##  Herd Again Check Timer
+####
+@setvar! jaseowns_HerdAgainTimerCD 8000
+settimer jaseowns_HerdAgainTimer jaseowns_HerdAgainTimerCD
+
+#####
+##  Targeting Variables
+####
+@setvar! jaseowns_CurrentTargetFocus 0
+@setvar! jaseowns_LastFocusAggressionTarget 0
+@setvar! jaseowns_KillTarget 0
+
+if not varexist jaseowns_PetOne
+    @setvar jaseowns_PetOne 0
+endif
+
+if not varexist jaseowns_PetTwo
+    @setvar jaseowns_PetTwo 0
+endif
+
+if not varexist jaseowns_PetThree
+    @setvar jaseowns_PetThree 0
+endif
+
+if not varexist jaseowns_PetFour
+    @setvar jaseowns_PetFour 0
+endif
+
+if not varexist jaseowns_PetFive
+    @setvar jaseowns_PetFive 0
+endif
+
+if varexist jase_righthand
+    if not findlayer self righthand and jase_righthand != 0
+        dclick jase_righthand
+        wait 650
+    endif
+endif
+
+clearsysmsg 
+
+
+@setvar! attemptDiscord 0
+if skill "Discordance" >= 50 and findtype "bamboo flute|tambourine|drum|lute|lap harp" backpack as inny
+    @setvar! attemptDiscord 1
+endif
+
+
+@setvar! jase_myHandCheckTimerCD 2000
+settimer jase_myHandCheckTimer jase_myHandCheckTimerCD
+
+if varexist jase_lefthand
+    if not findlayer self lefthand and jase_lefthand != 0 and find jase_lefthand backpack
+        if timer jase_myHandCheckTimer >= jase_myHandCheckTimerCD
+            dclick jase_lefthand
+            settimer jase_myHandCheckTimerCD 0
+            wait 650
+        endif
+    endif
+endif
+
+# Herding
+@setvar! isHerdingActive 0
+if findtype 3713 self as firstJrook
+    while isHerdingActive = 0
+        if counttype 3713 self > 1
+            @clearignore 
+            while findtype 3713 self as jrook
+                getlabel jrook multiDesc
+                if 'activated' in multiDesc
+                    @setvar! isHerdingActive 1
+                    if jaseowns_OutputHerdingActiveOverheadHelper = 1
+                        overhead 'Herding Active' 88
+                        overhead '{{multiDesc}}'
+                    endif
+                    break
+                endif
+                @ignore jrook
+            endwhile
+            @clearignore 
+            if isHerdingActive = 0
+                dclick firstJrook
+            endif
+        endif
+        
+        if isHerdingActive = 0
+            getlabel firstJrook desc
+            if 'activated' in desc
+                @setvar! isHerdingActive 1
+                if jaseowns_OutputHerdingActiveOverheadHelper = 1
+                    overhead 'Herding Active' 88
+                    overhead '{{desc}}'
+                endif
+            else
+                dclick firstJrook
+                getlabel firstJrook desc
+                @setvar! isHerdingActive 1
+                if jaseowns_OutputHerdingActiveOverheadHelper = 1
+                    overhead 'Herding Active' 88
+                    overhead '{{desc}}'
+                endif
+            endif 
+        endif
+    endwhile
+endif
+
+clearsysmsg 
+while not dead 
+        
+    if varexist jase_righthand
+        if not findlayer self righthand and jase_righthand != 0 and find jase_righthand backpack
+            if timer jase_myHandCheckTimer >= jase_myHandCheckTimerCD
+                dclick jase_righthand
+                settimer jase_myHandCheckTimerCD 0
+                wait 650
+            endif
+        endif
+    endif
+
+
+    
+    
+    if not cooldown "MyDragon" and findtype "broken crystals" ground -1 -1 6 
+        cooldown "MyDragon" 12500
+    endif
+    
+    
+
+
+    if insysmsg "The world will save in"
+        say "Jaseowns says the world is ending soon..." 88
+    elseif insysmsg "The world is saving"
+        settimer jaseowns_WorldSaveTimer 0
+        while not insysmsg "World save complete"
+            sysmsg "The world is saving..." 88
+            // wait
+            if timer jaseowns_WorldSaveTimer >= 10000
+                break
+            endif
+        endwhile
+        removetimer jaseowns_WorldSaveTimer
+        say "The world has been saved!" 88
+    endif
+    
+    ###############
+    ### Animal Lore no alvo em combate (a cada 5s)
+    #############
+    if myKillTarget != 0 and timer animalLoreCombatTimer >= animalLoreCombatCd
+        if find myKillTarget ground -1 -1 10
+            if not targetexists
+                hotkey 'Animal Lore'
+                waitfortarget 1000
+            endif
+
+            if targetexists
+                target myKillTarget
+                overhead 'LORE NO ALVO' 88
+                settimer animalLoreCombatTimer 0
+                wait 150
+            endif
+        endif
+    endif
+
+    ###############
+    ### Skinning
+    #############
+    if automaticallySkinCorpses = 1 and findtype "corpse" ground -1 -1 2 as jorpse
+        if not timerexists skinningCheckTimer
+            settimer skinningCheckTimer cdSkinningCheck
+        endif
+        if findtype "Elven Spellblade" backpack and timer skinningCheckTimer >= cdSkinningCheck 
+            while not targetexists 
+                useskill 'forensicevaluation'
+            endwhile
+            if targetexists 
+                hotkey "Target Self"
+                wait minimumWaitForPing
+                settimer skinningCheckTimer 0
+                @ignore jorpse
+            endif
+        endif
+    endif
+
+    ###############
+    ### Pet Healing - stable test
+    #############
+    @setvar! canUseKit 1
+
+    if requireWarModeToHealPets = 1 and not warmode
+        @setvar! canUseKit 0
+    endif
+
+    if not bandaging
+        if canUseKit = 1 and timer bandageCheckTimer > bandageCheckTimerCd
+
+            if varexist jaseowns_PetOne and jaseowns_PetOne != 0 and find jaseowns_PetOne ground -1 -1 petHealRange
+                if findtype "clean bandage%s%" backpack as item
+                    if targetexists
+                        hotkey "Cancel Current Target"
+                        wait 150
+                    endif
+
+                    overhead "TRY PET BANDAGE" 88
+                    dclick item
+                    wft 800
+
+                    if targetexists
+                        target jaseowns_PetOne
+                        overhead "PET TARGET SENT" 88
+                        settimer bandageCheckTimer 0
+                    else
+                        overhead "NO HEAL CURSOR" 34
+                    endif
+                else
+                    overhead "NO BANDAGES" 34
+                endif
+            else
+                overhead "PET NOT FOUND/RANGE" 34
+            endif
+        endif
+    else
+        settimer bandageCheckTimer 0
+    endif
+
+        
+    ###############
+    ### Potions
+    #############
+    if not findtype "White Potion" backpack
+        @setvar! automaticallyDrinkStrPot 0
+    endif
+
+    if not findtype "Blue Potion" backpack
+        @setvar! automaticallyDrinkAgiPot 0
+    endif
+
+    if not findtype "Black Potion" backpack
+        @setvar! automaticallyDrinkMagicPot 0
+    endif
+
+    # Eat food if we got it
+    if not findbuff "food" and findtype "tray" backpack as jood
+        dclick jood
+        wait minimumWaitForPing
+    endif
+
+    @setvar! needStrBuff 0
+    @setvar! needDexBuff 0
+    @setvar! needMagicBuff 0
+    @setvar! needHealPot 0
+    @setvar! needCurePot 0
+    @setvar! needRefreshPot 0
+
+    @setvar! drinkThosePots 0
+
+    if targetInRange = 1 
+       @setvar! drinkThosePots 1   
+    elseif warmode and drinkPotionsEvenIfInWarModeAndYouLoseHealth = 1 and hp < maxhp
+        @setvar! drinkThosePots 1   
+    endif
+
+    if automaticallyDrinkStrPot = 1 and drinkThosePots = 1 and not findbuff "Strength"
+        @setvar! needStrBuff 1
+    endif
+
+    if automaticallyDrinkAgiPot = 1 and drinkThosePots = 1 and not findbuff "Agility"
+        @setvar! needDexBuff 1 
+    endif
+
+    if automaticallyDrinkMagicPot = 1 and drinkThosePots = 1 and not findbuff "Magic Resist Potion"
+        @setvar! needMagicBuff 1 
+    endif
+
+    if automaticallyDrinkHealPot = 1 and hp <= hpCheckToTriggerHealPotion
+        @setvar! needHealPot 1 
+    endif
+
+    if automaticallyDrinkCurePot = 1 and poisoned and hp <= hpCheckToTriggerCurePotion
+        @setvar! needCurePot 1 
+    endif
+
+    if automaticallyDrinkRefreshPot = 1 and diffstam >= stamDiffCheckToTriggerRedPotion
+        @setvar! needRefreshPot 1 
+    endif
+
+    if needStrBuff = 1 and not findtype "White Potion" backpack
+        @setvar! needStrBuff 0
+    endif
+
+    if needDexBuff = 1 and not findtype "Blue Potion" backpack
+        @setvar! needDexBuff 0
+    endif
+
+    if needMagicBuff = 1 and not findtype "Black Potion" backpack
+        @setvar! needMagicBuff 0
+    endif
+
+    if needHealPot = 1 and not findtype "Yellow Potion" backpack
+        @setvar! needHealPot 0
+    elseif needHealPot = 1 and findtype "Yellow Potion" backpack as item
+        getlabel item healPotDesc
+        if "next usable" in healPotDesc
+            @setvar! needHealPot 0
+        else
+            @setvar! needHealPot 1
+        endif
+    endif
+
+    if needCurePot = 1 and not findtype "Orange Potion" backpack
+        @setvar! needCurePot 0
+    endif
+
+    if needRefreshPot = 1 and not findtype "Red Potion" backpack
+        @setvar! needRefreshPot 0
+    endif
+
+   
+    if needHealPot = 1
+        if findtype "Yellow Potion" backpack as jotion
+            overhead "chug heal"
+            dclick jotion
+            wait minimumWaitForPing
+            cooldown "Yellow Potion" 10000
+        else
+            overhead "No Heal potion found!" 34
+        endif
+    endif
+    
+    if needCurePot = 1
+        if findtype "Orange Potion" backpack as jotion
+            overhead "chug cure"
+            dclick jotion
+            wait minimumWaitForPing
+        else
+            overhead "No Cure potion found!" 34
+        endif
+    endif
+    
+                
+    if needDexBuff = 1
+        if findtype "Blue Potion" backpack as jotion
+            overhead "chug"
+            dclick jotion
+            wait minimumWaitForPing
+        else
+            overhead "No AGI potion found!" 34
+        endif
+    endif
+    
+    if automaticallyDrinkRefreshPot = 1 and diffstam >= stamDiffCheckToTriggerRedPotion
+        @setvar! needRefreshPot 1 
+    endif
+
+    if needRefreshPot = 1
+        if findtype "Red Potion" backpack as jotion
+            overhead "chug refresh"
+            dclick jotion
+            wait minimumWaitForPing
+        else
+            overhead "No Refresh potion found!" 34
+        endif
+    endif
+
+    if needStrBuff = 1
+        if findtype "White Potion" backpack as jotion
+            overhead "chug"
+            dclick jotion
+            wait minimumWaitForPing
+        else
+            overhead "No STR potion found!" 34
+        endif
+    endif
+    
+    if needMagicBuff = 1
+        if findtype "Black Potion" backpack as jotion
+            overhead "chug"
+            dclick jotion
+            wait minimumWaitForPing
+        else
+            overhead "No MR potion found!" 34
+        endif
+    endif
+    
+    
+    ###############
+    ### Self Healing
+    #############
+    if hp < maxhp
+        if not bandaging and findtype "clean bandage%s%" backpack as item
+            if targetexists
+                hotkey "Cancel Current Target"
+                wait 150
+            endif
+
+            dclick item
+            wft 800
+
+            if targetexists
+                hotkey "Target Self"
+            endif
+        endif
+        
+        if diffhits >= ohCrapDrinkAHealthPotHpCheck
+            if findtype "Yellow Potion" backpack as pot
+                dclick pot
+                wait 650
+            endif
+        endif
+    endif
+    
+    
+    ###############
+    ### Targeting (based on warmode on)
+    #############
+    if timer jaseowns_KillTimer < jaseowns_KillTimerCD
+        overhead "Waiting for you to loot bro" 88
+    endif
+    
+    if warmode and timer jaseowns_KillTimer >= jaseowns_KillTimerCD
+        
+        if myKillTarget != 0 and dead myKillTarget and myKillTargetInRangeToLoot = 1
+            overhead "Waiting for you to loot"
+            settimer jaseowns_KillTimer 0
+        elseif not dead myKillTarget and find myKillTarget ground -1 -1 2
+            @setvar! myKillTargetInRangeToLoot 1
+        else
+            @setvar! myKillTargetInRangeToLoot 0
+        endif
+    
+        @setvar! myKillTarget 0
+        @hotkey 'Target Closest Non-Friendly Monster'
+        wait minimumWaitForPing
+        if insysmsg "No one matching that was found"
+            if timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                overhead "No targets found" 34
+                settimer preventOverheadSpamTimer 0
+            endif
+        else
+            @setvar! myKillTarget lasttarget 
+        endif    
+        
+        if not varexist autoAttack
+            @setvar! autoAttack 1
+        endif
+        
+        if myKillTarget != 0 and myPreviousKillTarget != myKillTarget
+            getlabel myKillTarget mobDesc
+            @setvar! myPreviousKillTarget myKillTarget
+            if "(summoned" in mobDesc or "(bonded" in mobDesc or "(tame" in mobDesc
+                overhead "¼ Player pet - IGNORE ¼" 77 lasttarget
+                @setvar! autoAttack 0
+                @setvar! myKillTarget 0
+            else  
+                @setvar! autoAttack 1
+            endif    
+        endif
+        
+        if myKillTarget = 0
+            // do nothing
+        elseif not find myKillTarget ground -1 -1 myRangeCheckForTarget
+            if showTargetOverheadMessages = 1 and timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                if find lasttarget
+                    overhead "Ï ¼ OUT OF RANGE ¼ Ï" 88 lasttarget
+                else
+                    overhead "Ï ¼ OUT OF RANGE ¼ Ï" 88
+                endif
+                settimer preventOverheadSpamTimer 0
+            endif
+            if find myKillTarget ground -1 -1 8 and autoAttack = 1
+                attack myKillTarget 
+            endif
+        elseif autoAttack = 1
+            @setvar! targetInRange 1
+            if showTargetOverheadMessages = 1 and timer preventOverheadSpamTimer >= cdPreventOverheadSpam
+                if find myKillTarget
+                    overhead "Ï ¼¼ HERE ¼¼ Ï" 88 myKillTarget    
+                else
+                    overhead "Ï ¼¼ HERE ¼¼ Ï" 88
+                endif
+                settimer preventOverheadSpamTimer 0
+            endif
+            attack myKillTarget 
+        endif
+    endif
+    
+    ###############
+    ### Herding
+    #############
+    if myKillTarget != 0 and find myKillTarget ground -1 -1 12
+        @setvar jaseowns_KillTarget myKillTarget
+        if jaseowns_KillTarget != jaseowns_LastFocusAggressionTarget
+
+            if find jaseowns_PetOne
+                overhead "ý Guarding ý" 88 jaseowns_PetOne
+                menu jaseowns_PetOne 3
+            endif
+
+            if timer jaseowns_SkillTimerCheck >= jaseowns_SkillTimerCD and findtype 3713 self as jrook
+                settimer jaseowns_SystemMsgCheck 0
+                while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD
+                    if targetexists 'beneficial'
+                        hotkey "Cancel Current Target"
+                    elseif not targetexists 'neutral'
+                        overhead "ý ý Attempting Herd ý ý" 88 jaseowns_KillTarget
+                        useskill "ArmsLore"
+                        wft 500
+                    else
+                        break
+                    endif
+                endwhile
+                if targetexists 'neutral'
+                    target jaseowns_KillTarget
+                    settimer jaseowns_SystemMsgCheck 0
+                    while timer jaseowns_SystemMsgCheck <= jaseowns_SystemMsgCheckCD
+                        if insysmsg "You cannot inspect that."
+                            while not targetexists "harmful"
+                                say "ALL KILL" 88
+                                wft 500
+                            endwhile
+                            if targetexists "harmful"
+                                target jaseowns_KillTarget
+                                @setvar! jaseowns_LastFocusAggressionTarget jaseowns_KillTarget
+                                settimer jaseowns_HerdAgainTimer 0
+                                @setvar! jaseowns_DiscordThisTarget jaseowns_KillTarget
+                                break
+                            endif
+                        elseif insysmsg "Target cannot be seen"
+
+                        endif
+                    endwhile
+                endif
+            endif
+        endif
+    else
+        @setvar! jaseowns_DiscordThisTarget 0
+        cooldown "Discord Jarget" 0
+        @setvar! jaseowns_LastFocusAggressionTarget 0
+    endif
+
+    if timer jaseowns_HerdAgainTimer >= jaseowns_HerdAgainTimerCD
+        @setvar! jaseowns_LastFocusAggressionTarget 0
+    endif
+    
+    ###############
+    ### Discord Check
+    #############
+    if attemptDiscord = 1 
+        if find jaseowns_DiscordThisTarget ground -1 -1 10
+            getlabel myKillTarget jaseowns_DiscordDesc
+            if "discord" in jaseowns_DiscordDesc
+                // do nothing
+                // potentially update the cooldown
+            elseif not cooldown "Discord Jarget" and findtype "bamboo flute|tambourine|drum|lute|lap harp" backpack as inny
+                if not targetexists "harmful"
+                    useskill "Discordance"
+                    wft 500
+                endif
+                if insysmsg "What instrument" and targetexists "neutral"
+                    @setvar jase_MyInny inny
+                    target inny
+                    wft 500
+                endif
+                if targetexists "harmful"
+                    target myKillTarget
+                endif
+            endif
+            elseif not find jaseowns_DiscordThisTarget ground -1 -1 10
+            cooldown "Discord Jarget" 0
+        endif
+        
+        if not findbuff "song of discordance"
+            if not targetexists "harmful"
+                useskill "Discordance"
+                wft 500
+            endif
+            if insysmsg "What instrument" and targetexists "neutral"
+                @setvar jase_MyInny inny
+                target inny
+                wft 500
+            endif
+            if targetexists "harmful"
+                target backpack
+            endif
+        endif
+    endif
+    
+
+    
+    ###############
+    ### Chivalry
+    #############
+    if skill "Chivalry" >= 50
+
+        @setvar! chivSymbols 0
+        @setvar! cdCleanseByFire 31000
+        @setvar! cdCloseWounds 31000
+        @setvar! cdHolyLight 31000
+        @setvar! cdDivineFury 31000
+        @setvar! cdNobleSacrifice 31000
+
+        if not timerexists nobleSacrificeTimer
+            createtimer nobleSacrificeTimer
+            settimer nobleSacrificeTimer cdCleanseByFire
+        endif
+
+        if not timerexists cleanseByFireTimer
+            createtimer cleanseByFireTimer
+            settimer cleanseByFireTimer cdCleanseByFire
+        endif
+
+        if not timerexists closeWoundsTimer
+            createtimer closeWoundsTimer
+            settimer closeWoundsTimer cdCloseWounds
+        endif
+        
+        if not timerexists holyLightTimer
+            createtimer holyLightTimer
+            settimer holyLightTimer cdHolyLight
+        endif
+        
+        if not timerexists divineFuryTimer
+            createtimer divineFuryTimer
+            settimer divineFuryTimer cdDivineFury
+        endif
+        
+        while not gumpexists 1387930325
+            say "[ChivalryHotbar"
+            wait 200
+        endwhile
+        
+        if gumpexists 1387930325
+            if ingump "12/" 1387930325
+                @setvar! chivSymbols 12
+            elseif ingump "13/" 1387930325
+                @setvar! chivSymbols 13
+            elseif ingump "14/" 1387930325
+                @setvar! chivSymbols 14
+            elseif ingump "15/" 1387930325
+                @setvar! chivSymbols 15
+            elseif ingump "16/" 1387930325
+                @setvar! chivSymbols 16
+            elseif ingump "17/" 1387930325
+                @setvar! chivSymbols 17
+            elseif ingump "18/" 1387930325
+                @setvar! chivSymbols 18
+            elseif ingump "19/" 1387930325
+                @setvar! chivSymbols 19
+            elseif ingump "20/" 1387930325
+                @setvar! chivSymbols 20
+            elseif ingump "21/" 1387930325
+                @setvar! chivSymbols 21
+            elseif ingump "11/" 1387930325
+                @setvar! chivSymbols 11
+            elseif ingump "10/" 1387930325
+                @setvar! chivSymbols 10
+            elseif ingump "9/" 1387930325
+                @setvar! chivSymbols 9
+            elseif ingump "8/" 1387930325
+                @setvar! chivSymbols 8
+            elseif ingump "7/" 1387930325
+                @setvar! chivSymbols 7
+            elseif ingump "6/" 1387930325
+                @setvar! chivSymbols 6
+            elseif ingump "5/" 1387930325
+                @setvar! chivSymbols 5
+            elseif ingump "4/" 1387930325
+                @setvar! chivSymbols 4
+            elseif ingump "3/" 1387930325
+                @setvar! chivSymbols 3
+            elseif ingump "2/" 1387930325
+                @setvar! chivSymbols 2
+            elseif ingump "1/" 1387930325
+                @setvar! chivSymbols 1
+            elseif ingump "0/" 1387930325
+                @setvar! chivSymbols 0
+            endif
+        endif
+        
+        if hp <= lowHealthTriggerForNobleSacrifice and skill "Chivalry" >= 80
+            if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and timer nobleSacrificeTimer >= cdNobleSacrifice and 4 < chivSymbols
+                if skill "Healing" > 0
+                    hotkey 'Bandage Self'
+                    settimer aidsTimer 0
+                    wait minimumWaitForPing
+                endif
+                if showChivUsageAsOverhead = 1
+                    overhead "Noble Sacrifice" showChivUsageAsOverheadColor
+                endif
+                if showChivUsageAsSystemMessage = 1
+                    sysmsg "Noble Sacrifice" showChivUsageAsSystemMessageColor
+                endif
+                yell "[NobleSacrifice"
+                wft 500
+                hotkey "Target Self"
+                wait 200
+                if insysmsg "Holy symbols remaining:"
+                    settimer nobleSacrificeTimer 0
+                    settimer preventChivAbilitySpamTimer 0
+                    cooldown NobleSacrifice cdNobleSacrifice
+                endif
+                if gumpexists 1387930325
+                    if ingump "12/" 1387930325
+                        @setvar! chivSymbols 12
+                    elseif ingump "13/" 1387930325
+                        @setvar! chivSymbols 13
+                    elseif ingump "14/" 1387930325
+                        @setvar! chivSymbols 14
+                    elseif ingump "15/" 1387930325
+                        @setvar! chivSymbols 15
+                    elseif ingump "16/" 1387930325
+                        @setvar! chivSymbols 16
+                    elseif ingump "17/" 1387930325
+                        @setvar! chivSymbols 17
+                    elseif ingump "18/" 1387930325
+                        @setvar! chivSymbols 18
+                    elseif ingump "19/" 1387930325
+                        @setvar! chivSymbols 19
+                    elseif ingump "20/" 1387930325
+                        @setvar! chivSymbols 20
+                    elseif ingump "21/" 1387930325
+                        @setvar! chivSymbols 21
+                    elseif ingump "11/" 1387930325
+                        @setvar! chivSymbols 11
+                    elseif ingump "10/" 1387930325
+                        @setvar! chivSymbols 10
+                    elseif ingump "9/" 1387930325
+                        @setvar! chivSymbols 9
+                    elseif ingump "8/" 1387930325
+                        @setvar! chivSymbols 8
+                    elseif ingump "7/" 1387930325
+                        @setvar! chivSymbols 7
+                    elseif ingump "6/" 1387930325
+                        @setvar! chivSymbols 6
+                    elseif ingump "5/" 1387930325
+                        @setvar! chivSymbols 5
+                    elseif ingump "4/" 1387930325
+                        @setvar! chivSymbols 4
+                    elseif ingump "3/" 1387930325
+                        @setvar! chivSymbols 3
+                    elseif ingump "2/" 1387930325
+                        @setvar! chivSymbols 2
+                    elseif ingump "1/" 1387930325
+                        @setvar! chivSymbols 1
+                    elseif ingump "0/" 1387930325
+                        @setvar! chivSymbols 0
+                    endif
+                endif
+            endif
+        endif
+        
+        if poisoned and skill "Chivalry" >= 60
+            if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and useCleanseByFireAutomatically = 1 and timer cleanseByFireTimer >= cdCleanseByFire and 2 < chivSymbols
+                if showChivUsageAsOverhead = 1
+                    overhead "Cleanse by fire" showChivUsageAsOverheadColor
+                endif
+                if showChivUsageAsSystemMessage = 1
+                    sysmsg "Cleanse by fire" showChivUsageAsSystemMessageColor
+                endif
+                yell "[CleanseByFire"
+                wait 200
+                if insysmsg "Holy symbols remaining:"
+                    settimer cleanseByFireTimer 0
+                    settimer preventChivAbilitySpamTimer 0
+                    cooldown CleanseByFire cdCleanseByFire
+                endif
+            endif
+        elseif findbuff "bleed" or findbuff "disease" and skill "Chivalry" >= 70
+            if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and useCloseWoundsAutomatically = 1 and timer closeWoundsTimer >= cdCleanseByFire and 3 < chivSymbols
+                if showChivUsageAsOverhead = 1
+                    overhead "Close Wounds" showChivUsageAsOverheadColor
+                endif
+                if showChivUsageAsSystemMessage = 1
+                    sysmsg "Close Wounds" showChivUsageAsSystemMessageColor
+                endif
+                yell "[CloseWounds"
+                wait 200
+                if insysmsg "Holy symbols remaining:"
+                    settimer closeWoundsTimer 0
+                    settimer preventChivAbilitySpamTimer 0
+                    cooldown CloseWounds cdCloseWounds
+                endif
+            endif
+        endif
+        
+        if gumpexists 1387930325
+            if ingump "12/" 1387930325
+                @setvar! chivSymbols 12
+            elseif ingump "13/" 1387930325
+                @setvar! chivSymbols 13
+            elseif ingump "14/" 1387930325
+                @setvar! chivSymbols 14
+            elseif ingump "15/" 1387930325
+                @setvar! chivSymbols 15
+            elseif ingump "16/" 1387930325
+                @setvar! chivSymbols 16
+            elseif ingump "17/" 1387930325
+                @setvar! chivSymbols 17
+            elseif ingump "18/" 1387930325
+                @setvar! chivSymbols 18
+            elseif ingump "19/" 1387930325
+                @setvar! chivSymbols 19
+            elseif ingump "20/" 1387930325
+                @setvar! chivSymbols 20
+            elseif ingump "21/" 1387930325
+                @setvar! chivSymbols 21
+            elseif ingump "11/" 1387930325
+                @setvar! chivSymbols 11
+            elseif ingump "10/" 1387930325
+                @setvar! chivSymbols 10
+            elseif ingump "9/" 1387930325
+                @setvar! chivSymbols 9
+            elseif ingump "8/" 1387930325
+                @setvar! chivSymbols 8
+            elseif ingump "7/" 1387930325
+                @setvar! chivSymbols 7
+            elseif ingump "6/" 1387930325
+                @setvar! chivSymbols 6
+            elseif ingump "5/" 1387930325
+                @setvar! chivSymbols 5
+            elseif ingump "4/" 1387930325
+                @setvar! chivSymbols 4
+            elseif ingump "3/" 1387930325
+                @setvar! chivSymbols 3
+            elseif ingump "2/" 1387930325
+                @setvar! chivSymbols 2
+            elseif ingump "1/" 1387930325
+                @setvar! chivSymbols 1
+            elseif ingump "0/" 1387930325
+                @setvar! chivSymbols 0
+            endif
+        endif
+        
+        if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and useHolyLightAutomatically = 1 and hp <= hpTriggerForHolyLight and skill "Chivalry" >= 95
+            
+            @setvar! doubleCheckHolyLight 1
+        
+            if skill "Healing" > 0 and cdAids = 10000 and timer aidsTimer >= 9000
+                // skip holy light
+                overhead "Skipping Holy Light" 34
+                @setvar! doubleCheckHolyLight 0
+                // unless we gonna die
+                if hp <= 20 or poisoned
+                    overhead "Just kidding, do not wanna die" 34
+                    @setvar! doubleCheckHolyLight 1
+                endif
+            endif
+            
+            if doubleCheckHolyLight = 1
+                if timer holyLightTimer >= cdHolyLight and 5 < chivSymbols
+                    if showChivUsageAsOverhead = 1
+                        overhead "Holy Light" showChivUsageAsOverheadColor
+                    endif
+                    if showChivUsageAsSystemMessage = 1
+                        sysmsg "Holy Light" showChivUsageAsSystemMessageColor
+                    endif
+                    yell "[HolyLight"
+                    wait 200
+                    if insysmsg "Holy symbols remaining:"
+                        settimer holyLightTimer 0
+                        settimer preventChivAbilitySpamTimer 0
+                        cooldown HolyLight cdHolyLight
+                    endif
+                endif
+            endif
+        endif
+        
+        if timer preventChivAbilitySpamTimer >= cdPreventChivAbilitySpam and targetInRange = 1 and useDivineFuryAutomatically = 1 and skill "Chivalry" >= 85
+            if timer divineFuryTimer >= cdDivineFury and 4 < chivSymbols
+                if showChivUsageAsOverhead = 1
+                    overhead "Divine Fury" showChivUsageAsOverheadColor
+                endif
+                if showChivUsageAsSystemMessage = 1
+                    sysmsg "Divine Fury" showChivUsageAsSystemMessageColor
+                endif
+                yell "[DivineFury"
+                wait 200
+                if insysmsg "Holy symbols remaining:"
+                    settimer divineFuryTimer 0
+                    settimer preventChivAbilitySpamTimer 0
+                    cooldown DivineFury cdDivineFury
+                endif
+            endif
+        endif
+    endif
+
+endwhile    
+
+while dead 
+    overhead "Rip" 34
+    if gumpexists 2957810225
+        gumpresponse 1 2957810225
+        break
+    endif        
+    wait 500
+endwhile
+
+replay

@@ -1,0 +1,149 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/9e1f4f66-8fa1-4a3b-aa69-0f40031e7fc7 for latest
+# Automation by Jaseowns
+## Script: Brozan's Auto Mage
+## Created by: brozan_syal#0
+#############################################
+
+#Wizard Grimoire
+@setvar! castArrow 1
+@setvar! castHarm 1
+@setvar! castFireball 1
+@setvar! castLightning 1
+@setvar! moveShit 1
+@setvar! manaDrain 0
+@setvar! curseCast 1
+@setvar! poisonStrike 1
+@setvar! painSpike 1
+
+#Bard Stuff
+if skill 'Discordance' > 50
+    @setvar! isBard 1
+else 
+    @setvar! isBard 0
+endif
+
+# ============================================
+#   INITIAL TARGET
+# ============================================
+hotkey 'target closest non-friendly monster'
+@setvar! myKillTarget lasttarget
+@setvar! firstTarget myKillTarget
+
+if insysmsg "no one matching"
+    overhead "Nothing to attack" 34
+    @clearignore 
+    script "stayalive2"
+endif
+
+
+if not timerexists  'poisonStrikeTimer'
+    createtimer 'poisonStrikeTimer'
+endif
+
+settimer "poisonStrikeTimer" 0
+
+if moveShit = 1
+    #Move looted reagents to satchel
+    if findtype 3963|3980|3974|3973|3981|3962|3976|3972 backpack
+        if findtype "reagent satchel" self as 'WizardSatchel'
+            menu 'WizardSatchel' 0
+        endif
+    endif
+endif    
+
+
+if manaDrain = 1
+    cast 'Mana Drain'
+    wft 5500
+    target myKillTarget
+    wait 255
+endif    
+if curseCast = 1
+    cast 'Curse'
+    wft 5500
+    target myKillTarget
+    wait 255
+endif
+
+while mana > 12 and find myKillTarget ground -1 -1 12 as found
+    if diffhits >= 32
+        hotkey 'Drink Heal'
+        getlabel backpack ping
+    endif
+    if hits < 70 
+        overhead "Heal!" 33
+        script "stayalive2"
+    endif
+    
+    if mana < 75 and not cooldown "Mushroom"
+        hotkey 'Eat Magic Mushroom'
+    endif
+    
+    #bard stuff
+    if isBard = 1 and not cooldown "Discordance" and not findbuff "actively meditating" 
+        overhead "Discordance!"
+        useskill 'Discordance'
+        wft 250
+        target found
+    endif
+    
+    if not cooldown "Poison Strike" and timer "poisonStrikeTimer" >= 12000
+        whisper "[poisonstrike"
+        wft 500
+        target found
+        cooldown "Poison Strike" 30500
+    endif
+    
+    if castFireball = 1 and mana >= 9 and not findbuff 'Fireball Cooldown'
+        cast 'fireball'
+    elseif castLightning = 1 and mana >= 11 and not findbuff 'Lightning Cooldown'
+        cast 'Lightning'
+    elseif castHarm = 1 and mana >= 6 and not findbuff 'Harm Cooldown'
+        cast 'harm'
+    elseif castArrow = 1 and mana >= 4 and not findbuff 'Magic Arrow Cooldown'
+        cast 'magic arrow'
+    elseif mana >= 40
+        cast 'Flamestrike'
+        @setvar! flamedOnce 1
+    else
+        cast 'Mind Blast'
+    endif
+    #while casting 
+    #    wait 10
+    #endwhile
+    if targetexists 
+        target found
+    endif
+endwhile    
+
+#we got here because we ran out of mana or it Is dead 
+#stop casting 
+hotkey 'Cancel Current Target'
+hotkey '> Interrupt'
+hotkey 'Cancel Current Target'
+hotkey '> Interrupt'
+hotkey 'Cancel Current Target'
+hotkey '> Interrupt'
+overhead "Killing All"
+
+#vamp embrace
+if not cooldown "Vampiric Embrace" and findtype "corpse" ground -1 -1 12 as foundCorpse
+    overhead "Eat the dead!" 44
+    while not targetexists 
+        whisper "[VampiricEmbrace"
+        wft 250
+    endwhile
+    wft 1500
+    target foundCorpse
+    cooldown "Vampiric Embrace" 31500
+endif    
+
+wait 250
+
+#meditation
+if not findbuff 'Actively Meditating' and not cooldown "Skill Lockout" and diffhits <= 20 and mana <= 50
+    skill 'Meditation'
+    overhead "Meditation On!" 55
+endif
+
+script "stayalive2"

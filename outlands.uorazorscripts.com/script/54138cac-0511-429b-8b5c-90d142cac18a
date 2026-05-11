@@ -6,7 +6,7 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# May 11th - Removed Auto Loot function as it has been disabled server wide
+# May 11th - Added Weapon Ability Swap routine for Sourage/Buoy, Removed Auto Loot function as it has been disabled server wide
 # 
 # Script is designed for Necro and Chiv  (Mage or Pooner)
 #
@@ -22,13 +22,14 @@
 # Auto Bandage and Heal/Cure Potion
 # Auto Use Vet Kit if using tames
 # Auto Buff Potions (Toggle Setting Below)
-# Sense Closest Ship with Tracking Arrow (Toggle with Atlas)
+# Sense Closest Ship with Tracking Arrow (Toggle with Healing Codex)
 # Auto Deposit Loot into Ship Hatch (Must use Bapeths Ocean Launch Script to Select Hatch)
 # Auto Pick-Up Bomb - This will snuff out any active bomb within 2 tiles of your character
 # Auto Net Cast at Fishing Spots (Toggle with Party Menu)
 # Auto Attack/All Kill closest enemy when Fray Cooldown is active - This is to ensure ship to ship combat is always happening (Be aware this will attack players)
 # Warn when Sacred Journey wears off
-# Uses Explorer Pack if user has Carto Skill and buff is not detected
+# If player has Carto skill the script will warn when the Explorers Pack Buff need to be used
+# Auto Use Weapon Ability Buoy (If activated with Atlas)
 #
 # "War Mode"
 # Auto Bandage, Heal/Cure Potion, and Cleansing Brew when Bleeding/Diseased
@@ -39,7 +40,7 @@
 # For Alchemy Users - Auto Explode Potion
 # Auto Attack/All Kill closest enemy when Fray Cooldown is active
 # Auto Open Enemy Ship Hatches (Do not stand within 1 tile of enemy hatch before all enemy crew is dead)
-# Auto Use Weapon Ability (Scourage / Leyline)
+# Auto Use Weapon Ability (Scourage/Buoy, or Leyline)
 # Warn when Sacred Journey wears off
 # 
 #
@@ -99,10 +100,14 @@
 #
 # "Ship Sense"
 # This feature will constantly use the tracking arrow on the closest ship on your radar
-# Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
-# Double click the atlas while this script is playing to toggle ship sense on/off
-# Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
+# To toggle this on/off open the "Healers Codex" while the script is playing
 # Only works in Peace Mode
+#
+# "Harpoon Weapon Ability Swap"
+# This feature will swap between Scourage and Buoy
+# Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
+# Double click the atlas while this script is playing to toggle ability swap on/off
+# Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
 #
 # "Auto Net Caster"
 # Open the "Party Menu" while the script is playing to toggle this feature on/off
@@ -191,6 +196,32 @@ if "CannonTargetModeGump" = 1
             gumpclose 4216593270
             removetimer detectcannongump
         endif
+    endif
+endif
+
+if not timerexists BapScourage and not timerexists BapBuoy
+    createtimer BapScourage
+    overhead "--Scourage Activated--" 78
+endif
+
+if timerexists BapScourage and not timerexists SelectedAbilityOverheadScourage
+    createtimer SelectedAbilityOverheadScourage
+endif
+if timerexists SelectedAbilityOverheadScourage
+    removetimer SelectedAbilityOverheadBuoy
+    if timer SelectedAbilityOverheadScourage >= 20000
+        settimer SelectedAbilityOverheadScourage 0
+        overhead "--Scourage Enabled--" 78
+    endif
+endif
+if timerexists BapBuoy and not timerexists SelectedAbilityOverheadBuoy
+    createtimer SelectedAbilityOverheadBuoy
+endif
+if timerexists SelectedAbilityOverheadBuoy
+    removetimer SelectedAbilityOverheadScourage
+    if timer SelectedAbilityOverheadBuoy >= 20000
+        settimer SelectedAbilityOverheadBuoy 0
+        overhead "--Buoy Enabled--" 78
     endif
 endif
 
@@ -362,14 +393,17 @@ if timerexists brew
     endif
 endif
 
-if not timerexists epack and skill "Catrogrpahy" >= 10 and not findbuff "Explorer Pack" and findtype "adventure pack" backpack as expack
-    overhead "Stop ship to complete exploration" 45
-    dclick expack
+if not timerexists epack and not findbuff "Explorer Pack" and skill "Cartography" >= 10 and findtype "adventure pack" backpack
     createtimer epack
+    settimer epack 22000
+else 
+    removetimer epack
 endif
 if timerexists epack
-    if timer epack >= 12000
-        removetimer epack
+    if timer epack >= 22000
+        settimer epack 0
+        overhead "Stop Ship..." 38
+        overhead "Use Explorer Pack" 38
     endif
 endif
 
@@ -382,12 +416,12 @@ if findtype 7029 backpack as joustignore
         @ignore joustignore
     endif
 endif
-if gumpexists 341416395 and not timerexists senseship
-    gumpclose 341416395
+if gumpexists 1244441914 and not timerexists senseship
+    gumpclose 1244441914
     createtimer senseship
     overhead "Ship Sense Enabled" 88
-elseif gumpexists 341416395 and timerexists senseship
-    gumpclose 341416395
+elseif gumpexists 1244441914 and timerexists senseship
+    gumpclose 1244441914
     removetimer senseship
     overhead "Ship Sense Disabled" 38
 endif
@@ -492,6 +526,20 @@ if timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|
 endif
 
 if not warmode
+    if timerexists BapScourage and gumpexists 341416395
+        gumpclose 341416395
+        removetimer BapScourage
+        createtimer BapBuoy
+        overhead "--Buoy Activated--" 78
+        getlabel backpack ping
+    endif
+    if timerexists BapBuoy and gumpexists 341416395
+        gumpclose 341416395
+        createtimer BapScourage
+        removetimer  BapBuoy
+        overhead "--Scourage Activated--" 78
+        getlabel backpack ping
+    endif
     if timerexists openhull
         removetimer openhull
     endif
@@ -790,6 +838,17 @@ if not warmode
         endif
     endif
     
+    if skill "Fishing" >= 80
+        if not timerexists scouragetimer 
+            createtimer scouragetimer
+            settimer scouragetimer 3000
+        endif
+        if timerexists BapBuoy and mana <= 80 and timer scouragetimer >= 3000 and find "oceantarget" ground -1 -1 12
+            say "[weaponability3"
+            settimer scouragetimer 0
+        endif
+    endif
+    
     if not hidden and find "shiphold" ground -1 -1 1
         clearsysmsg 
         // Arcane Runes removed from loot drop string
@@ -821,6 +880,18 @@ if not warmode
         endif
     endif
 elseif warmode 
+    if timerexists BapScourage and gumpexists 341416395
+        gumpclose 341416395
+        removetimer BapScourage
+        createtimer BapBuoy
+        overhead "--Buoy Activated--" 78
+    endif
+    if timerexists BapBuoy and gumpexists 341416395
+        gumpclose 341416395
+        createtimer BapScourage
+        removetimer  BapBuoy
+        overhead "--Scourage Activated--" 78
+    endif
     if cooldown "Fray" and find "oceantarget" ground
         if not timerexists BapCrewAttack
             createtimer BapCrewAttack
@@ -858,8 +929,12 @@ elseif warmode
             createtimer scouragetimer
             settimer scouragetimer 3000
         endif
-        if mana <= 80 and timer scouragetimer >= 3000 and find "oceantarget" ground -1 -1 12
+        if timerexists BapScourage and mana <= 80 and timer scouragetimer >= 3000 and find "oceantarget" ground -1 -1 12
             say "[weaponability2"
+            settimer scouragetimer 0
+        endif
+        if timerexists BapBuoy and mana <= 80 and timer scouragetimer >= 3000 and find "oceantarget" ground -1 -1 12
+            say "[weaponability3"
             settimer scouragetimer 0
         endif
     endif
@@ -889,12 +964,12 @@ elseif warmode
         settimer oceanscan 300
     endif
     
-    if gumpexists 341416395 and not timerexists senseship
-        gumpclose 341416395
+    if gumpexists 1244441914 and not timerexists senseship
+        gumpclose 1244441914
         createtimer senseship
         overhead "Ship Sense Enabled" 88
-    elseif gumpexists 341416395 and timerexists senseship
-        gumpclose 341416395
+    elseif gumpexists 1244441914 and timerexists senseship
+        gumpclose 1244441914
         removetimer senseship
         overhead "Ship Sense Disabled" 38
     endif

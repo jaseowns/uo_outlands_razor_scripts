@@ -8,39 +8,52 @@
 #
 # Its a better bandage cross heal for crew (has indicators)
 #
+# This script can be used to repeat heal a crew of your choice by playing the script hotkey and selecting a crew
+# This script can also be used to activate "Relentless Healing Mode" by playing the script hotkey and selecting your bandages
+# Relentless Healing Mode will use the ship crew gump to spam heal randomly
+# To "Stop Relentless Mode" play the script hotkey and select a crewmember
+# 
+# Note on crewmember overhead spam: There is no way to get rid of this when relentless mode is activated
+#
+# Note on Visual Overhead Bug: if you select yourself or another player with this script hotkey, it may throw a false overhead on your previous crewmember target
+#
 # Script starts here...
 if timerexists crewhealrepeat
     removetimer crewhealrepeat
 endif
-if skill "Healing" >= 20
+if findtype 3617 backpack as baids
     clearsysmsg 
     if varexist "CrewHeal"
         @unsetvar "CrewHeal"
     endif
     hotkey "Cancel Current Target"
     overhead "Which Crew to Heal?" 88
-    hotkey "Set Last Target"
+    dclick baids
     wft 500
     while targetexists 
         //donothing
     endwhile
     getlabel lasttarget desc
     if "[Crewmember]" in desc
-        @setvar "CrewHeal" lasttarget 
+        removetimer relentlesshealing
+        @setvar! "CrewHeal" lasttarget 
         overhead "*Heal Target*" 78 "CrewHeal"
         hotkey "Cancel Current Target"
+    elseif "(bonded)" in desc
+        removetimer relentlesshealing
+        @setvar! "CrewHeal" lasttarget 
+        overhead "*Heal Target*" 78 "CrewHeal"
+        hotkey "Cancel Current Target"
+    elseif "bandage" in desc
+        createtimer relentlesshealing
+        script "Master Background"
     endif
-    if varexist "CrewHeal" and findtype 3617 backpack as baids
-        while queued
-            //donothing
-        endwhile
-        dclick baids
-        wft 500
-        target "CrewHeal"
-        getlabel backpack ping
+    removetimer relentlesshealing
+    if varexist "CrewHeal"
         if insysmsg "You begin applying the bandages"
             overhead "Healing..." 87 "CrewHeal"
             cooldown "Bandage" 5250
+            removetimer relentlesshealing
             createtimer crewhealrepeat
         elseif insysmsg "You are too far away to do that"
             overhead "*Get Closer*" 45 "CrewHeal"

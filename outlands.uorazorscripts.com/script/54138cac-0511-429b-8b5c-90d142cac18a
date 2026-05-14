@@ -6,7 +6,7 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# May 11th - Added Weapon Ability Swap routine for Scourge/Buoy, Removed Auto Loot function as it has been disabled server wide
+# May 14th - Added new plugin for "Bapeths Ocean Bandage Cross Heal" script - Relentless Heal mode can now be activated for crew healing
 # 
 # Script is designed for Necro and Chiv  (Mage or Pooner)
 #
@@ -76,6 +76,11 @@
 # "Manual Override"
 # This script is used to force targets for Auto Attack, Auto Spell Cast, or Auto Cannon Fire
 # https://outlands.uorazorscripts.com/script/80d24cbc-c121-484d-af2f-8fe45c765a2b
+#
+# "Bapeths Ocean Bandage Cross Heal"
+# This script can be used to repeat heat a crew of your choice by playing the script hotkey and selecting a crew
+# This script can also be used to activate "Relentless Healing Mode" by playing the script hotkey and selecting your bandages
+# Relentless Healing Mode will use the ship crew gump to spam heal randomly
 #
 # "Bapeths Ocean Scripts"
 # This is a catalouge of scripts that the user may find helpful on the Ocean
@@ -199,26 +204,26 @@ if "CannonTargetModeGump" = 1
     endif
 endif
 
-if not timerexists BapScourage and not timerexists BapBuoy
-    createtimer BapScourage
-    overhead "--Scourage Activated--" 78
+if not timerexists BapScourge and not timerexists BapBuoy
+    createtimer BapScourge
+    overhead "--Scourge Activated--" 78
 endif
 
-if timerexists BapScourage and not timerexists SelectedAbilityOverheadScourage
-    createtimer SelectedAbilityOverheadScourage
+if timerexists BapScourge and not timerexists SelectedAbilityOverheadScourge
+    createtimer SelectedAbilityOverheadScourge
 endif
-if timerexists SelectedAbilityOverheadScourage
+if timerexists SelectedAbilityOverheadScourge
     removetimer SelectedAbilityOverheadBuoy
-    if timer SelectedAbilityOverheadScourage >= 20000
-        settimer SelectedAbilityOverheadScourage 0
-        overhead "--Scourage Enabled--" 78
+    if timer SelectedAbilityOverheadScourge >= 20000
+        settimer SelectedAbilityOverheadScourge 0
+        overhead "--Scourge Enabled--" 78
     endif
 endif
 if timerexists BapBuoy and not timerexists SelectedAbilityOverheadBuoy
     createtimer SelectedAbilityOverheadBuoy
 endif
 if timerexists SelectedAbilityOverheadBuoy
-    removetimer SelectedAbilityOverheadScourage
+    removetimer SelectedAbilityOverheadScourge
     if timer SelectedAbilityOverheadBuoy >= 20000
         settimer SelectedAbilityOverheadBuoy 0
         overhead "--Buoy Enabled--" 78
@@ -231,7 +236,7 @@ if "MaxSelfHeal" = 1
             //donothing
         elseif not bandaging and findtype 3617 backpack
             hotkey "Bandage Self"
-            cooldown "Bandage" 10100
+            getlabel backpack ping
         endif
     endif
 endif
@@ -241,14 +246,14 @@ if cooldown "PvP"
             //donothing
         elseif not bandaging and findtype 3617 backpack
             hotkey "Bandage Self"
-            cooldown "Bandage" 10100
+            getlabel backpack ping
         endif
     endif
 endif
 if not hidden and skill "Healing" >= 20 
     if diffhits < 35
         if timerexists crewhealrepeat
-            if not hidden and timer crewhealrepeat >= 5250 and findtype 3617 backpack as baids
+            if varexist "CrewHeal" and not bandaging and not hidden and findtype 3617 backpack as baids
                 while queued
                     // do nothing
                 endwhile
@@ -258,8 +263,6 @@ if not hidden and skill "Healing" >= 20
                 getlabel backpack ping
                 if insysmsg "You begin applying the bandages"
                     overhead "Healing..." 87 "CrewHeal"
-                    cooldown "Bandage" 5250
-                    settimer crewhealrepeat 0
                 elseif insysmsg "You are too far away to do that"
                     overhead "*Get Closer*" 45 "CrewHeal"
                     removetimer crewhealrepeat
@@ -274,10 +277,43 @@ if not hidden and skill "Healing" >= 20
                     removetimer crewhealrepeat
                 endif
             endif
+        elseif timerexists relentlesshealing
+            if not gumpexists 1722920179
+                say "[shiphotbars"
+                getlabel backpack ping
+            endif
+            if gumpexists 1722920179 and not bandaging
+                gumpresponse 20 1722920179
+                getlabel backpack ping
+            endif
+            if gumpexists 1722920179 and not bandaging
+                gumpresponse 21 1722920179
+                getlabel backpack ping
+            endif
+            if gumpexists 1722920179 and not bandaging
+                gumpresponse 22 1722920179
+                getlabel backpack ping
+            endif
+            if gumpexists 1722920179 and not bandaging
+                gumpresponse 23 1722920179
+                getlabel backpack ping
+            endif
+            if gumpexists 1722920179 and not bandaging
+                gumpresponse 24 1722920179
+                getlabel backpack ping
+            endif
+            if gumpexists 1722920179 and not bandaging
+                gumpresponse 25 1722920179
+                getlabel backpack ping
+            endif
+            if gumpexists 1722920179 and not bandaging
+                gumpresponse 26 1722920179
+                getlabel backpack ping
+            endif
         endif
     elseif diffhits > 35 and not hidden and not bandaging and findtype 3617 backpack
         hotkey "Bandage Self"
-        cooldown "Bandage" 7000
+        getlabel backpack ping
     endif
 endif
 
@@ -310,7 +346,7 @@ while poisoned and not targetexists and not hidden and findtype "Orange Potion" 
     getlabel backpack ping
 endwhile
 
-if skill "Fishing" >= 80
+if skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80
     if not find "MainPoon"
         if findlayer self lefthand as pooninhand
             @setvar! "MainPoon" pooninhand
@@ -457,16 +493,6 @@ if skill "Chivalry" >= 80 and timer sacredjourncheck >= 75000
     settimer sacredjourncheck 0
 endif
 
-if skill "Arcane" >= 80 and not gumpexists 3954121934
-    say '[abilityhotbar'
-    waitforgump 3954121934 500
-endif
-
-if skill "Chivalry" >= 80 and not gumpexists 3954121934
-    say '[abilityhotbar'
-    waitforgump 3954121934 500
-endif
-
 if insysmsg "repaired"
     gumpclose 1271619955
     say "[Repair"
@@ -526,18 +552,18 @@ if timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|
 endif
 
 if not warmode
-    if timerexists BapScourage and gumpexists 341416395
+    if timerexists BapScourge and gumpexists 341416395
         gumpclose 341416395
-        removetimer BapScourage
+        removetimer BapScourge
         createtimer BapBuoy
         overhead "--Buoy Activated--" 78
         getlabel backpack ping
     endif
     if timerexists BapBuoy and gumpexists 341416395
         gumpclose 341416395
-        createtimer BapScourage
+        createtimer BapScourge
         removetimer  BapBuoy
-        overhead "--Scourage Activated--" 78
+        overhead "--Scourge Activated--" 78
         getlabel backpack ping
     endif
     if timerexists openhull
@@ -773,7 +799,7 @@ if not warmode
             @setvar! "oceantarget" lasttarget 
         endif
         settimer oceanscan 0
-    elseif timer oceanscan >= 300 and skill "Fishing" >= 80 and cooldown "Fray"
+    elseif timer oceanscan >= 300 and skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80 and cooldown "Fray"
         clearsysmsg 
         if varexist "oceantarget"
             @unsetvar "oceantarget"
@@ -838,14 +864,14 @@ if not warmode
         endif
     endif
     
-    if skill "Fishing" >= 80
-        if not timerexists scouragetimer 
-            createtimer scouragetimer
-            settimer scouragetimer 3000
+    if skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80
+        if not timerexists Scourgetimer 
+            createtimer Scourgetimer
+            settimer Scourgetimer 3000
         endif
-        if timerexists BapBuoy and mana <= 80 and timer scouragetimer >= 3000 and find "oceantarget" ground -1 -1 12
+        if timerexists BapBuoy and mana <= 80 and timer Scourgetimer >= 3000 and find "oceantarget" ground -1 -1 12
             say "[weaponability3"
-            settimer scouragetimer 0
+            settimer Scourgetimer 0
         endif
     endif
     
@@ -880,17 +906,17 @@ if not warmode
         endif
     endif
 elseif warmode 
-    if timerexists BapScourage and gumpexists 341416395
+    if timerexists BapScourge and gumpexists 341416395
         gumpclose 341416395
-        removetimer BapScourage
+        removetimer BapScourge
         createtimer BapBuoy
         overhead "--Buoy Activated--" 78
     endif
     if timerexists BapBuoy and gumpexists 341416395
         gumpclose 341416395
-        createtimer BapScourage
+        createtimer BapScourge
         removetimer  BapBuoy
-        overhead "--Scourage Activated--" 78
+        overhead "--Scourge Activated--" 78
     endif
     if cooldown "Fray" and find "oceantarget" ground
         if not timerexists BapCrewAttack
@@ -910,6 +936,7 @@ elseif warmode
     if not hidden and skill "Healing" >= 20
         if diffhits > 35 and not hidden and not bandaging and findtype 3617 backpack
             hotkey "Bandage Self"
+            getlabel backpack ping
         endif
     endif
 
@@ -924,18 +951,18 @@ elseif warmode
         endif
     endif
     
-    if skill "Fishing" >= 80
-        if not timerexists scouragetimer 
-            createtimer scouragetimer
-            settimer scouragetimer 3000
+    if skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80
+        if not timerexists Scourgetimer 
+            createtimer Scourgetimer
+            settimer Scourgetimer 3000
         endif
-        if timerexists BapScourage and mana <= 80 and timer scouragetimer >= 3000 and find "oceantarget" ground -1 -1 12
+        if timerexists BapScourge and mana <= 80 and timer Scourgetimer >= 3000 and find "oceantarget" ground -1 -1 12
             say "[weaponability2"
-            settimer scouragetimer 0
+            settimer Scourgetimer 0
         endif
-        if timerexists BapBuoy and mana <= 80 and timer scouragetimer >= 3000 and find "oceantarget" ground -1 -1 12
+        if timerexists BapBuoy and mana <= 80 and timer Scourgetimer >= 3000 and find "oceantarget" ground -1 -1 12
             say "[weaponability3"
-            settimer scouragetimer 0
+            settimer Scourgetimer 0
         endif
     endif
 
@@ -992,7 +1019,7 @@ elseif warmode
             @setvar! "oceantarget" lasttarget 
         endif
         settimer oceanscan 0
-        elseif timer oceanscan >= 300 and skill "Fishing" >= 80
+    elseif timer oceanscan >= 300 and skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80
         clearsysmsg 
         if varexist "oceantarget"
             @unsetvar "oceantarget"

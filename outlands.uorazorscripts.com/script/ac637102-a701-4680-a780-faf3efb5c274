@@ -5,7 +5,7 @@
 #############################################
 
 # "Bapeths Trapper Background"
-# May 15th - Added Bard Trapper Support + Simplified Auto Equip Hands Routine
+# May 17th - Added Setting to control if Peace comes before Discord, or Discord comes before Peace + Added Boss support (read notes below) + fixed cooldown bug
 #
 ###########################################################################################################################################################################
 #
@@ -70,6 +70,12 @@
 # Bandage cooldown in script assumes you have max points in "Self Treatment" (Healers Codex) and 100 dex
 ##########################################################################################################################################################################
 # "Required Cooldowns for Bard Trappers"
+#
+# "Barding Reset"
+# Type: Regular
+# Trigger: Overhead Message
+# Trigger Text: Your barding skill cooldowns reset
+# -------------- Cooldown: 0.5
 #
 # "Discordance"
 # Type: Regular
@@ -229,8 +235,23 @@
 #
 @setvar! "TriBard Routines" 1
 #
+# Note on "Bosses": If you are in "Auto Provo" mode the script will only provoke what you select onto a boss - the Discord AoE will not occur
+#
 ##############################################################################################################################################################################################################
 #
+# "Peacemaking or Discordance Priority"
+#
+# This setting controls if you Peace before Discord, or Discord before Peace
+# Set to 1 to "Peace First"
+# Set to 0 to "Discord First"
+# This is for the "Auto-Peace" mode only
+#
+@setvar! "PeaceFirst" 1
+#
+# Note on "Bosses": It is advised to set PeaceFirst to 1 when fighting bosses, otherwise it will only Discord
+#
+##############################################################################################################################################################################################################
+# 
 # "Auto Switch Flipper"
 # This is for green wall switches in "Time Dungeon" - Requires "Time Codex" Open this while the script is palying to swtich the setting on/off
 # Go into warmode when standing near a wall switch and the script will flip the switch and return to peacemode
@@ -1189,6 +1210,7 @@ if "TriBard Routines" = 1
             createtimer BapPeace
         endif
         if timerexists BapPeace and gumpexists 341416395
+            hotkey "Cancel Current Target"
             gumpclose 341416395
             removetimer BapPeace
             createtimer BapProvo
@@ -1196,6 +1218,7 @@ if "TriBard Routines" = 1
             getlabel backpack ping
         endif
         if timerexists BapProvo and gumpexists 341416395
+            hotkey "Cancel Current Target"
             gumpclose 341416395
             removetimer BapProvo
             createtimer  BapPeace
@@ -1206,44 +1229,109 @@ if "TriBard Routines" = 1
     // End of Switch for Auto Peace - Auto Provo Routune
 
     // Peace/Provo then Discord Routine
-    if not targetexists and timerexists "BapPeace"
-        if find "Manual Override" ground -1 -1 12 and skill "Peacemaking" >= 80 and not cooldown "Bard Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
-            getlabel "Manual Override" barddesc
-            hotkey "Cancel Current Target"
-            if "pacified" in barddesc
-                //donothing
-            elseif "break" in barddesc
-                // donothing
-            else
-                skill "Peacemaking"
-                wft 300
-                target "Manual Override"
+    if "PeaceFirst" = 1
+        if not targetexists and timerexists "BapPeace"
+            if find "Manual Override" ground -1 -1 12 and skill "Peacemaking" >= 80 and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
+                getlabel "Manual Override" barddesc
                 hotkey "Cancel Current Target"
+                if "Boss" in barddesc
+                    skill "Peacemaking"
+                    wft 300
+                    target "Manual Override"
+                    hotkey "Cancel Current Target"
+                    getlabel backpack ping
+                elseif "pacified" in barddesc
+                    //donothing
+                elseif "break" in barddesc
+                    // donothing
+                else
+                    skill "Peacemaking"
+                    wft 300
+                    target "Manual Override"
+                    hotkey "Cancel Current Target"
+                    getlabel backpack ping
+                endif
             endif
-        endif
-        if find "Manual Override" ground -1 -1 12 and skill "Discordance" >= 80 and not cooldown "Bard Reset" and not cooldown "Discordance"
-            getlabel "Manual Override" barddesc
-            hotkey "Cancel Current Target"
-            if "discord" in barddesc
-                //donothing
-            elseif "pacified" in barddesc
-                skill "Discordance"
-                wft 300
-                target "Manual Override"
+            if find "Manual Override" ground -1 -1 12 and skill "Discordance" >= 80 and not cooldown "Barding Reset" and not cooldown "Discordance"
+                getlabel "Manual Override" barddesc
                 hotkey "Cancel Current Target"
-            elseif "break" in barddesc
-                skill "Discordance"
-                wft 300
-                target "Manual Override"
-                hotkey "Cancel Current Target"
+                if "discord" in barddesc
+                    //donothing
+                elseif "pacified" in barddesc
+                    skill "Discordance"
+                    wft 300
+                    target "Manual Override"
+                    hotkey "Cancel Current Target"
+                    getlabel backpack ping
+                elseif "break" in barddesc
+                    skill "Discordance"
+                    wft 300
+                    target "Manual Override"
+                    hotkey "Cancel Current Target"
+                    getlabel backpack ping
+                endif
             endif
         endif
     endif
-    if not targetexists and  timerexists "BapProvo"
-        if find "Manual Override" ground -1 -1 12 and skill "Provocation" >= 80 and not cooldown "Bard Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
+    if "PeaceFirst" = 0
+        if not targetexists and timerexists "BapPeace"
+            if find "Manual Override" ground -1 -1 12 and skill "Peacemaking" >= 80 and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
+                getlabel "Manual Override" barddesc
+                hotkey "Cancel Current Target"
+                if "pacified" in barddesc
+                    //donothing
+                elseif "break" in barddesc
+                    // donothing
+                elseif "discord" in barddesc
+                    skill "Peacemaking"
+                    wft 300
+                    target "Manual Override"
+                    hotkey "Cancel Current Target"
+                    getlabel backpack ping
+                endif
+            endif
+            if find "Manual Override" ground -1 -1 12 and skill "Discordance" >= 80 and not cooldown "Barding Reset" and not cooldown "Discordance"
+                getlabel "Manual Override" barddesc
+                hotkey "Cancel Current Target"
+                if "Boss" in barddesc
+                    skill "Discordance"
+                    wft 300
+                    target "Manual Override"
+                    hotkey "Cancel Current Target"
+                    getlabel backpack ping                    
+                elseif "discord" in barddesc
+                    //donothing
+                elseif "break" in barddesc
+                    skill "Discordance"
+                    wft 300
+                    target "Manual Override"
+                    hotkey "Cancel Current Target"
+                    getlabel backpack ping
+                else
+                    skill "Discordance"
+                    wft 300
+                    target "Manual Override"
+                    hotkey "Cancel Current Target"
+                    getlabel backpack ping
+                endif
+            endif
+        endif
+    endif
+    if not targetexists and timerexists "BapProvo"
+        if find "Manual Override" ground -1 -1 12 and skill "Provocation" >= 80 and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
             getlabel "Manual Override" barddesc
             hotkey "Cancel Current Target"
-            if "break" in barddesc
+            if "Boss" in barddesc
+                skill "Provocation"
+                wft 300
+                overhead "Provo onto Boss" 88
+                while targetexists 
+                    //donothing
+                endwhile
+                getlabel backpack ping
+                target "Manual Override"
+                hotkey "Cancel Current Target"
+            elseif "break" in barddesc
                 //donothing
             elseif "provoked" in barddesc
                 //donothing
@@ -1251,51 +1339,61 @@ if "TriBard Routines" = 1
                 skill "Provocation"
                 wft 300
                 target "Manual Override"
+                overhead "Provo Target 1" 38 "Manual Override"
                 wft 300
-                overhead "Select Provo Target" 88
+                overhead "Select Provo Target 2" 88
                 while targetexists 
                     //donothing
                 endwhile
                 getlabel backpack ping
                 hotkey "Cancel Current Target"
+                overhead "Provo Target 2" 88 lasttarget 
+                getlabel backpack ping
             endif
         endif
-        if find "Manual Override" ground -1 -1 12 and skill "Discordance" >= 80 and not cooldown "Bard Reset" and not cooldown "Discordance"
+        if find "Manual Override" ground -1 -1 12 and skill "Discordance" >= 80 and not cooldown "Barding Reset" and not cooldown "Discordance"
             getlabel "Manual Override" barddesc
             hotkey "Cancel Current Target"
-            if "provoked" in barddesc
+            if "Boss" in barddesc
+                // do nothing
+            elseif "provoked" in barddesc
                 skill "Discordance"
                 wft 300
                 target self
                 hotkey "Cancel Current Target"
+                getlabel backpack ping
             elseif "break" in barddesc
                 skill "Discordance"
                 wft 300
                 target self
                 hotkey "Cancel Current Target"
+                getlabel backpack ping
             endif
         endif
     endif
     // End of Peace/Provo then Discord Routine
 
     // Bard Songs Routine
-    if skill "Discordance" >= 80 and not findbuff "Song of Discordance" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not cooldown "Bard Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
+    if skill "Discordance" >= 80 and not findbuff "Song of Discordance" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
         skill "Discordance"
         wft 300
         target backpack
         hotkey "Cancel Current Target"
+        getlabel backpack ping
     endif
-    if skill "Provocation" >= 80 and not findbuff "Song of Provocation" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not cooldown "Bard Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
+    if skill "Provocation" >= 80 and not findbuff "Song of Provocation" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
         skill "Provocation"
         wft 300
         target backpack
         hotkey "Cancel Current Target"
+        getlabel backpack ping
     endif
-    if skill "Peacemaking" >= 80 and not findbuff "Song of Peacemaking" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not cooldown "Bard Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
+    if skill "Peacemaking" >= 80 and not findbuff "Song of Peacemaking" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
         skill "Peacemaking"
         wft 300
         target backpack
         hotkey "Cancel Current Target"
+        getlabel backpack ping
     endif
     // End of Bard Songs Routine
 endif

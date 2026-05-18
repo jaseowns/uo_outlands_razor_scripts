@@ -6,7 +6,7 @@
 
 # Map-Trap Script by Bapeth
 #
-# May 17th - First pass at ripping the auto looter code out
+# May 17th - Removed auto loot and auto gate code - Will add new auto gate code in later
 #
 # "What it does":
 # Digs for treasure
@@ -160,15 +160,15 @@
 # One of these must always be set to 1 - do not set both to 1!
 #
 # WARMODE ARMOR SETTINGS
-@setvar! "Harvest Armor" 1
-@setvar! "Fortune Armor" 0
+@setvar! "Harvest Armor" 0
+@setvar! "Fortune Armor" 1
 #
 #########################################################################################################################################
 #
 # To disable Gadget Armor Swap set the value to 1, to keep it on set the value to 0
 #
 # DISABLE GADGET ARMOR
-@setvar! "Disable Gadget" 0
+@setvar! "Disable Gadget" 1
 #
 #########################################################################################################################################
 #
@@ -189,9 +189,9 @@
 @setvar! "Fire Aspect Spellbook" 0
 @setvar! "Fortune Aspect Spellbook" 0
 @setvar! "Frost Aspect Spellbook" 0
-@setvar! "Gadget Aspect Spellbook" 1
+@setvar! "Gadget Aspect Spellbook" 0
 @setvar! "Harvest Aspect Spellbook" 0
-@setvar! "Holy Aspect Spellbook" 0
+@setvar! "Holy Aspect Spellbook" 1
 @setvar! "Lightning Aspect Spellbook" 0
 @setvar! "Lyric Aspect Spellbook" 0
 @setvar! "Madness Aspect Spellbook" 0
@@ -221,9 +221,9 @@
 @setvar! "Combat Fire Aspect Spellbook" 0
 @setvar! "Combat Fortune Aspect Spellbook" 0
 @setvar! "Combat Frost Aspect Spellbook" 0
-@setvar! "Combat Gadget Aspect Spellbook" 1
+@setvar! "Combat Gadget Aspect Spellbook" 0
 @setvar! "Combat Harvest Aspect Spellbook" 0
-@setvar! "Combat Holy Aspect Spellbook" 0
+@setvar! "Combat Holy Aspect Spellbook" 1
 @setvar! "Combat Lightning Aspect Spellbook" 0
 @setvar! "Combat Lyric Aspect Spellbook" 0
 @setvar! "Combat Madness Aspect Spellbook" 0
@@ -282,6 +282,10 @@ if warmode and gumpexists 3527489586
     endif
     overhead "MEMORY WIPED..." 38
     pause 2000
+endif
+
+if not findtype "wooden chest|metal chest" ground -1 -1 2
+    removetimer OTunlockedchest
 endif
 
 if not varexist "OneChain" and not varexist "TwoChain"
@@ -964,7 +968,10 @@ elseif warmode
         @setvar! "newchest" bchest
         gumpclose 736038070
         clearsysmsg 
-        dclick bchest
+        if not timerexists OTunlockedchest
+            createtimer OTunlockedchest
+            dclick bchest
+        endif
         for 10
             if findtype "quiver" self as bapquiver
                 getlabel bapquiver desc
@@ -976,7 +983,10 @@ elseif warmode
             endif
         endfor
         if findtype "quiver" self as bapquiver
-            menu bapquiver 0
+            if findtype 7163|3903 self as bapammo
+                menu bapquiver 0
+                @ignore bapammo
+            endif
         endif
         for 10
             if findtype "reagent satchel" self as bapregsatch
@@ -989,7 +999,10 @@ elseif warmode
             endif
         endfor
         if findtype "reagent satchel" self as bapregsatch
-            menu bapregsatch 0
+            if findtype 3962|3963|3972|3973|3974|3976|3980|3981 self as bapregs
+                menu bapregsatch 0
+                @ignore bapregs
+            endif
         endif
         getlabel backpack ping
         if gumpexists 736038070 and ingump "Cleared Of Traps"
@@ -1237,48 +1250,54 @@ elseif warmode
                 endif 
             endwhile
         endif
-        if not timerexists fullchaincheck and varexist "enabledlinkdump" and findtype "chain link" backpack as lootedlink
-            clearsysmsg 
-            dclick "linkdumpchain"
-            waitforgump 2785326818 500
-            gumpresponse 31
-            waitforgump 2785326818 500
-            gumpresponse 31
-            waitforgump 2785326818 500
-            gumpclose 2785326818
-            if insysmsg "You install 1 link into"
-                overhead "Link added to Dump Chain" 88
-            elseif insysmsg "You do not have any slots available to install"
-                overhead "Warning!" 38
-                overhead "Dump Chain Full!" 38
-                createtimer fullchaincheck
-            endif
+    endif
+    if not timerexists fullchaincheck and varexist "enabledlinkdump" and findtype "chain link" backpack as lootedlink
+        clearsysmsg 
+        dclick "linkdumpchain"
+        waitforgump 2785326818 500
+        gumpresponse 31
+        waitforgump 2785326818 500
+        gumpresponse 31
+        waitforgump 2785326818 500  
+        gumpclose 2785326818
+        if insysmsg "You install 1 link into"
+            overhead "Link added to Dump Chain" 88
+        elseif insysmsg "You do not have any slots available to install"
+            overhead "Warning!" 38
+            overhead "Dump Chain Full!" 38
+            createtimer fullchaincheck
         endif
-        for 10
-            if findtype "quiver" self as bapquiver
-                getlabel bapquiver desc
-                if "blessed" in desc
-                    @ignore bapquiver
-                else 
-                    break
-                endif
-            endif
-        endfor
+    endif
+    for 10
         if findtype "quiver" self as bapquiver
-            menu bapquiver 0
-        endif
-        for 10
-            if findtype "reagent satchel" self as bapregsatch
-                getlabel bapregsatch desc
-                if "blessed" in desc
-                    @ignore bapregsatch
-                else 
-                    break
-                endif
+            getlabel bapquiver desc
+            if "blessed" in desc
+                @ignore bapquiver
+            else 
+                break
             endif
-        endfor
+        endif
+    endfor
+    if findtype "quiver" self as bapquiver
+        if findtype 7163|3903 self as bapammo
+            menu bapquiver 0
+            @ignore bapammo
+        endif
+    endif
+    for 10
         if findtype "reagent satchel" self as bapregsatch
+            getlabel bapregsatch desc
+            if "blessed" in desc
+                @ignore bapregsatch
+            else 
+                break
+            endif
+        endif
+    endfor
+    if findtype "reagent satchel" self as bapregsatch
+        if findtype 3962|3963|3972|3973|3974|3976|3980|3981|7981|7982|7983|7984|7985|7986|7987|7988|7989|7990|7991|7992|7993|7994|7995|7996|7997|7998|7999|8000|8001|8002|8003|8004|8005|8006|8007|8008|8009|8010|8011|8012|8013|8014|8015|8016|8017|8018|8019|8020|8021|8022|8023|8024|8025|8026|8027|8028|8029|8031|8032|8033|8034|8035|8036|8037|8038|8039|8041|8042|8043|8044 self as bapregs
             menu bapregsatch 0
+            @ignore bapregs
         endif
     endif
     if findtype "wooden chest|metal chest" ground -1 -1 1 as bchest

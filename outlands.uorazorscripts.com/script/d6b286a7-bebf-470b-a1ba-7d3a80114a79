@@ -5,7 +5,7 @@
 #############################################
 
 # Bapeths Modern Dungeon Picker
-# May 11th 2026 - Removed Auto looter as it is disabled server wide, enhanced object delay for unlocked chests, removed tab spam
+# May 27th 2026 - Fixed chest opening bug when two chests are very close to each other
 #
 # "REQUIRED GAME SETTINGS" :
 #
@@ -260,124 +260,18 @@ endif
 
 // Auto Re-equip after disarm routine
 if "DisarmEquip" = 1
-    if insysmsg "disarms you!"
-        createtimer disarmtimerright
-        createtimer disarmtimerleft
-        getlabel backpack ping
+    if not find "mylefthanditem" and findlayer self lefthand as bapleft
+        @setvar! "mylefthanditem" bapleft
     endif
-    if not findlayer self righthand and not findlayer self lefthand
-        //donothing
-    else
-        if not timerexists checkequippeditems
-            createtimer checkequippeditems
-            settimer checkequippeditems 15000
-        elseif timerexists checkequippeditems
-            if timer checkequippeditems >= 15000
-                settimer checkequippeditems 0
-                if timerexists equippedrighthand and not timerexists disarmtimerright
-                    removetimer equippedrighthand
-                    @unsetvar "myrighthanditem"
-                endif
-                if timerexists equippedlefthand and not timerexists disarmtimerleft
-                    removetimer equippedlefthand
-                    @unsetvar "mylefthanditem"
-                endif
-            endif
-        endif
+    if not find "myrighthanditem" and findlayer self righthand as bapright
+        @setvar! "myrighthanditem" bapright
     endif
-    if timerexists disarmtimerright and findlayer self righthand
-        removetimer disarmtimerright
-    endif
-    if timerexists disarmtimerleft and findlayer self lefthand
-        removetimer disarmtimerleft
-    endif
-    if not timerexists disarmtimerright or not timerexists disarmtimerleft
-        if not varexist myrighthanditem and timerexists equippedrighthand
-            removetimer equippedrighthand
-        endif
-        if not varexist mylefthanditem and timerexists equippedlefthand
-            removetimer equippedlefthand
-        endif
-        if not find "myrighthanditem" self and findlayer self righthand
-            removetimer equippedrighthand
-        endif
-        if not find "mylefthanditem" self and findlayer self lefthand
-            removetimer equippedlefthand
-        endif
-        if not timerexists equippedrighthand and findlayer self righthand as rheqitem
-            getlabel rheqitem desc
-            if "spells" in desc
-                createtimer exceptionalspellbook
-            elseif timerexists exceptionalspellbook
-                removetimer exceptionalspellbook
-            endif
-            @setvar! "myrighthanditem" rheqitem
-            createtimer equippedrighthand
-        endif
-        if not timerexists equippedlefthand and findlayer self lefthand as lheqitem
-            @setvar! "mylefthanditem" lheqitem
-            createtimer equippedlefthand
-        endif
-    endif
-    if timerexists disarmtimerright
-        if timer disarmtimerright >= 5000
-            while not targetexists and not casting and varexist myrighthanditem and not timerexists exceptionalspellbook and not findlayer self righthand
-                dclick "myrighthanditem"
-                while queued
-                    //dn
-                endwhile
-            endwhile
-            while not targetexists and not casting and varexist myrighthanditem and timerexists exceptionalspellbook and not findlayer self righthand
-                while queued
-                    //dn
-                endwhile
-                drop backpack
-                lift "myrighthanditem"
-                drop self righthand
-                while queued
-                    //dn
-                endwhile
-            endwhile
-            while targetexists and not casting and varexist myrighthanditem and not findlayer self righthand
-                while queued
-                    //dn
-                endwhile
-                drop backpack
-                lift "myrighthanditem"
-                drop self righthand
-                while queued
-                    //dn
-                endwhile
-            endwhile
-        endif
-    endif
-    if timerexists disarmtimerleft  
-        if timer disarmtimerleft >= 5000
-            while not targetexists and not casting and varexist mylefthanditem and not findlayer self lefthand
-                dclick "mylefthanditem"
-                while queued
-                    //dn
-                endwhile
-            endwhile
-            while targetexists and not casting and varexist mylefthanditem and not findlayer self lefthand
-                while queued
-                    //dn
-                endwhile
-                drop backpack
-                lift "mylefthanditem"
-                drop self lefthand
-                while queued
-                    //dn
-                endwhile
-            endwhile
-        endif
-    endif
-    if find "mylefthanditem" backpack and not casting and not targetexists and skill "Tactics" >= 80 and not findlayer self lefthand
+    if find "mylefthanditem" backpack and not casting and not targetexists and skill "Tactics" >= 80 or skill "Discordance" >= 80 and not findlayer self lefthand
         dclick "mylefthanditem"
         pause 500
         getlabel backpack ping
     endif
-    if find "myrighthanditem" backpack and not casting and not targetexists and skill "Tactics" >= 80 and not findlayer self righthand
+    if find "myrighthanditem" backpack and not casting and not targetexists and skill "Tactics" >= 80 or skill "Discordance" >= 80 and not findlayer self righthand
         dclick "myrighthanditem"
         pause 500
         getlabel backpack ping
@@ -1093,15 +987,19 @@ if not casting and skill "Lockpicking" >= 50 and findtype "wooden chest|metal ch
     getlabel bchest desc
     if "(locked and trapped)" in desc
         createtimer activaterecycle
+        removetimer OTunlockedchest
         overhead desc 2085 bchest
         waitforgump 736038070 1000
     elseif "(locked)[trap removal progress" in desc
+        removetimer OTunlockedchest
         overhead desc 2085 bchest
         waitforgump 736038070 1000
     elseif "(locked)" in desc
+        removetimer OTunlockedchest
         overhead desc 2085 bchest
         waitforgump 736038070 1000
     elseif "(lockpick progress" in desc
+        removetimer OTunlockedchest
         overhead desc 2085 bchest
         waitforgump 736038070 1000
     elseif "dungeon chest" in desc
@@ -1274,6 +1172,7 @@ if not casting and skill "Lockpicking" >= 50 and findtype "wooden chest|metal ch
             endif
             if hidden and timerexists activaterecycle and findtype "3997|4148|4032|7864" backpack as breakdowntool
                 if findtype 20496 backpack as IDwand
+                    @clearignore 
                     while findtype 3834 backpack 0 as bbook
                         @ignore bbook
                     endwhile
@@ -1856,6 +1755,7 @@ if gumpexists 3527489586 and findtype "3997|4148|4032|7864" backpack as breakdow
     gumpclose 3527489586
     hotkey "Cancel Current Target"
     if findtype 20496 backpack as IDwand
+        @clearignore
         while findtype 3834 backpack 0 as bbook
             @ignore bbook
         endwhile

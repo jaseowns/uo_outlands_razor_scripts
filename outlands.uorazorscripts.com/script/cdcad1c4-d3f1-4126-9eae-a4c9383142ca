@@ -1,0 +1,1521 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/cdcad1c4-d3f1-4126-9eae-a4c9383142ca for latest
+# Automation by Jaseowns
+## Script: Backpack Recycler Ez32  Complete Guide
+## Created by: luizhenrique7779#0
+#############################################
+
+# ============================================
+# BACKPACK RECYCLER - Ez32
+# UO Outlands
+# ============================================
+#
+# Processes loot ONLY from your BACKPACK (not loot pouch, not external containers).
+#
+# REQUIREMENTS
+#   - Backpack only as loot source
+#   - Chest 1 (ToolContainer): ID Wand (20495/3572/3570) + Sewing Kit (3997) - BOTH required
+#   - Chest 2 (DestContainer): parent chest with 2 bags inside
+#   - Bag 1 (KeepBag): Items Modifiers (slayer, vanquish, fortification, etc.)
+#   - Bag 2 (JunkBag): Rest / Remaining (everything else - NOT trash)
+#
+# SETUP (once - saved until reset)
+#   1. Target Chest 1  -> chest with wand + kit
+#   2. Target Chest 2  -> parent chest
+#   3. Target Bag 1    -> keep bag INSIDE Chest 2 (Items Modifiers)
+#   4. Target Bag 2    -> rest bag INSIDE Chest 2 (Rest / Remaining)
+#   Reset: run Pouch-Recycler-Reset-Ez32.razor
+#
+# LAYOUT
+#   Chest 1 -> wand + kit + gold
+#   Chest 2 -> Bag 1 (Modifiers) + Bag 2 (Rest)
+#   Backpack -> only loot source
+#
+# FLOW (one run)
+#   1. Gold -> Chest 1
+#   2. Take wand + kit from Chest 1
+#   3. ID magic in backpack (skill 120+ or wand)
+#   4. Recycle non-keep magic via Sewing Kit
+#   5. Drop board/leather on ground
+#   6. Modifiers -> Bag 1 | Rest -> Bag 2
+#   7. Return wand + kit to Chest 1 -> stop
+#
+# HOW TO RUN
+#   1. Put all loot in backpack
+#   2. Stand near chests
+#   3. Run script once, wait for PRONTO
+#
+# IGNORED (never moved)
+#   Wand, kit, pouches, all potions, personal tools (runebook, grimoire, dagger, etc.)
+#
+# KEEP TOGGLES (below, default ON)
+#   Fortification, Invulnerability, Accurate/Potent/Melodious (Eminently/Exceedingly/Supremely)
+#   Always keep: Power, Vanquishing, all Slayers
+#   Always recycle: chainmail, leather bustier, most shields
+#
+# TIMING (optional tweak)
+#   moveWaitMs 75 | bagOpenWaitMs 400 | recycleWaitMs 75
+#
+# ============================================
+
+@setvar! maxwaittimeinms 400
+@setvar! recycleWaitMs 75
+@setvar! moveWaitMs 75
+@setvar! bagOpenWaitMs 400
+
+@setvar! keep_accuracy_exceedingly 1
+@setvar! keep_accuracy_supremely 1
+@setvar! keep_armor_fortification 1
+@setvar! keep_armor_invul 1
+@setvar! keep_potency_exceedingly 1
+@setvar! keep_potency_supremely 1
+@setvar! keep_melody_exceedingly 1
+@setvar! keep_melody_supremely 1
+@setvar! keep_accuracy_eminently 1
+@setvar! keep_potency_eminently 1
+@setvar! keep_melody_eminently 1
+
+@setvar! toolsOut 0
+
+if targetexists
+    hotkey "Cancel Current Target"
+endif
+
+# ============================================
+# SETUP PERMANENTE (1x - espera target em cada passo)
+# ============================================
+if not varexist "ToolContainer"
+    overhead "Target BAU 1 (wand + kit)" 65
+    setvar "ToolContainer"
+    while not varexist "ToolContainer"
+        wait 500
+    endwhile
+    overhead "Bau 1 OK" 68
+    wait 400
+endif
+
+if not varexist "DestContainer"
+    overhead "Target BAU 2 (destino)" 65
+    setvar "DestContainer"
+    while not varexist "DestContainer"
+        wait 500
+    endwhile
+    overhead "Bau 2 OK" 68
+    wait 400
+endif
+
+if not varexist "KeepBag"
+    overhead "Target BAG 1 dentro do BAU 2" 65
+    setvar "KeepBag"
+    while not varexist "KeepBag"
+        wait 500
+    endwhile
+    overhead "Bag 1 OK" 68
+    wait 400
+endif
+
+if not varexist "JunkBag"
+    overhead "Target BAG 2 dentro do BAU 2" 65
+    setvar "JunkBag"
+    while not varexist "JunkBag"
+        wait 500
+    endwhile
+    overhead "Bag 2 OK" 68
+    wait 400
+endif
+
+if not varexist "ToolContainer"
+    overhead "Setup incompleto" 38
+    stop
+endif
+
+if not varexist "DestContainer"
+    overhead "Setup incompleto" 38
+    stop
+endif
+
+if not varexist "KeepBag"
+    overhead "Setup incompleto" 38
+    stop
+endif
+
+if not varexist "JunkBag"
+    overhead "Setup incompleto" 38
+    stop
+endif
+
+overhead "Setup OK" 68
+wait 300
+
+@clearignore
+clearsysmsg
+
+if gumpexists 949095101
+    gumpclose 949095101
+    wait 150
+endif
+
+# ============================================
+# GOLD -> CONTAINER 1 (pilha inteira de uma vez)
+# ============================================
+if findtype 3821|3822|3823|3824 backpack as goldItem
+    overhead "GUARDANDO GOLD..." 65
+    dclick ToolContainer
+    wait 300
+    @clearignore
+    while findtype 3821|3822|3823|3824 backpack as goldItem
+        while queued
+            //donothing
+        endwhile
+        lift goldItem 60000
+        wait moveWaitMs
+        drop ToolContainer -1 -1 -1
+        wait moveWaitMs
+    endwhile
+    while findtype "gold coin" backpack as goldItem
+        while queued
+            //donothing
+        endwhile
+        lift goldItem 60000
+        wait moveWaitMs
+        drop ToolContainer -1 -1 -1
+        wait moveWaitMs
+    endwhile
+    @clearignore
+    overhead "GOLD OK" 68
+    wait 300
+endif
+
+# ============================================
+# PEGAR WAND + KIT DO CONTAINER 1
+# ============================================
+overhead "PEGANDO TOOLS..." 65
+
+if findtype 20495 ToolContainer as chestWand
+    lift chestWand
+    wait moveWaitMs
+    drop backpack -1 -1 -1
+    wait moveWaitMs
+    @setvar! toolsOut 1
+elseif findtype 3572 ToolContainer as chestWand
+    lift chestWand
+    wait moveWaitMs
+    drop backpack -1 -1 -1
+    wait moveWaitMs
+    @setvar! toolsOut 1
+elseif findtype 3570 ToolContainer as chestWand
+    lift chestWand
+    wait moveWaitMs
+    drop backpack -1 -1 -1
+    wait moveWaitMs
+    @setvar! toolsOut 1
+elseif findtype 20495 backpack as chestWand
+    // ok
+elseif findtype 3572 backpack as chestWand
+    // ok
+elseif findtype 3570 backpack as chestWand
+    // ok
+else
+    overhead "Wand ID faltando no C1" 38
+    stop
+endif
+
+if findtype 3997 ToolContainer as chestKit
+    lift chestKit
+    wait moveWaitMs
+    drop backpack -1 -1 -1
+    wait moveWaitMs
+    @setvar! toolsOut 1
+elseif findtype 3997 backpack as chestKit
+    // ok
+else
+    overhead "Sewing Kit faltando no C1" 38
+    if findtype 20495 backpack as retWand
+        lift retWand
+        wait moveWaitMs
+        drop ToolContainer -1 -1 -1
+        wait moveWaitMs
+    elseif findtype 3572 backpack as retWand
+        lift retWand
+        wait moveWaitMs
+        drop ToolContainer -1 -1 -1
+        wait moveWaitMs
+    elseif findtype 3570 backpack as retWand
+        lift retWand
+        wait moveWaitMs
+        drop ToolContainer -1 -1 -1
+        wait moveWaitMs
+    endif
+    stop
+endif
+
+if gumpexists 949095101
+    gumpclose 949095101
+    wait 100
+endif
+if targetexists
+    hotkey "Cancel Current Target"
+endif
+wait 400
+overhead "TOOLS OK" 68
+
+# ============================================
+# ID NA BACKPACK (wand direto - NAO ignorar wand antes do dclick)
+# ============================================
+overhead "IDENTIFICANDO BP..." 65
+
+removelist idPasses
+createlist idPasses
+pushlist idPasses 1
+pushlist idPasses 2
+pushlist idPasses 3
+
+foreach idPass in idPasses
+
+    if targetexists
+        hotkey "Cancel Current Target"
+        wait 50
+    endif
+
+    @setvar! gotTarget 0
+
+    if skill "Item Identification" >= 120
+        useskill "Item Identification"
+        waitfortarget 1500
+        if targetexists
+            @setvar! gotTarget 1
+        endif
+    else
+        removelist idRetry
+        createlist idRetry
+        pushlist idRetry 1
+        pushlist idRetry 2
+        pushlist idRetry 3
+        pushlist idRetry 4
+        pushlist idRetry 5
+        pushlist idRetry 6
+        pushlist idRetry 7
+        pushlist idRetry 8
+
+        foreach dummy in idRetry
+            if gotTarget = 0
+                if findtype 20495 backpack as useWand
+                    dclick useWand
+                elseif findtype 3572 backpack as useWand
+                    dclick useWand
+                elseif findtype 3570 backpack as useWand
+                    dclick useWand
+                endif
+                waitfortarget 1000
+                if targetexists
+                    @setvar! gotTarget 1
+                else
+                    wait 200
+                endif
+            endif
+        endfor
+    endif
+
+    if gotTarget = 1
+        target backpack
+        wait 1500
+        if targetexists
+            hotkey "Cancel Current Target"
+            wait 50
+        endif
+    else
+        overhead "ID SEM TARGET" 38
+        break
+    endif
+
+    @clearignore
+    while findtype 3735|8901|11883|11882|25750|5370|24436|11881|11897|11886|3922|3999 backpack as igFix
+        @ignore igFix
+    endwhile
+    while findtype 20495|3572|3570 backpack as igWand
+        @ignore igWand
+    endwhile
+    while findtype 3997 backpack as igKit
+        @ignore igKit
+    endwhile
+    while findtype "pouch" self as igPouch
+        @ignore igPouch
+    endwhile
+    while findtype "pouch" backpack as igPouch
+        @ignore igPouch
+    endwhile
+    while findtype "potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype 3847|3848|3849|3850|3851|3852|3853|3854|3855|3856|3857|3858|3860|3861|3862 backpack as igPot
+        @ignore igPot
+    endwhile
+
+    @setvar! stillUnid 0
+    while findtype 3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|30999|31000|31001|31014|31178|31180|31182|3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|5187|30988|31128|31190|22187|31141|31142|31169|31172|5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|5101|5103|5105|5106|5129|5131|5132|5135|5138|5139|5142|5143|5144|5146|5201|5203|5204|5205|5207|7169|7170|7173|7175|7177|7179|7181|7610|31003|31004|31005|31006|31007|31008|31009|31010|31011|31012|31015|31191|31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037|31038|31041|31043|31045|31047|31049|31051|31053|31055|3834|3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130 backpack as uidchk
+        getlabel uidchk udesc
+        if "unidentified" in udesc
+            @setvar! stillUnid 1
+        endif
+        @ignore uidchk
+    endwhile
+
+    @clearignore
+
+    if stillUnid = 0
+        break
+    endif
+endfor
+
+while findtype 3713|3714 backpack as scrook
+    @ignore scrook
+endwhile
+
+while findtype "shepherd's crook" backpack as scrook
+    @ignore scrook
+endwhile
+
+while findtype "shepherds crook" backpack as scrook
+    @ignore scrook
+endwhile
+
+# ============================================
+# ABRIR KIT + RECYCLE (backpack)
+# ============================================
+overhead "RECYCLING..." 65
+
+if targetexists
+    hotkey "Cancel Current Target"
+endif
+
+if findtype 3997 backpack as ezKit
+    dclick ezKit
+else
+    overhead "SEWING KIT AUSENTE" 38
+    stop
+endif
+
+waitforgump 949095101 maxwaittimeinms
+
+while not ingump "Recycle Single Item" 949095101
+    gumpresponse 2 949095101
+    waitforgump 949095101 maxwaittimeinms
+endwhile
+
+while findtype 3735|8901|11883|11882|25750|5370|24436|11881|11897|11886|3922|3999 backpack as igFix
+    @ignore igFix
+endwhile
+while findtype 20495|3572|3570 backpack as igWand
+    @ignore igWand
+endwhile
+while findtype "pouch" self as igPouch
+    @ignore igPouch
+endwhile
+while findtype "pouch" backpack as igPouch
+    @ignore igPouch
+endwhile
+while findtype "potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype 3847|3848|3849|3850|3851|3852|3853|3854|3855|3856|3857|3858|3860|3861|3862 backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Yellow Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Orange Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Red Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Green Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Blue Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "White Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Black Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Purple Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Cure Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Heal Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Refresh Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Strength Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Agility Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Poison Potion" backpack as igPot
+    @ignore igPot
+endwhile
+while findtype "Explosion Potion" backpack as igPot
+    @ignore igPot
+endwhile
+
+@setvar! recycled 0
+
+while findtype 3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|30999|31000|31001|31014|31178|31180|31182|3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|5187|30988|31128|31190|22187|31141|31142|31169|31172|5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|5101|5103|5105|5106|5129|5131|5132|5135|5138|5139|5142|5143|5144|5146|5201|5203|5204|5205|5207|7169|7170|7173|7175|7177|7179|7181|7610|31003|31004|31005|31006|31007|31008|31009|31010|31011|31012|31015|31191|31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037|31038|31041|31043|31045|31047|31049|31051|31053|31055|3834|3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130 backpack as IDitem
+
+    getlabel IDitem desc
+
+    if "shepherd" in desc and "crook" in desc
+        @ignore IDitem
+    else
+
+    @setvar! keepItem 0
+    @setvar! hasCompanion 0
+    @setvar! forceRecycle 0
+
+    if "vanquishing" in desc or "vanquish" in desc or "power" in desc
+        @setvar! keepItem 1
+        @setvar! hasCompanion 1
+    endif
+
+    if keepItem = 0
+        if "slaying" in desc or " slayer" in desc
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        elseif "beastial" in desc or "construct" in desc or "daemonic" in desc or "elemental" in desc
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        elseif "humanoid" in desc or "monstrous" in desc or "nature" in desc or "undead" in desc
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        elseif "kraul hive" in desc or "time dungeon" in desc or "shadowspire" in desc or "netherzone" in desc
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        elseif "mausoleum" in desc or "darkmire" in desc or "wilderness" in desc or "cavernam" in desc
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        elseif "ossuary" in desc or "aegis" in desc or "inferno" in desc or "petram" in desc
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        elseif "nusero" in desc or "pulma" in desc or "ocean" in desc or "tidal" in desc or "kraul" in desc
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        endif
+    endif
+
+    if keepItem = 0
+        if "leather bustier" in desc or "female studded chest" in desc or "ringmail skirt" in desc
+            @setvar! forceRecycle 1
+        elseif "chainmail" in desc or "chain coif" in desc or "chain tunic" in desc or "chain leggings" in desc or "chain mail" in desc
+            @setvar! forceRecycle 1
+        elseif "shield" in desc
+            if "heater shield" in desc
+                // keep
+            elseif "chaos shield" in desc
+                // keep
+            elseif "order shield" in desc
+                // keep
+            else
+                @setvar! forceRecycle 1
+            endif
+        endif
+    endif
+
+    if keepItem = 0
+        if "unidentified" in desc or "blessed" in desc or "aspect" in desc or "training" in desc or "activated" in desc
+            @setvar! keepItem 1
+        endif
+    endif
+
+    if keepItem = 0
+        if "invulnerability" in desc and keep_armor_invul = 1
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        elseif "fortification" in desc and keep_armor_fortification = 1
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        elseif "supremely potent" in desc and keep_potency_supremely = 1
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        elseif "exceedingly potent" in desc and keep_potency_exceedingly = 1
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        endif
+    endif
+
+    if keepItem = 0 and hasCompanion = 1 and forceRecycle = 0
+        if "supremely accurate" in desc and keep_accuracy_supremely = 1
+            @setvar! keepItem 1
+        elseif "exceedingly accurate" in desc and keep_accuracy_exceedingly = 1
+            @setvar! keepItem 1
+        elseif "eminently accurate" in desc and keep_accuracy_eminently = 1
+            @setvar! keepItem 1
+        elseif "surpassingly accurate" in desc
+            @setvar! keepItem 1
+        elseif "accurate" in desc
+            @setvar! keepItem 1
+        endif
+    endif
+
+    if keepItem = 0 and hasCompanion = 1 and forceRecycle = 0
+        if "eminently potent" in desc and keep_potency_eminently = 1
+            @setvar! keepItem 1
+        elseif "surpassingly potent" in desc
+            @setvar! keepItem 1
+        elseif "potent" in desc
+            @setvar! keepItem 1
+        endif
+    endif
+
+    if keepItem = 0 and hasCompanion = 1 and forceRecycle = 0
+        if "supremely melodious" in desc and keep_melody_supremely = 1
+            @setvar! keepItem 1
+        elseif "exceedingly melodious" in desc and keep_melody_exceedingly = 1
+            @setvar! keepItem 1
+        elseif "eminently melodious" in desc and keep_melody_eminently = 1
+            @setvar! keepItem 1
+        elseif "surpassingly melodious" in desc
+            @setvar! keepItem 1
+        elseif "melodious" in desc
+            @setvar! keepItem 1
+        endif
+    endif
+
+    if keepItem = 0 and forceRecycle = 0
+        if "might" in desc or "force" in desc
+            @setvar! hasOtherMod 0
+            if "durable" in desc or "substantial" in desc or "massive" in desc or "fortified" in desc or "indestructible" in desc
+                @setvar! hasOtherMod 1
+            elseif "invulnerability" in desc or "fortification" in desc or "hardening" in desc or "defense" in desc or "guarding" in desc
+                @setvar! hasOtherMod 1
+            elseif "ruin" in desc or "vanquishing" in desc or "vanquish" in desc or "power" in desc
+                @setvar! hasOtherMod 1
+            elseif "slaying" in desc or " slayer" in desc
+                @setvar! hasOtherMod 1
+            elseif "beastial" in desc or "construct" in desc or "daemonic" in desc or "elemental" in desc
+                @setvar! hasOtherMod 1
+            elseif "humanoid" in desc or "monstrous" in desc or "nature" in desc or "undead" in desc
+                @setvar! hasOtherMod 1
+            elseif "aegis" in desc or "cavernam" in desc or "darkmire" in desc or "inferno" in desc
+                @setvar! hasOtherMod 1
+            elseif "petram" in desc or "nusero" in desc or "ossuary" in desc or "pulma" in desc
+                @setvar! hasOtherMod 1
+            elseif "mausoleum" in desc or "wilderness" in desc or "ocean" in desc or "tidal" in desc
+                @setvar! hasOtherMod 1
+            elseif "kraul" in desc or "shadowspire" in desc or "netherzone" in desc or "time dungeon" in desc
+                @setvar! hasOtherMod 1
+            elseif "accurate" in desc or "potent" in desc or "melodious" in desc
+                @setvar! hasOtherMod 1
+            endif
+            if hasOtherMod = 1
+                @setvar! keepItem 1
+            endif
+        endif
+    endif
+
+    if keepItem = 1
+        @ignore IDitem
+    else
+        if not gumpexists 949095101
+            dclicktype 3997 backpack
+            waitforgump 949095101 maxwaittimeinms
+            while not ingump "Recycle Single Item" 949095101
+                gumpresponse 2 949095101
+                waitforgump 949095101 maxwaittimeinms
+            endwhile
+        endif
+
+        gumpresponse 3 949095101
+        wft maxwaittimeinms
+
+        target IDitem
+        wait recycleWaitMs
+        @setvar! recycled 1
+
+        @ignore IDitem
+    endif
+
+    endif
+endwhile
+
+@clearignore
+
+if gumpexists 949095101
+    gumpclose 949095101
+    wait 100
+endif
+
+if recycled = 0
+    overhead "NADA RECICLADO" 88
+else
+    overhead "RECYCLE DONE" 65
+endif
+
+# ============================================
+# BOARD + LEATHER -> CHAO (nao vai p/ Bag2)
+# ============================================
+overhead "DROP SCRAP..." 65
+
+while findtype 7127|4225 backpack as scrapmat
+    while queued
+        //donothing
+    endwhile
+    lift scrapmat 60000
+    wait moveWaitMs
+    droprelloc 0 0 0
+    wait moveWaitMs
+endwhile
+
+@clearignore
+
+# ============================================
+# MOVER BP -> Bag1 (keep) | Bag2 (resto)
+# 1 loop: abre bags 1x, repete ate bp vazia
+# ============================================
+overhead "MOVENDO BP..." 65
+
+if targetexists
+    hotkey "Cancel Current Target"
+endif
+
+dclick DestContainer
+wait bagOpenWaitMs
+dclick KeepBag
+wait bagOpenWaitMs
+dclick JunkBag
+wait bagOpenWaitMs
+
+if listexists junkScan
+    removelist junkScan
+endif
+createlist junkScan
+pushlist junkScan 7154
+pushlist junkScan 3877
+pushlist junkScan 3878
+pushlist junkScan 3903
+pushlist junkScan 3617
+pushlist junkScan 3762
+pushlist junkScan 3763
+pushlist junkScan 3764
+pushlist junkScan 3765
+pushlist junkScan 3766
+pushlist junkScan 3767
+pushlist junkScan 3768
+pushlist junkScan 3769
+pushlist junkScan 3770
+pushlist junkScan 3771
+pushlist junkScan 3772
+pushlist junkScan 3773
+pushlist junkScan 3774
+pushlist junkScan 3775
+pushlist junkScan 3776
+pushlist junkScan 3777
+pushlist junkScan 3778
+pushlist junkScan 3779
+pushlist junkScan 3780
+pushlist junkScan 3781
+pushlist junkScan 3782
+pushlist junkScan 3783
+pushlist junkScan 3784
+pushlist junkScan 3785
+pushlist junkScan 3786
+pushlist junkScan 3787
+pushlist junkScan 3788
+pushlist junkScan 3789
+pushlist junkScan 3790
+pushlist junkScan 3791
+pushlist junkScan 3792
+pushlist junkScan 3793
+pushlist junkScan 3794
+pushlist junkScan 3795
+pushlist junkScan 3796
+pushlist junkScan 3797
+pushlist junkScan 3798
+pushlist junkScan 3799
+pushlist junkScan 3800
+pushlist junkScan 3938
+pushlist junkScan 3985
+pushlist junkScan 3996
+pushlist junkScan 4045
+pushlist junkScan 4248
+pushlist junkScan 3821
+pushlist junkScan 3822
+pushlist junkScan 3823
+pushlist junkScan 3824
+pushlist junkScan 3861
+pushlist junkScan 3862
+pushlist junkScan 3865
+pushlist junkScan 3873
+pushlist junkScan 3885
+pushlist junkScan 3891
+pushlist junkScan 3892
+pushlist junkScan 3893
+pushlist junkScan 3901
+pushlist junkScan 3902
+pushlist junkScan 3904
+pushlist junkScan 3910
+pushlist junkScan 3972
+pushlist junkScan 3973
+pushlist junkScan 3974
+pushlist junkScan 3976
+pushlist junkScan 3980
+pushlist junkScan 3981
+pushlist junkScan 4217
+pushlist junkScan 4221
+pushlist junkScan 4240
+pushlist junkScan 4263
+pushlist junkScan 4265
+pushlist junkScan 4266
+pushlist junkScan 4267
+pushlist junkScan 4425
+pushlist junkScan 4426
+pushlist junkScan 4427
+pushlist junkScan 5060
+pushlist junkScan 5901
+pushlist junkScan 7108
+pushlist junkScan 7153
+pushlist junkScan 7163
+pushlist junkScan 7620
+pushlist junkScan 7933
+pushlist junkScan 8455
+pushlist junkScan 8456
+pushlist junkScan 24434
+pushlist junkScan 43206
+pushlist junkScan 29363
+pushlist junkScan 43166
+pushlist junkScan 22336
+pushlist junkScan 29348
+pushlist junkScan 17087
+pushlist junkScan 8826
+pushlist junkScan 29030
+pushlist junkScan 3836
+pushlist junkScan 5981
+pushlist junkScan 5359
+pushlist junkScan 3839
+pushlist junkScan 3838
+pushlist junkScan 3843
+pushlist junkScan 2597
+pushlist junkScan 29036
+pushlist junkScan 48407
+pushlist junkScan 576
+pushlist junkScan 3962
+pushlist junkScan 3963
+pushlist junkScan 3573
+pushlist junkScan 3571
+pushlist junkScan 22326
+pushlist junkScan 27611
+pushlist junkScan 9917
+pushlist junkScan 8454
+pushlist junkScan 45315
+pushlist junkScan 5362
+pushlist junkScan 3702
+pushlist junkScan 5356
+pushlist junkScan 7127
+pushlist junkScan 4225
+pushlist junkScan 3978
+pushlist junkScan 3827
+pushlist junkScan 3982
+pushlist junkScan 3983
+pushlist junkScan 3984
+pushlist junkScan 3986
+pushlist junkScan 3987
+pushlist junkScan 3988
+pushlist junkScan 3989
+pushlist junkScan 3990
+pushlist junkScan 3991
+pushlist junkScan 3992
+pushlist junkScan 3993
+pushlist junkScan 3994
+pushlist junkScan 3995
+pushlist junkScan 2472
+pushlist junkScan 2473
+pushlist junkScan 2474
+pushlist junkScan 2475
+pushlist junkScan 3187
+pushlist junkScan 3188
+pushlist junkScan 3190
+pushlist junkScan 3191
+pushlist junkScan 3192
+pushlist junkScan 3193
+pushlist junkScan 3194
+pushlist junkScan 3196
+pushlist junkScan 3197
+pushlist junkScan 3199
+pushlist junkScan 7175
+pushlist junkScan 7177
+pushlist junkScan 7179
+pushlist junkScan 7181
+pushlist junkScan 7183
+pushlist junkScan 7185
+pushlist junkScan 7187
+pushlist junkScan 7189
+pushlist junkScan 7190
+pushlist junkScan 7192
+pushlist junkScan 7194
+pushlist junkScan 7196
+pushlist junkScan 7198
+pushlist junkScan 8198
+pushlist junkScan 8199
+pushlist junkScan 8201
+pushlist junkScan 8202
+pushlist junkScan 8203
+pushlist junkScan 8204
+pushlist junkScan 8205
+pushlist junkScan 8206
+pushlist junkScan 8207
+pushlist junkScan 8208
+pushlist junkScan 8209
+pushlist junkScan 8210
+pushlist junkScan 8211
+pushlist junkScan 8212
+pushlist junkScan 8213
+pushlist junkScan 8214
+pushlist junkScan 8215
+pushlist junkScan 8216
+pushlist junkScan 8217
+pushlist junkScan 8218
+pushlist junkScan 8219
+pushlist junkScan 8220
+
+@setvar! bpBusy 1
+
+while bpBusy = 1
+    @setvar! bpBusy 0
+
+    @clearignore
+    while findtype 3735|8901|11883|11882|25750|5370|24436|11881|11897|11886|3922|3999 backpack as igFix
+        @ignore igFix
+    endwhile
+    while findtype 20495|3572|3570 backpack as igWand
+        @ignore igWand
+    endwhile
+    while findtype 3997 backpack as igKit
+        @ignore igKit
+    endwhile
+    while findtype "pouch" self as igPouch
+        @ignore igPouch
+    endwhile
+    while findtype "pouch" backpack as igPouch
+        @ignore igPouch
+    endwhile
+    while findtype "potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype 3847|3848|3849|3850|3851|3852|3853|3854|3855|3856|3857|3858|3860|3861|3862 backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Yellow Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Orange Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Red Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Green Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Blue Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "White Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Black Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Purple Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Cure Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Heal Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Refresh Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Strength Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Agility Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Poison Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype "Explosion Potion" backpack as igPot
+        @ignore igPot
+    endwhile
+    while findtype 3713|3714 backpack as crookIgn
+        @ignore crookIgn
+    endwhile
+    while findtype "shepherd's crook" backpack as crookIgn
+        @ignore crookIgn
+    endwhile
+    while findtype "shepherds crook" backpack as crookIgn
+        @ignore crookIgn
+    endwhile
+
+    while findtype 3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|30999|31000|31001|31014|31178|31180|31182|3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|5187|30988|31128|31190|22187|31141|31142|31169|31172|5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|5101|5103|5105|5106|5129|5131|5132|5135|5138|5139|5142|5143|5144|5146|5201|5203|5204|5205|5207|7169|7170|7173|7175|7177|7179|7181|7610|31003|31004|31005|31006|31007 backpack as bpItem
+        getlabel bpItem desc
+        if "shepherd" in desc and "crook" in desc
+            @ignore bpItem
+        else
+        @setvar! keepItem 0
+        @setvar! hasCompanion 0
+        if "vanquishing" in desc or "vanquish" in desc or "power" in desc
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        endif
+        if keepItem = 0
+            if "slaying" in desc or " slayer" in desc
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "beastial" in desc or "construct" in desc or "daemonic" in desc or "elemental" in desc
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "humanoid" in desc or "monstrous" in desc or "nature" in desc or "undead" in desc
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "kraul hive" in desc or "time dungeon" in desc or "shadowspire" in desc or "netherzone" in desc
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "mausoleum" in desc or "darkmire" in desc or "wilderness" in desc or "cavernam" in desc
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "ossuary" in desc or "aegis" in desc or "inferno" in desc or "petram" in desc
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "nusero" in desc or "pulma" in desc or "ocean" in desc or "tidal" in desc or "kraul" in desc
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            endif
+        endif
+        if keepItem = 0
+            if "unidentified" in desc or "blessed" in desc or "aspect" in desc or "training" in desc or "activated" in desc
+                @setvar! keepItem 1
+            endif
+        endif
+        if keepItem = 0
+            if "invulnerability" in desc and keep_armor_invul = 1
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "fortification" in desc and keep_armor_fortification = 1
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "supremely potent" in desc and keep_potency_supremely = 1
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "exceedingly potent" in desc and keep_potency_exceedingly = 1
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            endif
+        endif
+        if keepItem = 0 and hasCompanion = 1
+            if "supremely accurate" in desc and keep_accuracy_supremely = 1
+                @setvar! keepItem 1
+            elseif "exceedingly accurate" in desc and keep_accuracy_exceedingly = 1
+                @setvar! keepItem 1
+            elseif "eminently accurate" in desc and keep_accuracy_eminently = 1
+                @setvar! keepItem 1
+            elseif "surpassingly accurate" in desc
+                @setvar! keepItem 1
+            elseif "accurate" in desc
+                @setvar! keepItem 1
+            elseif "eminently potent" in desc and keep_potency_eminently = 1
+                @setvar! keepItem 1
+            elseif "surpassingly potent" in desc
+                @setvar! keepItem 1
+            elseif "potent" in desc
+                @setvar! keepItem 1
+            elseif "supremely melodious" in desc and keep_melody_supremely = 1
+                @setvar! keepItem 1
+            elseif "exceedingly melodious" in desc and keep_melody_exceedingly = 1
+                @setvar! keepItem 1
+            elseif "eminently melodious" in desc and keep_melody_eminently = 1
+                @setvar! keepItem 1
+            elseif "surpassingly melodious" in desc
+                @setvar! keepItem 1
+            elseif "melodious" in desc
+                @setvar! keepItem 1
+            endif
+        endif
+        if keepItem = 0
+            if "might" in desc or "force" in desc
+                @setvar! hasOtherMod 0
+                if "durable" in desc or "substantial" in desc or "massive" in desc or "fortified" in desc or "indestructible" in desc
+                    @setvar! hasOtherMod 1
+                elseif "invulnerability" in desc or "fortification" in desc or "hardening" in desc or "defense" in desc or "guarding" in desc
+                    @setvar! hasOtherMod 1
+                elseif "ruin" in desc or "vanquishing" in desc or "vanquish" in desc or "power" in desc
+                    @setvar! hasOtherMod 1
+                elseif "slaying" in desc or " slayer" in desc
+                    @setvar! hasOtherMod 1
+                elseif "beastial" in desc or "construct" in desc or "daemonic" in desc or "elemental" in desc
+                    @setvar! hasOtherMod 1
+                elseif "humanoid" in desc or "monstrous" in desc or "nature" in desc or "undead" in desc
+                    @setvar! hasOtherMod 1
+                elseif "accurate" in desc or "potent" in desc or "melodious" in desc
+                    @setvar! hasOtherMod 1
+                endif
+                if hasOtherMod = 1
+                    @setvar! keepItem 1
+                endif
+            endif
+        endif
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        if keepItem = 1
+            drop KeepBag -1 -1 -2
+        else
+            drop JunkBag -1 -1 -2
+        endif
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+        endif
+    endwhile
+
+    while findtype 31008|31009|31010|31011|31012|31015|31191|31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037|31038|31041|31043|31045|31047|31049|31051|31053|31055|3834|3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|7026|7027|7028|7029|7030|7031|7033|7034|7035|7107|7108|7109|31002|31130|5128|5136|5143|5137|5138|5139|5144|5141|5130|5132|5134|5051|5123|5124|5120|5119|5122|5101|5121|5131|5594|5090|5084|5078|5079|5085|5070|5069|5075|5077|5063|5113|5061|3826|3947|3954|5948 backpack as bpItem
+        getlabel bpItem desc
+        if "shepherd" in desc and "crook" in desc
+            @ignore bpItem
+        else
+        @setvar! keepItem 0
+        @setvar! hasCompanion 0
+        if "vanquishing" in desc or "vanquish" in desc or "power" in desc
+            @setvar! keepItem 1
+            @setvar! hasCompanion 1
+        endif
+        if keepItem = 0
+            if "slaying" in desc or " slayer" in desc
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "beastial" in desc or "undead" in desc or "humanoid" in desc or "fortification" in desc or "invulnerability" in desc
+                @setvar! keepItem 1
+                @setvar! hasCompanion 1
+            elseif "unidentified" in desc or "blessed" in desc or "aspect" in desc or "supremely" in desc or "exceedingly" in desc
+                @setvar! keepItem 1
+            elseif "potent" in desc or "accurate" in desc or "melodious" in desc
+                @setvar! keepItem 1
+            endif
+        endif
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        if keepItem = 1
+            drop KeepBag -1 -1 -2
+        else
+            drop JunkBag -1 -1 -2
+        endif
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+        endif
+    endwhile
+
+    while findtype "gold coin" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "arrow" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "bolt" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "bandage" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "scroll" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "arcane scroll" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype 3827 backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "gem" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "ingot" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "reagent" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "essence" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "map" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "cloth" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "fish" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "log" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "ore" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    while findtype "hide" backpack as bpItem
+        while queued
+            //donothing
+        endwhile
+        lift bpItem 60000
+        wait moveWaitMs
+        drop JunkBag -1 -1 -2
+        wait moveWaitMs
+        while queued
+            //donothing
+        endwhile
+        @setvar! bpBusy 1
+        @ignore bpItem
+    endwhile
+
+    foreach jid in junkScan
+        while findtype jid backpack as bpItem
+            getlabel bpItem desc
+            if "shepherd" in desc and "crook" in desc
+                @ignore bpItem
+            elseif "potion" in desc or "Potion" in desc
+                @ignore bpItem
+            elseif "board" in desc or "leather" in desc
+                while queued
+                    //donothing
+                endwhile
+                lift bpItem 60000
+                wait moveWaitMs
+                droprelloc 0 0 0
+                wait moveWaitMs
+                @setvar! bpBusy 1
+                @ignore bpItem
+            else
+                @setvar! keepItem 0
+                if "vanquishing" in desc or "vanquish" in desc or "power" in desc or "slaying" in desc or " slayer" in desc
+                    @setvar! keepItem 1
+                elseif "beastial" in desc or "undead" in desc or "humanoid" in desc or "fortification" in desc or "invulnerability" in desc
+                    @setvar! keepItem 1
+                elseif "unidentified" in desc or "blessed" in desc or "aspect" in desc or "supremely" in desc or "exceedingly" in desc
+                    @setvar! keepItem 1
+                elseif "potent" in desc or "accurate" in desc or "melodious" in desc
+                    @setvar! keepItem 1
+                endif
+                while queued
+                    //donothing
+                endwhile
+                lift bpItem 60000
+                wait moveWaitMs
+                if keepItem = 1
+                    drop KeepBag -1 -1 -2
+                else
+                    drop JunkBag -1 -1 -2
+                endif
+                wait moveWaitMs
+                while queued
+                    //donothing
+                endwhile
+                @setvar! bpBusy 1
+                @ignore bpItem
+            endif
+        endwhile
+    endfor
+
+endwhile
+
+overhead "BP VAZIA OK" 68
+
+@clearignore
+
+# ============================================
+# DEVOLVER TOOLS -> CONTAINER 1
+# ============================================
+if targetexists
+    hotkey "Cancel Current Target"
+endif
+
+if findtype 20495 backpack as retWand
+    lift retWand
+    wait moveWaitMs
+    drop ToolContainer -1 -1 -1
+    wait moveWaitMs
+elseif findtype 3572 backpack as retWand
+    lift retWand
+    wait moveWaitMs
+    drop ToolContainer -1 -1 -1
+    wait moveWaitMs
+elseif findtype 3570 backpack as retWand
+    lift retWand
+    wait moveWaitMs
+    drop ToolContainer -1 -1 -1
+    wait moveWaitMs
+endif
+
+if findtype 3997 backpack as retKit
+    lift retKit
+    wait moveWaitMs
+    drop ToolContainer -1 -1 -1
+    wait moveWaitMs
+endif
+
+# ============================================
+# FECHAR KIT GUMP + BAGS ABERTAS
+# ============================================
+if targetexists
+    hotkey "Cancel Current Target"
+endif
+
+if gumpexists 949095101
+    gumpclose 949095101
+    wait 200
+endif
+
+if gumpexists 949095101
+    gumpclose 949095101
+    wait 200
+endif
+
+dclick backpack
+wait 200
+
+removelist closeBag
+createlist closeBag
+pushlist closeBag 1
+pushlist closeBag 2
+pushlist closeBag 3
+foreach cb in closeBag
+    if targetexists
+        hotkey "Cancel Current Target"
+        wait 100
+    endif
+    if gumpexists 949095101
+        gumpclose 949095101
+        wait 100
+    endif
+    dclick backpack
+    wait 150
+endfor
+
+if recycled = 0
+    overhead "PRONTO - nada reciclado" 88
+else
+    overhead "PRONTO - recycle OK" 65
+endif
+
+stop

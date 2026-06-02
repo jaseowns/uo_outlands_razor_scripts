@@ -5,7 +5,7 @@
 #############################################
 
 # "Bapeths Trapper Background"
-# June 1st 2026 - added range checker for manual override targets
+# June 2nd 2026 - Recoded Auto Provo mode
 #
 ###########################################################################################################################################################################
 #
@@ -25,8 +25,8 @@
 # For dex builds - auto attack / use weapon ability
 # Note on Dex Builds : "BOOM BOOM" hotkey script required to activate / auto attack / auto weapon ability
 # Wizard hat stealth trick (stamina) if you are a stealth trapper
-# Auto Peace + Discord on "Manual Override" targets (Auto Barding only works on what you select as the "Manual Override")
-# Provo Assist on "Manual Override" targets (Provo assist only works on what you select as the "Manual Override")
+# Auto Peace + Discord when in "Peacemode" on "Manual Override" targets (Auto Barding only works on what you select as the "Manual Override")
+# Auto Provo --> Mobs will auto provo when in "Warmode" (Use "Manual Override" to provo all mobs onto what you select as "Manual Override")
 # Auto Bard Songs
 
 # Bapeths "Manual Override" script can be found here :
@@ -227,19 +227,20 @@
 #
 # "Auto TriBard Routines"
 #
-# The script has two phases - One phase for Auto Peace + Disco and a second phase for Auto Provo + Disco
-# The "Manual Override" script must be used to set your barding target
-# To switch between the phases, open the "Atlas" while the script is playing - Default phase is always Peace + Disco
+# "Auto Peace Phase" ---> User must be in Peace Mode
+# "Auto Provo Phase" ---> User must be in War Mode
+#
+# The script has two phases for Peace Mode - One phase for Peace first then Discordance, and another phase for Discordance first then Peace
+# The "Manual Override" script must be used to set your barding target for Peacemode
+# The "Manual Override" script is OPTIONAL when in warmode - if used it will hard target what you provoke (Warning this may cause a short error in which the mob you select is provoed onto itself)
+# To switch between the Peace Mode phases, open the "Atlas" while the script is playing - Default phase is always Peace First
 # Type "[Atlas" in game to spawn a free weightless Atlas in your bag
 # Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick it
-# "Auto Peace Phase" ---> Peacemake will happen first followed by Discord on your "Manual Override" target
-# "Auto Provo Phase" ---> Provo will auto target "Manual Override" then wait for you to select a second target, once the second target is selected it will auto AoE Discord
 # The script will also use all three Barding Songs when needed
 # (0 = off 1 = on) 
 #
 @setvar! "TriBard Routines" 1
 #
-# Note on "Bosses": If you are in "Auto Provo" mode the script will only provoke what you select onto a boss - the Discord AoE will not occur
 #
 ##############################################################################################################################################################################################################
 #
@@ -276,6 +277,10 @@
 # Check out another script by Bapeth called "Bapeths Object Drag & Dropper" found here : https://outlands.uorazorscripts.com/script/619a6bcc-bf10-4c8c-a645-282c94f6fa99
 #
 # Script starts here...
+
+#if cooldown "PvP"
+#    script "BapPvPBackground"
+#endif
 
 if casting 
     while casting 
@@ -1205,7 +1210,7 @@ if "TriBard Routines" = 1
             gumpclose 341416395
             removetimer BapPeace
             createtimer BapProvo
-            overhead "--Auto Provo Activated--" 38
+            overhead "--Disco First Activated--" 38
             getlabel backpack ping
         endif
         if timerexists BapProvo and gumpexists 341416395
@@ -1214,15 +1219,15 @@ if "TriBard Routines" = 1
             gumpclose 341416395
             removetimer BapProvo
             createtimer  BapPeace
-            overhead "--Auto Peace Activated--" 88
+            overhead "--Peace First Activated--" 88
             getlabel backpack ping
         endif
     endif
     // End of Switch for Auto Peace - Auto Provo Routune
 
     // Peace/Provo then Discord Routine
-    if "PeaceFirst" = 1
-        if not hidden and not casting and not targetexists and timerexists "BapPeace"
+    if timerexists "BapPeace"
+        if not hidden and not casting and not targetexists and not warmode
             if find "Manual Override" ground -1 -1 12 and skill "Peacemaking" >= 80 and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
                 getlabel "Manual Override" barddesc
                 hotkey "Cancel Current Target"
@@ -1339,8 +1344,8 @@ if "TriBard Routines" = 1
             endif
         endif
     endif
-    if "PeaceFirst" = 0
-        if not hidden and not casting and not targetexists and timerexists "BapPeace"
+    if timerexists "BapProvo"
+        if not hidden and not casting and not targetexists and not warmode
             if find "Manual Override" ground -1 -1 12 and skill "Peacemaking" >= 80 and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
                 getlabel "Manual Override" barddesc
                 hotkey "Cancel Current Target"
@@ -1430,156 +1435,377 @@ if "TriBard Routines" = 1
             endif
         endif
     endif
-    if not hidden and not casting and not targetexists and timerexists "BapProvo"
-        if find "Manual Override" ground -1 -1 12 and skill "Provocation" >= 80 and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
-            clearsysmsg 
-            getlabel "Manual Override" barddesc
-            hotkey "Cancel Current Target"
-            if "Boss" in barddesc
-                skill "Provocation"
-                wft 300
-                overhead "Provo Add" 88
-                overhead "<<<Boss>>>" 38 "Manual Override"
-                while targetexists 
-                    if gumpexists 341416395
-                        hotkey "Cancel Current Target"
-                    endif
-                endwhile
-                getlabel backpack ping
-                overhead "<<Provo Target>>" 88 lasttarget
-                wft 300
-                target "Manual Override"
-                hotkey "Cancel Current Target"
-            elseif "Summoned" in barddesc
-                skill "Provocation"
-                wft 300
-                overhead "Provo Add" 88
-                overhead "<<<Boss>>>" 38 "Manual Override"
-                while targetexists 
-                    if gumpexists 341416395
-                        hotkey "Cancel Current Target"
-                    endif
-                endwhile
-                getlabel backpack ping
-                overhead "<<Provo Target>>" 88 lasttarget 
-                wft 300
-                target "Manual Override"
-                hotkey "Cancel Current Target"
-            elseif "break" in barddesc
-                overhead "<<Break>>" 38 "Manual Override"
-            elseif "provoked" in barddesc
-                overhead "<<Provoked>>" 43 "Manual Override"
-                overhead "<<Provoked>>" 48 "BapPVMProvoSecondTarget"
-                if timerexists BapSeekReProvo and not timerexists BapProvoMoveToDiscordAOE
-                    removetimer BapSeekReProvo
+    if not hidden and not casting and not targetexists and warmode
+        if casting 
+            while casting 
+                //donothing
+            endwhile
+            pause 250
+        endif
+        if not casting and not targetexists and skill "Provocation" >= 80 and not cooldown "Provocation" and not cooldown "Provocation Fail"
+            if findtype 3763|20016|20010|10245|20008|20006|20014|20012|3742|3740|3762 backpack
+                clearsysmsg
+                if not hidden and not casting and not targetexists and not findbuff "Song of Provocation"
                     skill "Provocation"
-                    wft 300
-                    target "Manual Override"
-                    overhead "<<Provo Target>>" 38 "Manual Override"
-                    wft 300
-                    overhead "<<Select Second Target>>" 88
-                    while targetexists 
-                        if gumpexists 341416395
-                            hotkey "Cancel Current Target"
-                        endif
-                    endwhile
-                    @setvar! "BapPVMProvoSecondTarget" lasttarget 
+                    wft 500
+                    target backpack
+                    pause 500
+                endif
+                if not timerexists skipBapclosest
+                    if timerexists useclosestBapmonster
+                        removetimer useclosestBapmonster
+                    endif
+                    hotkey 'Target Closest Non-Friendly Monster'
+                    @setvar! "BapClosestMonster" lasttarget 
                     hotkey "Cancel Current Target"
-                    getlabel backpack ping
-                    if insysmsg "You play successfully, provoking"
-                        overhead "**Success**" 68 "BapPVMProvoSecondTarget"
-                        overhead "**Success**" 68 "Manual Override"
-                        removetimer ProvoRegularMobRetry
-                        createtimer BapProvoMoveToDiscordAOE
-                    elseif insysmsg "fail to incite"
-                        overhead "**Fail**" 38 "BapPVMProvoSecondTarget"
-                        overhead "**Fail**" 38 "Manual Override"
-                        if cooldown "Provocation"
-                            overhead "<Bard Cooldown>" 38
-                            createtimer ProvoRegularMobRetry
-                        else
-                            createtimer ProvoRegularMobRetry
-                            getlabel backpack ping
+                    getlabel "BapClosestMonster" Closedesc
+                    if "break" in Closedesc
+                        //donthing
+                    elseif "provoked" in Closedesc
+                        //donothing
+                    elseif "summoned" in Closedesc
+                        @ignore "BapClosestMonster"
+                        replay
+                    elseif "tame" in Closedesc
+                        @ignore "BapClosestMonster"
+                        replay
+                    else 
+                        createtimer useclosestBapmonster
+                    endif
+                endif
+                if timerexists passdistancecheck
+                    removetimer passdistancecheck
+                endif
+                for 20
+                    hotkey "Cancel Current Target"
+                    hotkey "next non-friendly monster target"
+                    @setvar! "BapNextMonster" lasttarget 
+                    if find "BapNextMonster" ground -1 -1 1
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 1
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 2
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 3
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 4
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 5
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 6
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 7
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 8
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 9
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 10
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 11
+                        createtimer passdistancecheck
+                        break
+                    elseif find "BapNextMonster" ground -1 -1 12
+                        createtimer passdistancecheck
+                        break
+                    endif
+                endfor
+                if timerexists passdistancecheck
+                    getlabel "BapNextMonster" Nextdesc
+                    if "break" in Nextdesc
+                        overhead "Break!" 38 "BapNextMonster"
+                        createtimer skipBapclosest
+                    elseif "summoned" in Nextdesc
+                        @ignore "BapNextMonster"
+                        replay
+                    elseif "tame" in Nextdesc
+                        @ignore "BapNextMonster"
+                        replay
+                    else
+                        if timerexists skipBapclosest
+                            removetimer skipBapclosest
                         endif
-                    endif                    
-                endif
-            elseif not timerexists BapProvoMoveToDiscordAOE and timerexists ProvoRegularMobRetry
-                skill "Provocation"
-                wft 300
-                target "Manual Override"
-                wft 300
-                target "BapPVMProvoSecondTarget" 
-                hotkey "Cancel Current Target"
-                getlabel backpack ping
-                if insysmsg "You play successfully, provoking"
-                    overhead "**Success**" 68 "BapPVMProvoSecondTarget"
-                    overhead "**Success**" 68 "Manual Override"
-                    removetimer ProvoRegularMobRetry
-                    createtimer BapProvoMoveToDiscordAOE
-                elseif insysmsg "fail to incite"
-                    overhead "**Fail**" 38 "BapPVMProvoSecondTarget"
-                    overhead "**Fail**" 38 "Manual Override"
-                    if cooldown "Provocation"
-                        overhead "<Bard Cooldown>" 38
-                        createtimer ProvoRegularMobRetry
-                    else
-                        createtimer ProvoRegularMobRetry
-                        getlabel backpack ping
-                    endif
-                endif
-            elseif not timerexists BapProvoMoveToDiscordAOE
-                skill "Provocation"
-                wft 300
-                target "Manual Override"
-                overhead "<<Provo Target>>" 38 "Manual Override"
-                wft 300
-                overhead "<<Select Second Target>>" 88
-                while targetexists 
-                    if gumpexists 341416395
+                        skill "Provocation"
+                        wft 500
+                        if timerexists useclosestBapmonster
+                            target "BapClosestMonster"
+                        else
+                            target "BapNextMonster"
+                        endif
+                        wft 500
+                        target "Manual Override"
+                        if timerexists secondarypassdistancecheck
+                            removetimer secondarypassdistancecheck
+                        endif
+                        for 20
+                            for 20
+                                hotkey "next non-friendly monster target"
+                                @setvar! "SecondaryBapNextMonster" lasttarget 
+                                getlabel "SecondaryBapNextMonster" SecondNextDesc
+                                if "summoned" in SecondNextDesc
+                                    @ignore SecondNextDesc
+                                elseif "tame" in SecondNextDesc
+                                    @ignore SecondNextDesc
+                                else 
+                                    break
+                                endif
+                            endfor
+                            if find "SecondaryBapNextMonster" ground -1 -1 1
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 1
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 2
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 3
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 4
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 5
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 6
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 7
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 8
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 9
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 10
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 11
+                                createtimer secondarypassdistancecheck
+                                break
+                            elseif find "SecondaryBapNextMonster" ground -1 -1 12
+                                createtimer secondarypassdistancecheck
+                                break
+                            endif
+                        endfor
+                        if timerexists secondarypassdistancecheck
+                            target "SecondaryBapNextMonster"
+                        endif
                         hotkey "Cancel Current Target"
-                    endif
-                endwhile
-                @setvar! "BapPVMProvoSecondTarget" lasttarget 
-                hotkey "Cancel Current Target"
-                getlabel backpack ping
-                if insysmsg "You play successfully, provoking"
-                    overhead "**Success**" 68 "BapPVMProvoSecondTarget"
-                    overhead "**Success**" 68 "Manual Override"
-                    removetimer ProvoRegularMobRetry
-                    createtimer BapProvoMoveToDiscordAOE
-                elseif insysmsg "fail to incite"
-                    overhead "**Fail**" 38 "BapPVMProvoSecondTarget"
-                    overhead "**Fail**" 38 "Manual Override"
-                    if cooldown "Provocation"
-                        overhead "<Bard Cooldown>" 38
-                        createtimer ProvoRegularMobRetry
-                    else
-                        createtimer ProvoRegularMobRetry
                         getlabel backpack ping
+                        if insysmsg "Target cannot be seen"
+                            overhead "No Sight!" 38 "SecondaryBapNextMonster"
+                            overhead "No Sight!" 38 "Manual Override"
+                            overhead "No Sight!" 38 "BapNextMonster"
+                            overhead "No Sight!" 38 "BapClosestMonster"
+                            pause 320
+                        elseif insysmsg "That is too far away"
+                            overhead "Too Far!" 38 "SecondaryBapNextMonster"
+                            overhead "Too Far!" 38 "Manual Override"
+                            overhead "Too Far!" 38 "BapNextMonster"
+                            overhead "Too Far!" 38 "BapClosestMonster"
+                            pause 320
+                        elseif insysmsg "You must wait"
+                            pause 320
+                        elseif insysmsg "tell someone to attack themselves!"
+                            overhead "Self Target Fail" 38 "Manual Override"
+                            pause 500
+                        elseif insysmsg "You play successfully"
+                            if timerexists secondarypassdistancecheck
+                                if find "Manual Override" ground -1 -1 18
+                                    //do nothing
+                                else
+                                    overhead "**Success**" 68 "SecondaryBapNextMonster"
+                                endif
+                            endif
+                            overhead "**Success**" 68 "Manual Override"
+                            if not timerexists useclosestBapmonster
+                                overhead "**Success**" 68 "BapNextMonster"
+                            endif
+                            if timerexists useclosestBapmonster
+                                overhead "**Success**" 68 "BapClosestMonster"
+                            endif
+                            pause 500
+                        endif
+                        if cooldown "Barding Reset"
+                            overhead "Reset!" 88
+                        elseif cooldown "Provocation"
+                            overhead "Cooldown..." 45
+                        elseif cooldown "Provocation Fail"
+                            overhead "Fail!" 38
+                        endif
                     endif
                 endif
+            else
+                overhead "Missing Instrument..." 78
             endif
-        endif
-        if find "Manual Override" ground -1 -1 12 and skill "Discordance" >= 80 and not cooldown "Barding Reset" and not cooldown "Discordance"
-            getlabel "Manual Override" barddesc
-            hotkey "Cancel Current Target"
-            if "Boss" in barddesc
-                // do nothing
-            elseif "Summoned" in barddesc
-                // do nothing
-            endif
-        endif
-        if not find "Manual Override" and not find "BapPVMProvoSecondTarget"
-            removetimer BapProvoMoveToDiscordAOE
-        endif
-        if timerexists BapProvoMoveToDiscordAOE and skill "Discordance" >= 80 and not cooldown "Barding Reset" and not cooldown "Discordance"
-            skill "Discordance"
-            wft 300
-            target self
-            hotkey "Cancel Current Target"
-            getlabel backpack ping
-        endif
+        endif  
     endif
+    
+#    if not hidden and not casting and not targetexists and timerexists "BapProvo"
+#        if find "Manual Override" ground -1 -1 12 and skill "Provocation" >= 80 and not cooldown "Barding Reset" and not cooldown "Peacemaking" and not cooldown "Discordance" and not cooldown "Provocation"
+#            clearsysmsg 
+#            getlabel "Manual Override" barddesc
+#            hotkey "Cancel Current Target"
+#            if "Boss" in barddesc
+#                skill "Provocation"
+#                wft 300
+#                overhead "Provo Add" 88
+#                overhead "<<<Boss>>>" 38 "Manual Override"
+#                while targetexists 
+#                    if gumpexists 341416395
+#                        hotkey "Cancel Current Target"
+#                    endif
+#                endwhile
+#                getlabel backpack ping
+#                overhead "<<Provo Target>>" 88 lasttarget
+#                wft 300
+#                target "Manual Override"
+#                hotkey "Cancel Current Target"
+#            elseif "Summoned" in barddesc
+#                skill "Provocation"
+#                wft 300
+#                overhead "Provo Add" 88
+#                overhead "<<<Boss>>>" 38 "Manual Override"
+#                while targetexists 
+#                    if gumpexists 341416395
+#                        hotkey "Cancel Current Target"
+#                    endif
+#                endwhile
+#                getlabel backpack ping
+#                overhead "<<Provo Target>>" 88 lasttarget 
+#                wft 300
+#                target "Manual Override"
+#                hotkey "Cancel Current Target"
+#            elseif "break" in barddesc
+#                overhead "<<Break>>" 38 "Manual Override"
+#            elseif "provoked" in barddesc
+#                overhead "<<Provoked>>" 43 "Manual Override"
+#                overhead "<<Provoked>>" 48 "BapPVMProvoSecondTarget"
+#                if timerexists BapSeekReProvo and not timerexists BapProvoMoveToDiscordAOE
+#                    removetimer BapSeekReProvo
+#                    skill "Provocation"
+#                    wft 300
+#                    target "Manual Override"
+#                    overhead "<<Provo Target>>" 38 "Manual Override"
+#                    wft 300
+#                    overhead "<<Select Second Target>>" 88
+#                    while targetexists 
+#                        if gumpexists 341416395
+#                            hotkey "Cancel Current Target"
+#                        endif
+#                    endwhile
+#                    @setvar! "BapPVMProvoSecondTarget" lasttarget 
+#                    hotkey "Cancel Current Target"
+#                    getlabel backpack ping
+#                    if insysmsg "You play successfully, provoking"
+#                        overhead "**Success**" 68 "BapPVMProvoSecondTarget"
+#                        overhead "**Success**" 68 "Manual Override"
+#                        removetimer ProvoRegularMobRetry
+#                        createtimer BapProvoMoveToDiscordAOE
+#                    elseif insysmsg "fail to incite"
+#                        overhead "**Fail**" 38 "BapPVMProvoSecondTarget"
+#                        overhead "**Fail**" 38 "Manual Override"
+#                        if cooldown "Provocation"
+#                            overhead "<Bard Cooldown>" 38
+#                            createtimer ProvoRegularMobRetry
+#                        else
+#                            createtimer ProvoRegularMobRetry
+#                            getlabel backpack ping
+#                        endif
+#                    endif                    
+#                endif
+#            elseif not timerexists BapProvoMoveToDiscordAOE and timerexists ProvoRegularMobRetry
+#                skill "Provocation"
+#                wft 300
+#                target "Manual Override"
+#                wft 300
+#                target "BapPVMProvoSecondTarget" 
+#                hotkey "Cancel Current Target"
+#                getlabel backpack ping
+#                if insysmsg "You play successfully, provoking"
+#                    overhead "**Success**" 68 "BapPVMProvoSecondTarget"
+#                    overhead "**Success**" 68 "Manual Override"
+#                    removetimer ProvoRegularMobRetry
+#                    createtimer BapProvoMoveToDiscordAOE
+#                elseif insysmsg "fail to incite"
+#                    overhead "**Fail**" 38 "BapPVMProvoSecondTarget"
+#                    overhead "**Fail**" 38 "Manual Override"
+#                    if cooldown "Provocation"
+#                        overhead "<Bard Cooldown>" 38
+#                        createtimer ProvoRegularMobRetry
+#                    else
+#                        createtimer ProvoRegularMobRetry
+#                        getlabel backpack ping
+#                    endif
+#                endif
+#            elseif not timerexists BapProvoMoveToDiscordAOE
+#                skill "Provocation"
+#                wft 300
+#                target "Manual Override"
+#                overhead "<<Provo Target>>" 38 "Manual Override"
+#                wft 300
+#                overhead "<<Select Second Target>>" 88
+#                while targetexists 
+#                    if gumpexists 341416395
+#                        hotkey "Cancel Current Target"
+#                    endif
+#                endwhile
+#                @setvar! "BapPVMProvoSecondTarget" lasttarget 
+#                hotkey "Cancel Current Target"
+#                getlabel backpack ping
+#                if insysmsg "You play successfully, provoking"
+#                    overhead "**Success**" 68 "BapPVMProvoSecondTarget"
+#                    overhead "**Success**" 68 "Manual Override"
+#                    removetimer ProvoRegularMobRetry
+#                    createtimer BapProvoMoveToDiscordAOE
+#                elseif insysmsg "fail to incite"
+#                    overhead "**Fail**" 38 "BapPVMProvoSecondTarget"
+#                    overhead "**Fail**" 38 "Manual Override"
+#                    if cooldown "Provocation"
+#                        overhead "<Bard Cooldown>" 38
+#                        createtimer ProvoRegularMobRetry
+#                    else
+#                        createtimer ProvoRegularMobRetry
+#                        getlabel backpack ping
+#                    endif
+#                endif
+#            endif
+#        endif
+#        if find "Manual Override" ground -1 -1 12 and skill "Discordance" >= 80 and not cooldown "Barding Reset" and not cooldown "Discordance"
+#            getlabel "Manual Override" barddesc
+#            hotkey "Cancel Current Target"
+#            if "Boss" in barddesc
+#                // do nothing
+#            elseif "Summoned" in barddesc
+#                // do nothing
+#            endif
+#        endif
+#        if not find "Manual Override" and not find "BapPVMProvoSecondTarget"
+#            removetimer BapProvoMoveToDiscordAOE
+#        endif
+#        if timerexists BapProvoMoveToDiscordAOE and skill "Discordance" >= 80 and not cooldown "Barding Reset" and not cooldown "Discordance"
+#            skill "Discordance"
+#            wft 300
+#            target self
+#            hotkey "Cancel Current Target"
+#            getlabel backpack ping
+#        endif
+#    endif
     // End of Peace/Provo then Discord Routine
 
     // Bard Songs Routine
@@ -1614,7 +1840,7 @@ if "TriBard Routines" = 1
                 createtimer warningoverheadbapprovo
             endif
             if timer warningoverheadbapprovo >= 6000
-                overhead "Provo Mode" 38
+                overhead "Disco First" 38
                 settimer warningoverheadbapprovo 0
             endif
         endif
@@ -1624,7 +1850,7 @@ if "TriBard Routines" = 1
                 createtimer warningoverheadbappeace
             endif
             if timer warningoverheadbappeace >= 6000
-                overhead "Peace Mode" 88
+                overhead "Peace First" 88
                 settimer warningoverheadbappeace 0
             endif
         endif
@@ -1633,48 +1859,50 @@ if "TriBard Routines" = 1
 endif
 
 // Target Range Overhead Routine
-if not timerexists baprangecheck
-    createtimer baprangecheck
-    settimer baprangecheck 1200
-elseif timer baprangecheck >= 1200
-    settimer baprangecheck 0
-    if find "Manual Override" ground
-        if find "Manual Override" ground -1 -1 1
-            overhead "1 Tile" 33 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 2
-            overhead "2 Tile" 38 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 3
-            overhead "3 Tile" 43 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 4
-            overhead "4 Tile" 48 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 5
-            overhead "5 Tile" 53 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 6
-            overhead "6 Tile" 58 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 7
-            overhead "7 Tile" 63 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 8
-            overhead "8 Tile" 68 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 9
-            overhead "9 Tile" 73 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 10
-            overhead "10 Tile" 78 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 11
-            overhead "11 Tile" 83 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 12
-            overhead "12 Tile" 88 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 13
-            overhead "13 Tile" 93 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 14
-            overhead "14 Tile" 93 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 15
-            overhead "15 Tile" 93 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 16
-            overhead "16 Tile" 93 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 17
-            overhead "17 Tile" 93 "Manual Override"
-        elseif find "Manual Override" ground -1 -1 18
-            overhead "18 Tile" 93 "Manual Override"
+if not warmode and find "Manual Override" ground
+    if not timerexists baprangecheck
+        createtimer baprangecheck
+        settimer baprangecheck 1200
+    elseif timer baprangecheck >= 1200
+        settimer baprangecheck 0
+        if find "Manual Override" ground
+            if find "Manual Override" ground -1 -1 1
+                overhead "1 Tile" 33 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 2
+                overhead "2 Tile" 38 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 3
+                overhead "3 Tile" 43 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 4
+                overhead "4 Tile" 48 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 5
+                overhead "5 Tile" 53 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 6
+                overhead "6 Tile" 58 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 7
+                overhead "7 Tile" 63 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 8
+                overhead "8 Tile" 68 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 9
+                overhead "9 Tile" 73 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 10
+                overhead "10 Tile" 78 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 11
+                overhead "11 Tile" 83 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 12
+                overhead "12 Tile" 88 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 13
+                overhead "13 Tile" 93 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 14
+                overhead "14 Tile" 93 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 15
+                overhead "15 Tile" 93 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 16
+                overhead "16 Tile" 93 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 17
+                overhead "17 Tile" 93 "Manual Override"
+            elseif find "Manual Override" ground -1 -1 18
+                overhead "18 Tile" 93 "Manual Override"
+            endif
         endif
     endif
 endif

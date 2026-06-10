@@ -13,13 +13,8 @@ if not varexist "LastPotionCode"
 endif
 
 if not varexist "SourceContainer"
-    overhead "Selecione a BAG/CONTAINER de recursos" 65
-    setvar "SourceContainer"
-    wait 250
-endif
-
-if not varexist "SourceContainer"
-    overhead "SourceContainer nao definido" 38
+    overhead "ABRA O MACRO 'setvar SourceContainer', CLIQUE NA BAG E RODE ESTE SCRIPT DEPOIS" 38
+    wait 5000
     stop
 endif
 
@@ -32,189 +27,190 @@ endif
 
 setskill "Alchemy" up
 
-## -----------------------------
-## RESTOCK FROM SOURCE CONTAINER
-## -----------------------------
+## ========================================================
+## MORTAR AND PESTLE MANAGER COM RESET GARANTIDO DO CODE
+## ========================================================
 
-if counttype 3981 backpack < 20
-    if findtype 3981 SourceContainer as reg
-        while queued
-            //donothing
-        endwhile
-        lift reg 100
-        wait 150
-        drop backpack
-        wait 150
-    endif
+if not varexist "CurrentMortar"
+    @setvar! CurrentMortar 0
 endif
 
-if counttype 3972 backpack < 20
-    if findtype 3972 SourceContainer as reg
-        while queued
-            //donothing
-        endwhile
-        lift reg 100
-        wait 150
-        drop backpack
-        wait 150
-    endif
-endif
-
-if counttype 3973 backpack < 20
-    if findtype 3973 SourceContainer as reg
-        while queued
-            //donothing
-        endwhile
-        lift reg 100
-        wait 150
-        drop backpack
-        wait 150
-    endif
-endif
-
-if counttype 3974 backpack < 20
-    if findtype 3974 SourceContainer as reg
-        while queued
-            //donothing
-        endwhile
-        lift reg 100
-        wait 150
-        drop backpack
-        wait 150
-    endif
-endif
-
-if counttype 3963 backpack < 20
-    if findtype 3963 SourceContainer as reg
-        while queued
-            //donothing
-        endwhile
-        lift reg 100
-        wait 150
-        drop backpack
-        wait 150
-    endif
-endif
-
-if counttype 3980 backpack < 20
-    if findtype 3980 SourceContainer as reg
-        while queued
-            //donothing
-        endwhile
-        lift reg 100
-        wait 150
-        drop backpack
-        wait 150
-    endif
-endif
-
-if counttype 3976 backpack < 20
-    if findtype 3976 SourceContainer as reg
-        while queued
-            //donothing
-        endwhile
-        lift reg 100
-        wait 150
-        drop backpack
-        wait 150
-    endif
-endif
-
-## --------------------------------
-## BOTTLE GUARD (0x0F0E / 3854)
-## --------------------------------
-while counttype 0x0F0E backpack < 20 and counttype 3854 backpack < 20
-    if findtype 0x0F0E SourceContainer as bottle
-        while queued
-            //donothing
-        endwhile
-        lift bottle 20
-        wait 150
-        drop backpack
-        wait 150
-    elseif findtype 3854 SourceContainer as bottle
-        while queued
-            //donothing
-        endwhile
-        lift bottle 20
-        wait 150
-        drop backpack
-        wait 150
-    else
-        break
-    endif
-endwhile
-
-## --------------------------------
-## ENSURE MORTAR AND PESTLE
-## --------------------------------
-
-if findtype "mortar and pestle" backpack as item
-    // ok
-else
-    if findtype "mortar and pestle" SourceContainer as item
-        while queued
-            //donothing
-        endwhile
-        lift item 1
-        wait 150
-        drop backpack
-        wait 150
-
-        ## Mortar novo -> fecha gump antigo e abre novo
+## Verifica se o mortar atual ainda existe
+if CurrentMortar != 0
+    if not find CurrentMortar backpack
+        overhead "Mortar sumiu/quebrou!" 38
+        @setvar! CurrentMortar 0
+        @setvar! LastPotionCode 0
         if gumpexists 949095101
             gumpclose 949095101
-            wait 150
+            wait 200
         endif
+    endif
+endif
 
-        if findtype "mortar and pestle" backpack as item
-            dclick item
-            waitforgump 949095101 5000
-            @setvar! LastPotionCode 0
+## Se nao tem mortar, procura um novo
+if CurrentMortar = 0
+    ## primeiro na backpack
+    if findtype "mortar and pestle" backpack as newmortar
+        @setvar! CurrentMortar newmortar
+        @setvar! LastPotionCode 0
+        dclick newmortar
+        waitforgump 949095101 5000
+        wait 200
+    else
+        ## depois na SourceContainer
+        if findtype "mortar and pestle" SourceContainer as newmortar
+            while queued
+                //donothing
+            endwhile
+            lift newmortar 1
+            wait 200
+            drop backpack
+            wait 200
+
+            if findtype "mortar and pestle" backpack as newmortar2
+                @setvar! CurrentMortar newmortar2
+                @setvar! LastPotionCode 0
+                dclick newmortar2
+                waitforgump 949095101 5000
+                wait 200
+            else
+                overhead "Sem mortar na bag!" 38
+                wait 1000
+                loop
+            endif
         else
-            overhead "Need Mortar and Pestle!" 34
+            overhead "Sem mortar nem na SourceContainer!" 38
             wait 1000
             loop
         endif
-    else
-        overhead "Need Mortar and Pestle!" 34
-        wait 1000
-        loop
     endif
 endif
 
-## Abre gump só se precisar
+## Garante que o gump esteja aberto
 if not gumpexists 949095101
-    if findtype "mortar and pestle" backpack as item
-        dclick item
-        waitforgump 949095101 5000
+    if find CurrentMortar backpack
         @setvar! LastPotionCode 0
+        dclick CurrentMortar
+        waitforgump 949095101 5000
+        wait 200
     else
-        overhead "No Mortar and Pestle in backpack!" 34
+        overhead "Mortar sumiu!" 38
+        @setvar! CurrentMortar 0
+        @setvar! LastPotionCode 0
+        wait 500
+        loop
+    endif
+endif
+
+## =============================
+## RESTOCK INTELIGENTE
+## =============================
+
+## 50-70: Lesser Magic Resist -> Spider's Silk (3981)
+if skill "Alchemy" < 70
+    @setvar! needRegID 3981
+    @setvar! needRegName "Spiders Silk"
+    @setvar! minReg 6
+    @setvar! potionCategory 105
+    @setvar! potionBtn 200
+    @setvar! potionCode 1
+    @setvar! potionColor "Black Potion"
+
+## 70-90: Greater Heal -> Ginseng (3973)
+elseif skill "Alchemy" >= 70 and skill "Alchemy" < 90
+    @setvar! needRegID 3973
+    @setvar! needRegName "Ginseng"
+    @setvar! minReg 6
+    @setvar! potionCategory 100
+    @setvar! potionBtn 204
+    @setvar! potionCode 2
+    @setvar! potionColor "Yellow Potion"
+
+## 90-100: Greater Explosion -> Sulfurous Ash (3980)
+elseif skill "Alchemy" >= 90 and skill "Alchemy" < 100
+    @setvar! needRegID 3980
+    @setvar! needRegName "Sulfurous Ash"
+    @setvar! minReg 9
+    @setvar! potionCategory 107
+    @setvar! potionBtn 204
+    @setvar! potionCode 3
+    @setvar! potionColor "Purple Potion"
+
+## 100-115: Greater Magic Resist -> Spider's Silk (3981)
+elseif skill "Alchemy" >= 100 and skill "Alchemy" < 115
+    @setvar! needRegID 3981
+    @setvar! needRegName "Spiders Silk"
+    @setvar! minReg 9
+    @setvar! potionCategory 105
+    @setvar! potionBtn 204
+    @setvar! potionCode 4
+    @setvar! potionColor "Black Potion"
+
+## 115-120: Lethal Poison -> Nightshade (3976)
+else
+    @setvar! needRegID 3976
+    @setvar! needRegName "Nightshade"
+    @setvar! minReg 10
+    @setvar! potionCategory 106
+    @setvar! potionBtn 208
+    @setvar! potionCode 5
+    @setvar! potionColor "Green Potion"
+endif
+
+## -----------------------------
+## RESTOCK DO REAGENTE
+## -----------------------------
+if counttype needRegID backpack < minReg
+    if findtype needRegID SourceContainer as reg
+        while queued
+            //donothing
+        endwhile
+        lift reg 1000
+        wait 150
+        drop backpack
+        wait 150
+    else
+        overhead "Falta " + needRegName + " na SourceContainer!" 38
         wait 1000
         loop
     endif
 endif
 
-## Check extra de bottle antes do craft
-if counttype 0x0F0E backpack < 1 and counttype 3854 backpack < 1
-    if findtype 0x0F0E SourceContainer as bottle
+## -----------------------------
+## RESTOCK DE BOTTLES
+## -----------------------------
+if counttype 0x0F0E backpack < minReg and counttype 3854 backpack < minReg
+    if findtype 0x0F0E SourceContainer as bottle1
         while queued
             //donothing
         endwhile
-        lift bottle 20
+        lift bottle1 200
         wait 150
         drop backpack
         wait 150
-    elseif findtype 3854 SourceContainer as bottle
+    elseif findtype 3854 SourceContainer as bottle2
         while queued
             //donothing
         endwhile
-        lift bottle 20
+        lift bottle2 200
         wait 150
         drop backpack
         wait 150
+    else
+        overhead "Sem bottles na SourceContainer!" 38
+        wait 1000
+        loop
     endif
+endif
+
+## -----------------------------
+## CRAFT
+## -----------------------------
+if counttype needRegID backpack < minReg
+    overhead "Need more " + needRegName + "!" 34
+    wait 500
+    loop
 endif
 
 if counttype 0x0F0E backpack < 1 and counttype 3854 backpack < 1
@@ -223,214 +219,172 @@ if counttype 0x0F0E backpack < 1 and counttype 3854 backpack < 1
     loop
 endif
 
-## -----------------------------
-## CRAFT ORDER + SMART CATEGORY
-## -----------------------------
-
-## 50-70: Lesser Magic Resist
-if skill "Alchemy" < 70
-    if counttype 3981 backpack < 6
-        overhead "Need more Spiders Silk!" 34
-        wait 500
-        loop
-    endif
-
-    overhead "50 - 70: Lesser Magic Resist" 65
-
-    if LastPotionCode = 1
-        // categoria já selecionada
-    else
-        gumpresponse 105 949095101
-        waitforgump 949095101 5000
-        @setvar! LastPotionCode 1
-    endif
-
-    gumpresponse 200 949095101
+## Seleciona categoria (SEMPRE reseta se mudou)
+if LastPotionCode != potionCode
+    gumpresponse potionCategory 949095101
     waitforgump 949095101 5000
+    @setvar! LastPotionCode potionCode
+    wait 200
+endif
+
+## Craft um
+if gumpexists 949095101
+    gumpresponse potionBtn 949095101
+    waitforgump 949095101 5000
+    wait 550
+
+    ## Verifica se mortar quebrou
+    if CurrentMortar != 0
+        if not find CurrentMortar backpack
+            overhead "Mortar quebrou!" 38
+            @setvar! CurrentMortar 0
+            @setvar! LastPotionCode 0
+        endif
+    endif
+else
+    overhead "Gump fechou!" 38
+    @setvar! CurrentMortar 0
+    @setvar! LastPotionCode 0
     wait 500
-    hotkey "Drink Magic Resist"
-    wait 800
+    loop
 endif
 
-## 70-90: Greater Cure
-if skill "Alchemy" >= 70 and skill "Alchemy" < 90
-    if counttype 3972 backpack < 6
-        overhead "Need more Garlic!" 34
-        wait 500
-        loop
-    endif
+## -----------------------------
+## AUTO-DEPOSIT TODAS AS POCOES
+## -----------------------------
 
-    overhead "70 - 90: Greater Cure" 65
-
-    if LastPotionCode = 2
-        // categoria já selecionada
-    else
-        gumpresponse 101 949095101
-        waitforgump 949095101 5000
-        @setvar! LastPotionCode 2
-    endif
-
-    gumpresponse 204 949095101
-    waitforgump 949095101 5000
-    wait 800
-endif
-
-## 90-100: Greater Explosion
-if skill "Alchemy" >= 90 and skill "Alchemy" < 100
-    if counttype 3980 backpack < 9
-        overhead "Need more Sulfurous Ash!" 34
-        wait 500
-        loop
-    endif
-
-    overhead "90 - 100: Greater Explosion" 65
-
-    if LastPotionCode = 3
-        // categoria já selecionada
-    else
-        gumpresponse 107 949095101
-        waitforgump 949095101 5000
-        @setvar! LastPotionCode 3
-    endif
-
-    gumpresponse 204 949095101
-    waitforgump 949095101 5000
-    wait 800
-endif
-
-## 100-115: Greater Magic Resist
-if skill "Alchemy" >= 100 and skill "Alchemy" < 115
-    if counttype 3981 backpack < 9
-        overhead "Need more Spiders Silk!" 34
-        wait 500
-        loop
-    endif
-
-    overhead "100 - 115: Greater Magic Resist" 65
-
-    if LastPotionCode = 4
-        // categoria já selecionada
-    else
-        gumpresponse 105 949095101
-        waitforgump 949095101 5000
-        @setvar! LastPotionCode 4
-    endif
-
-    gumpresponse 204 949095101
-    waitforgump 949095101 5000
-    wait 800
-endif
-
-## 115-120: Lethal Poison
-if skill "Alchemy" >= 115 and skill "Alchemy" < 120
-    if counttype 3976 backpack < 10
-        overhead "Need more Nightshade!" 34
-        wait 500
-        loop
-    endif
-
-    overhead "115 - 120: Lethal Poison" 65
-
-    if LastPotionCode = 5
-        // categoria já selecionada
-    else
-        gumpresponse 106 949095101
-        waitforgump 949095101 5000
-        @setvar! LastPotionCode 5
-    endif
-
-    gumpresponse 208 949095101
-    waitforgump 949095101 5000
-    wait 800
-endif
-
-## --------------------------------
-## AUTO-DEPOSIT A CADA 20 (NO SourceContainer) - POR COR
-## --------------------------------
-
-## code 1 e 4 = resist (black)
-if LastPotionCode = 1 or LastPotionCode = 4
-    while counttype "Black Potion" backpack >= 20
-        if findtype "Black Potion" backpack as madepot
-            while queued
-                //donothing
-            endwhile
-            lift madepot 20
-            wait 150
-            if findtype "Black Potion" SourceContainer as stashpot
-                drop stashpot
-            else
-                drop SourceContainer
-            endif
-            wait 150
+## Deposita Black Potion
+while counttype "Black Potion" backpack >= 20
+    if findtype "Black Potion" backpack as madepot
+        while queued
+            //donothing
+        endwhile
+        lift madepot 20
+        wait 150
+        if findtype "Black Potion" SourceContainer as stashpot
+            drop stashpot
         else
-            break
+            drop SourceContainer
         endif
-    endwhile
-endif
+        wait 150
+    else
+        break
+    endif
+endwhile
 
-## code 2 = greater cure (orange)
-if LastPotionCode = 2
-    while counttype "Orange Potion" backpack >= 20
-        if findtype "Orange Potion" backpack as madepot
-            while queued
-                //donothing
-            endwhile
-            lift madepot 20
-            wait 150
-            if findtype "Orange Potion" SourceContainer as stashpot
-                drop stashpot
-            else
-                drop SourceContainer
-            endif
-            wait 150
+## Deposita Yellow Potion
+while counttype "Yellow Potion" backpack >= 20
+    if findtype "Yellow Potion" backpack as madepot
+        while queued
+            //donothing
+        endwhile
+        lift madepot 20
+        wait 150
+        if findtype "Yellow Potion" SourceContainer as stashpot
+            drop stashpot
         else
-            break
+            drop SourceContainer
         endif
-    endwhile
-endif
+        wait 150
+    else
+        break
+    endif
+endwhile
 
-## code 3 = greater explosion (purple)
-if LastPotionCode = 3
-    while counttype "Purple Potion" backpack >= 20
-        if findtype "Purple Potion" backpack as madepot
-            while queued
-                //donothing
-            endwhile
-            lift madepot 20
-            wait 150
-            if findtype "Purple Potion" SourceContainer as stashpot
-                drop stashpot
-            else
-                drop SourceContainer
-            endif
-            wait 150
+## Deposita Orange Potion
+while counttype "Orange Potion" backpack >= 20
+    if findtype "Orange Potion" backpack as madepot
+        while queued
+            //donothing
+        endwhile
+        lift madepot 20
+        wait 150
+        if findtype "Orange Potion" SourceContainer as stashpot
+            drop stashpot
         else
-            break
+            drop SourceContainer
         endif
-    endwhile
-endif
+        wait 150
+    else
+        break
+    endif
+endwhile
 
-## code 5 = lethal poison (green)
-if LastPotionCode = 5
-    while counttype "Green Potion" backpack >= 20
-        if findtype "Green Potion" backpack as madepot
-            while queued
-                //donothing
-            endwhile
-            lift madepot 20
-            wait 150
-            if findtype "Green Potion" SourceContainer as stashpot
-                drop stashpot
-            else
-                drop SourceContainer
-            endif
-            wait 150
+## Deposita White Potion
+while counttype "White Potion" backpack >= 20
+    if findtype "White Potion" backpack as madepot
+        while queued
+            //donothing
+        endwhile
+        lift madepot 20
+        wait 150
+        if findtype "White Potion" SourceContainer as stashpot
+            drop stashpot
         else
-            break
+            drop SourceContainer
         endif
-    endwhile
-endif
+        wait 150
+    else
+        break
+    endif
+endwhile
+
+## Deposita Blue Potion
+while counttype "Blue Potion" backpack >= 20
+    if findtype "Blue Potion" backpack as madepot
+        while queued
+            //donothing
+        endwhile
+        lift madepot 20
+        wait 150
+        if findtype "Blue Potion" SourceContainer as stashpot
+            drop stashpot
+        else
+            drop SourceContainer
+        endif
+        wait 150
+    else
+        break
+    endif
+endwhile
+
+## Deposita Purple Potion
+while counttype "Purple Potion" backpack >= 20
+    if findtype "Purple Potion" backpack as madepot
+        while queued
+            //donothing
+        endwhile
+        lift madepot 20
+        wait 150
+        if findtype "Purple Potion" SourceContainer as stashpot
+            drop stashpot
+        else
+            drop SourceContainer
+        endif
+        wait 150
+    else
+        break
+    endif
+endwhile
+
+## Deposita Green Potion
+while counttype "Green Potion" backpack >= 20
+    if findtype "Green Potion" backpack as madepot
+        while queued
+            //donothing
+        endwhile
+        lift madepot 20
+        wait 150
+        if findtype "Green Potion" SourceContainer as stashpot
+            drop stashpot
+        else
+            drop SourceContainer
+        endif
+        wait 150
+    else
+        break
+    endif
+endwhile
 
 wait 500
 loop

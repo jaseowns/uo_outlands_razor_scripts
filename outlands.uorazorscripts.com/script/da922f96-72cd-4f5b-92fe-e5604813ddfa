@@ -4,7 +4,7 @@
 ## Created by: dennozz#0
 #############################################
 
-#Auto-mage attack 3.17.5
+#Auto-mage attack 3.17.9
 
 #********** INFORMATION **********# 
 
@@ -26,6 +26,10 @@
 
 # ** IF SCRIPT IS ATTACKING OR HEALING MAY EXPERIENCE ISSUE AFTER WORLD SAVING ** #
 
+# Ver 3.17.9 Reset target variables on script start (fixes not attacking after switching from another script)
+# Ver 3.17.8 Fixed magic reflect and reactive armor recast spam when spell is on cooldown
+# Ver 3.17.7 Fixed infinite loop on target label correction
+# Ver 3.17.6 Fixes to necromancy abilities casting bugs (poison targeting, summon loop flag reset, stuck ability loops)
 # Ver 3.17.5 Minor fixes
 # Ver 3.17.4 Added panacea ability for alchemy skill
 # Ver 3.17.3 Fixed when meditation is set to 0, script was stopping when mana < 50
@@ -146,14 +150,14 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Set Mage attack cooldowns ---#
 
-@setvar! magicArrowCD 20000
-@setvar! harmCD 20000
-@setvar! fireballCD 60000
-@setvar! lightningCD 20000
+@setvar! magicArrowCD 16000
+@setvar! harmCD 16000
+@setvar! fireballCD 16000
+@setvar! lightningCD 16000
 
 #--- Big Spells prioritize order ---#
 
-@setvar! castFlamestrike 1
+@setvar! castFlamestrike 0
 @setvar! castEnergyBolt 0
 @setvar! castExplosion 0
 @setvar! castMindblast 1
@@ -179,7 +183,7 @@ pushlist animalsIgnoreList "a death adder"
 #--- Set DeBuff Spells ---#
 
 @setvar! castCurse 1
-@setvar! castManaDrain 0
+@setvar! castManaDrain 1
 
 #--- Set Damage Necromancy Spells ---#
 
@@ -225,7 +229,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Set Elementals Count ---#
 
-@setvar! earthElementals 0
+@setvar! earthElementals 2
 @setvar! waterElementals 0
 @setvar! airElementals 0
 @setvar! fireElementals 0
@@ -248,21 +252,21 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Set potions ---#
 
-@setvar! drinkStr 1
+@setvar! drinkStr 0
 @setvar! strengthLowerThan 120
 
-@setvar! drinkAgility 1
-@setvar! drinkMagicResist 1
+@setvar! drinkAgility 0
+@setvar! drinkMagicResist 0
 @setvar! drinkHeal 1
 @setvar! drinkCure 1
 
 @setvar! drinkRefresh 1
 @setvar! drinkWhenMissingStamina 15
 
-@setvar! drinkExplosionPotion 1
+@setvar! drinkExplosionPotion 0
 @setvar! prioritizeExplosionWhenTimerAbove 14500
 
-@setvar! panaceaAbility 1
+@setvar! panaceaAbility 0
 
 #--- Auto healing hp diffs ---#
 #--- All variables refer to hit points differences ---#
@@ -284,8 +288,8 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Meditation ---#
 
-@setvar! useMeditationSkill 0
-@setvar! meditateWhenManaBelow 50
+@setvar! useMeditationSkill 1
+@setvar! meditateWhenManaBelow 44
 @setvar! meditateUntilManaReach 75
 
 @setvar! lowManaWarningMessageWhenBelow 40
@@ -295,7 +299,7 @@ pushlist animalsIgnoreList "a death adder"
 # 2 - Leyline
 # 3 - Soulfire
 
-@setvar! useWeaponAbility 2
+@setvar! useWeaponAbility 0
 @setvar useAbilityWhenManaLowerThan 60
 
 #--- Drop Gold When Overweight ---#
@@ -304,7 +308,7 @@ pushlist animalsIgnoreList "a death adder"
 
 #--- Carve Corpse ---#
 
-@setvar! autoCarveNearestCorpse 0
+@setvar! autoCarveNearestCorpse 1
 
 #********** DO NOT EDIT FROM HERE UNLESS YOU KNOW HOW TO SCRIPT **********# 
 
@@ -323,11 +327,9 @@ if castExplosion = 1 or castFlamestrike = 1 or castEnergyBolt = 1 or castMindbla
     @setvar! castingBigSpellsEnabled 1    
 endif
 
-if 2 = targetSelectionMode
-    @setvar! currentTarget 0 
-    @setvar! foundTarget 0 
-    @setvar! tempTarget 0 
-endif
+@setvar! currentTarget 0
+@setvar! foundTarget 0
+@setvar! tempTarget 0
 
 @setvar! necroGump 622436516
 @setvar! unholyPoints 0
@@ -343,6 +345,9 @@ if not varexist previousTarget
 endif
 
 @setvar! maxwaittimeinms 650
+
+# Give up correcting a target label after this many ms (stops infinite loop)
+@setvar! labelFixTimeoutCD 2000
 
 if not timerexists mushroomTimer
     settimer mushroomTimer mushroomTimerCD
@@ -362,6 +367,9 @@ endif
 #--- Necro spells timers ---#
 
 @setvar! necroMarginErrorCD 28000
+
+# Give up on a necro ability after this many ms with no success/cooldown response (stops infinite loop)
+@setvar! necroAbilityTimeoutCD 5000
 
 @setvar! vengefulSpiritCD 30000
 
@@ -1308,12 +1316,14 @@ while not dead
         endif
         if insysmsg "that spell is already"
         endif
+        if insysmsg "before you may cast that again"
+        endif
         sysmsg "magic reflect" 11
         cast 'Magic Reflection'
         while not casting 
             getlabel backpack xxx
             wait 200
-            if insysmsg "that spell will not" or insysmsg "that spell is already"
+            if insysmsg "that spell will not" or insysmsg "that spell is already" or insysmsg "before you may cast that again"
                 settimer magicReflectTimer 0
                 break  
             endif
@@ -1339,12 +1349,14 @@ while not dead
         endif
         if insysmsg "that spell is already"
         endif
+        if insysmsg "before you may cast that again"
+        endif
         sysmsg "reflect armor" 11
         cast 'Reactive Armor'
         while not casting   
             getlabel backpack xxx
             wait 200
-            if insysmsg "that spell will not" or insysmsg "that spell is already"
+            if insysmsg "that spell will not" or insysmsg "that spell is already" or insysmsg "before you may cast that again"
                 settimer armorReflectTimer 0
                 break  
             endif
@@ -1952,7 +1964,16 @@ while not dead
             if insysmsg "seconds before you may use that ability again."
             endif
 
+            @setvar! castingInterrupted 0
+            @settimer! necroAbilityTimer 0
+
             while not insysmsg "unholy symbols remaining"
+                if timer necroAbilityTimer > necroAbilityTimeoutCD
+                    sysmsg "vengefulspirit no response" 44
+                    @setvar! castingInterrupted 1
+                    settimer vengefulSpiritTimer necroMarginErrorCD
+                    break
+                endif
                 sysmsg "vengefulspirit" 66
                 hotkey 'vengeful spirit'
                 getlabel backpack xxx
@@ -2023,7 +2044,16 @@ while not dead
             if insysmsg "seconds before you may use that ability again."
             endif
 
+            @setvar! castingInterrupted 0
+            @settimer! necroAbilityTimer 0
+
             while not insysmsg "unholy symbols remaining"
+                if timer necroAbilityTimer > necroAbilityTimeoutCD
+                    sysmsg "bloodoath no response" 44
+                    @setvar! castingInterrupted 1
+                    settimer bloodOathTimer necroMarginErrorCD
+                    break
+                endif
                 sysmsg "bloodoath" 66
                 hotkey 'blood oath'
                 getlabel backpack xxx
@@ -2094,7 +2124,16 @@ while not dead
             if insysmsg "seconds before you may use that ability again."
             endif
 
+            @setvar! castingInterrupted 0
+            @settimer! necroAbilityTimer 0
+
             while not insysmsg "unholy symbols remaining"
+                if timer necroAbilityTimer > necroAbilityTimeoutCD
+                    sysmsg "wither no response" 44
+                    @setvar! castingInterrupted 1
+                    settimer witherTimer necroMarginErrorCD
+                    break
+                endif
                 sysmsg "wither" 66
                 hotkey 'wither'
                 getlabel backpack xxx
@@ -2789,9 +2828,17 @@ while not dead
                         
                         getlabel tempTarget tempLabel
                         
+                        @settimer! labelFixTimer 0
                         while "-" in tempLabel
+                            if dead tempTarget or not find tempTarget ground -1 -1 12
+                                break
+                            endif
+                            if timer labelFixTimer > labelFixTimeoutCD
+                                sysmsg "* label stuck - skipping fix *" 34
+                                break
+                            endif
                             sysmsg "* correcting target label.. *" 34
-                            getlabel tempTarget tempLabel    
+                            getlabel tempTarget tempLabel
                         endwhile
                         
                         if inlist animalsIgnoreList tempLabel
@@ -3140,12 +3187,17 @@ while not dead
              
             @setvar! repeatCastingPoison 1
             
+            @settimer! labelFixTimer 0
             while not dead currentTarget and find currentTarget ground -1 -1 12
                 getlabel currentTarget targetLabel
                 if "-" in targetLabel
+                    if timer labelFixTimer > labelFixTimeoutCD
+                        sysmsg "* label stuck - skipping fix *" 34
+                        break
+                    endif
                     getlabel currentTarget targetLabel
                     sysmsg "fixing poison label" 34
-                else 
+                else
                     break
                 endif
             endwhile
@@ -3387,20 +3439,33 @@ while not dead
                 if insysmsg "seconds before you may use that ability again."
                 endif
                 
+                @setvar! mindRotInterrupted 0
+                @settimer! necroAbilityTimer 0
+
                 while not insysmsg "unholy symbols remaining"
+                    if dead currentTarget and not find currentTarget ground -1 -1 12
+                        @setvar! mindRotInterrupted 1
+                        break
+                    endif
+                    if timer necroAbilityTimer > necroAbilityTimeoutCD
+                        sysmsg "mindrot no response" 44
+                        @setvar! mindRotInterrupted 1
+                        settimer mindRotTimer necroMarginErrorCD
+                        break
+                    endif
                     sysmsg "mindrot" 66
                     hotkey 'mind rot'
                     getlabel backpack xxx
                     wait 200
                     if insysmsg "seconds before you may use that ability again."
-                        @setvar! castingInterrupted 1
+                        @setvar! mindRotInterrupted 1
                         settimer mindRotTimer necroMarginErrorCD
                         sysmsg "mindrot on cooldown" 44
                         break    
                     endif
                 endwhile
                 
-                if 0 = castingInterrupted
+                if 0 = mindRotInterrupted
                     overhead '[>Mind Rot<]' 44
                     settimer mindRotTimer 0
                 endif
@@ -3651,7 +3716,19 @@ while not dead
             if insysmsg "seconds before you may use that ability again."
             endif
 
+            @settimer! necroAbilityTimer 0
+
             while not insysmsg "unholy symbols remaining"
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    @setvar! castingInterrupted 1
+                    break
+                endif
+                if timer necroAbilityTimer > necroAbilityTimeoutCD
+                    sysmsg "strangle no response" 44
+                    @setvar! castingInterrupted 1
+                    settimer strangleTimer necroMarginErrorCD
+                    break
+                endif
                 sysmsg "strangle" 66
                 hotkey 'strangle'
                 getlabel backpack xxx
@@ -3677,7 +3754,19 @@ while not dead
             if insysmsg "seconds before you may use that ability again."
             endif
 
+            @settimer! necroAbilityTimer 0
+
             while not insysmsg "unholy symbols remaining"
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    @setvar! castingInterrupted 1
+                    break
+                endif
+                if timer necroAbilityTimer > necroAbilityTimeoutCD
+                    sysmsg "corpseskin no response" 44
+                    @setvar! castingInterrupted 1
+                    settimer corpseSkinTimer necroMarginErrorCD
+                    break
+                endif
                 sysmsg "corpseskin" 66
                 hotkey 'corpse skin'
                 getlabel backpack xxx
@@ -3703,7 +3792,19 @@ while not dead
             if insysmsg "seconds before you may use that ability again."
             endif
 
+            @settimer! necroAbilityTimer 0
+
             while not insysmsg "unholy symbols remaining"
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    @setvar! castingInterrupted 1
+                    break
+                endif
+                if timer necroAbilityTimer > necroAbilityTimeoutCD
+                    sysmsg "evilomen no response" 44
+                    @setvar! castingInterrupted 1
+                    settimer evilOmenTimer necroMarginErrorCD
+                    break
+                endif
                 sysmsg "evilomen" 66
                 hotkey 'evil omen'
                 getlabel backpack xxx
@@ -3729,7 +3830,19 @@ while not dead
             if insysmsg "seconds before you may use that ability again."
             endif
 
+            @settimer! necroAbilityTimer 0
+
             while not insysmsg "unholy symbols remaining"
+                if dead currentTarget and not find currentTarget ground -1 -1 12
+                    @setvar! castingInterrupted 1
+                    break
+                endif
+                if timer necroAbilityTimer > necroAbilityTimeoutCD
+                    sysmsg "mindrot no response" 44
+                    @setvar! castingInterrupted 1
+                    settimer mindRotTimer necroMarginErrorCD
+                    break
+                endif
                 sysmsg "mindrot" 66
                 hotkey 'mind rot'
                 getlabel backpack xxx

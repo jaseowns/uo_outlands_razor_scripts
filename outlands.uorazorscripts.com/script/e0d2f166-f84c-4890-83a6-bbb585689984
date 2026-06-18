@@ -6,7 +6,7 @@
 
 # Map-Trap Script by Bapeth
 #
-# June 1st 2026 - Added new aspects
+# June 18th 2026 - Fixed Gold Sacker/Gate out routine, Added Chain Link Action Queue Priority, Added Hiding skill for picking
 #
 # "What it does":
 # Digs for treasure
@@ -430,7 +430,6 @@ if not warmode
                 //donothing
             else
                 if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
-                    clearsysmsg
                     say "[AspectArmor Gadget"
                     getlabel backpack ping
                 endif
@@ -779,7 +778,6 @@ elseif warmode
                     endif
                 endif
                 if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
-                    clearsysmsg
                     if "Harvest Armor" = 1
                         say "[AspectArmor Harvest"
                     elseif "Fortune Armor" = 1
@@ -981,7 +979,6 @@ elseif warmode
     endif
     if findtype "wooden chest|metal chest" ground -1 -1 1 as bchest
         gumpclose 736038070
-        clearsysmsg 
         if not timerexists OTunlockedchest
             createtimer OTunlockedchest
             dclick bchest
@@ -1048,12 +1045,22 @@ elseif warmode
                     gumpresponse 7
                     waitforgump 736038070 1000
                 endif
-                if not hidden and mana >= 20
+                if not hidden and mana >= 20 and skill "Hiding" < 50
                     cast "Invisibility"
                     wft 5000
                     target self
                     getlabel backpack ping
                     hotkey "Cancel Current Target"
+                elseif not hidden and skill "Hiding" > 50
+                    skill "Hiding"
+                    getlabel backpack ping
+                    if not hidden
+                        cast "Invisibility"
+                        wft 5000
+                        target self
+                        getlabel backpack ping
+                        hotkey "Cancel Current Target"
+                    endif
                 endif
                 if insysmsg "You successfully pick the lock"
                     break
@@ -1281,6 +1288,10 @@ elseif warmode
         endif
     endif
     if not timerexists fullchaincheck and varexist "enabledlinkdump" and findtype "chain link" backpack as lootedlink
+        hotkey "Clear Drag/Drop Queue"
+        while queued
+            //dn
+        endwhile
         dclick "linkdumpchain"
         waitforgump 2785326818 500
         gumpresponse 31
@@ -1331,38 +1342,52 @@ elseif warmode
     
     // new code
     if skill "Magery" >= 100 and mana >= 40
-        if diffweight <= 1 and findtype "wooden chest|metal chest" ground -1 -1 1 and findtype "gold coin" backpack as BapHeavyGold
-            if findtype "pouch" backpack 0 as BapCheckPouch
-                getlabel BapCheckPouch pouchdesc
-                if "0 items, 0 stones" in pouchdesc
-                    @setvar! "BapTmapGoldSack" BapCheckPouch
-                else 
-                    @ignore BapCheckPouch
+        if insysmsg "That container cannot hold more weight"
+            hotkey "Clear Drag/Drop Queue"
+            if findtype "wooden chest|metal chest" ground -1 -1 1 and findtype "gold coin" backpack as BapHeavyGold
+                if not find "BapTmapGoldSack" ground -1 -1 2 and findtype "pouch" backpack 0 as BapCheckPouch
+                    getlabel BapCheckPouch pouchdesc
+                    if "0 items, 0 stones" in pouchdesc
+                        @setvar! "BapTmapGoldSack" BapCheckPouch
+                    else 
+                        @ignore BapCheckPouch
+                    endif
+                elseif not find "BapTmapGoldSack" ground -1 -1 2 and findtype "pouch" backpack 38 as BapCheckPouch
+                    getlabel BapCheckPouch pouchdesc
+                    if "0 items, 0 stones" in pouchdesc
+                        @setvar! "BapTmapGoldSack" BapCheckPouch
+                        hotkey "Clear Drag/Drop Queue"
+                        dclick "BapTmapGoldSack"
+                        while queued
+                            //do nothing
+                        endwhile
+                        getlabel backpack ping
+                    else 
+                        @ignore BapCheckPouch
+                    endif
                 endif
-            elseif findtype "pouch" backpack 38 as BapCheckPouch
-                getlabel BapCheckPouch pouchdesc
-                if "0 items, 0 stones" in pouchdesc
-                    @setvar! "BapTmapGoldSack" BapCheckPouch
-                    dclick "BapTmapGoldSack"
+                if find "BapTmapGoldSack" backpack
+                    hotkey "Clear Drag/Drop Queue"
                     while queued
-                        //do nothing
+                        //donothing
+                    endwhile
+                    drop backpack
+                    overhead "Preparing Gold Pouch" 88
+                    lift "BapTmapGoldSack"
+                    drop 0
+                    while queued
+                        //donothing
                     endwhile
                     getlabel backpack ping
-                else 
-                    @ignore BapCheckPouch
+                    drop backpack
+                    lift BapHeavyGold 60000
+                    drop "BapTmapGoldSack" 0
+                    while queued
+                        //dothing
+                    endwhile
+                    getlabel backpack ping
                 endif
-            endif
-            if find "BapTmapGoldSack"
-                while queued
-                    //donothing
-                endwhile
-                drop backpack
-                overhead "Preparing Gold Pouch" 88
-                lift "BapTmapGoldSack"
-                drop 0
-                while queued
-                    //donothing
-                endwhile
+            elseif varexist "BapTmapGoldSack" and find "BapTmapGoldSack" ground -1 -1 1 and findtype "wooden chest|metal chest" ground -1 -1 1 and findtype "gold coin" backpack as BapHeavyGold
                 getlabel backpack ping
                 drop backpack
                 lift BapHeavyGold 60000
@@ -1372,7 +1397,8 @@ elseif warmode
                 endwhile
                 getlabel backpack ping
             endif
-        elseif varexist "BapTmapGoldSack" and find "BapTmapGoldSack" ground -1 -1 1 and diffweight <= 1 and findtype "wooden chest|metal chest" ground -1 -1 1 and findtype "gold coin" backpack as BapHeavyGold
+        endif
+        if varexist "BapTmapGoldSack" and find "BapTmapGoldSack" ground -1 -1 1 and findtype "wooden chest|metal chest" ground -1 -1 1 and findtype "gold coin" backpack as BapHeavyGold
             getlabel backpack ping
             drop backpack
             lift BapHeavyGold 60000
@@ -1408,7 +1434,6 @@ elseif warmode
                         //donothing
                     else
                         if not cooldown "Aspect Armor" and not cooldown "Aspect Proc"
-                            clearsysmsg
                             say "[AspectArmor Gadget"
                             getlabel backpack ping
                         endif

@@ -8,10 +8,12 @@
 #
 # "WARNING"  It is important to name this script correctly - Bapeths Noxy Background
 #
-# June 18th 2026 - Added Auto purple on bosses and added insctuctions for "Manual Override"
+# June 19th 2026 - Poison casting is now faster, added spell cancel when entering peace mode
 #
 ##########################################################################################################################################################################
 # "What it does"
+#
+# This script is used for Nox dexxers or Nox Mages
 #
 # Poison Weapon
 # Bandage
@@ -169,7 +171,6 @@ if casting
     while casting 
         //donothing
     endwhile
-    pause 250
 endif
 
 // Auto Purple Potion
@@ -219,27 +220,56 @@ endif
 
 //Auto Poison Cast Routine
 if warmode and skill "Magery" >= 50 and skill "Poisoning" >= 80
-    if not targetexists 
-        cast "Poison"
-    endif
     while not dead
-        hotkey 'Next Grey Monster Target'
-        @setvar noxtarget lasttarget
-        if find noxtarget ground -1 -1 12
-            getlabel noxtarget desc
-            if "Lethal" in desc 
+        for 99 
+            if not targetexists 
+                cast "Poison"
+            endif
+            hotkey 'Next Grey Monster Target'
+            @setvar noxtarget lasttarget
+            if find noxtarget ground -1 -1 12
+                getlabel noxtarget desc
+                if "Lethal" in desc 
+                    break
+                elseif "Deadly" in desc
+                    break
+                elseif "tame" in desc
+                    break
+                elseif "summoned" in desc
+                    break
+                else
+                    wft 1400
+                    target noxtarget
+                    pause 150
+                    break
+                endif 
+            endif
+            if not warmode 
+                if casting 
+                    hotkey '> Interrupt'
+                endif
+                hotkey "Cancel Current Target"
                 break
-            elseif "Deadly" in desc
-                break
-            elseif "tame" in desc
-                break
-            elseif "summoned" in desc
-                break
-            else
-                wft 1300
-                target noxtarget
-                break
-            endif 
+            endif
+        endfor
+        if not warmode 
+            if casting 
+                hotkey '> Interrupt'
+            endif
+            hotkey "Cancel Current Target"
+            break
+        endif
+        if not hidden and poisoned and not targetexists and findtype "Orange Potion" self as curepot
+            while queued
+                //donothing
+            endwhile
+            dclick curepot
+        endif
+        if skill "Necromancy" >= 50
+            if not findbuff "Mind Rot" 
+                say "[mindrot"
+                getlabel backpack ping
+            endif
         endif
     endwhile
 endif
@@ -740,7 +770,7 @@ if not hidden and paralyzed and not targetexists and findtype "pouch" backpack 3
     say "[Pouch"
     pause 500
 endif
-if not hidden and not casting and poisoned and not targetexists and findtype "Orange Potion" self as curepot
+if not hidden and poisoned and not targetexists and findtype "Orange Potion" self as curepot
     while queued
         //donothing
     endwhile

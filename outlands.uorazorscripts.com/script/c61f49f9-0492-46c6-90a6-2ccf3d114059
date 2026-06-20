@@ -1,0 +1,44 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/c61f49f9-0492-46c6-90a6-2ccf3d114059 for latest
+# Automation by Jaseowns
+## Script: Kuliex's Auto Thief with HUD & Trace
+## Created by: p0lygl07#0
+#############################################
+
+# Author: Kuliex
+# Description: Automates stealing from your Last Target. Loops continuously if you are out of range ("too far away") without wasting your cooldown, and alerts success/failure once close enough.
+
+if not timerexists 'steal_timer'
+    createtimer 'steal_timer'
+    settimer 'steal_timer' 11000
+endif
+
+if timer 'steal_timer' >= 10000
+    clearjournal
+    useskill 'Stealing'
+    wft 1500
+    target 'lasttarget'
+    wait 400
+
+    # If too far, Outlands sends this system message without starting skill cooldown
+    if insysmsg 'too far away'
+        overhead 'Too far! Move closer...' 43
+        # Small delay to prevent game stutter while spamming range checks
+        wait 200 
+        # Re-runs the script instantly to check if you are close yet
+        script 'this'
+    else
+        # If you were in range, lock the cooldown timer
+        settimer 'steal_timer' 0
+        
+        # Parse the outcome of the actual steal attempt
+        if insysmsg 'successfully steal' or insysmsg 'You steal'
+            overhead ' STEAL SUCCESS ' 68
+        elseif insysmsg 'fail to steal' or insysmsg 'fail in your stealing'
+            overhead '< STEAL FAILED <' 32
+        elseif insysmsg 'already stolen'
+            overhead 'Already stolen from target!' 34
+        endif
+    endif
+else
+    overhead 'Stealing is on cooldown!' 34
+endif

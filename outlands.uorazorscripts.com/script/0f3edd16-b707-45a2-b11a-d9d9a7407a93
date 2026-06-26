@@ -1,0 +1,80 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/0f3edd16-b707-45a2-b11a-d9d9a7407a93 for latest
+# Automation by Jaseowns
+## Script: Peet's Faster Tamer Trainer
+## Created by: okpeet#0
+#############################################
+
+# Tame & Release Loop - training Animal Taming / Lore
+# Click your pet once at startup. Script renames it to TrainPet,
+# then forever: release it -> retame it -> repeat.
+# Runs until you stop it or die.
+
+# --- tunables -----------------------------------------------
+# 1 = print debug overheads, 0 = silent
+@setvar! "debug" 1
+# ms to wait after the release gump confirmation
+@setvar! "releaseDelayMs" 300
+# ms to wait for the release confirmation gump to appear
+@setvar! "gumpWaitMs" 2000
+# ms to wait for the targeting cursor after Animal Taming
+@setvar! "targetWaitMs" 1500
+# ms between taming-outcome polls (replaces the old fixed tameDelayMs)
+@setvar! "pollMs" 200
+# min ms between taming attempts (Animal Taming skill cooldown)
+@setvar! "tameCdMs" 10000
+
+# --- one-time setup -----------------------------------------
+overhead "SELECT PET" 88
+sysmsg "Click the pet you want to train."
+setvar 'trainPet'
+wait 300
+
+rename 'trainPet' 'TrainPet'
+wait 300
+
+# seed the cooldown timer expired so the first tame fires immediately
+if not timerexists tameTimer
+    settimer tameTimer tameCdMs
+endif
+
+# --- main loop ----------------------------------------------
+while not dead
+
+    if debug = 1
+        overhead "RELEASE" 88
+    endif
+    say 'TrainPet release'
+    wait 250
+    waitforgump 0 gumpWaitMs
+    gumpresponse 1
+    wait releaseDelayMs
+
+    if debug = 1
+        overhead "TAME" 88
+    endif
+    wait 500
+
+    # taming cooldown - wait out the remainder of tameCdMs since last attempt
+    while timer tameTimer < tameCdMs
+        wait pollMs
+    endwhile
+    settimer tameTimer 0
+
+    clearsysmsg
+    hotkey 'Animal Taming'
+    waitfortarget targetWaitMs
+    target 'trainPet'
+
+    # wait for the attempt to RESOLVE before looping - success raises
+    # followers, fail prints "fail to tame". Don't re-fire mid-channel even
+    # if the channel runs past tameCdMs. Cap ~30s as a safety net.
+    for 150
+        if followers > 0
+            break
+        elseif insysmsg 'fail to tame'
+            break
+        endif
+        wait pollMs
+    endfor
+
+endwhile

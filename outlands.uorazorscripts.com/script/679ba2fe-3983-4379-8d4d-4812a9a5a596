@@ -6,14 +6,14 @@
 
 # Bapeths Butler 
 #
-# May 30th 2026 - Added Throwing/Dual Wield weps 
+# Aug 18th 2026 - Added Auto "Poison Weapons" - Butler now uses 100 poisoning skill, Removed Map decoder - Carto skill is now removed from template, Added auto gold/dub deposit from shipping crates - setting must be enabled below
 #
 # What it does:
 # "Casts Bless and Protection on up to 6 characters" - Open the "Atlas" to set up to 6 players to be Blessed and Protected (Type [atlas in game to generate a free Atlas)
 # "Expedite Shipping Crates" - Sorts and Stores items - Use the unlockable ship crate location in your house and make sure it is within 2 tiles of this character
 # "Item ID and Recycle" - Identifies items in the "Magic Recycler" and recycles them - Make sure to select your recycler settings on this character
 # "Paragon Chest Opener" - Paragon chests that are placed in "Second Loot Container" will be auto-opened and loot sorted
-# "Decode all map types" - Maps that are placed in the "Second Loot Container" will be auto decoded and sorted
+# "Poison Weapons" - Weapons that are placed in the "Second Loot Container" will be Poisoned then placed into the "First Loot Container"
 # "Decode Research Materials" - Research Materials that are placed in "Second Loot Container" will be auto decoded and sorted
 #
 # "REQUIRED": <---------- "Important information!"
@@ -54,7 +54,7 @@
 # "120 Inscription" For longer lasting Bless and Protection buffs
 # "120 Detect Hidden" For Removing Paragon Chest Traps
 # "120 Lockpicking" For lockpicking Paragon Chest Locks
-# "120 Cartography" For decoding maps
+# "100 Poisoning" For Auto Poisoning weapons
 #
 # "Eldritch Aspect" For enhancing Magery Buffs
 # The higher level your Eldritch the longer the buffs last - Enhance this further by using Inscription mastery chain links
@@ -69,7 +69,7 @@
 # Character Items:
 # "Iron Lockpicks" x2
 # "Avarite Trap Removal Tools" x2
-# "Agapite Spyglass or higher" x3
+# "Deadly Poison Potions" x10
 # "Reagents in an Avarhide Wizards Satchel" 
 # "Scissors (blessed)"
 # Set your storage shelf to restock these items and the script will auto stock periodically
@@ -140,6 +140,18 @@
 @setvar! "OneTimeUse" 1
 #
 #########################################################################################################################################
+#
+# "Deposit shipping crate gold/dubs into bank deposit safe"
+#
+# This setting will auto deposit gold/dubs from shipping crates into the bank deposit safe
+# If this setting is off then gold/dubs will land into the "Second Loot Container"
+# 1 = on  0 = off
+#
+# DEPOST INTO SAFE
+@setvar! "ShipCrateBankDeposit" 0
+#
+#########################################################################################################################################
+
 if warmode and gumpexists 3527489586
     gumpclose 3527489586
     overhead "VARIBLE RESET..." 38
@@ -1615,16 +1627,16 @@ if skill "Item ID" = 120
             //donothing
         endwhile
         waitforgump 4045111101 500
-        gumpresponse 10
+        gumpresponse 10 4045111101
         waitforgump 4045111101 500
         pause 500
         if ingump "Begin" 4045111101
-            gumpresponse 6
+            gumpresponse 6 4045111101
             waitforgump 4045111101 500
             pause 500
         endif
         if ingump "Confirm" 4045111101 
-            gumpresponse 6
+            gumpresponse 6 4045111101
             waitforgump 4045111101 500
             pause 500
             getlabel backpack ping
@@ -1691,6 +1703,16 @@ if varexist "newcrate"
         endif
     endwhile
     @clearignore 
+    if "ShipCrateBankDeposit" = 1
+        while findtype "doubloon|gold coin" newcrate as chest1dump
+            drop backpack
+            lift chest1dump 60000
+            drop deposafe -1 -1 0
+            while queued
+                //donothing
+            endwhile
+        endwhile
+    endif
     while findtype "doubloon|gold coin|void orb|research materials|spell hue deed|black market goods|redline bottle|3712|3648|3650|3708|3648|metal chest|3649|29833|29832" newcrate as chest1dump
         drop backpack
         lift chest1dump 60000
@@ -1821,81 +1843,36 @@ if varexist "newcrate"
     endif
 endif
 
-//Treasure Map Decoder
-if skill "Cartography" >= 120 and findtype "spyglass" backpack
-    if not timerexists mapdecodetimer
-        createtimer mapdecodetimer
-        settimer mapdecodetimer 5000
+//Auto Weapon Poisoner
+if skill "Poisoning" >= 100
+    if not timerexists bapapplynoxtimer
+        createtimer bapapplynoxtimer
+        settimer bapapplynoxtimer 5000
     endif
-    if timer mapdecodetimer >= 5000 
-        clearsysmsg 
-        settimer mapdecodetimer 0
-        getlabel backpack ping
-        if findtype "spyglass" backpack as spygls
+    if timer bapapplynoxtimer >= 5000
+        while findtype 67773|67775|67776|67777|67778|3719|3922|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3934|5185|5119|3937|5046|5049 "lootchestdump2" as bapnoxwep
+            menu myshelf 1
             while queued
-                //donothing
+                //do nothing
             endwhile
-            gumpclose 1520869851
-            gumpclose 3367641484
-            gumpclose 3473029237
-            gumpclose 1332805401
-            gumpclose 2589357942
+            drop backpack
+            lift bapnoxwep
+            drop backpack
+            while queued
+                //do nothing
+            endwhile  
             getlabel backpack ping
-            if findtype "Map" backpack as BapperMap
-                //donothing
-            elseif findtype "Map" "lootchestdump2" as BapperMap
-                drop backpack
-                lift BapperMap
-                drop backpack
-                while queued
-                    //donothing
-                endwhile
-                getlabel backpack ping
-            endif
-            if findtype "Map" backpack as BapperMap
-                dclick spygls
-                wft 1000
-                target BapperMap
-                getlabel backpack ping
-                say "Decoding Map..." 43
-                for 5000
-                    gumpresponse 4
-                    getlabel backpack ping
-                    pause 200
-                    if insysmsg "You have reached the maximum accuracy possible"
-                        say "Map Decoded!" 88
-                        break
-                    endif
-                    if not findtype "spyglass" backpack
-                        menu myshelf 1
-                        getlabel backpack ping
-                        dclick BapperMap
-                        getlabel backpack ping
-                        if not findtype "spyglass" backpack
-                            say "I have no spyglass..." 38
-                            replay
-                        endif
-                    endif
-                endfor
-                getlabel BapperMap color
-                if "treasure" in color
-                    menu treasuremaptome 0
-                elseif "ore" in color
-                    menu oremaptome 0
-                elseif "skinning" in color
-                    menu skinningmaptome 0
-                elseif "lumber" in color
-                    menu lumbermaptome 0
-                elseif "fishing" in color
-                    menu fishingmaptome 0
-                endif
-                gumpclose 1520869851
-                gumpclose 3367641484
-                gumpclose 3473029237
-                gumpclose 1332805401
-                gumpclose 2589357942
-            endif
-        endif
+            menu bapnoxwep 0
+            drop backpack
+            lift bapnoxwep
+            drop "lootchestdump"
+            while queued
+                //do nothing
+            endwhile  
+            getlabel backpack ping
+            say "Deadly Poison Applied"  68
+            settimer bapapplynoxtimer 0
+        endwhile
     endif
 endif
 
@@ -1921,18 +1898,18 @@ if skill "Cartography" = 120 or skill "Detect" = 120 or skill "Item ID" = 120
             endwhile
             dclick rmdecode
             waitforgump 709455756 1000
-            gumpresponse 2
+            gumpresponse 2 709455756
             getlabel backpack ping
             if insysmsg "You must have"
                 waitforgump 709455756 1000
-                gumpresponse 3
+                gumpresponse 3 709455756
                 getlabel backpack ping
             else 
                 menu lorepagetome 0
             endif
             if insysmsg "You must have"
                 waitforgump 709455756 1000
-                gumpresponse 4
+                gumpresponse 4 709455756
                 getlabel backpack ping
             else 
                 menu lorepagetome 0
@@ -1984,7 +1961,7 @@ if skill "Lockpicking" = 120 and skill "Detect" = 120 and findtype "lockpicks" b
             endif
             if gumpexists 736038070 and not ingump "Cleared Of Traps" 736038070
                 while gumpexists 736038070
-                    gumpresponse 7
+                    gumpresponse 7 736038070
                     waitforgump 736038070 1000
                     if insysmsg "You attempt to remove traps"
                         clearsysmsg
@@ -2003,7 +1980,7 @@ if skill "Lockpicking" = 120 and skill "Detect" = 120 and findtype "lockpicks" b
                         getlabel backpack ping
                         dclick ParagonChest
                         waitforgump 736038070 1000
-                        gumpresponse 7
+                        gumpresponse 7 736038070
                         getlabel backpack ping
                         if not findtype "drill" backpack
                             say "I have no Trap Tools..." 38
@@ -2024,7 +2001,7 @@ if skill "Lockpicking" = 120 and skill "Detect" = 120 and findtype "lockpicks" b
             endif  
             if gumpexists 736038070 and ingump "Cleared Of Traps" 736038070
                 while gumpexists 736038070
-                    gumpresponse 4
+                    gumpresponse 4 736038070
                     waitforgump 736038070 1000
                     if insysmsg "You attempt to pick the lock"
                         clearsysmsg
@@ -2043,7 +2020,7 @@ if skill "Lockpicking" = 120 and skill "Detect" = 120 and findtype "lockpicks" b
                         getlabel backpack ping
                         dclick ParagonChest
                         waitforgump 736038070 1000
-                        gumpresponse 7
+                        gumpresponse 7 736038070
                         getlabel backpack ping
                         if not findtype "lockpicks" backpack
                             say "I have no Lockpicks..." 38

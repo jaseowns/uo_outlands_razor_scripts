@@ -6,11 +6,9 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# Aug 5th 2026 - Possible fix for rare occasion when a player would randomly attack their own crew
+# Aug 25th 2026 - Gutted old bard/mage code, upgraded auto weapon ability (XML update required)
 # 
-# Script is designed for Necro and Chiv  (Mage or Pooner)
-#
-# Mage build is not recommended at this time as Pooner is PvM Meta
+# Script is designed for Dex types (Chiv/Tamer/Archer/Pooner/Thrower/Alchy)
 #
 # What it does:
 #
@@ -22,26 +20,22 @@
 # Auto Bandage and Heal/Cure Potion
 # Auto Use Vet Kit if using tames
 # Auto Buff Potions (Toggle Setting Below)
-# Sense Closest Ship with Tracking Arrow (Toggle with Healing Codex)
+# Sense Closest Ship with Tracking Arrow (Toggle with Atlas)
 # Auto Deposit Loot into Ship Hatch (Must use Bapeths Ocean Launch Script to Select Hatch)
 # Auto Pick-Up Bomb - This will snuff out any active bomb within 2 tiles of your character
 # Auto Net Cast at Fishing Spots (Toggle with Party Menu) + Auto Cut Fish
 # Auto Attack/All Kill closest enemy when Fray Cooldown is active - This is to ensure ship to ship combat is always happening (Be aware this will attack players)
 # Warn when Sacred Journey wears off
-# If player has Carto skill the script will warn when the Explorers Pack Buff need to be used
-# Auto Use Weapon Ability Buoy (If activated with Atlas)
 #
 # "War Mode"
 # Auto Bandage, Heal/Cure Potion, and Cleansing Brew when Bleeding/Diseased
 # Auto Use Vet Kit if using tames
-# For Casters it will Auto Spell Heal
-# Auto Use Optimal Necro/Chiv Abilities (Do not use the in game auto ability in the Chiv/Necro gump)
-# For Necro casters - Auto Spell Cast/Explode Potion (With Telekenesis)
+# Auto Use Optimal Chiv Abilities (Do not use the in game auto ability in the Chiv gump)
 # For Alchemy Users - Auto Explode Potion
 # Auto Net Cast at Fishing Spots (Toggle with Party Menu) + Auto Cut Fish
 # Auto Attack/All Kill closest enemy when Fray Cooldown is active
 # Auto Open Enemy Ship Hatches (Do not stand within 1 tile of enemy hatch before all enemy crew is dead)
-# Auto Use Weapon Ability (Scourge/Buoy, or Leyline)
+# Auto Use Weapon Ability
 # Warn when Sacred Journey wears off
 # 
 #
@@ -87,7 +81,7 @@
 # This is a catalouge of scripts that the user may find helpful on the Ocean
 # https://outlands.uorazorscripts.com/search?st=&q=Bapeths+Ocean
 #
-# "Bapeths Auto Ability Scripts"
+# "Bapeths Auto Ship-Ability Scripts"
 # These scripts are meant to be used to hotkey any ship ability that you use
 # Each script represents an ability slot that you slot into your ship and will create a cooldown when used (See Required Section Below)
 # https://outlands.uorazorscripts.com/search?st=&q=Bapeths+Ship+Slot
@@ -106,14 +100,10 @@
 #
 # "Ship Sense"
 # This feature will constantly use the tracking arrow on the closest ship on your radar
-# To toggle this on/off open the "Healers Codex" while the script is playing
+# To toggle this on/off open the "Atlas" while the script is playing
 # Only works in Peace Mode
+# Say "[Atlas" to spawn an Atlas in your pack
 #
-# "Harpoon Weapon Ability Swap"
-# This feature will swap between Scourge and Buoy
-# Type "[Atlas" in game to spawn a free weightless "Atlas" in your bag
-# Double click the atlas while this script is playing to toggle ability swap on/off
-# Hotkey "Grants the player an Atlas" in razor hotkey tab if you dont want to doubleclick
 #
 # "Auto Net Caster"
 # Open the "Party Menu" while the script is playing to toggle this feature on/off
@@ -193,6 +183,18 @@
 @setvar! "AutoCutFish" 1
 #
 ##########################################################################################################################################################################
+# 
+# "Select Weapon Abilty"
+#
+# Select one of the following weapon abilities to auto use while in active combat (warmode on)
+# Place a 1 next to the ability you want to use - default is Weapon Ability 2 (pooner scourge)
+# Make sure you only set one of the abilities to a value of 1 - the others must be 0
+# 
+# AUTO WEAPON ABILITY
+@setvar! "Weapon Ability One" 0
+@setvar! "Weapon Ability Two" 1
+@setvar! "Weapon Ability Three" 0
+##########################################################################################################################################################################
 #
 # Script starts here
 
@@ -228,32 +230,6 @@ if "AutoCutFish" = 1
         wft 500
         target bapfish
         getlabel backpack ping
-    endif
-endif
-
-if not timerexists BapScourge and not timerexists BapBuoy
-    createtimer BapScourge
-    overhead "--Scourge Activated--" 78
-endif
-
-if timerexists BapScourge and not timerexists SelectedAbilityOverheadScourge
-    createtimer SelectedAbilityOverheadScourge
-endif
-if timerexists SelectedAbilityOverheadScourge
-    removetimer SelectedAbilityOverheadBuoy
-    if timer SelectedAbilityOverheadScourge >= 20000
-        settimer SelectedAbilityOverheadScourge 0
-        overhead "--Scourge Enabled--" 78
-    endif
-endif
-if timerexists BapBuoy and not timerexists SelectedAbilityOverheadBuoy
-    createtimer SelectedAbilityOverheadBuoy
-endif
-if timerexists SelectedAbilityOverheadBuoy
-    removetimer SelectedAbilityOverheadScourge
-    if timer SelectedAbilityOverheadBuoy >= 20000
-        settimer SelectedAbilityOverheadBuoy 0
-        overhead "--Buoy Enabled--" 78
     endif
 endif
 
@@ -456,20 +432,6 @@ if timerexists brew
     endif
 endif
 
-if not timerexists epack and not findbuff "Explorer Pack" and skill "Cartography" >= 10 and findtype "adventure pack" backpack
-    createtimer epack
-    settimer epack 22000
-else 
-    removetimer epack
-endif
-if timerexists epack
-    if timer epack >= 22000
-        settimer epack 0
-        overhead "Stop Ship..." 38
-        overhead "Use Explorer Pack" 38
-    endif
-endif
-
 while findtype 3834 backpack 0 as bbook
     @ignore bbook
 endwhile
@@ -479,12 +441,12 @@ if findtype 7029 backpack as joustignore
         @ignore joustignore
     endif
 endif
-if gumpexists 1244441914 and not timerexists senseship
-    gumpclose 1244441914
+if gumpexists 341416395 and not timerexists senseship
+    gumpclose 341416395
     createtimer senseship
     overhead "Ship Sense Enabled" 88
-elseif gumpexists 1244441914 and timerexists senseship
-    gumpclose 1244441914
+elseif gumpexists 341416395 and timerexists senseship
+    gumpclose 341416395
     removetimer senseship
     overhead "Ship Sense Disabled" 38
 endif
@@ -579,20 +541,6 @@ if timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|
 endif
 
 if not warmode
-    if timerexists BapScourge and gumpexists 341416395
-        gumpclose 341416395
-        removetimer BapScourge
-        createtimer BapBuoy
-        overhead "--Buoy Activated--" 78
-        getlabel backpack ping
-    endif
-    if timerexists BapBuoy and gumpexists 341416395
-        gumpclose 341416395
-        createtimer BapScourge
-        removetimer  BapBuoy
-        overhead "--Scourge Activated--" 78
-        getlabel backpack ping
-    endif
     if timerexists openhull
         removetimer openhull
     endif
@@ -672,52 +620,8 @@ if not warmode
         say "all guard me" 45
         settimer petguard 0
     endif
-    
-    if skill "Magery" >= 80
-        if timerexists reflect
-            if timer reflect > 30000
-                overhead "Magic Reflect is ready..." 201
-                settimer reflect 12000
-            endif
-        endif
-        if findbuff "Magic Reflection" and timerexists reflect
-            removetimer reflect
-        endif
-        if not findbuff "Magic Reflection" and not timerexists reflect
-            createtimer reflect
-        endif
-    endif
-    if skill "Magery" >= 20
-        if timerexists reactive
-            if timer reactive > 30000
-                overhead "Reactive Armor is ready..." 139
-                settimer reactive 13500
-            endif
-        endif
-        if findbuff "Reactive Armor" and timerexists reactive
-            removetimer reactive
-        endif
-        if not findbuff "Reactive Armor" and not timerexists reactive
-            createtimer reactive
-        endif
-    endif
-    if not hidden and skill "Tracking" >= 10 and not findbuff "Tracking Hunting"
-        skill 'tracking'
-        waitforgump 4267467659 500
-        gumpresponse 6 4267467659
-        pause 250
-        gumpclose 4267467659
-        cooldown "Disco" 10000
-    endif
+
     if not hidden and not targetexists 
-        while hp < 33 and skill "Magery" >= 30
-            hotkey 'Cancel Current Target'
-            cast 'Heal'
-            wft 2500
-            hotkey 'Target Self'
-            hotkey 'Cancel Current Target'
-            pause 250
-        endwhile
         if not cooldown "Heal Pot" and not hidden and diffhits > 25 and findtype "Yellow Potion" self as healpot
             while queued
                 //donothing
@@ -725,22 +629,6 @@ if not warmode
             dclick healpot
             pause 500
             getlabel backpack ping
-        endif
-        if hp < 55 and skill "Magery" >= 60
-            hotkey 'Cancel Current Target'
-            cast 'Greater Heal'
-            wft 3500
-            hotkey 'Target self'
-            hotkey 'Cancel Current Target'
-            pause 250
-        endif
-        if hp < 83 and skill "Magery" >= 30
-            hotkey 'Cancel Current Target'
-            cast 'Heal'
-            wft 2500
-            hotkey 'Target Self'
-            hotkey 'Cancel Current Target'
-            pause 250   
         endif
         while not hidden and poisoned and not targetexists 
             if not hidden and findtype "Orange Potion" self as curepot
@@ -750,47 +638,8 @@ if not warmode
                 dclick curepot
                 pause 500
                 getlabel backpack ping
-            elseif mana >= 6 and skill "Magery" >= 40
-                cast "Cure"
-                wft 2500
-                target self
-                hotkey 'Cancel Current Target'
             endif
         endwhile
-        if skill "Magery" >= 80 and mana <= 20 and not findbuff "Actively Meditating" and not cooldown "Magic Mushroom"
-            while queued
-                //donothing
-            endwhile
-            dclicktype 'mushroom'
-            pause 500
-            getlabel backpack ping
-        endif
-        if skill "Provocation" >= 10 and not findbuff "Actively Meditating" and not cooldown "Disco" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not findbuff "Song of provocation"
-            hotkey "Cancel Current Target"    
-            useskill "Provocation"
-            wft 500
-            targetrelloc -1 -1
-        endif
-        if skill "Discordance" >= 10 and not findbuff "Actively Meditating" and not cooldown "Disco" and not cooldown "Song of Discord" and not cooldown "Song of Provocation" and not cooldown "Song of Peacemaking" and not findbuff "Song of discordance"
-            hotkey "Cancel Current Target"
-            useskill "Discordance"
-            wft 500
-            targetrelloc -1 -1
-        endif
-        if not findbuff "Actively Meditating" and not findbuff "Cunning" and mana >= 6 and skill "Magery" >= 40
-            cast "Cunning"
-            wft 1500
-            target self
-            hotkey 'Cancel Current Target'
-        endif
-    endif
-    if skill "Magery" >= 50 and followers = 0 and timer petguard >= 12500
-        overhead 'I should get some followers...' 39
-        settimer petguard 0
-    endif
-    if skill "Necromancy" >= 80 and not gumpexists 622436516
-        say [necromancyhotbar
-        pause 250
     endif
     if skill "Chivalry" >= 80 and not gumpexists 1387930325
         say [chivalryhotbar
@@ -808,25 +657,7 @@ if not warmode
         overhead "***BOMB***" 34 bomb
     endif
        
-    if timer oceanscan >= 300 and skill "Arcane" >= 80 and cooldown "Fray"
-        clearsysmsg 
-        if varexist "oceantarget"
-            @unsetvar "oceantarget"
-        endif
-        hotkey "Next Enemy Monster Target"
-        if not insysmsg "No one matching"
-            @setvar! "oceantarget" lasttarget 
-        endif
-        hotkey "Next Grey Monster Target"
-        if not insysmsg "No one matching"
-            @setvar! "oceantarget" lasttarget 
-        endif
-        hotkey "Next Murderer Monster Target"
-        if not insysmsg "No one matching"
-            @setvar! "oceantarget" lasttarget 
-        endif
-        settimer oceanscan 0
-    elseif timer oceanscan >= 300 and skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80 and cooldown "Fray"
+    if timer oceanscan >= 300 and skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80 and cooldown "Fray"
         clearsysmsg 
         if varexist "oceantarget"
             @unsetvar "oceantarget"
@@ -890,18 +721,7 @@ if not warmode
             settimer bapallkilltimer 0
         endif
     endif
-    
-    if skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80
-        if not timerexists Scourgetimer 
-            createtimer Scourgetimer
-            settimer Scourgetimer 3000
-        endif
-        if timerexists BapBuoy and mana <= 80 and timer Scourgetimer >= 3000 and find "oceantarget" ground -1 -1 12
-            say "[weaponability3"
-            settimer Scourgetimer 0
-        endif
-    endif
-    
+        
     if not hidden and find "shiphold" ground -1 -1 2
         clearsysmsg 
         // Arcane Runes removed from loot drop string
@@ -933,18 +753,6 @@ if not warmode
         endif
     endif
 elseif warmode 
-    if timerexists BapScourge and gumpexists 341416395
-        gumpclose 341416395
-        removetimer BapScourge
-        createtimer BapBuoy
-        overhead "--Buoy Activated--" 78
-    endif
-    if timerexists BapBuoy and gumpexists 341416395
-        gumpclose 341416395
-        createtimer BapScourge
-        removetimer  BapBuoy
-        overhead "--Scourge Activated--" 78
-    endif
     if cooldown "Fray" and find "oceantarget" ground
         if not timerexists BapCrewAttack
             createtimer BapCrewAttack
@@ -967,32 +775,31 @@ elseif warmode
         endif
     endif
 
-    if skill "Arcane" >= 80
-        if not timerexists leylinetimer 
-            createtimer leylinetimer
-            settimer leylinetimer 3000
+    if not timerexists OTWepAbility
+        createtimer OTWepAbility
+        createtimer BapWepAbilityReady
+    endif
+    if warmode
+        if cooldown "Weapon Ability Ready"
+            createtimer BapWepAbilityReady
+            cooldown "Weapon Ability Ready" 0
         endif
-        if mana <= 80 and timer leylinetimer >= 3000 and find "oceantarget" ground -1 -1 12
-            say "[weaponability2"
-            settimer leylinetimer 0
+        
+        if timerexists BapWepAbilityReady
+            if find "oceantarget" ground -1 -1 12
+                if "Weapon Ability One" = 1
+                    say "[WeaponAbility1"
+                endif
+                if "Weapon Ability Two" = 1
+                    say "[WeaponAbility2"
+                endif
+                if "Weapon Ability Three" = 1
+                    say "[WeaponAbility3"
+                endif
+                removetimer BapWepAbilityReady
+            endif
         endif
     endif
-    
-    if skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80
-        if not timerexists Scourgetimer 
-            createtimer Scourgetimer
-            settimer Scourgetimer 3000
-        endif
-        if timerexists BapScourge and mana <= 80 and timer Scourgetimer >= 3000 and find "oceantarget" ground -1 -1 12
-            say "[weaponability2"
-            settimer Scourgetimer 0
-        endif
-        if timerexists BapBuoy and mana <= 80 and timer Scourgetimer >= 3000 and find "oceantarget" ground -1 -1 12
-            say "[weaponability3"
-            settimer Scourgetimer 0
-        endif
-    endif
-
     if not timerexists onetimepeacemode
         createtimer onetimepeacemode
     endif
@@ -1028,25 +835,7 @@ elseif warmode
         overhead "Ship Sense Disabled" 38
     endif
     
-    if timer oceanscan >= 300 and skill "Arcane" >= 80
-        clearsysmsg 
-        if varexist "oceantarget"
-            @unsetvar "oceantarget"
-        endif
-        hotkey "Next Enemy Monster Target"
-        if not insysmsg "No one matching"
-            @setvar! "oceantarget" lasttarget 
-        endif
-        hotkey "Next Grey Monster Target"
-        if not insysmsg "No one matching"
-            @setvar! "oceantarget" lasttarget 
-        endif
-        hotkey "Next Murderer Monster Target"
-        if not insysmsg "No one matching"
-            @setvar! "oceantarget" lasttarget 
-        endif
-        settimer oceanscan 0
-    elseif timer oceanscan >= 300 and skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80
+    if timer oceanscan >= 300 and skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80
         clearsysmsg 
         if varexist "oceantarget"
             @unsetvar "oceantarget"
@@ -1134,14 +923,6 @@ elseif warmode
     endif
         
     if not hidden and not targetexists 
-        while hp < 33 and skill "Magery" >= 30
-            hotkey 'Cancel Current Target'
-            cast 'Heal'
-            wft 2500
-            hotkey 'Target Self'
-            hotkey 'Cancel Current Target'
-            pause 250
-        endwhile
         if not cooldown "Heal Pot" and not hidden and diffhits > 25 and findtype "Yellow Potion" self as healpot
             while queued
                 //donothing
@@ -1149,22 +930,6 @@ elseif warmode
             dclick healpot
             pause 500
             getlabel backpack ping
-        endif
-        if hp < 55 and skill "Magery" >= 60
-            hotkey 'Cancel Current Target'
-            cast 'Greater Heal'
-            wft 3500
-            hotkey 'Target self'
-            hotkey 'Cancel Current Target'
-            pause 250
-        endif
-        if hp < 83 and skill "Magery" >= 30
-            hotkey 'Cancel Current Target'
-            cast 'Heal'
-            wft 2500
-            hotkey 'Target Self'
-            hotkey 'Cancel Current Target'
-            pause 250   
         endif
         while not hidden and poisoned and not targetexists and not hidden
             if not hidden and findtype "Orange Potion" self as curepot
@@ -1174,11 +939,6 @@ elseif warmode
                 dclick curepot
                 pause 500
                 getlabel backpack ping
-            elseif mana >= 6 and skill "Magery" >= 40
-                cast "Cure"
-                wft 2500
-                target self
-                hotkey 'Cancel Current Target'
             endif
         endwhile
         if hp < 77 and not hidden and not timerexists brew and not targetexists and findbuff "Bleed" and findtype 50675 backpack as cbrew
@@ -1208,22 +968,10 @@ elseif warmode
                 removetimer brew
             endif
         endif
-        if skill "Magery" >= 80 and mana <= 80 and not findbuff "Actively Meditating" and not cooldown "Magic Mushroom"
-            while queued
-                //donothing
-            endwhile
-            dclicktype 'mushroom'
-            pause 500
-            getlabel backpack ping
-        endif
     endif
     
-    if skill "Necromancy" >= 80 and not gumpexists 622436516
-        say [necromancyhotbar
-        pause 250
-    endif
     if skill "Chivalry" >= 80 and not gumpexists 1387930325
-        say [chivalryhotbar
+        say "[chivalryhotbar"
         pause 250
     endif
     
@@ -1270,56 +1018,6 @@ elseif warmode
         settimer oceanscan 0
     endif
         
-    if not hidden and skill "Necromancy" >= 80 and findtype "corpse" ground -1 -1 12
-        if ingump '20/' 622436516
-            createtimer pain
-        elseif ingump '19/' 622436516
-            createtimer pain
-        elseif ingump '18/' 622436516
-            createtimer pain
-        elseif ingump '17/' 622436516
-            createtimer pain
-        elseif ingump '16/' 622436516
-            createtimer pain
-        elseif ingump '15/' 622436516
-            createtimer pain
-        elseif ingump '14/' 622436516
-            createtimer pain
-        elseif ingump '13/' 622436516
-            createtimer pain
-        elseif ingump '12/' 622436516
-            createtimer pain
-        elseif ingump '11/' 622436516
-            createtimer pain
-        elseif ingump '10/' 622436516
-            createtimer pain
-        elseif ingump '9/' 622436516
-            createtimer pain
-        elseif ingump '8/' 622436516
-            createtimer pain
-        elseif ingump '7/' 622436516
-            createtimer pain
-        elseif ingump '6/' 622436516
-            createtimer pain
-        elseif ingump '5/' 622436516
-            createtimer pain
-        endif
-        if skill "Necromancy" >= 80 and timerexists pain and find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and not cooldown 'Pain Spike'
-            clearsysmsg
-            if targetexists 
-                hotkey 'Cancel Current Target'
-            endif
-            say '[Painspike'
-            wft 500
-            hotkey 'Target Closest Grey Monster'
-            hotkey 'Target Closest Murderer Monster'
-            getlabel backpack ping
-            if insysmsg "Unholy"
-                cooldown "Pain Spike" 30000
-            endif
-        removetimer pain
-        endif
-    endif
     if not hidden and find "oceantarget" ground -1 -1 12
         clearsysmsg 
         if not hidden and skill "Alchemy" >= 80 and not queued and not cooldown "Explosion Potion" and findtype "Purple Potion" self as purp
@@ -1342,75 +1040,6 @@ elseif warmode
                 endwhile
             endif
             hotkey "Cancel Current Target"
-        elseif skill "Magery" >= 50 and not queued and mana >= 9 and not cooldown "Explosion Potion" and findtype "Purple Potion" self as purp
-            clearsysmsg
-            cast "Telekinesis"
-            wft 3000
-            hotkey 'Target Closest Grey Monster'
-            hotkey 'Target Closest Murderer Monster'
-            @setvar! "telemastertarget" lasttarget 
-            getlabel backpack ping
-            if insysmsg "Target cannot be seen"
-                cooldown "Explosion Potion" 15000
-            elseif insysmsg "any explosive potions thrown" and not queued and find "telemastertarget" ground -1 -1 12
-                dclick purp
-                wft 500
-                lasttarget 
-                getlabel backpack ping
-            endif
-            if insysmsg "Your explosion potion sticks to your target."
-                cooldown "Explosion Potion" 15000
-            elseif not cooldown "Explosion Potion" and insysmsg "Where should I throw this potion?"
-                cooldown "Explosion Potion" 15000
-                hotkey '> Interrupt'
-                hotkey "Cancel Current Target"
-                dclicktype "Purple Potion"
-                wft 500
-                while targetexists 
-                    overhead "THROW IT OVERBOARD!!!" 38
-                endwhile
-            endif
-            hotkey "Cancel Current Target"
-        endif
-        if skill "Necromancy" >= 80 and find "oceantarget" ground -1 -1 12
-            if ingump '20/' 622436516
-                createtimer necroab
-            elseif ingump '19/' 622436516
-                createtimer necroab
-            elseif ingump '18/' 622436516
-                createtimer necroab
-            elseif ingump '17/' 622436516
-                createtimer necroab
-            elseif ingump '16/' 622436516
-                createtimer necroab
-            elseif ingump '15/' 622436516
-                createtimer necroab
-            elseif ingump '14/' 622436516
-                createtimer necroab
-            elseif ingump '13/' 622436516
-                createtimer necroab
-            elseif ingump '12/' 622436516
-                createtimer necroab
-            endif
-        endif
-        if skill "Necromancy" >= 80 and timerexists necroab and find "oceantarget" ground -1 -1 12
-            if not hidden and not cooldown "Strangle"
-                pause 550
-                say '[Strangle'
-                cooldown "Strangle" 30000
-                pause 550
-            endif
-            if not hidden and not cooldown "Evil Omen"
-                say '[EvilOmen'
-                cooldown "Evil Omen" 30000
-                pause 550
-            endif
-            if not hidden and not cooldown "Corpse Skin"
-                say '[CorpseSkin'
-                cooldown "Corpse Skin" 30000
-                pause 550
-            endif
-            removetimer necroab
         endif
         
         if skill "Chivalry" >= 80 and find "oceantarget" ground -1 -1 12
@@ -1454,41 +1083,6 @@ elseif warmode
                 pause 550
             endif
             removetimer chivab
-        endif        
-        
-        if skill "Magery" >= 80
-            if not cooldown "Magic Arrow" and mana >= 4
-                hotkey 'Cancel Current Target'
-                cast "Magic Arrow"
-                wft 1000
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
-            elseif not cooldown "Harm" and mana >= 6
-                hotkey 'Cancel Current Target'
-                cast "Harm"
-                wft 1500
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
-            elseif not cooldown "Lightning" and mana >= 11
-                hotkey 'Cancel Current Target'
-                cast "Lightning"
-                wft 2500
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
-            elseif not cooldown "Chain Lightning" and cooldown "Lightning" and cooldown "Harm" and cooldown "Magic Arrow" and mana >= 40
-                hotkey 'Cancel Current Target'
-                cast "Chain Lightning"
-                wft 3000
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
-            elseif cooldown "Lightning" and cooldown "Harm" and cooldown "Magic Arrow" and mana >= 40
-                hotkey 'Cancel Current Target'
-                cast "Flamestrike"
-                wft 3000
-                hotkey 'Target Closest Grey Monster'
-                hotkey 'Target Closest Murderer Monster'
-            endif
-            pause 150
         endif
     endif
 endif

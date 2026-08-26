@@ -1,13 +1,13 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/7aba7670-e30e-489d-86ec-c95e79ad57c6 for latest
 # Automation by Jaseowns
-## Script: Lord Glacier's Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v3.0.5
+## Script: Lord Glacier's Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v3.0.6
 ## Created by: danstock._98439#0
 #############################################
 
 /////////
-////////                                          Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 3.0.5
+////////                                          Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 3.0.6
 ///////
-//////                                                  UO Outlands Razor script - Released Feb 18, 2025 - Last Updated Aug 25, 2026
+//////                                                  UO Outlands Razor script - Released Feb 18, 2025 - Last Updated Aug 26, 2026
 /////                                                     Compiled by DanStock. (aka. Lord Glacier)
 ////
 ///
@@ -64,8 +64,9 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
+#         Aug 26 2026 - version 3.0.6   Some tweaks to the Dungeon Escape loop to improve safety when PK is tracked and is attacking.  Happy with the current build! Email bugs to:  dan@danstockman.com
 #         Aug 25 2026 - version 3.0.5   Changes to priority order in Auto Healing loop, tweaks to cure potions, bandage usage and weight checks and some cosmetic changes to overheads
-#                                       Also updated the auto equip weapon checks to account for disarm delays. Pushing 16k lines now so hopefully this is final build. Email bugs to:  dan@danstockman.com
+#                                       Also updated the auto equip weapon checks to account for disarm delays. Pushing 16k lines now so hopefully this is final build. 
 #         Aug 24 2026 - version 3.0.4   BIG UPDATE: Added support for builds with multiple combat skills, with checks based on skills > 50 and equipped weapon (see 'EnableAutoEquipWeapon' variable below)
 #                                       Also lots of small tweaks and adjustments to overhead messages, variable descriptions, tips section and other timing or efficiency improvements
 #                                       A lot has gone into the script at this point.  It is huge.  But it seems to work and is getting close to being complete. 
@@ -119,77 +120,110 @@
     //    TIPS:    //
     /////////////////
 
-#     IMPT: FIRST RUN OF SCRIPT SHOULD BE COMPLETED IN HOUSE/INN ROOM/BANK (ie. location of your Auto Recall rune) AND TAKES ROUGHLY 20 SECONDS TO COMPLETE INITIAL (ONE TIME) SETUP!
+#     IMPT! (IF USING AUTO RECALL):
+#           FIRST RUN OF SCRIPT SHOULD BE COMPLETED IN HOUSE/INN ROOM/BANK (ie. location of your Auto Recall rune) AND TAKES ROUGHLY 20 SECONDS TO COMPLETE INITIAL (ONE TIME) SETUP!
 #           Initial setup can be redone by setting 'ResetScriptPermanentVariables' variable to '1' below!
-#           Or you can re-target script variables individually in the 'Options' tab above the script
+#           Or you can re-target script variables (ie. Runebook, Loot Chest, Loot Bag, Storage Tome Container, etc.) individually in the 'Options' tab above the script
 #
 #
 #     *** BASIC OPERATION: ***
-#         This script does it all for a Dexxer! MOBs are automatically targeted/attacked and your character is kept healed and buffed based on your settings below
-#         I play primarily using a handheld (Asus ROG Ally), so the goal is to automate everything except movement and looting (which cannot be scripted)
-#         Most features are turned OFF by default ('0' is OFF, '1' is ON)! Check the USER VARIABLES section carefully before your first run!!
+#         This script does it all for a Dexxer! MOBs are automatically targeted and attacked and your character is kept healed and buffed (based on your settings below)
+#         I play primarily using a handheld (Asus ROG Ally), so my goal was to automate everything except movement and looting (which cannot be scripted)
+#         With this script, and the right variables, I can farm indefinitely (farm until auto weight recall, stashes loot, resets loadout, then chiv gates back into action. Repeat)
+#         Even if you are killed, the script can identify gates and healers, resurrect automatically, dress your char, recall home, resupply and then setup your pack again.
+#         I use this script myself each day and it has taken me over 500 days to put together. It is always a work in progress, but hopefully this is the last build for a while!
+#         
+#         MOST FEATURES ARE TURNED OFF by default. '0' is OFF and '1' is ON (unless otherwise stated) Check the USER VARIABLES section carefully before your first run!!
 #
-#         The script operates in two basic modes:
-#         'WAR MODE'   = Normal farming/combat
+#
+#     *** WAR MODE vs PEACE MODE : ***
+#         The script operates in two core modes:
+#         'WAR MODE'   = Normal farming/combat/MOB targeting
 #         'PEACE MODE' = Alternate stances/finishers while in combat OR Recall/Dungeon Escape when no targets are nearby
 #
 #             While IN COMBAT:
-#                 Toggling 'PEACE MODE' can switch Weapon/Shield Stances and/or Finishers (if enabled)
+#                 Toggling to 'PEACE MODE' can switch Weapon/Shield STANCES and/or FINISHERS (if enabled)
+#                 You will automatically return to 'WAR MODE' when target is eliminated or changed
 #
 #             While NO TARGETS are nearby:
-#                 Toggling 'PEACE MODE' can trigger 'AUTO RECALL' or 'AUTO DUNGEON ESCAPE' (depending on your 'DUNGEONMODE / WILDERNESSMODE' settings above)
+#                 Toggling 'PEACE MODE' can trigger 'AUTO RECALL' or 'AUTO DUNGEON ESCAPE' (depending on your 'DUNGEONMODE'/'WILDERNESSMODE' settings above)
+#                 In 'WAR MODE' you will continue to search for and analyze potential new targets while keeping healed and storing loot (if enabled)
 #
 #     *** COMBAT / HEALING: ***
-#         CHIVALRY prioritizes healing and attempts to keep 4-5 Holy Symbols available for NOBLE SACRIFICE or HOLY LIGHT
-#         Extra symbols can be used for DIVINE FURY, CONSECRATE WEAPON, ENEMY OF ONE and/or CLOSE WOUNDS/CLEANSE BY FIRE
-#         Chivalry Mastery Chain Links or HOLY ASPECT can increase your maximum available symbols
+#         Your weapon will be automatically equipped (or an overhead warning displayed) based on 'EnableAutoEquipWeapon' setting below 
+#         Setting of '0' will notify if weapon not found in hand but requires manual equipping
+#         Setting of '1' will auto equip weapon based on first weapon skill > 50 if hands are empty (prioritizing aspect weapons and ignoring unidentified)
+#         Setting of '2' will work for multi combat skill builds and requires manual weapon equipping initially and when switching weapon classes (more info below)
+#
+#         CHIVALRY skill is highly recommended for dexxer builds! For the swing speed buffs and uninterruptible heals alone. Requires equal or better skill in Tactics.
+#         The script prioritizes healing (attempts to keep 4-5 Holy Symbols available for NOBLE SACRIFICE or HOLY LIGHT) and swing speed buff active (DIVINE FURY)
+#         Extra symbols can be used for CONSECRATE WEAPON, ENEMY OF ONE, CLOSE WOUNDS and/or CLEANSE BY FIRE
+#         Highly recommend use of DIVINE FURY for large swing speed increase (goal is always to be capped on Swing Speed - check in STATS or via OutlandsButler.com)
+#         Chivalry Mastery Chain Links or HOLY ASPECT can increase your maximum available symbols, but I have always found 12 to be sufficient
 #
 #         POTIONS are automatically consumed as needed (if enabled) - MANUAL POTION USE MAY DISRUPT SCRIPT TIMING
 #         AUTO PURPLE POTS require 80+ ALCHEMY and will throw Explosion Potions at your target during combat (range is adjustable below)
-#         Bandages will be used automatically if found in inventory, Healing skill > 0 and HP is not at maximum
-#
-#         HEALERS CODEX and/or POTION CODEX are highly recommended to reduce healing times and improve damage resistance
-#         Use whatever ASPECT suits your build (I personally use FROST ARMOUR & WEAPON... which works really well and suits Glacier!)
+#         BANDAGES will be used automatically if found in inventory, Healing skill > 0 and HP is not at maximum
+#         HEALERS CODEX and/or POTION CODEX are also highly recommended to reduce healing times and improve damage resistance
+#         Use whatever ASPECT suits your build (I personally use FROST ARMOUR & WEAPON... which works really well and suits Lord Glacier!)
 #
 #     *** WEAPON / SHIELD CODEX: ***
-#         Weapon Codex Stances can be selected manually in USER VARIABLES or controlled automatically with AUTO STANCE SWITCHING (or disabled for manual use)
-#         Weapon Abilities can also use optional Razor COOLDOWNS for display on your UI bars
-#         If using ARMS LORE, remember to adjust the WEAPON ABILITY COOLDOWN value in USER VARIABLES
+#         WEAPON CODEX STANCES can be auto-selected in USER VARIABLES or controlled automatically with AUTO STANCE SWITCHING (or disabled for manual use)
+#         WEAPON ABILITIES can also be selected and will trigger during combat (when available) and use optional Razor COOLDOWNS for display on your UI bars
+#         If using ARMS LORE skill, you will potentially need to adjust the WEAPON ABILITY COOLDOWN value in USER VARIABLES
+#         For builds with multiple combat skills, 'EnableAutoEquipWeapon' setting '2' will auto detect active weapon class and adjust CODEX STANCES, ABILITIES, FINISHERS, etc.
 #
 #     *** BARDING: ***
-#         BARDING SKILLS are fully supported and can be used with any supported weapon type or arrangement of skills
+#         BARDING SKILLS are fully supported and can be used with any instrument and any weapon class or arrangement of skills
 #         Make sure [ShowBardingDurations are DISPLAYED in the UO client!
-#         Bards require 6 points in Bard Codex 'Self Taught' to drop Musicianship skill (Tri-Bard)
-#         MOBs will be automatically pacified, discorded and (if multiple targets available) provoked based on skill levels and variables below
+#         BARD CODEX use is highly recommended and bards require 5 points in 'Self Taught' to drop Musicianship skill (for Tri-Bard template above)
+#         Targeted MOBs will be automatically pacified, discorded and (if multiple targets available) provoked based on skill levels and variables below
+#
+#     *** AUTO RECALL / DUNGEON ESCAPE: ***
+#         Optional AUTO RED RECALL or AUTO RED DUNGEON ESCAPE triggered either by TRACKING SKILL (40, 50 OR 60+ tiles) or standard TARGETING (~12 tiles)
+#         Tracking is great, but even just the basic PK radar to react when reds come into target range (hotkey Target Closest Red) is great for survival!
+#         Also an optional AUTO WEIGHT RECALL or AUTO WEIGHT DUNGEON ESCAPE triggered by weight limit settings (below) 
+#         Or you can trigger an optional MANUAL RECALL/DUNGEON ESCAPE by toggling PEACE MODE while no targets are nearby
+#
+#         Recall can trigger your own personal recall script or else you can use the built in script with TONS of options for unloading, resetting, etc. 
+#         To select new runebook and storage containers you can reset the script below (or manually retarget items using the 'Options' tab above the script)
 #
 #     *** LOOT / INVENTORY: ***
 #         ORGANIZER AGENT-01 is used for the optional MAIN INVENTORY pouch setup
-#         ORGANIZER AGENTS 06-09 can be used as sub-containers inside your LOOT CHEST (if enabled below)
+#         ORGANIZER AGENTS 06-09 can be used as sub-containers inside your LOOT CHEST (if enabled below) when using AUTO RECALL
 #
-#         If enabled, WOODEN BOX + COPPER KEY in inventory will automatically secure looted items while farming
-#         Aspect weapons are ignored automatically and up to 5 additional item serials can be excluded in USER VARIABLES below
-#         This is useful for spellbooks, extra weapons, shields or anything else you do NOT want locked away
-#         Items not on the ignore list will be automatically moved to wooden box and locked for thief protection (during NO TARGET loop and based on settings below)
+#         If enabled, having a WOODEN BOX + COPPER KEY in inventory will automatically secure looted items while farming
+#         Do not keep the copper key inside the wooden box and do not keep the key somewhere it can be easily stolen (I keep mine in my Loot/Grab bag)
+#         Aspect weapons are ignored automatically during storage and up to 5 additional item serials can be excluded in USER VARIABLES below
+#         These exclusions are useful for spellbooks, extra weapons, shields or anything else you do NOT want locked away
+#         Items NOT on the ignore list will be automatically moved to wooden box and locked inside for thief protection (during NO TARGET loop)        
 #
 #     *** DEATH / RESURRECTION: ***
-#         If you die, the DEATH LOOP will automatically select moongates, travel to the last gated town and search for a HEALER
-#         Once a healer is found, the script will automatically select the resurrection gump
-#
-#         A Razor Dress List named 'UltimateDexxer' can automatically re-equip your [blessed] wearables after resurrection
-#         The script can then Recall home, resupply, heal, reactivate Aspect and rebuild your backpack/loadout (if enabled)
+#         If you die, the DEATH LOOP will automatically indicate and select moongates, travel to the last gated town and search for a HEALER
+#         Once a healer is found, the script will automatically select the resurrection gump to heal you
+#         A Razor Dress List named 'UltimateDexxer' can be used to automatically re-equip your [blessed] wearables after resurrection
+#         The script can then Recall home, resupply, heal, reactivate Aspect and get you ready to return to farming quickly
 #
 #         Optional INVENTORY RESET can rebuild your backpack after DEATH, including trapped pouch stacks, loot bag and other QOL and anti-theft organization
-#         Must use Built-in Auto Recall script if using INVENTORY RESET
+#         Must use Built-in Auto Recall script if using INVENTORY RESET or any of the other features mentioned
 #
 #     *** OTHER TIPS: ***
-#         OVERHEAD MESSAGES are enabled by default but can be reduced/disabled in USER VARIABLES (minimal target indicators always remain)
-#         Razor TEXT FILTERS are recommended to hide redundant system messages and other Razor spam
-#         Optional Razor COOLDOWNS are listed above - they are NOT required for script function and are mainly useful for UI display
+#         OVERHEAD MESSAGES are plentiful and enabled by default but can be reduced/disabled in USER VARIABLES (minimal target indicators always remain)
+#         Razor TEXT FILTERS are highly recommended to hide redundant system messages and other Razor spam
+#         Optional Razor COOLDOWNS are listed below - they are NOT required for script function and are mainly useful for UI display
+#
+#         There are a LOT of variables below and most are turned OFF by default.  They all have brief descriptions and/or should be self-explanatory (hopefully)
+#         Setting up the script initially can be a bit of a pain - but once it is done it should run pretty smoothly and will hopefully help your grind.
+#         I highly recommend trying on a handheld (like my ROG Ally) and, with this script, the game is great fun to play literally anywhere!
+#
+#         If you come across any repeatable bugs, have suggestions for improvements or additions or have any problems I can be reached at: dan@danstockman.com
+#         I am not great at replying quickly to anything (or at all) but I will do my best lol
 #
 #
-#     My own tested PURE DEXXER and TRIBARD templates are listed at the top, but the script is designed to support many different builds!
-#     MOST FEATURES ARE TURNED 'OFF' BY DEFAULT!  MAKE SURE TO CHECK THE VARIABLE SECTION BELOW CLOSELY PRIOR TO FIRST USE!!
-#     This script is a compilation of many existing scripts married to my own new stuff, but big thanks to user dennozz for many features I learned from studying their scripts!
+#     My own self-tested PURE DEXXER and TRIBARD templates are listed at the top (along with suggested inventory), but the script is designed to support many different builds!
+#     Good luck out there and say hey if you see me out in Avadon.  I might not be able to reply (only on screen keyboard on the Ally) but I enjoy the recognition
+#
+#                                                                                                                               - Dan (aka. Lord Glacier) 
 
 
 
@@ -206,8 +240,9 @@
                                                                    @setvar! ResetScriptPermanentVariables 0
                            #                                                                                                                           #
                            #                    THEN RETURN 'ResetScriptPermanentVariables' TO '0' TO RESTART INITIAL SETUP...                         #
-                           #                (Or you can re-target script variables individually in the 'Options' tab above the script!)                #
                            #                                                                                                                           #
+                           #                 Or you can re-target script variables individually in the 'Options' tab above the script!                 #
+                           #          These variables are AUTO RECALL related (Runebook, Loot storage, etc.) so can be ignored if not enabled          #
                            #                                                                                                                           #
                            #############################################################################################################################
 
@@ -383,7 +418,7 @@
         # Requires Cleansing Brews in inventory
         # Will automatically consume Cleansing Brew if Bleeding or Diseased (and not on cooldown)
 
-@setvar! EnableRefreshPotion 0
+@setvar! EnableRefreshPotion 1
     @setvar! RefreshPotionSPdiff 10
     # Adjust SP diff set point for Refresh potion consumption
 
@@ -586,9 +621,9 @@
         @setvar! UseKnaveAbility 0
 
 
-        # If using ARMS LORE skill, adjust your Weapon Ability Cooldown (otherwise default is 60s):
+        # If using ARMS LORE skill, adjust your Weapon Ability Cooldown here:
         if skill 'Arms Lore' >= 50
-            @setvar! WeaponAbilityCooldown 30000
+            @setvar! WeaponAbilityCooldown 29000
         endif
 
     #######################
@@ -694,7 +729,7 @@
 @setvar! EnableArrowCleanup 0
     # Will automatically pickup arrows or bolts from the ground (if Archery skill > 50)
 
-@setvar! EnableArcheryWarningMessage 0
+@setvar! EnableArcheryWarningMessage 1
     @setvar! ArcheryLowAmmoWarningAmount 10
     # Overhead warning (independent of other Overhead Messages) for low archery ammunition (if Archery skill > 50)
 
@@ -745,13 +780,13 @@
 
     //  RED RECALL/ESCAPE (w/ TRACKING SKILL):
         if skill 'Tracking' >= 50
-            @setvar! EnableTrackingAutoRecall 0
+            @setvar! EnableTrackingAutoRecall 1
                 # Tracking Auto Recall must be enabled for Auto Recall/Dungeon Escape to function (w/ Tracking Skill)
                 # Make sure 'Ignore Houses/Ships' is checked in the Tracking skill menu!
                 
-                @setvar! PKTrackingRange 50
-                    # Set your range to trigger Auto Recall/Dungeon Escape
-                    # Range can be '40', '50' or '60' tiles (or '0' will trigger Auto Recall/Dungeon Escape regardless of range)
+            @setvar! PKTrackingRange 50
+                # Set your range to trigger Auto Recall/Dungeon Escape
+                # Range can be '40', '50' or '60' tiles (or '0' will trigger Auto Recall/Dungeon Escape regardless of range)
 
                 @setvar! EnableRedAlertOverhead 1
                     # If your build has tracking skill, I highly recommend setting up a Razor overhead message instead of using the script one:
@@ -773,7 +808,7 @@
 
     //  RED RECALL/ESCAPE (w/ NO TRACKING SKILL):
         elseif skill 'Tracking' < 50
-            @setvar! EnablePKradar 0
+            @setvar! EnablePKradar 1
                 # PK radar must be enabled for Auto Red Recall/Dungeon Escape to function (w/o Tracking Skill)
 
                 @setvar! EnableRedAlertOverhead 1
@@ -1129,7 +1164,7 @@ if AutoRecallTime != 1 and TimeToGo != 1
     
     if not timerexists 'DisarmedTimer'
         createtimer 'DisarmedTimer'
-        settimer 'DisarmedTimer' 0
+        settimer 'DisarmedTimer' 5000
     endif
     
     if not timerexists 'WeightTimer'
@@ -1607,9 +1642,9 @@ if AutoRecallTime != 1 and TimeToGo != 1
         if not varexist DexxerAutoPilot
             overhead "Lord Glacier's Chill Dexxer Auto Pilot Script" 2234
             # '
-            overhead "version 3.0.5" 2234
+            overhead "version 3.0.6" 2234
             wait 1000
-            overhead "Last Updated: August 25, 2026" 88
+            overhead "Last Updated: August 26, 2026" 88
             wait 2500
             overhead "Thank you for trying my Dexxer AUTO PILOT script!  It appears this may be your first time running it..." 0
             wait 4000
@@ -1843,6 +1878,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -1854,6 +1890,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -1865,6 +1902,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -1876,6 +1914,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -1901,6 +1940,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                 endif
             endif
         endif
@@ -2965,7 +3005,7 @@ while not dead
             ////////////////////////////
              
                 if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
-                    if RedTargetFound = 1 and timer "REDALERT" > 30000
+                    if RedTargetFound = 1 and timer "REDALERT" > 5000
                         overhead "[ !! RED ALERT !! ]" 37
                         settimer "REDALERT" 0
                     endif
@@ -3013,7 +3053,7 @@ while not dead
                         endif
                     endif
 
-                    if EnableNobleSacrifice = 1 and not dead
+                    if EnableNobleSacrifice = 1 and not dead and RedTargetFound != 1
                         if diffhits > 50 and skill "Chivalry" >= 80 and timer "NobleSacrificeTimer" > 31000 and timer "ChivalryPrevented" > 5000
                             clearsysmsg
                             yell "[NobleSacrifice"
@@ -3035,7 +3075,7 @@ while not dead
                         endif
                     endif
 
-                    if EnableHolyLight = 1 and not dead
+                    if EnableHolyLight = 1 and not dead and RedTargetFound != 1
                         if diffhits > 30 and skill "Chivalry" >= 95 and timer "HolyLightTimer" > 31000 and timer "ChivalryPrevented" > 5000
                             clearsysmsg
                             yell "[HolyLight"
@@ -3236,7 +3276,7 @@ while not dead
                         break
                     endif
                     
-                    if EnablePKradar = 1
+                    if EnablePKradar = 1 and RedTargetFound != 1
                         if timer "PKRadar" > 1000
                             hotkey 'Next Murderer Player Target'
                             wait 500
@@ -3305,7 +3345,7 @@ while not dead
                         endif
                     endif 
 
-                    if EnableAgilityPotion = 1 and not findbuff "Agility" and not dead
+                    if EnableAgilityPotion = 1 and not findbuff "Agility" and not dead and RedTargetFound != 1
                         if findtype "Blue Potion" self
                             dclicktype "Blue Potion"
                             if EnableOverheadMessages = 1
@@ -3320,7 +3360,7 @@ while not dead
                         endif
                     endif
 
-                    if EnableMagicResistPotion = 1 and not findbuff "Magic Resist" and not dead
+                    if EnableMagicResistPotion = 1 and not findbuff "Magic Resist" and not dead and RedTargetFound != 1
                         if findtype "Black Potion" self
                             dclicktype "Black Potion"
                             if EnableOverheadMessages = 1
@@ -3335,22 +3375,39 @@ while not dead
                         endif
                     endif
 
-                    if EnableRefreshPotion = 1 and diffstam > RefreshPotionSPdiff and not dead
-                        if findtype "Red Potion" self
-                            dclicktype "Red Potion"
-                            if EnableOverheadMessages = 1
-                                overhead "[ REFRESH POTION ]" 37
+                    if RedTargetFound = 1
+                        if EnableRefreshPotion = 1 and stam < maxstam and not dead
+                            if findtype "Red Potion" self
+                                dclicktype "Red Potion"
+                                if EnableOverheadMessages = 1
+                                    overhead "[ REFRESH POTION ]" 37
+                                endif
+                                wait 250
+                            else
+                                if timer RefreshPotionMessageTimer > 4500
+                                    overhead "[ NO REFRESH POTS! ]" 337
+                                    settimer RefreshPotionMessageTimer 0
+                                endif
                             endif
-                            wait 250
-                        else
-                            if timer RefreshPotionMessageTimer > 4500
-                                overhead "[ NO REFRESH POTS! ]" 337
-                                settimer RefreshPotionMessageTimer 0
+                        endif                        
+                    else 
+                        if EnableRefreshPotion = 1 and diffstam > RefreshPotionSPdiff and not dead
+                            if findtype "Red Potion" self
+                                dclicktype "Red Potion"
+                                if EnableOverheadMessages = 1
+                                    overhead "[ REFRESH POTION ]" 37
+                                endif
+                                wait 250
+                            else
+                                if timer RefreshPotionMessageTimer > 4500
+                                    overhead "[ NO REFRESH POTS! ]" 337
+                                    settimer RefreshPotionMessageTimer 0
+                                endif
                             endif
                         endif
                     endif
 
-                    if EnablePanaceaPotion = 1 and skill 'Alchemy' >= 80
+                    if EnablePanaceaPotion = 1 and skill 'Alchemy' >= 80 and RedTargetFound != 1
                         if findbuff "Bleed" or findbuff "Diseased"
                             if not findbuff "panacea potion cooldown"
                                 if findtype "Orange Potion" self
@@ -3417,7 +3474,7 @@ while not dead
                         endwhile
                     endif
 
-                    if EnableAutoCarving = 1 and findtype 11552 self
+                    if EnableAutoCarving = 1 and findtype 11552 self and RedTargetFound != 1
                         while findtype "corpse" ground -1 -1 2 as deadbody and diffhits < ActivateAutoHealHPdiff 
                            if findtype 11552 self
                                 if targetexists
@@ -5342,7 +5399,7 @@ while not dead
     
     if dead 
         break
-    endif 
+    endif
 
     if skill 'Swordsmanship' >= 50
         if findtype '30988|5049|3909|3911|3915|3917|3934|3937|5046|5115|5119|5182|5185|5187|31128|31190' hand as weapon
@@ -6141,6 +6198,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     break
                 endif
             endif
@@ -6153,6 +6211,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -6166,6 +6225,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -6179,6 +6239,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -6192,6 +6253,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -6447,6 +6509,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             @setvar! RedTargetFound 1
                             @setvar! SkipInfiniteLoop 1
                             @setvar! WarModeToggledWhileFighting 0
@@ -6460,6 +6523,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             @setvar! RedTargetFound 1
                             @setvar! SkipInfiniteLoop 1
                             @setvar! WarModeToggledWhileFighting 0
@@ -6473,6 +6537,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             @setvar! RedTargetFound 1
                             @setvar! SkipInfiniteLoop 1
                             @setvar! WarModeToggledWhileFighting 0
@@ -6486,6 +6551,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             @setvar! RedTargetFound 1
                             @setvar! SkipInfiniteLoop 1
                             @setvar! WarModeToggledWhileFighting 0
@@ -6513,6 +6579,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             replay
                         endif
                     endif
@@ -6672,7 +6739,7 @@ while not dead
                             endif
                         else 
                             overhead '[ EQUIP YOUR WEAPON! ]' 154
-                            wait 500 
+                            wait 250 
                         endif 
                     endif 
                 endif 
@@ -7450,11 +7517,11 @@ while not dead
                                             endwhile
                                         endif
                                         
-                                        if timer 'STORELOOT' > 1500
+                                        if timer 'STORELOOT' > 2000
                                             clearsysmsg
                                             hotkey 'Target Closest Grey Monster'
                                             getlabel backpack backpacklabel
-                                            wait 150 
+                                            wait 250 
                                             if insysmsg 'No one matching that was found'
                                                 @setvar! FoundNewTarget 0
                                                 @setvar! LootTargetMOB 0
@@ -8012,6 +8079,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             break
                         endif
                     endif
@@ -8024,6 +8092,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             @setvar! RedTargetFound 1
                             @setvar! SkipInfiniteLoop 1
                             @setvar! WarModeToggledWhileFighting 0
@@ -8037,6 +8106,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             @setvar! RedTargetFound 1
                             @setvar! SkipInfiniteLoop 1
                             @setvar! WarModeToggledWhileFighting 0
@@ -8050,6 +8120,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             @setvar! RedTargetFound 1
                             @setvar! SkipInfiniteLoop 1
                             @setvar! WarModeToggledWhileFighting 0
@@ -8063,6 +8134,7 @@ while not dead
                             if EnableRedAlertOverhead = 1
                                 overhead "[ !! RED ALERT !! ]" 37
                             endif
+                            settimer "REDALERT" 0
                             @setvar! RedTargetFound 1
                             @setvar! SkipInfiniteLoop 1
                             @setvar! WarModeToggledWhileFighting 0
@@ -8138,7 +8210,7 @@ while not dead
                     endif
                 else 
                     overhead '[ EQUIP YOUR WEAPON! ]' 154
-                    wait 500 
+                    wait 250 
                 endif 
             endif 
         endif 
@@ -10003,6 +10075,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     break
                 endif
             endif
@@ -10015,6 +10088,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -10028,6 +10102,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -10041,6 +10116,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -10054,6 +10130,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -10434,6 +10511,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     break
                 endif
             endif
@@ -10446,6 +10524,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -10459,6 +10538,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -10472,6 +10552,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -10485,6 +10566,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -10991,6 +11073,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     break
                 endif
             endif
@@ -11003,6 +11086,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -11016,6 +11100,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -11029,6 +11114,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -11042,6 +11128,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -12553,6 +12640,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -12566,6 +12654,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0   
@@ -12579,6 +12668,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -12592,6 +12682,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -12679,6 +12770,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     break
                 endif
             endif
@@ -12691,6 +12783,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -12704,6 +12797,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -12717,6 +12811,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! SkipInfiniteLoop 1
                     @setvar! WarModeToggledWhileFighting 0
@@ -12730,6 +12825,7 @@ while not dead
                     if EnableRedAlertOverhead = 1
                         overhead "[ !! RED ALERT !! ]" 37
                     endif
+                    settimer "REDALERT" 0
                     @setvar! RedTargetFound 1
                     @setvar! WarModeToggledWhileFighting 0
                     @setvar! TimeToGo 1
@@ -15166,7 +15262,7 @@ while not dead
         
         if diffhits >= ActivateAutoHealHPdiff 
             break
-        endif 
+        endif
 
         if dead ClosestTarget or not find ClosestTarget ground -1 -1 TargetAttackRange
             if skill 'Archery' > 80
@@ -15359,29 +15455,7 @@ while not dead
                 endif
             endif
         endif
-            
-        if diffhits > 0 and not bandaging
-            if skill 'healing' > 0
-                if findtype 'clean bandage%s%' self
-                    if targetexists
-                        hotkey 'cancel current target'
-                    endif
-                    hotkey 'Bandage Self'
-                    if EnableOverheadMessages = 1 
-                        if timer BandageMessageTimer > 5000
-                            overhead "[ BANDAGING... ]" 88
-                            settimer BandageMessageTimer 0
-                        endif
-                    endif
-                else
-                    if timer BandageMessageTimer > 5000 and EnableOverheadMessages = 1
-                        overhead "[ OUT OF BANDAGES! ]" 337
-                        settimer BandageMessageTimer 0
-                    endif
-                endif
-            endif
-        endif
-
+ 
         if EnableCurePotion = 1 and not dead
             while poisoned
                 if findtype "Orange Potion" self
@@ -15405,6 +15479,28 @@ while not dead
                     break
                 endif
             endwhile
+        endif
+           
+        if diffhits > 0 and not bandaging
+            if skill 'healing' > 0
+                if findtype 'clean bandage%s%' self
+                    if targetexists
+                        hotkey 'cancel current target'
+                    endif
+                    hotkey 'Bandage Self'
+                    if EnableOverheadMessages = 1 
+                        if timer BandageMessageTimer > 5000
+                            overhead "[ BANDAGING... ]" 88
+                            settimer BandageMessageTimer 0
+                        endif
+                    endif
+                else
+                    if timer BandageMessageTimer > 5000 and EnableOverheadMessages = 1
+                        overhead "[ OUT OF BANDAGES! ]" 337
+                        settimer BandageMessageTimer 0
+                    endif
+                endif
+            endif
         endif
 
         while not gumpexists 1387930325

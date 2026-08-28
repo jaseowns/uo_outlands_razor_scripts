@@ -1,0 +1,502 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/cee13463-daea-4e5a-ba27-2b9b48fbdda3 for latest
+# Automation by Jaseowns
+## Script: Mushnar's Mostly Safe H3LPR Bot (No Map Decode Logic)
+## Created by: mushnar#0
+#############################################
+
+########## SETTING GLOBAL VARIABLES ##########
+@setvar! auto_hide_bot 0
+@setvar! auto_reveal_and_ban 0
+@setvar! auto_sacred_journey 1
+@setvar! auto_paragon_unlock 1
+
+##### Chivalry Sacred Journey Gate Bot Lantern Hue Setup
+############################################################################################################################################
+#Use the >info command in game by typing it into your chatbox then pressing Enter and then select your lighting trigger to customize the bot
+##Use the Lighting Item ID value for your specific trigger.  Lanterns have different type IDs when they are lit vs unlit  
+#The bot only looks for items matching the ID within 1 tile by default and should not pickup other matching items outside of this range.
+
+#The Hue value is the color code for the lighting trigger
+#Unique lighting triggers such as Dungeon / Wilderness Lanterns have a custom hue code.
+#Store bought lanterns, torches, candles, etc should have a hue value of 0 which can be verified with the >info command
+############################################################################################################################################
+
+## Towns
+@setvar! chivalry_town_gate_trigger_type_id 2597
+@setvar! chivalry_town_gate_trigger_hue 1182
+@setvar! chivalry_town_gate_trigger_distance_tiles 2
+
+## Dungeons
+@setvar! chivalry_dungeon_gate_trigger_type_id 2597
+@setvar! chivalry_dungeon_gate_trigger_hue 1779
+@setvar! chivalry_dungeon_gate_trigger_distance_tiles 2
+
+## Shrines
+@setvar! chivalry_shrine_gate_trigger_type_id 2597
+@setvar! chivalry_shrine_gate_trigger_hue 2091
+@setvar! chivalry_shrine_gate_trigger_distance_tiles 2
+
+## Custom
+@setvar! chivalry_custom_gate_trigger_type_id 2597
+@setvar! chivalry_custom_gate_trigger_hue 2338
+@setvar! chivalry_custom_gate_trigger_distance_tiles 2
+
+
+
+##### Item Processing Storage Container Setup (Sealed Paragon Chests / Undeciphered Maps)
+############################################################################################################################################
+#It is best to use two separate storage containers:
+## One for Player Dropoff where they will place sealed chests and undeciphered maps
+## One for Player Pickup where they will pick up the unlocked chests and deciphered maps once the bot has finished processing the items.
+
+#Use the Storage Container Serial value to prevent the bot from selecting similar containers nearby with matching ID values.
+############################################################################################################################################
+
+@clearignore 
+
+## Player Dropoff Storage Container
+@setvar! player_dropoff_storage_container 0x434A16F7
+ignore player_dropoff_storage_container
+
+## Player Pickup Storage Container
+@setvar! player_pickup_storage_container 0x424BC810
+ignore player_pickup_storage_container
+
+
+
+########## MAIN BOT LOOP ##########
+say "Greetings.  I am H3-PLR - your morally impartial loot technician and part-time spatial displacer." 88
+wait 500
+say "Initiating Map Decipher, Paragon Unlock, Chivalry Gate, and Hostile Hospitality subroutines." 88
+wait 500
+
+removetimer "greeting_timer"
+if not timerexists "greeting_timer"
+    createtimer "greeting_timer"
+    settimer "greeting_timer" 0
+endif
+
+if not timerexists "detect_hidden_timer"
+    createtimer "detect_hidden_timer"
+    settimer "detect_hidden_timer" 10000
+endif
+
+if not timerexists "error_message_timer"
+    createtimer "error_message_timer"
+    settimer "error_message_timer" 10000
+endif
+
+
+while not dead
+    if timer "greeting_timer" >= 3600000
+        say "Greetings.  I am H3-PLR - your morally impartial loot technician and part-time spatial displacer." 88
+        wait 500
+        say "Initiating Map Decipher, Paragon Unlock, Chivalry Gate, and Hostile Hospitality subroutines." 88
+        wait 500
+        settimer "greeting_timer" 0
+    endif
+
+    if timer "error_message_timer" > 60000
+        settimer "error_message_timer" 10000
+    endif
+
+
+
+########## BEGIN AUTO HIDE BOT ##########
+    if auto_hide_bot = 1
+        if not hidden
+            skill 'Hiding'
+        endif
+    endif
+########## END AUTO HIDE BOT ##########
+
+
+
+########## BEGIN AUTO REVEAL & BAN ##########
+    if auto_reveal_and_ban = 1
+        @setvar! hostile_player_banned 0
+    
+        if timer "detect_hidden_timer" >= 10000
+            skill "detectinghidden"
+            waitfortarget 100
+            target "self"
+            settimer "detect_hidden_timer" 0
+        endif
+
+        target next nonfriendly player
+        waitfortarget 100
+        
+        while insysmsg "New target set."
+            clearsysmsg
+            wait 100
+        
+            say 'I ban thee' 33
+            waitfortarget 100
+            lasttarget
+            wait 100
+            target clear
+            wait 100
+            
+            @setvar! hostile_player_banned 1
+            
+            if timer "detect_hidden_timer" >= 10000
+                skill "detectinghidden"
+                waitfortarget 100
+                target "self"
+                settimer "detect_hidden_timer" 0
+            endif
+            
+            target next nonfriendly player
+            wait 100
+        endwhile
+        
+        if hostile_player_banned = 1
+            say "Hospitality Revoked.  Zero Stars.  Please enjoy your complimentary exile." 33
+            wait 500
+            @setvar! hostile_player_banned 0
+        endif
+    endif
+########## END AUTO REVEAL & BAN ##########
+
+
+
+########## BEGIN CHIVALRY SACRED JOURNEY GATE ##########
+    if auto_sacred_journey = 1
+        if not gumpexists 1387930325
+            say "[ChivalryHotbar"
+        endif
+
+        if not timerexists "chivalry_gate_cooldown"
+            createtimer "chivalry_gate_cooldown"
+            settimer "chivalry_gate_cooldown" 36000
+        endif
+        
+        if timer "chivalry_gate_cooldown" >= 60000 
+            settimer "chivalry_gate_cooldown" 36000
+        endif
+        
+        if not timerexists "chivalry_gate_error_message_timer"
+            createtimer "chivalry_gate_error_message_timer"
+            settimer "chivalry_gate_error_message_timer" 15000
+        endif
+        
+        if timer "chivalry_gate_error_message_timer" >= 60000
+            settimer "chivalry_gate_error_message_timer" 15000
+        endif
+
+
+        @setvar! has_enough_holy_symbols 0
+
+        if ingump "12/" 1387930325
+            @setvar! has_enough_holy_symbols 1
+        elseif ingump "11/" 1387930325
+            @setvar! has_enough_holy_symbols 1
+        elseif ingump "10/" 1387930325
+            @setvar! has_enough_holy_symbols 1
+        elseif ingump "9/" 1387930325
+            @setvar! has_enough_holy_symbols 1
+        elseif ingump "8/" 1387930325
+            @setvar! has_enough_holy_symbols 1
+        elseif ingump "7/" 1387930325
+            @setvar! has_enough_holy_symbols 1
+        elseif ingump "6/" 1387930325
+            @setvar! has_enough_holy_symbols 1
+        elseif ingump "5/" 1387930325
+            @setvar! has_enough_holy_symbols 1
+        elseif ingump "4/" 1387930325
+            @setvar! has_enough_holy_symbols 0
+        elseif ingump "3/" 1387930325
+            @setvar! has_enough_holy_symbols 0
+        elseif ingump "2/" 1387930325
+            @setvar! has_enough_holy_symbols 0
+        elseif ingump "1/" 1387930325
+            @setvar! has_enough_holy_symbols 0
+        elseif ingump "0/" 1387930325
+            @setvar! has_enough_holy_symbols 0
+        endif
+        
+        if findtype chivalry_town_gate_trigger_type_id 'ground' chivalry_town_gate_trigger_hue 1 chivalry_town_gate_trigger_distance_tiles as town_gate_trigger
+            if timer chivalry_gate_cooldown >= 36000
+                if has_enough_holy_symbols = 1
+                    say "Town Gate initialized. Side effects may include disorientation, possible combustion, and relocation." 88
+                    wait 500
+                    say '[SacredJourney'
+                    wait 500
+                    waitforgump 1482653814 5000
+                    gumpresponse 1 1482653814
+                    wait 100
+                    dclick town_gate_trigger
+                    settimer chivalry_gate_cooldown 0
+                else
+                    if timer chivalry_gate_error_message_timer >= 15000
+                        say "Waiting for Holy Symbols. Chivalry Gate locked until spiritual firmware updates." 55
+                        wait 500
+                        settimer chivalry_gate_error_message_timer 0
+                    endif
+                endif   
+            else
+                if timer chivalry_gate_error_message_timer >= 15000    
+                    say "Chivalry Gate subroutine recovering. Please enjoy this brief moment of stationary existence." 55
+                    wait 500
+                    settimer chivalry_gate_error_message_timer 0
+                endif
+            endif
+        endif
+        
+        if findtype chivalry_dungeon_gate_trigger_type_id 'ground' chivalry_dungeon_gate_trigger_hue 1 chivalry_dungeon_gate_trigger_distance_tiles as dungeon_gate_trigger
+            if timer chivalry_gate_cooldown >= 36000
+                if has_enough_holy_symbols = 1
+                    say "Dungeon Gate initialized.  Reminder: I am not programmed for search and rescue operations." 88
+                    wait 500
+                    say '[SacredJourney'
+                    wait 500
+                    waitforgump 1482653814 5000
+                    gumpresponse 2 1482653814
+                    wait 100
+                    dclick dungeon_gate_trigger
+                    settimer chivalry_gate_cooldown 0
+                else
+                    if timer chivalry_gate_error_message_timer >= 15000
+                        say "Waiting for Holy Symbols. Chivalry Gate locked until spiritual firmware updates." 55
+                        wait 500
+                        settimer chivalry_gate_error_message_timer 0
+                    endif
+                endif   
+            else
+                if timer chivalry_gate_error_message_timer >= 15000    
+                    say "Chivalry Gate subroutine recovering. Please enjoy this brief moment of stationary existence." 55
+                    wait 500
+                    settimer chivalry_gate_error_message_timer 0
+                endif
+            endif
+        endif
+        
+        if findtype chivalry_shrine_gate_trigger_type_id 'ground' chivalry_shrine_gate_trigger_hue 1 chivalry_shrine_gate_trigger_distance_tiles as shrine_gate_trigger
+            if timer chivalry_gate_cooldown >= 36000
+                if has_enough_holy_symbols = 1
+                    say "Shrine Gate initialized. Channeling the prayers of those who may or may not have survived." 88
+                    wait 500
+                    say '[SacredJourney'
+                    wait 500
+                    waitforgump 1482653814 5000
+                    gumpresponse 3 1482653814
+                    wait 100
+                    dclick shrine_gate_trigger
+                    settimer chivalry_gate_cooldown 0
+                else
+                    if timer chivalry_gate_error_message_timer >= 15000
+                        say "Waiting for Holy Symbols. Chivalry Gate locked until spiritual firmware updates." 55
+                        wait 500
+                        settimer chivalry_gate_error_message_timer 0
+                    endif
+                endif   
+            else
+                if timer chivalry_gate_error_message_timer >= 15000    
+                    say "Chivalry Gate subroutine recovering. Please enjoy this brief moment of stationary existence." 55
+                    wait 500
+                    settimer chivalry_gate_error_message_timer 0
+                endif
+            endif
+        endif
+        
+        if findtype chivalry_custom_gate_trigger_type_id 'ground' chivalry_custom_gate_trigger_hue 1 chivalry_custom_gate_trigger_distance_tiles as custom_gate_trigger
+            if timer chivalry_gate_cooldown >= 36000
+                if has_enough_holy_symbols = 1
+                    say "Frost Fort Gate initialized. Contents may have shifted during thermal inversion." 88
+                    wait 500
+                    say '[SacredJourney'
+                    wait 500
+                    waitforgump 1482653814 5000
+                    gumpresponse 4 1482653814
+                    wait 100
+                    dclick custom_gate_trigger
+                    settimer chivalry_gate_cooldown 0
+                else
+                    if timer chivalry_gate_error_message_timer >= 15000
+                        say "Waiting for Holy Symbols. Chivalry Gate locked until spiritual firmware updates." 55
+                        wait 500
+                        settimer chivalry_gate_error_message_timer 0
+                    endif
+                endif   
+            else
+                if timer chivalry_gate_error_message_timer >= 15000    
+                    say "Chivalry Gate subroutine recovering. Please enjoy this brief moment of stationary existence." 55
+                    wait 500
+                    settimer chivalry_gate_error_message_timer 0
+                endif
+            endif
+        endif
+    endif
+########## END CHIVALRY SACRED JOURNEY GATE ##########
+
+
+
+########## BEGIN PARAGON CHEST UNLOCK ##########
+    if auto_paragon_unlock = 1
+        @setvar! have_paragon_to_open 0
+        removetimer "chest_trap_removal_timer"
+        removetimer "chest_lockpick_timer"
+        
+        if not timerexists "chest_trap_removal_timer"
+            createtimer "chest_trap_removal_timer"
+        endif
+
+        if not timerexists "chest_lockpick_timer"
+            createtimer "chest_lockpick_timer"
+        endif
+
+
+        if findtype "lockpicks" backpack and findtype "drill" backpack
+            if have_paragon_to_open = 0
+                if findtype 2472|3712|2475|3648|3649|3708|3650|3651|29832|29833 backpack as paragon_chest
+                    getlabel paragon_chest chest_description
+                    wait 100
+                    @setvar! chest_to_unlock paragon_chest
+
+                    if "sealed" in chest_description
+                        #say "Chest found. Please allow time for delicate tampering and casual disregard for safety." 88
+                        @setvar! have_paragon_to_open 1
+                        @setvar! paragon_chest_to_open paragon_chest
+                    else
+                        lift chest_to_unlock
+                        wait 100
+                        drop player_pickup_storage_container -1 -1 -1
+                        wait 100
+                        say "Unsealed chest detected: I am for treasure, not trash, returning to sender in the GREEN chest" 88
+                        wait 500
+                        @setvar! have_paragon_to_open 0
+                    endif
+                
+                elseif findtype 2472|3712|2475|3648|3649|3708|3650|3651|29832|29833 player_dropoff_storage_container as paragon_chest
+                    getlabel paragon_chest chest_description
+                    wait 100
+                    @setvar! chest_to_unlock paragon_chest
+
+                    if "sealed" in chest_description
+                        lift chest_to_unlock
+                        wait 100
+                        drop backpack -1 -1 -1
+                        wait 100
+                        say "Chest found. Please allow time for delicate tampering and casual disregard for safety." 88
+                        wait 500
+                        @setvar! have_paragon_to_open 1
+                        @setvar! paragon_chest_to_open chest_to_unlock
+                    else
+                        lift chest_to_unlock
+                        wait 100
+                        drop player_pickup_storage_container -1 -1 -1
+                        wait 100
+                        say "Unsealed chest detected: I am for treasure, not trash, returning to sender in the GREEN chest" 88
+                        wait 500
+                        @setvar! have_paragon_to_open 0
+                    endif
+                endif
+                wait 100
+
+                if have_paragon_to_open = 1
+                    dclick paragon_chest_to_open
+                    wait 100
+
+                    if gumpexists 736038070
+                        
+                        #Setting Continuous Lockpicking & Trap Disarm
+                        gumpresponse 10 736038070
+                        waitforgump 736038070 500
+
+                        if insysmsg "You will no longer automatically continue lockpicking attempts."
+                            gumpresponse 10 736038070
+                            waitforgump 736038070 500
+                        endif
+
+                        gumpresponse 11 736038070
+                        waitforgump 736038070 500
+
+                        if insysmsg "You will no longer automatically continue remove traps attempts."
+                            gumpresponse 11 736038070
+                            waitforgump 736038070 500
+                        endif
+
+
+                        if not ingump "Cleared of Traps" 736038070
+                            say "Trap detected. Initiating subtle sabotage and mechanical diplomacy." 88
+                            wait 500
+                            gumpresponse 7 736038070
+                            waitforgump 736038070 5000
+
+                            settimer "chest_trap_removal_timer" 0
+                            
+                            if insysmsg "You have no chance of removing traps from that."
+                                getlabel paragon_chest_to_open tough_chest_description
+                                overhead "No chance of removing traps - ignoring following chest.  Check Detecting Hidden Skill" 53
+                                overhead tough_chest_description 53
+                            endif
+
+                            while not ingump "Cleared of Traps" 736038070
+                                wait 1000
+                                overhead "Waiting on Trap Removal" 53
+                                
+                                if timer "chest_trap_removal_timer" >= 15000
+                                    overhead "Trap removal taking a long time." 33
+                                    settimer "chest_trap_removal_timer" 0
+                                    break
+                                endif
+                            endwhile
+
+                        elseif ingump "Cleared of Traps" 736038070
+                            say "Trap neutralized. Beginning the gentle art of lock persuasion." 88
+                            wait 500
+                            gumpresponse 4 736038070
+                            waitforgump 736038070 5000
+
+                            settimer "chest_lockpick_timer" 0
+
+                            if insysmsg "You have no chance of picking that lock."
+                                getlabel paragon_chest_to_open tough_chest_description
+                                overhead "No chance of picking lock - ignoring following chest.  Check Lockpicking Skill" 53
+                                overhead tough_chest_description 53
+                            endif
+
+                            getlabel paragon_chest_to_open sealed_chest_description
+                            wait 100
+
+                            while "sealed" in sealed_chest_description
+                                wait 1000
+                                overhead "Waiting on Lockpicking" 53   
+                                
+                                if timer "chest_lockpick_timer" >= 15000
+                                    overhead "Lockpicking taking a long time." 33
+                                    settimer "chest_lockpick_timer" 0
+                                    break
+                                endif
+
+                                getlabel paragon_chest_to_open sealed_chest_description
+                                wait 100
+
+                                if "sealed" in sealed_chest_description
+                                    #Do nothing
+                                else
+                                    wait 100
+                                    lift paragon_chest_to_open
+                                    wait 100
+                                    drop player_pickup_storage_container -1 -1 -1
+                                    wait 100
+                                    say "Paragon security bypassed. Please collect your questionably earned valuables from the GREEN chest." 88
+                                    wait 500
+                                    gumpclose 736038070
+                                    @setvar! have_paragon_to_open 0
+                                endif
+                            endwhile
+                        endif
+                    endif
+                endif
+            endif
+        else
+            if timer "error_message_timer" >= 10000
+                say "I'm missing Lockpicks and/or Drill - please message DrDyaus on Discord to restock" 33
+                settimer "error_message_timer" 0
+            endif
+        endif
+    endif
+########## END PARAGON CHEST UNLOCK ############
+endwhile
+continue

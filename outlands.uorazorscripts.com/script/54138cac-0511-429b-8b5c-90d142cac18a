@@ -6,7 +6,7 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# Aug 27th 2026 - wep ability bug fixed, added new map type for auto dropping into hatch
+# Sept 2 2026 - fixed various bugs in targeting code, refined chiv abilities
 # 
 # Script is designed for Dex types (Chiv/Tamer/Archer/Pooner/Thrower/Alchy)
 #
@@ -191,9 +191,9 @@
 # Make sure you only set one of the abilities to a value of 1 - the others must be 0
 # 
 # AUTO WEAPON ABILITY
-@setvar! "Weapon Ability One" 0
-@setvar! "Weapon Ability Two" 1
-@setvar! "Weapon Ability Three" 0
+@setvar! "WeaponAbilityOne" 0
+@setvar! "WeaponAbilityTwo" 1
+@setvar! "WeaponAbilityThree" 0
 ##########################################################################################################################################################################
 #
 # Script starts here
@@ -272,8 +272,10 @@ if not hidden
                 elseif insysmsg "That being is not damaged!"
                     overhead "*Full Health*" 78 "CrewHeal" 
                     removetimer crewhealrepeat
+                    createtimer relentlesshealing
                 elseif insysmsg "You heal what little damage"
                     removetimer crewhealrepeat
+                    createtimer relentlesshealing
                 endif
                 if targetexists 
                     hotkey "Cancel Current Target"
@@ -454,8 +456,6 @@ endif
 if not warmode and timerexists senseship
     if timer senseship >= 6000 and gumpexists 2890020940 and findtype "spyglass" backpack as bspy
         settimer senseship 0
-        dclick bspy
-        getlabel backpack ping
         gumpresponse 100 2890020940
     endif
 endif
@@ -544,7 +544,7 @@ if not warmode
     if timerexists openhull
         removetimer openhull
     endif
-    if cooldown "Fray" and find "oceantarget" ground
+    if cooldown "Fray" and not targetexists and find "oceantarget" ground
         if not timerexists BapCrewAttack
             createtimer BapCrewAttack
             settimer BapCrewAttack
@@ -559,7 +559,7 @@ if not warmode
             cooldown "Fray" 60000
         endif
     endif
-    if timerexists boardingsuccess and not find "oceantarget" ground -1 -1
+    if timerexists boardingsuccess and not find "oceantarget" ground
         removetimer boardingsuccess
     endif
     if timerexists boardingsuccess and not warmode and hidden
@@ -657,11 +657,8 @@ if not warmode
         overhead "***BOMB***" 34 bomb
     endif
        
-    if timer oceanscan >= 300 and skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80 and cooldown "Fray"
-        clearsysmsg 
-        if varexist "oceantarget"
-            @unsetvar "oceantarget"
-        endif
+    if timer oceanscan >= 300 and cooldown "Fray"
+        clearsysmsg
         hotkey "Next Enemy Monster Target"
         if not insysmsg "No one matching"
             @setvar! "oceantarget" lasttarget 
@@ -685,10 +682,13 @@ if not warmode
             attack "Manual Override"
         elseif noto "Manual Override" = murderer
             attack "Manual Override"
-        else       
+        elseif not targetexists 
             hotkey 'Target Closest Enemy Monster'
+            @setvar! "oceantarget" lasttarget 
             hotkey 'Target Closest Grey Monster'
+            @setvar! "oceantarget" lasttarget 
             hotkey 'Target Closest Murderer Monster'
+            @setvar! "oceantarget" lasttarget 
             attack "oceantarget"
             hotkey "Cancel Current Target"
         endif  
@@ -712,9 +712,12 @@ if not warmode
                 target "Manual Override"
             else       
                 hotkey 'Target Closest Enemy Monster'
+                @setvar! "oceantarget" lasttarget 
                 hotkey 'Target Closest Grey Monster'
+                @setvar! "oceantarget" lasttarget 
                 hotkey 'Target Closest Murderer Monster'
-                target lasttarget 
+                @setvar! "oceantarget" lasttarget 
+                target "oceantarget" 
                 hotkey "Cancel Current Target"
             endif
             cooldown "Fray" 60000
@@ -753,7 +756,7 @@ if not warmode
         endif
     endif
 elseif warmode 
-    if cooldown "Fray" and find "oceantarget" ground
+    if cooldown "Fray" and not targetexists and find "oceantarget" ground
         if not timerexists BapCrewAttack
             createtimer BapCrewAttack
             settimer BapCrewAttack
@@ -787,13 +790,13 @@ elseif warmode
         
         if timerexists BapWepAbilityReady
             if find "oceantarget" ground -1 -1 12
-                if "Weapon Ability One" = 1
+                if "WeaponAbilityOne" = 1
                     say "[WeaponAbility1"
                 endif
-                if "Weapon Ability Two" = 1
+                if "WeaponAbilityTwo" = 1
                     say "[WeaponAbility2"
                 endif
-                if "Weapon Ability Three" = 1
+                if "WeaponAbilityThree" = 1
                     say "[WeaponAbility3"
                 endif
                 removetimer BapWepAbilityReady
@@ -835,11 +838,8 @@ elseif warmode
         overhead "Ship Sense Disabled" 38
     endif
     
-    if timer oceanscan >= 300 and skill "Fishing" >= 80 or skill "Archery" >= 80 or skill "Throwing" >= 80
-        clearsysmsg 
-        if varexist "oceantarget"
-            @unsetvar "oceantarget"
-        endif
+    if timer oceanscan >= 300 and not targetexists 
+        clearsysmsg
         hotkey "Next Enemy Monster Target"
         if not insysmsg "No one matching"
             @setvar! "oceantarget" lasttarget 
@@ -854,7 +854,7 @@ elseif warmode
         endif
         settimer oceanscan 0
     endif
-    if find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating"
+    if find "oceantarget" ground -1 -1 12 and not findbuff "Actively Meditating" and not targetexists 
         if find "Manual Override" ground and noto "Manual Override" = hostile
             attack "Manual Override"
         elseif noto "Manual Override" = criminal
@@ -863,17 +863,19 @@ elseif warmode
             attack "Manual Override"
         elseif noto "Manual Override" = murderer
             attack "Manual Override"
-        else       
+        elseif not targetexists 
             hotkey 'Target Closest Enemy Monster'
+            @setvar! "oceantarget" lasttarget 
             hotkey 'Target Closest Grey Monster'
+            @setvar! "oceantarget" lasttarget 
             hotkey 'Target Closest Murderer Monster'
+            @setvar! "oceantarget" lasttarget 
             attack "oceantarget"
             hotkey "Cancel Current Target"
-        endif
+        endif  
         cooldown "Fray" 60000
     endif
-    
-    if followers >= 1 and skill "Animal Taming" >= 20
+    if followers >= 1 and skill "Animal Taming" >= 20 and not targetexists 
         if not timerexists bapallkilltimer
             createtimer bapallkilltimer
             settimer bapallkilltimer 3000
@@ -891,9 +893,12 @@ elseif warmode
                 target "Manual Override"
             else       
                 hotkey 'Target Closest Enemy Monster'
+                @setvar! "oceantarget" lasttarget 
                 hotkey 'Target Closest Grey Monster'
+                @setvar! "oceantarget" lasttarget 
                 hotkey 'Target Closest Murderer Monster'
-                target lasttarget 
+                @setvar! "oceantarget" lasttarget 
+                target "oceantarget" 
                 hotkey "Cancel Current Target"
             endif
             cooldown "Fray" 60000
@@ -1042,7 +1047,7 @@ elseif warmode
             hotkey "Cancel Current Target"
         endif
         
-        if skill "Chivalry" >= 80 and find "oceantarget" ground -1 -1 12
+        if skill "Chivalry" >= 80 and not timerexists chivab
             if ingump '20/' 1387930325
                 createtimer chivab
             elseif ingump '19/' 1387930325
@@ -1063,21 +1068,21 @@ elseif warmode
                 createtimer chivab
             elseif ingump '11/' 1387930325
                 createtimer chivab
-            elseif ingump '10/' 1387930325
-                createtimer chivab
-            elseif ingump '9/' 1387930325
-                createtimer chivab
             endif
         endif
         if skill "Chivalry" >= 80 and timerexists chivab and find "oceantarget" ground -1 -1 12
-            if not hidden and not findbuff "Divine Fury"
-                say '[DivineFury'
-                pause 550
-            endif
             if not hidden and not findbuff "Enemy of One"
                 say '[EnemyofOne'
                 pause 550
             endif
+            removetimer chivab
+        endif
+        if skill "Chivalry" >= 80 and find "oceantarget" ground -1 -1 12
+            if not hidden and not findbuff "Divine Fury"
+                say '[DivineFury'
+                pause 550
+            endif
+
             if not hidden and not findbuff "Consecrate Weapon"
                 say '[ConsecrateWeapon'
                 pause 550

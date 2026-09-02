@@ -1,13 +1,13 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/7aba7670-e30e-489d-86ec-c95e79ad57c6 for latest
 # Automation by Jaseowns
-## Script: Lord Glacier's Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v3.0.8
+## Script: Lord Glacier's Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v3.0.9
 ## Created by: danstock._98439#0
 #############################################
 
 /////////
-////////                                          Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 3.0.8
+////////                                          Lord Glaciers Chill DEXXER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - version 3.0.9
 ///////
-//////                                                  UO Outlands Razor script - Released Feb 18, 2025 - Last Updated Aug 31, 2026
+//////                                                  UO Outlands Razor script - Released Feb 18, 2025 - Last Updated September 2, 2026
 /////                                                     Compiled by DanStock. (aka. Lord Glacier)
 ////
 ///
@@ -64,7 +64,9 @@
     //    CHANGE LOG:    //
     ///////////////////////
 
-#         Aug 31 2026 - version 3.0.8   Adjusted the order of a few things. Added PK checks to Storage Loop.   Email bugs to: dan@danstockman.com
+#         Sep 02 2026 - version 3.0.9   Fixed a bug with new 'TargetDisengageRange' by adding 'TargetAnalyzeRange' variable to help with target management
+#                                       Also fixed a bug with 'RedWeightLimitDiffWeight' and final small tweaks to the Loot Storage loop.  Email bugs to: dan@danstockman.com
+#         Aug 31 2026 - version 3.0.8   Adjusted the order of a few things. Added PK checks to Storage Loop.   
 #         Aug 28 2026 - version 3.0.7   Tweaks to targeting and addition of 'TargetDisengageRange' variable to improve MOB management and some other minor efficiency adjustments throughout 
 #                                       Also made improvements to the Loot Storage loop to speed things up and fixed a bug with Potion Keg filling (if any were set to '0') 
 #                                       I know I have said it before, but I feel like this version is feeling pretty polished. Enjoy!  
@@ -134,7 +136,7 @@
 #         I play primarily using a handheld (Asus ROG Ally), so my goal was to automate everything except movement and looting (which cannot be scripted)
 #         With this script, and the right variables, I can farm indefinitely (farm until auto weight recall, stashes loot, resets loadout, then chiv gates back into action. Repeat)
 #         Even if you are killed, the script can identify gates and healers, resurrect automatically, dress your char, recall home, resupply and then setup your pack again.
-#         I use this script myself each day and it has taken me over 500 days to put together. It is always a work in progress, but hopefully 3.0.8 is the last build for a while!
+#         I use this script myself each day and it has taken me over 500 days to put together. It is always a work in progress, but hopefully 3.0.9 is the last build for a while!
 #         
 #         MOST FEATURES ARE TURNED OFF by default ('0' is OFF and '1' is ON unless otherwise stated) Check the USER VARIABLES section carefully before your first run!!
 #
@@ -334,7 +336,799 @@
 
 
                     
-c
+     ###############################
+    ###      USER VARIABLES:      ###
+     ###############################
+
+/////////////////////
+//   OFFENSIVE :   //
+/////////////////////
+
+@setvar! EnableAutoEquipWeapon 1
+    # '0' = DISABLED      - Weapons are equipped manually (script will only warn if you are unarmed/disarmed)
+    # '1' = SKILL CHECK   - Auto-equips from your single combat skill > 50 (prioritizes Aspect weapons and ignores unidentified items)
+    # '2' = WEAPON CHECK  - Best for builds with multiple combat skills > 50 - script adapts to the weapon class currently equipped
+    #                       Manually changing weapon class will also change the matching stances, finishers and abilities below
+    #                       If disarmed, script first tries to re-equip your most recently used weapon, then falls back to skill/inventory priority
+    #                       NOTE: Mixed ranged + melee builds use the ranged 'TargetAttackRange' setting below
+
+@setvar! EnableAlwaysTargetClosest 1
+    # '0' = Keep the current target locked until it dies, leaves range (set below) or the script is manually restarted
+    # '1' = Always switch to the closest eligible MOB
+    
+@setvar! TargetAnalyzeRange 12
+    # Maximum range to search for and analyze potential new targets (recommend 12 tiles)
+    # Must be equal to or greater than 'TargetDisengageRange' below
+
+
+if skill 'Archery' > 50 or skill 'Throwing' > 50
+# Attack ranges if using 'RANGED WEAPONS' (Archery or Throwing):
+@setvar! TargetAttackRange 8
+    # Bows can fire at targets up to 10 tiles away
+    # Crossbows, Great Bow and Throwing Weapons can fire at targets up to 8 tiles away
+
+@setvar! TargetDisengageRange 10
+    # You can set your range to disengage the target MOB ('1-12' tiles) for ranged weapons
+    # Once a target is within your 'TargetAttackRange' it will be attacked until you leave 'TargetDisengageRange'
+    # 'TargetDisengageRange' must be equal to or greater than your 'TargetAttackRange' and less than 'TargetAnalyzeRange'
+    # If you are inside 'TargetDisengageRange' but outside 'TargetAttackRange' an overhead message will warn you to get closer
+    # Target will switch if 'EnableAlwaysTargetClosest' is enabled above and closer MOB is detected but attack loop continues 
+else
+    
+
+# Attack ranges if using 'MELEE WEAPONS' (Swords, Macing, Fencing, Wrestling or Dual Wielding):
+@setvar! TargetAttackRange 1
+# Recommended to leave this value at '1' for melee weapons
+
+@setvar! TargetDisengageRange 5
+    # You can set your range to disengage the target MOB ('1-12' tiles) for melee weapons
+    # Once a target is within your 'TargetAttackRange' it will be attacked until you leave 'TargetDisengageRange'
+    # 'TargetDisengageRange' must be equal to or greater than your 'TargetAttackRange' and less than 'TargetAnalyzeRange'
+    # If you are inside 'TargetDisengageRange' but outside 'TargetAttackRange' an overhead message will warn you to get closer
+    # Target will switch if 'EnableAlwaysTargetClosest' is enabled above and closer MOB is detected but attack loop continues 
+endif
+
+
+@setvar! AfterKillTimer 0
+    # AfterKillTimer sets the delay after eliminating your target (to give time to loot, skin, etc.) while still keeping you safe
+    # Increase slightly (suggested range of '250-1500') if carving corpses or set to '0' for instant re-targeting
+
+@setvar! EnableEatingFood 1
+    # Will automatically eat delectable food trays when not buffed (very important for swing speed!)
+
+@setvar! EnableAutoPoisonWeaponinHand 0
+    # Requires 80+ Poisoning/Taste ID skill and poison potions in inventory
+    # Will automatically check and apply poison to weapon during combat
+
+
+/////////////////////
+//   DEFENSIVE :   //
+/////////////////////
+
+@setvar! EnableAutoParalyzePouch 1
+    # Will automatically pop trapped pouches if paralyzed (will also trigger auto recall/dungeon escape, if enabled below)
+
+@setvar! EnableShieldCheck 0
+    # Checks hand for shield and will equip if missing (ignores unidentified magic items)
+
+@setvar! EnableAutoTaunting 0
+    # Requires 80+ Parrying skill and will automatically taunt your target (increases your AR against target)
+
+    @setvar! ActivateAutoHealHPdiff 50
+        # Auto Heal SAFETY loop begins when your missing HP reaches this amount
+        # While active, the script prioritizes healing/survival and forces defensive weapon/shield stances where applicable
+        # Potions, Chivalry heals, Cleansing Brews and other enabled defensive options are all prioritized here
+
+    @setvar! DeactivateAutoHealHPdiff 10
+        # Prioritized healing loop will continue until this hit point differential is met or exceeded
+        # Keep this setting LESS than 'ActivateAutoHealHPdiff' above
+        # A setting of '0' will restore you to full health before returning to full target or attack mode
+
+@setvar! EnableFrostAspect 0
+@setvar! FrostAspectTier 0
+    # Set your Frost Aspect level (if using Frost Aspect)
+    # This will automatically set your optional 'Frost Shell Cooldown' length
+    # Frost Shell will also trigger defensive stance switches (if using codex auto switching below)
+    # Add cooldowns in UO options: 'Frost Shell Cooldown' and 'Frost Shell Active' (case sensitive)
+
+
+///////////////////
+//   POTIONS :   //
+///////////////////
+
+@setvar! EnableHealPotion 1
+    @setvar! HealPotionHPdiff 30
+    # Adjust HP diff set point for Heal potion consumption
+    # Heal potions will be prioritized over all other healing options (if not on cooldown)
+
+    @setvar! HealingPotionCooldown 10000
+        # This value only affects your OPTIONAL COOLDOWN BAR (script uses other checks to verify heal pots are available)
+        # You can reduce this value if using Potion Codex
+        # Add cooldown in UO options: 'Healing Potion' (case sensitive)
+
+@setvar! EnableCurePotion 1
+    # Cure pots will be used as needed (if enabled and found in inventory)
+
+    @setvar! EnablePanaceaPotion 0
+        # Requires 80+ Alchemy skill, Cure Potions and Potion Codex in inventory w/ Panacea buff unlocked
+        # Will automatically consume Cure Potion if Bleeding or Diseased
+
+    @setvar! EnableCleansingBrews 1
+        # Requires Cleansing Brews in inventory
+        # Will automatically consume Cleansing Brew if Bleeding or Diseased (and not on cooldown)
+
+@setvar! EnableRefreshPotion 0
+    @setvar! RefreshPotionSPdiff 10
+    # Adjust SP diff set point for Refresh potion consumption
+
+@setvar! EnableStrengthPotion 0
+@setvar! EnableAgilityPotion 0
+@setvar! EnableMagicResistPotion 0
+    # Strength, Agility and Resist potions will auto-buff when effects wear off (if enabled) *
+//    * If Alchemy skill is greater than 0.0 but less than 2.0 the script will take your next STRENGTH potion BEFORE the effect wears off!
+//      For example, with an Alchemy skill of 1.0 your buff duration will be 2m 05s and a new strength potion is available after 2 mins
+//      Taking your next potion during the extra 5 second buffer will keep your HP at 120 (instead of a temporary drop and HP of 100/120)
+
+@setvar! EnableAutoExplosionPots 0
+    @setvar! PurplePotionTargetRange 1
+    @setvar! PurplePotionCooldown 15000
+    # Requires 80+ Alchemy skill to make potions sticky (increase range if using Archery skill - or if preferred)
+    # WARNING: throwing potions in a crowded dungeon may cause you to flag criminal in rare cases! USE AT OWN RISK
+
+    @setvar! EnableUsePotionKegs 0
+    # A good way to carry lots of potions without weighing you down
+    # Requires potion kegs and empty bottles (pack extra if using explosion potions)
+    # Will auto fill empty bottles from potion kegs if counts drop below set amounts:
+        @setvar! HealingPotionAmount 5
+        @setvar! CurePotionAmount 5
+        @setvar! RefreshPotionAmount 5
+        @setvar! StrengthPotionAmount 1
+        @setvar! AgilityPotionAmount 1
+        @setvar! ResistPotionAmount 1
+        @setvar! ExplosionPotionAmount 1
+        @setvar! PoisonPotionAmount 0
+
+
+//////////////////////
+//    CHIVALRY :    //
+//////////////////////
+
+// OFFENSIVE BUFFS:
+    @setvar! EnableDivineFury 1
+    @setvar! EnableConsecrateWeapon 0
+    @setvar! EnableEnemyOfOne 0
+        # Chivalry offensive buffs, if enabled, will trigger and auto-renew during combat
+        # Buffs will not trigger in combat loop if you will be left with lower than 4 symbols (to keep Holy Light/Noble Sacrifice available)
+        # When prioritized healing loop is active, offensive buff renewal is paused to give priority to defensive buffs
+        # Priority is given to Divine Fury over the others to buff swing speed!
+        # Divine Fury requires 85+ Chivalry skill, Consecrate Weapon requires 65+ Chivalry skill and Enemy of One requires 75+ Chivalry skill
+
+// DEFENSIVE BUFFS:
+    @setvar! EnableHolyLight 1
+        @setvar! HolyLightHPdiff 45
+        # Set your trigger point for Holy Light heal (if enabled)
+        # Requires 95+ Chivalry skill
+
+    @setvar! EnableNobleSacrifice 1
+        @setvar! NobleSacrificeHPdiff 85
+        # Set your trigger point for Noble Sacrifice heal (if enabled)
+        # Requires 80+ Chivalry skill
+
+    @setvar! EnableCloseWounds 0
+    @setvar! EnableCleanseByFire 0
+        # Chivalry defensive buffs will also trigger during combat as needed (if enabled)
+        # Close Wounds requires 70+ Chivalry skill and Cleanse by Fire requires 60+ Chivalry skill
+
+
+//////////////////////////
+//   BARDING SKILLS :   //
+//////////////////////////
+
+@setvar! TargetBardingRange 10
+    # Separate target range check for barding skills
+
+@setvar! EnablePeacemaking 0
+@setvar! EnableProvocation 0
+@setvar! EnableDiscordance 0
+    # Will automatically PEACE, DISCORD and (if targets available) PROVOKE enemies during combat
+    # Requires barding skill levels > 50 and a musical instrument in inventory
+
+    @setvar! PeacemakingReapply 30000
+    @setvar! ProvocationReapply 45000
+    @setvar! DiscordanceReapply 60000
+        # Script will reapply if bard break is detected (by default) and/or when reapply timer above is met
+
+    @setvar! EnablePeacemakingBuff 0
+    @setvar! EnableProvocationBuff 0
+    @setvar! EnableDiscordanceBuff 0
+        # Will automatically renew Barding Buffs (if enabled)
+
+
+/////////////////////////
+//   CODEX SETTINGS:   //
+/////////////////////////
+
+    #############################
+    #      WEAPON STANCES:      #
+    #############################
+
+@setvar! EnableWeaponCodexStances 0
+    # Requires 80+ in Swords, Macing, Fencing, Archery, Wrestling, Dual Wield or Throwing skill and the corresponding WEAPON CODEX in inventory
+    # Weapon stances, finishers and abilities can be set below!
+    # Automatic weapon stance switching, if enabled, will default to certain stances depending on WAR, PEACE or SAFETY (Frost Shell, Bleed, Disease, Poison or low HP) modes (choose below)
+
+    @setvar! EnableWeaponCodexHotbar 0
+        # This will keep your Weapon Codex Hotbar open during combat
+
+    @setvar! SetWeaponCodexStance 0
+        # '0' for 'Disabled' - Manual selection of Stance in game
+        # '1' for 'Swords/Macing/Fencing/Dual Wield = Aggressive' or 'Archery = Arcane' or 'Wrestling = Dragon' or 'Throwing = Torrent'
+        # '2' for 'Swords/Macing/Fencing/Dual Wield = Defensive' or 'Archery = Fowling' or 'Wrestling = Crab' or 'Throwing = Suppress'
+        # '3' for 'Swords/Macing/Fencing/Dual Wield = Cleave' or 'Archery = Incendiary' or 'Wrestling = Spider' or 'Throwing = Reaper'
+        # '4' for 'Swords = Warrior' or 'Macing = Wildswing' or 'Fencing = Blackguard' or 'Archery = Longshot' or 'Wrestling = Monkey' or 'Throwing = Rake' or 'Dual Wield = Square Off'
+        # '5' for 'Swords = Flaying' or 'Macing = Sunder' or 'Fencing = Fang' or 'Archery = Maiming' or 'Wrestling = Crane' or 'Throwing = Kite' or 'Dual Wield = Shank'
+
+        # '6' for 'Auto Weapon Stance Switching' - set below!
+
+
+    // Choose your AUTO WEAPON STANCES (if using setting '6' above):
+        @setvar! AutoWeaponStanceSetting 1
+            # '0' for 'Disabled' - Turn this off if using static stance setting ('1-5' above) or if manually selecting stances
+            #
+            # AUTO SETTING '1'      WAR:           PEACE:          SAFETY:
+            #     Swords      =  'Flaying'       'Aggressive'    'Defensive'
+            #     Macing      =  'Wildswing'     'Cleave'        'Defensive'
+            #     Fencing     =  'Blackguard'    'Cleave'        'Defensive'
+            #     Archery     =  'Arcane'        'Incendiary'    'Fowling'
+            #     Wrestling   =  'Dragon'        'Spider'        'Crab'
+            #     Throwing    =  'Torrent'       'Reaper'        'Suppress'
+            #     Dual Wield  =  'Aggressive'    'Cleave'        'Defensive'
+            #
+            # AUTO SETTING '2'      WAR:           PEACE:          SAFETY:
+            #     Swords      =  'Warrior'       'Cleave'        'Defensive'
+            #     Macing      =  'Sunder'        'Aggressive'    'Defensive'
+            #     Fencing     =  'Fang'          'Aggressive'    'Defensive'
+            #     Archery     =  'Longshot'      'Maiming'       'Fowling'
+            #     Wrestling   =  'Crane'         'Monkey'        'Crab'
+            #     Throwing    =  'Kite'          'Rake'          'Suppress'
+            #     Dual Wield  =  'Shank'         'Aggressive'    'Defensive'
+            #
+            # AUTO SETTING '3'      WAR:           PEACE:          SAFETY:
+            #     Swords      =  'Aggressive'    'Flaying'       'Defensive'
+            #     Macing      =  'Aggressive'    'Wildswing'     'Defensive'
+            #     Fencing     =  'Aggressive'    'Blackguard'    'Defensive'
+            #     Archery     =  'Maiming'       'Arcane'        'Fowling'
+            #     Wrestling   =  'Monkey'        'Dragon'        'Crab'
+            #     Throwing    =  'Rake'          'Torrent'       'Suppress'
+            #     Dual Wield  =  'Aggressive'    'Shank'         'Defensive'
+            #
+            #   SAFETY = Frost Shell, Bleed, Disease, Poison or Low HP (HPdiff > ActivateAutoHealHPdiff)
+
+            @setvar! SwitchWeaponStanceCooldown 1000
+                # Set the cooldown between automatic weapon stance changes (set to '0' for no delay)
+
+
+    #######################
+    #  WEAPON ABILITIES:  #
+    #######################
+
+@setvar! EnableWeaponCodexAbilities 0
+    # Requires chosen WEAPON ABILITY unlocked in WEAPON CODEX
+    # Selected Weapon Ability will be triggered whenever available during combat!
+
+    @setvar! EnableWeaponAbilityHotbar 0
+        # This will keep your Weapon Ability Hotbar open during combat
+
+    //   Enable only one Weapon Ability at a time (per codex) unless using SWORDS *
+    //     * Swords can use SPINSLASH and REND simultaneously (set both to '1')
+    //       Script checks that target is bleeding before using REND and, if not, will use SPINSLASH
+
+    # SWORDS WEAPON ABILITIES:
+        @setvar! UseSpinslashAbility 0
+        @setvar! UseRendAbility 0
+        @setvar! UseChopAbility 0
+
+    # MACING WEAPON ABILITIES:
+        @setvar! UsePummelAbility 0
+        @setvar! UseStunAbility 0
+        @setvar! UseSmashAbility 0
+
+    # FENCING WEAPON ABILITIES:
+        @setvar! UseGambitAbility 0
+        @setvar! UseSwiftstrikesAbility 0
+        @setvar! UseBaneAbility 0
+
+    # ARCHERY WEAPON ABILITIES:
+        @setvar! UseSkirmishAbility 0
+        @setvar! UseFullDrawAbility 0
+        @setvar! UseRepeaterAbility 0
+
+    # WRESTLING WEAPON ABILITIES:
+        @setvar! UseBrawlAbility 0
+        @setvar! UseHaymakerAbility 0
+        @setvar! UseTakedownAbility 0
+
+    # THROWING WEAPON ABILITIES:
+        @setvar! UseClashAbility 0
+        @setvar! UseBlitzAbility 0
+        @setvar! UseHailMaryAbility 0
+
+    # DUAL WIELDING WEAPON ABILITIES:
+        @setvar! UseBladewhirlAbility 0
+        @setvar! UseKnightlyAbility 0
+        @setvar! UseKnaveAbility 0
+
+
+        # If using ARMS LORE skill, adjust your Weapon Ability Cooldown here:
+        if skill 'Arms Lore' >= 50
+            @setvar! WeaponAbilityCooldown 30000
+        endif
+
+
+    #######################
+    #  WEAPON FINISHERS:  #
+    #######################
+
+@setvar! EnableWeaponCodexFinishers 0
+    # Requires chosen WEAPON FINISHER unlocked in WEAPON CODEX
+    # Selected Weapon Finisher will be auto selected if found to be incorrectly set
+    # Automatic weapon finisher switching (setting '3-4' below) will switch finishers based on WAR or PEACE modes
+
+    @setvar! SetWeaponCodexFinisher 0
+        # '0' for 'Disabled' - Manual selection of Weapon Finisher in game
+        # '1' for 'Swords = Bleed' or 'Macing = Pulverize' or 'Fencing = Assassinate' or 'Archery = Ricochet' or 'Wrestling = Chi Thrust' or 'Throwing = Hunter' or 'Dual Wield = En Garde' - 1ST FINISHER
+        # '2' for 'Swords = Execute' or 'Macing = Shatter' or 'Fencing = Flurry' or 'Archery = Pincushion' or 'Wrestling = Zen Strike' or 'Throwing = Hobble' or 'Dual Wield = Coup de Grace' - 2ND FINISHER
+        # '3' for 'Auto Weapon Finisher Switching' - WAR = '1ST FINISHER' PEACE = '2ND FINISHER'
+        # '4' for 'Auto Weapon Finisher Switching' - WAR = '2ND FINISHER' PEACE = '1ST FINISHER'
+
+
+
+    #############################
+    #      SHIELD STANCES:      #
+    #############################
+
+@setvar! EnableShieldCodexStances 0
+    # Requires 80+ Parrying skill and SHIELD CODEX in inventory
+    # Shield stances and finishers can be set below!
+    # Automatic shield stance switching, if enabled, will default to certain stances depending on WAR, PEACE or SAFETY (Frost Shell, Bleed, Disease, Poison or low HP) modes (choose below)
+
+    @setvar! EnableShieldCodexHotbar 0
+        # This will keep your Shield Codex Hotbar open at all times
+
+    @setvar! SetShieldCodexStance 0
+        # '0' for 'Disabled' - Manual selection of Stance in game
+        # '1' for 'Shield Bash'
+        # '2' for 'Warding'
+        # '3' for 'Testudo'
+        # '4' for 'Mirror'
+        # '5' for 'Bulwark'
+
+        # '6' for 'Auto Shield Stance Switching' - set below!
+
+
+    // Choose your AUTO SHIELD STANCES (if using setting '6' above):
+        @setvar! AutoShieldStanceSetting 1
+            # '0' for 'Disabled' - Turn this off if using static stance setting ('1-5' above) or manual selection of stance
+            #
+            # '1' for WAR    = 'Bulwark'
+            #         PEACE  = 'Testudo'
+            #         SAFETY = 'Warding'
+            #
+            # '2' for WAR    = 'Shield Bash'
+            #         PEACE  = 'Bulwark'
+            #         SAFETY = 'Warding'
+            #
+            # '3' for WAR    = 'Bulwark'
+            #         PEACE  = 'Mirror'
+            #         SAFETY = 'Warding'
+            #
+            #   SAFETY = Frost Shell, Bleed, Disease, Poison or Low HP (HPdiff > ActivateAutoHealHPdiff)
+            
+            @setvar! SwitchShieldCodexCooldown 1000
+                # Set the cooldown between automatic shield stance changes (set to '0' for no delay)
+
+
+    #######################
+    #  SHIELD FINISHERS:  #
+    #######################
+
+@setvar! EnableShieldCodexFinishers 0
+    # Requires chosen SHIELD FINISHER unlocked in SHIELD CODEX
+    # Selected Shield Finisher will be auto selected if found to be incorrectly set
+    # Automatic shield finisher switching (setting '3-4' below) will switch finishers based on WAR or PEACE modes
+
+    @setvar! SetShieldCodexFinisher 0
+        # '0' for 'Disabled' - Manual selection of Shield Finisher in game
+        # '1' for 'Last Stand' - 1ST FINISHER
+        # '2' for 'Barrier' - 2ND FINISHER
+        # '3' for 'Auto Shield Finisher Switching' - WAR = '1ST FINISHER' PEACE = '2ND FINISHER'
+        # '4' for 'Auto Shield Finisher Switching' - WAR = '2ND FINISHER' PEACE = '1ST FINISHER'
+
+
+////////////////////////
+//  UTILITY / LOOT :  //
+////////////////////////
+
+@setvar! EnableOverheadMessages 1
+    # '0' = MINIMAL   - Most overhead messages OFF (basic target indicators remain)
+    # '1' = FULL      - All available overhead messages ON
+    # '2' = IMPORTANT - Targeting + important warnings only (my preferred mode!)
+
+@setvar! EnableAutoCarving 0
+    # Will automatically carve nearby corpses when found (requires SKINNING KNIFE in inventory)
+
+@setvar! EnableAutoSatchels 0
+    # Will automatically move potions and/or reagents to satchels (requires POTION and/or WIZARD SATCHELS)
+
+@setvar! EnableGoldVacuum 0
+    # Will automatically pickup discarded GOLD COINS nearby (within 2 tiles)
+    # WARNING: This can cause you to grab large stacks of gold (and weigh you down) if you are not careful!
+
+@setvar! EnableDungeonCleanup 0
+    # Will automatically pickup discarded resources (regs, ingots, boards, etc.) nearby (within 2 tiles)
+
+@setvar! EnableArrowCleanup 0
+    # Will automatically pickup arrows or bolts from the ground (if Archery skill > 50)
+
+@setvar! EnableArcheryWarningMessage 0
+    @setvar! ArcheryLowAmmoWarningAmount 10
+    # Overhead warning (independent of other Overhead Messages) for low archery ammunition (if Archery skill > 50)
+
+@setvar! EnableDropGoldWhenOverweight 0
+    @setvar! DropGoldAmount 250
+    # Will drop set amount of gold repeatedly when overweight until no longer impeded
+
+@setvar! EnablePutLootinLockBox 0
+    # Will move all loot into wooden box and then immediately lock it (requires WOODEN BOX and COPPER KEY)
+    # Key must be kept outside the container (but not in your main pack where it can be stolen)
+    # All loot will be automatically moved and secured while FARMING
+    # This is a MUST for dungeon farming IMO - if you are not using this, you really should!
+    
+    @setvar! StoreLootTimer 3500
+    # StoreLootTimer is the delay to trigger loot storage after target is eliminated
+    
+    # Use '>info' to ID anything you do NOT want locked up (up to 5 items) and add the serials here:
+        @setvar! ItemToIgnore1 0x00000000
+        @setvar! ItemToIgnore2 0x00000000
+        @setvar! ItemToIgnore3 0x00000000
+        @setvar! ItemToIgnore4 0x00000000
+        @setvar! ItemToIgnore5 0x00000000
+        # Anything you list above will be skipped while securing loot to avoid locking up things you do not want to. These items will be ignored (only during loot transfers)
+        # You should add your [blessed] spellbook (if you have one), extra shields, spare weapons or any other "loot" items that you do not want secured away during combat
+        # Your main weapon and shield (if 'EnableAutoEquipWeapon' and/or 'EnableShieldCheck' are enabled above) and your instrument (for bards) will be ignored automatically
+
+@setvar! EnableLootBag 0
+    #  Will open your selected LOOTBAG when unloading at HOME/INN/BANK (if using BUILT IN AUTO RECALL)
+    #  This should be the bag that is set as your 'Grab Bag' in Gridloot, etc.
+    #  You will be prompted to select a new loot bag whenever one is not found in your inventory
+    #  This can be retargeted in the 'Options' tab above the script (or by a full script reset)
+
+@setvar! EnableWeightWarningMessage 1
+    @setvar! GreenWarningDiffWeight 50
+    @setvar! YellowWarningDiffWeight 25
+    @setvar! RedWeightLimitDiffWeight 5
+        # Will display overhead warnings that change colour as they approach your carry weight limit (Green, Yellow and Red)
+        # Red weight limit will trigger AUTO RECALL or AUTO DUNGEON GATE if enabled below (otherwise just an overhead warning)
+
+
+////////////////////////////////
+//   AUTO RECALL / ESCAPE :   //
+////////////////////////////////
+
+    ##########################
+    #      PK TRIGGERS:      #
+    ##########################
+
+    //  RED RECALL/ESCAPE (w/ TRACKING SKILL):
+        if skill 'Tracking' >= 50
+            @setvar! EnableTrackingAutoRecall 0
+                # Tracking Auto Recall must be enabled for Auto Recall/Dungeon Escape to function (w/ Tracking Skill)
+                # Make sure 'Ignore Houses/Ships' is checked in the Tracking skill menu!
+                
+            @setvar! PKTrackingRange 50
+                # Set your range to trigger Auto Recall/Dungeon Escape
+                # Range can be '40', '50' or '60' tiles (or '0' will trigger Auto Recall/Dungeon Escape regardless of range)
+
+                @setvar! EnableRedAlertOverhead 1
+                    # If your build has tracking skill, I highly recommend setting up a Razor overhead message instead of using the script one:
+                        // This will display PK name/distance overhead when tracked!
+                        // Add overhead message w/ a trigger of "Now tracking" and message "[ RED ALERT: {3} ]"  (hue 335)
+                        // Then a second with a trigger of "Distance to destination" and message "[ {4} TILES AWAY! ]"  (hue 253)
+                        // Once complete you should disable 'EnableRedAlertOverhead' above
+
+            if EnableTrackingAutoRecall = 1
+                if WILDERNESSMODE = 1
+                    # Will trigger 'Auto Recall' if PK comes into 'PKTrackingRange' range in WILDERNESS MODE
+                    @setvar! EnableAutoRedRecall 1
+
+                elseif DUNGEONMODE = 1
+                    # Will trigger 'Auto Dungeon Gate' if PK comes into 'PKTrackingRange' range in DUNGEON MODE
+                    @setvar! EnableAutoRedDungeonGate 1
+                endif
+            endif
+
+    //  RED RECALL/ESCAPE (w/ NO TRACKING SKILL):
+        elseif skill 'Tracking' < 50
+            @setvar! EnablePKradar 0
+                # PK radar must be enabled for Auto Red Recall/Dungeon Escape to function (w/o Tracking Skill)
+
+                @setvar! EnableRedAlertOverhead 1
+                    # Optional overhead message alert when PK is targeted (independent of other overhead settings)
+
+            if EnablePKradar = 1
+                if WILDERNESSMODE = 1
+                    # Will trigger 'Auto Recall' if PK comes into target range (~12 tiles) in WILDERNESS MODE
+                    @setvar! EnableAutoRedRecall 1
+
+                elseif DUNGEONMODE = 1
+                    # Will trigger 'Auto Dungeon Escape' if PK comes into target range (~12 tiles) in DUNGEON MODE
+                    # PK Dungeon Escape can be cancelled by returning to WAR MODE and script will resume
+                    @setvar! EnableAutoRedDungeonGate 1
+                endif
+            endif
+        endif
+
+
+    ############################
+    #     WEIGHT TRIGGERS:     #
+    ############################
+
+        if WILDERNESSMODE = 1
+            @setvar! EnableAutoWeightRecall 0
+            # Requires that 'EnableWeightWarningMessage' is turned on and configured above
+            # Will trigger 'Auto Recall' when Weight Limit ('RedWeightLimitDiffWeight') is reached in WILDERNESS MODE
+
+        elseif DUNGEONMODE = 1
+            @setvar! EnableAutoWeightDungeonGate 0
+            # Requires that 'EnableWeightWarningMessage' is turned on and configured above
+            # Will trigger 'Auto Dungeon Escape' if Weight Limit ('RedWeightLimitDiffWeight') is reached in DUNGEON MODE
+        endif
+
+
+    ##########################
+    #    MANUAL TRIGGERS:    #
+    ##########################
+
+        if WILDERNESSMODE = 1
+            @setvar! EnableManualRecall 0
+            # Turning this on will allow you to manually initiate 'Auto Recall' by toggling PEACE MODE while not in combat (within NO TARGET loop)
+            # Once initiated, there will be a short countdown prior to recalling. You can cancel by toggling WAR MODE before countdown finishes
+            # With this off, the script will only initiate 'Auto Recall' for WEIGHT or for PK triggers (if enabled above)
+
+        elseif DUNGEONMODE = 1
+            @setvar! EnableManualDungeonEscape 0
+            # Turning this on will allow you to manually trigger 'Auto Dungeon Escape' loop by toggling PEACE MODE while not in combat (within NO TARGET loop)
+            # Once initiated, the Auto Dungeon Escape loop will keep you alive and automatically select nearby moongates (cancel by toggling WAR MODE)
+            # With this off, the script will only initiate 'Auto Dungeon Escape' for WEIGHT or for PK triggers (if enabled above)
+        endif
+
+
+        #########################
+        #    DUNGEON ESCAPE:    #
+        #########################
+
+            if DUNGEONMODE = 1
+                if EnableManualDungeonEscape = 1 or EnableAutoWeightDungeonGate = 1 or EnableAutoRedDungeonGate = 1
+                    @setvar! DungeonEscapeTimeLimit 60000
+                    # Time limit for DUNGEON ESCAPE LOOP
+                    # Escape Loop can be triggered manually (toggle PEACE MODE while not in combat) and/or via Tracked PK and/or by exceeding Weight Limit (choose above)
+                    # If gate has not been found and used within this time, script will attempt to return to attack mode (default is 1 minute)
+                    # Dungeon Escape can also be cancelled by returning to WAR MODE and script will resume (if not at weight limit)
+
+                    @setvar! EnableRecallAfterDungeonGate 0
+                    # This will initiate 'Auto Recall' after successfully gating out of a dungeon using any of the 'Auto Dungeon Escape' triggers above
+                endif
+            endif
+
+
+    ############################
+    #  RESURRECTION TRIGGERS:  #
+    ############################
+
+        @setvar! EnableRecallAfterResurrection 0
+            # Must have [blessed] runebook charged w/ scrolls to recall after resurrection!
+            # This will trigger your Auto Recall after being resurrected
+
+            @setvar! EnableDressAfterResurrection 0
+                # Must have a Razor 'Dress List' named 'UltimateDexxer' for all your [blessed] wearables
+
+            // LOADOUT RESET (after DEATH):
+                # This option will re-dress your character and reorganize your backpack after death (see instructions below)
+                # Your pack will be set up with anti-theft measures and all aspects will be reactivated, etc.
+
+                @setvar! EnableResetInventoryAfterDeath 0
+                @setvar! EnableSetMainPouchOrganizer01 0
+                    //  Requires an equal amount of TRAPPED POUCHES (in shelf loadout) and SCISSORS [blessed] (in backpack)
+                    //  Loadout also requires 1 UNTRAPPED POUCH (for main inventory - optionally set as Organizer Agent-01 above) and 1 BAG (for loot, etc.)
+                    //  Script will put scissors in each trapped pouch (to keep them from being grabbed during future shelf loading)
+                    //  Script then STACKS any trapped pouches on top of your main inventory pouch
+                    //  Loot bag will be moved into main inventory pouch and automatically set as your Grab Bag for Gridloot, etc.
+                    //  Script will then hide the stack underneath an ATLAS and put a DECOY TRAPPED POUCH out in the open
+                    //  ASPECT WEAPON and ARMOR will be re-activated automatically and HP restored to MAX
+                    //  Loadout reset finishes by opening backpack, main pouch, loot bag and any satchels
+
+
+        #####################################################
+        ####  YOU CAN USE YOUR OWN RAZOR RECALL SCRIPT:  ####
+        #####################################################
+
+        # Enable use of your own Razor script for Auto Recall (otherwise script will prompt for a Runebook and use built-in auto recall):
+            @setvar! EnableDIYRecallScript 0
+                createlist DIYRecallScriptList
+
+            // Type the name of your own Home Recall Razor script here:
+                pushlist DIYRecallScriptList "YOUR RECALL SCRIPT NAME"
+                    # Must use built-in Home Recall script if using Infinite Loop setting!
+
+
+            ##########################################################
+            ####  OR USE THE BUILT-IN AUTO RECALL/ESCAPE SCRIPT:  ####
+            ##########################################################
+
+            // AUTO RECALL DESTINATION (choose only one):
+                @setvar! BankRecall 0
+                @setvar! OwnerInnRecall 0
+                @setvar! CoOwnerInnRecall 0
+                @setvar! InsideHouseRecall 0
+                @setvar! OutsideHouseRecall 0
+
+
+                @setvar! EnableEquipWeaponAfterHomeRecall 0
+                    # Will equip your weapon after successful auto recall
+
+                if OutsideHouseRecall = 1
+                    @setvar! EnableCloseMyDoor 0
+                    @setvar! MyDoor 0x0000000
+                    # Use ">info" to ID your own house door (to quickly close it behind you)
+                endif
+
+                @setvar! EnableHideAtHomeorInn 0
+                    # Will use hiding skill once inside home or inn room
+
+
+            // LOADOUT RESET (after RECALL):
+                #  Safe, Repair Bench, Resource Stockpile, Storage Shelf, Magic Recycler and/or Loot Chest must be found within 2 tiles!
+                #  Storage Tomes can be locked down (within 2 tiles) or located inside Loot Chest or Storage Tome Container
+
+                @setvar! EnableAutoRecallOverheadMessages 1
+                # Controls overhead messages for Home Recall section only
+
+                    @setvar! EnableSafeDeposit 0
+                        # Will deposit all gold and doubloons found in inventory
+                    @setvar! EnableRepairBench 0
+                        # Will repair all equipment (Repair Bench must have charges available)
+                    @setvar! EnableResourceStockpile 0
+                        # Will deposit all resources (ingots, boards, gems, etc.)
+                    @setvar! EnableStorageShelf 0
+                        # Will restock shelf and then resupply a fresh loadout
+                    @setvar! EnableMagicRecycler 0
+                        # Will add all unidentified magic items to your Recycler
+                        @setvar! EnableRecycleItemsWhenFull 0
+                            # If Recycler is full, it will attempt to ID, Recycle and deposit resources (if stockpile nearby) before adding items
+                    @setvar! EnableStorageTomes 0
+                        # Will add items to any nearby storage tomes (skill scrolls, dyes, runes, maps, cards, etc)
+                        @setvar! EnableStorageTomeContainer 0
+                            # Script checks on ground (2 tiles) or in LOOT CHEST (enable below) by default
+                            # Otherwise you can designate a TOME CONTAINER to check for your books
+                    @setvar! EnableLootChest 0
+                        # Will open selected chest to store non-shelf/stockpile/tome items in your HOME/INN/BANK (uses Razor organizer agents 06-09)
+                    @setvar! EnableReagentSplitter 0
+                        # Will split reagents into smaller stacks after shelf resupply (not really required for this build, but included anyway)
+
+
+            // CHIVALRY INFINITE LOOP:
+                # This variable will get you right back into the fight as quickly as possible! (Requires 90+ Chivalry skill for 'Sacred Journey')
+                # After recalling home, script will UNLOAD/REPAIR/RESUPPLY then CHIV GATE back to LAST DUNGEON or CUSTOM WILDERNESS LOCATION
+                # IMPT:  MUST USE 'BUILT-IN HOME RECALL SCRIPT' IF USING 'INFINITE LOOP'
+                # Infinite Loop will always be DISABLED if Recall/Gate was triggered due to tracked RED
+
+                @setvar! EnableInfiniteLoop 0
+                    # '0' = DISABLED
+                    # '1' = Return after WEIGHT or MANUAL Auto Recall/Dungeon Escape
+                    # '2' = Return after WEIGHT Auto Recall/Dungeon Escape only
+
+                    # Infinite Loop will always be 'disabled' if AUTO RECALL/DUNGEON ESCAPE was triggered due to a tracked PK
+                    # Destination will auto select your 'LAST DUNGEON' Chivalry gate if farming in 'DUNGEONMODE'
+                    # Destination will auto select your 'CUSTOM LOCATION' Chivalry Gate if farming in 'WILDERNESSMODE'
+                   // Automatically selected based on DUNGEONMODE or WILDERNESSMODE setting at top of script!
+
+
+//////////////////////
+//  SCRIPT MODES :  //
+//////////////////////
+
+    // I use this variable to set up multiple "modes" with different hotkeys.
+    # Copy and paste to new script and update variables for different setups (Dungeon, Infinite Loop ON/OFF, Wilderness, etc.)
+    # Just change the NUMBERS (ie. 'elseif ScriptMode = 3'/'@setvar! ScriptMode 3') and overhead message (ie.'overhead "[ LOOP ACTIVE MODE ]" 2116') for each version
+    # Script will only display overhead mode message when switching between script versions or upon first run of a new client login
+    # I use a ROG Ally and set each hotkey to a different button (A, B, X, Y) and have multiple script modes
+
+        if DUNGEONMODE = 1
+            if ScriptMode = 1
+                // Do nothing
+            else
+                overhead "[ DUNGEON MODE ]" 2338
+                @setvar! ScriptMode 1
+                hotkey "Toggle War Only"
+            endif
+
+        elseif WILDERNESSMODE = 1
+            if ScriptMode = 2
+                // Do nothing
+            else
+                overhead "[ WILDERNESS MODE ]" 1182
+                @setvar! ScriptMode 2
+                hotkey "Toggle War Only"
+            endif
+        endif
+
+
+/////////////////////////
+//  MOB IGNORE LIST :  //
+/////////////////////////
+
+removelist animalsIgnoreList
+createlist animalsIgnoreList
+    pushlist animalsIgnoreList "a plover"
+    pushlist animalsIgnoreList "a sheep"
+    pushlist animalsIgnoreList "a frenzied ostard"
+    pushlist animalsIgnoreList "a tundra ostard"
+    pushlist animalsIgnoreList "a desert ostard"
+    pushlist animalsIgnoreList "a forest ostard"
+    pushlist animalsIgnoreList "a finch"
+    pushlist animalsIgnoreList "a sparrow"
+    pushlist animalsIgnoreList "a towhee"
+    pushlist animalsIgnoreList "a lapwing"
+    pushlist animalsIgnoreList "a silverback"
+    pushlist animalsIgnoreList "a crow"
+    pushlist animalsIgnoreList "a woodpecker"
+    pushlist animalsIgnoreList "a horse"
+    pushlist animalsIgnoreList "a swift"
+    pushlist animalsIgnoreList "a skylark"
+    pushlist animalsIgnoreList "a hawk"
+    pushlist animalsIgnoreList "a chickadee"
+    pushlist animalsIgnoreList "a cat"
+    pushlist animalsIgnoreList "a dog"
+    pushlist animalsIgnoreList "a black bear"
+    pushlist animalsIgnoreList "a brown bear"
+    pushlist animalsIgnoreList "a bull"
+    pushlist animalsIgnoreList "a cow"
+    pushlist animalsIgnoreList "a chicken"
+    pushlist animalsIgnoreList "a bird"
+    pushlist animalsIgnoreList "an eagle"
+    pushlist animalsIgnoreList "a nuthatch"
+    pushlist animalsIgnoreList "an elk"
+    pushlist animalsIgnoreList "a great hart"
+    pushlist animalsIgnoreList "a kingfisher"
+    pushlist animalsIgnoreList "a hind"
+    pushlist animalsIgnoreList "a llama"
+    pushlist animalsIgnoreList "a sand crab"
+    pushlist animalsIgnoreList "a pig"
+    pushlist animalsIgnoreList "a polar bear"
+    pushlist animalsIgnoreList "a walrus"
+    pushlist animalsIgnoreList "a cougar"
+    pushlist animalsIgnoreList "a goat"
+    pushlist animalsIgnoreList "a raven"
+    pushlist animalsIgnoreList "a magpie"
+    pushlist animalsIgnoreList "a warbler"
+    pushlist animalsIgnoreList "a tern"
+    pushlist animalsIgnoreList "a nightingale"
+    pushlist animalsIgnoreList "a wren"
+    pushlist animalsIgnoreList "red rubble"
+    pushlist animalsIgnoreList "a death asp"
+    pushlist animalsIgnoreList "a death adder"
+    pushlist animalsIgnoreList "a cuckoo"
+    pushlist animalsIgnoreList "a crossbill"
+    pushlist animalsIgnoreList "a starling"
+    pushlist animalsIgnoreList "ADD MOBS TO IGNORE"
+    pushlist animalsIgnoreList "ADD MOBS TO IGNORE"
+    pushlist animalsIgnoreList "ADD MOBS TO IGNORE"
+    pushlist animalsIgnoreList "ADD MOBS TO IGNORE"
+
+
+/////////////////////////
+//  END OF VARIABLES!  //
+/////////////////////////
 
 
 
@@ -879,9 +1673,9 @@ if AutoRecallTime != 1 and TimeToGo != 1
         if not varexist DexxerAutoPilot
             overhead "Lord Glacier's Chill Dexxer Auto Pilot Script" 2234
             # '
-            overhead "version 3.0.8" 2234
+            overhead "version 3.0.9" 2234
             wait 1000
-            overhead "Last Updated: August 31, 2026" 88
+            overhead "Last Updated: September 2, 2026" 88
             wait 2500
             overhead "Thank you for trying my Dexxer AUTO PILOT script!  It appears this may be your first time running it..." 0
             wait 4000
@@ -1833,7 +2627,7 @@ while not dead
                         overhead " „ " 153
                         settimer "WeightTimer" 0
                     endif
-                elseif diffweight < RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
+                elseif diffweight <= RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
                     if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
                         overhead "[ WEIGHT LIMIT REACHED! ]" 37
                         settimer "WeightTimer" 0
@@ -1861,6 +2655,16 @@ while not dead
             endif
 
             if timer "AttackingTimer" > 1000
+                if varexist DisengagedTarget
+                    @unignore DisengagedTarget
+
+                    if not dead DisengagedTarget and find DisengagedTarget ground -1 -1 TargetAnalyzeRange and not find DisengagedTarget ground -1 -1 TargetDisengageRange
+                        @ignore DisengagedTarget
+                    else
+                        unsetvar DisengagedTarget
+                    endif
+                endif
+
                 clearsysmsg 
                 hotkey 'target closest grey monster'
                 getlabel backpack backpacklabel
@@ -5959,6 +6763,16 @@ while not dead
             hotkey 'cancel current target'
         endif
 
+        if varexist DisengagedTarget
+            @unignore DisengagedTarget
+
+            if not dead DisengagedTarget and find DisengagedTarget ground -1 -1 TargetAnalyzeRange and not find DisengagedTarget ground -1 -1 TargetDisengageRange
+                @ignore DisengagedTarget
+            else
+                unsetvar DisengagedTarget
+            endif
+        endif
+
         clearsysmsg 
         hotkey 'target closest grey monster'
         getlabel backpack backpacklabel
@@ -6144,7 +6958,7 @@ while not dead
                             overhead " „ " 153
                             settimer "WeightTimer" 0
                         endif
-                    elseif diffweight < RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
+                    elseif diffweight <= RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
                         if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
                             overhead "[ WEIGHT LIMIT REACHED! ]" 37
                             settimer "WeightTimer" 0
@@ -6395,6 +7209,16 @@ while not dead
                     endif
                 endif
             
+                if varexist DisengagedTarget
+                    @unignore DisengagedTarget
+
+                    if not dead DisengagedTarget and find DisengagedTarget ground -1 -1 TargetAnalyzeRange and not find DisengagedTarget ground -1 -1 TargetDisengageRange
+                        @ignore DisengagedTarget
+                    else
+                        unsetvar DisengagedTarget
+                    endif
+                endif
+
                 clearsysmsg 
                 hotkey 'target closest grey monster'
                 getlabel backpack backpacklabel
@@ -6977,8 +7801,9 @@ while not dead
                                             @ignore loottostore
                                             pushlist TemporaryLootIgnoreList loottostore
                                         else
+                                            wait 100
                                             lift loottostore 60000
-                                            wait 200
+                                            wait 250
                                             drop lockbox -1 -1 -1
                                             wait 150
                                             if find loottostore lockbox
@@ -7188,7 +8013,7 @@ while not dead
                                                         settimer "IgnoreMOBtimer" 0
                                                     endif
                                                     @ignore LootTargetMOB                                                    
-                                                elseif find LootTargetMOB ground -1 -1 12
+                                                elseif find LootTargetMOB ground -1 -1 TargetAnalyzeRange
                                                     sysmsg 'Nearby MOB detected - Loot storage loop cancelled!' 153
                                                     @setvar! FoundNewTarget 1
                                                     break 
@@ -7289,13 +8114,13 @@ while not dead
         //  ANALYZE TARGET LOOP:  //
         ////////////////////////////
             
-        if not dead TargetToAnalyze and find TargetToAnalyze ground -1 -1 12 and diffhits < ActivateAutoHealHPdiff and warmode
-            while not dead TargetToAnalyze and find TargetToAnalyze ground -1 -1 12 and diffhits < ActivateAutoHealHPdiff and warmode
+        if not dead TargetToAnalyze and find TargetToAnalyze ground -1 -1 TargetAnalyzeRange and diffhits < ActivateAutoHealHPdiff and warmode
+            while not dead TargetToAnalyze and find TargetToAnalyze ground -1 -1 TargetAnalyzeRange and diffhits < ActivateAutoHealHPdiff and warmode
                 if dead
                     break 
                 endif 
 
-                if dead TargetToAnalyze or not find TargetToAnalyze ground -1 -1 12
+                if dead TargetToAnalyze or not find TargetToAnalyze ground -1 -1 TargetAnalyzeRange
                     break
                 endif
                 
@@ -7514,7 +8339,7 @@ while not dead
                             overhead " „ " 153
                             settimer "WeightTimer" 0
                         endif
-                    elseif diffweight < RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
+                    elseif diffweight <= RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
                         if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
                             overhead "[ WEIGHT LIMIT REACHED! ]" 37
                             settimer "WeightTimer" 0
@@ -7641,6 +8466,16 @@ while not dead
                                 endif
                             endif
                         elseif insysmsg "Perhaps" or insysmsg "You are too far away from them." or insysmsg "They do not appear to have anything to offer you." or insysmsg "You must wait" or insysmsg "You cannot beg from an individual"
+                            if varexist DisengagedTarget
+                                @unignore DisengagedTarget
+
+                                if not dead DisengagedTarget and find DisengagedTarget ground -1 -1 TargetAnalyzeRange and not find DisengagedTarget ground -1 -1 TargetDisengageRange
+                                    @ignore DisengagedTarget
+                                else
+                                    unsetvar DisengagedTarget
+                                endif
+                            endif
+
                             if insysmsg "You must wait"
                                 hotkey 'target closest grey monster'
                                 getlabel backpack packdesc
@@ -7701,7 +8536,7 @@ while not dead
                                     endif
                                 endif
                                 break
-                            elseif find TargetToAnalyze ground -1 -1 12 and TargetToAnalyze = ClosestTarget
+                            elseif find TargetToAnalyze ground -1 -1 TargetAnalyzeRange and TargetToAnalyze = ClosestTarget
                                 if timer "NoTargetTimer" > 3000 
                                     if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
                                         overhead "[ GET CLOSER! ]" 353
@@ -7804,6 +8639,16 @@ while not dead
                         
                 if targetexists
                     hotkey 'cancel current target'
+                endif
+
+                if varexist DisengagedTarget
+                    @unignore DisengagedTarget
+
+                    if not dead DisengagedTarget and find DisengagedTarget ground -1 -1 TargetAnalyzeRange and not find DisengagedTarget ground -1 -1 TargetDisengageRange
+                        @ignore DisengagedTarget
+                    else
+                        unsetvar DisengagedTarget
+                    endif
                 endif
 
                 clearsysmsg 
@@ -8693,7 +9538,7 @@ while not dead
                         hotkey 'Target Closest Grey Monster'
                         break
                     endif
-                elseif NextClosestTarget != ClosestTarget and find NextClosestTarget ground -1 -1 12
+                elseif NextClosestTarget != ClosestTarget and find NextClosestTarget ground -1 -1 TargetAnalyzeRange
                     hotkey 'Next Grey Monster Target'
                     getlabel backpack backpacklabel 
                     @setvar! NextClosestTarget lasttarget
@@ -9778,8 +10623,8 @@ while not dead
                     elseif SetWeaponCodexStance = 3
                         @setvar! SwitchToSunderStance 0
                         @setvar! SwitchToWildSwingStance 0
-                        @setvar! SwitchToCleaveStance 0
-                        @setvar! SwitchToDefensiveStance 1
+                        @setvar! SwitchToCleaveStance 1
+                        @setvar! SwitchToDefensiveStance 0
                         @setvar! SwitchToAggressiveStance 0
                     elseif SetWeaponCodexStance = 2
                         @setvar! SwitchToSunderStance 0
@@ -12610,7 +13455,7 @@ while not dead
                     overhead " „ " 77
                     settimer "WeightTimer" 0
                 endif
-                elseif diffweight < YellowWarningDiffWeight and diffweight > RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
+            elseif diffweight < YellowWarningDiffWeight and diffweight > RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
                 if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
                     overhead "[ WEIGHT WARNING! ]" 153
                     settimer "WeightTimer" 0
@@ -12618,7 +13463,7 @@ while not dead
                     overhead " „ " 153
                     settimer "WeightTimer" 0
                 endif
-            elseif diffweight < RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
+            elseif diffweight <= RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
                 if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
                     overhead "[ WEIGHT LIMIT REACHED! ]" 37
                     settimer "WeightTimer" 0
@@ -14937,31 +15782,44 @@ while not dead
     settimer "LootTimer" 0
     settimer "AfterKill" 0
     getlabel backpack backpacklabel
-    
+   
     if WarModeToggledWhileFighting = 1 or warmode
-        if not dead ClosestTarget and find ClosestTarget ground -1 -1 TargetDisengageRange and not find ClosestTarget ground -1 -1 TargetAttackRange
-            if timer "NoTargetTimer" > 3000
+        if FoundNewTarget != 1
+            if not dead ClosestTarget and find ClosestTarget ground -1 -1 TargetDisengageRange and not find ClosestTarget ground -1 -1 TargetAttackRange
+                if timer "NoTargetTimer" > 3000
+                    if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
+                        overhead "[ GET CLOSER! ]" 353
+                        overhead " ¼ " 353 ClosestTarget
+                    else
+                        overhead " ¼ " 353 ClosestTarget
+                    endif
+                    settimer "NoTargetTimer" 0
+                    settimer "TargetAcquired" 0
+                endif  
+            elseif not dead ClosestTarget and find ClosestTarget ground -1 -1 TargetAnalyzeRange and not find ClosestTarget ground -1 -1 TargetDisengageRange
+                if varexist DisengagedTarget
+                    @unignore DisengagedTarget
+                endif
                 if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
-                    overhead "[ GET CLOSER! ]" 353
-                    overhead " ¼ " 353 ClosestTarget
-                else
-                    overhead " ¼ " 353 ClosestTarget
+                    overhead "[ DISENGAGING... ]" 339
                 endif
+                settimer "AnalyzeTargetMessageTimer" 0
                 settimer "NoTargetTimer" 0
-                settimer "TargetAcquired" 0
-            endif  
-        elseif not dead ClosestTarget and find ClosestTarget ground -1 -1 15 and not find ClosestTarget ground -1 -1 TargetDisengageRange
-            if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
-                if timer 'NoTargetTimer' > 2000 and TimeToGo != 1
-                    overhead "[ TARGET LOST... ]" 339
-                    settimer 'NoTargetTimer' 0
+                @setvar! DisengagedTarget ClosestTarget
+                @ignore DisengagedTarget
+            elseif not dead ClosestTarget and find ClosestTarget ground -1 -1 18 and not find ClosestTarget ground -1 -1 TargetAnalyzeRange
+                if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
+                    if timer 'NoTargetTimer' > 2000 and TimeToGo != 1
+                        overhead "[ TARGET LOST... ]" 339
+                        settimer 'NoTargetTimer' 0
+                    endif
                 endif
-            endif
-        elseif dead ClosestTarget and FoundNewTarget != 1
-            if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
-                if timer 'NoTargetTimer' > 2000 and TimeToGo != 1
-                    overhead "[ TARGET ELIMINATED! ]" 2114
-                    settimer 'NoTargetTimer' 0
+            elseif dead ClosestTarget 
+                if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
+                    if timer 'NoTargetTimer' > 2000 and TimeToGo != 1
+                        overhead "[ TARGET ELIMINATED! ]" 2114
+                        settimer 'NoTargetTimer' 0
+                    endif
                 endif
             endif
         endif
@@ -15460,7 +16318,7 @@ while not dead
                     overhead " „ " 153
                     settimer "WeightTimer" 0
                 endif
-            elseif diffweight < RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
+            elseif diffweight <= RedWeightLimitDiffWeight and timer "WeightTimer" > 6000
                 if EnableOverheadMessages = 1 or EnableOverheadMessages = 2
                     overhead "[ WEIGHT LIMIT REACHED! ]" 37
                     settimer "WeightTimer" 0

@@ -5,12 +5,16 @@
 #############################################
 
 # ------------------------------------------------------------
-# AutoBard v1.1
-# Made by @abianche on Discord (Artemis)
+# AutoBard v2.0
+# by @abianche on Discord (Artemis)
 #
-# Description
-# This script automates the buffing and attacking process for bards.
-# NOTE: WORK IN PROGRESS - PLEASE PROVIDE FEEDBACK!
+# Automates a bard: finds a target, discords/provokes/pacifies it
+# per your skills, keeps you and your pets attacking, and handles
+# survival tasks along the way (healing, curing, stamina, paralyze,
+# food, overweight gold-dropping, song buffs).
+#
+# Setup: edit only the USER SETTINGS block below, then run the
+# script. Everything past DO NOT EDIT is internal logic.
 #
 # ------------------------------------------------------------
 
@@ -18,44 +22,102 @@
 # USER SETTINGS
 # =========================
 
-@setvar! EnablePeacemaking 1
-@setvar! EnableProvocation 1
-@setvar! EnableDiscordance 1
+# Bard skills to use in combat. 1 = enabled, 0 = disabled.
+@setvar! enablePeacemaking 1
+@setvar! enableProvocation 1
+@setvar! enableDiscordance 1
 
+# Buff potions to auto-drink. 1 = enabled, 0 = disabled.
 @setvar! useStrengthPots 0
+@setvar! useAgilityPots 0
 @setvar! useMagicResistPots 0
 @setvar! useStaminaPots 0
 
+# Command your pets to guard/kill alongside you. 1 = enabled, 0 = disabled.
 @setvar! usePets 1
+# Keep self-cast bard songs (Peace/Discord/Provo buffs) refreshed. 1 = enabled, 0 = disabled.
 @setvar! useSongBuffs 1
+# Auto-eat from a food tray when not satisfied. 1 = enabled, 0 = disabled.
+@setvar! eatFood 0
 
-@setvar! amountOfGoldToDrop 500
+# How much gold to drop at a time when overweight.
+@setvar! amountOfGoldToDrop 900
+# Missing HP at which the script starts healing.
 @setvar! diffHitsToHeal 40
 
+# Require warmode to be on before fighting.
 @setvar! useWarmode 1
+
+# =========================
+# TARGET SELECTION
+# =========================
+
+# How this script picks a primary target
+#   0 = Fully automatic - always hunt the closest grey monster.
+#   1 = Manual - the script itself opens a target cursor and waits for you
+#       to click a creature, or press ESC to skip. No extra client setup
+#       needed. Combine with useWarmode = 1 above if you only want to be
+#       prompted while you are actually in warmode.
+@setvar! targetSelectionMode 0
+
+# Skip other players summoned, bonded, or tamed creatures when auto-targeting,
+# even if they show up grey. Only applies to automatic mode (0).
+@setvar! ignoreSummonedBondedTamed 1
+
+# Creatures to never auto-target, even if they show up grey. Add or remove
+# entries as needed - each entry must match the on-screen label text.
+# Only applies to automatic mode (0).
+removelist TargetIgnoreList
+createlist TargetIgnoreList
+pushlist TargetIgnoreList "a sheep"
+pushlist TargetIgnoreList "a cow"
+pushlist TargetIgnoreList "a bull"
+pushlist TargetIgnoreList "a goat"
+pushlist TargetIgnoreList "a pig"
+pushlist TargetIgnoreList "a chicken"
+pushlist TargetIgnoreList "a horse"
+pushlist TargetIgnoreList "a llama"
+pushlist TargetIgnoreList "a cat"
+pushlist TargetIgnoreList "a dog"
+pushlist TargetIgnoreList "a rabbit"
+pushlist TargetIgnoreList "a bird"
+pushlist TargetIgnoreList "an eagle"
+pushlist TargetIgnoreList "a hawk"
+pushlist TargetIgnoreList "a crow"
+pushlist TargetIgnoreList "a raven"
 
 # =========================
 # DO NOT EDIT BELOW UNLESS YOU KNOW THE SCRIPT
 # =========================
 
-cooldown "Auto Bard" 6000
+# You can setup this cooldown to know whether the script is running or not.
+cooldown "Auto Bard" 5000
 clearsysmsg
 
-# Combat ranges.
+# Max distance to issue the attack command.
 @setvar! TargetAttackRange 10
+# Max distance to look for/keep a target.
 @setvar! TargetSearchRange 12
-@setvar! SecondaryTargetRange 8
 
-# Throttle values. Increase these if the script still feels too spammy.
+# Delay between repeated attack commands.
 @setvar! AttackCommandCD 10000
+# Delay between all kill pet commands.
 @setvar! PetKillCommandCD 3000
-@setvar! PetGuardCommandCD 30000
-@setvar! VetKitTimerCD 5000
+# Delay between all guard me pet commands.
+@setvar! PetGuardCommandCD 10000
+# Delay between bandage attempts.
+@setvar! VetKitTimerCD 2500
+# Delay between primary target searches.
 @setvar! TargetSearchCD 1200
+# Delay between secondary (provoke) target searches.
 @setvar! SecondaryTargetSearchCD 3000
+# Delay between re-evaluating discord/provoke/peace state.
 @setvar! BardStateCheckCD 2000
-@setvar! TargetOverheadCD 3500
-@setvar! NoTargetMessageCD 3000
+# Delay between refreshing the target marker overhead.
+@setvar! TargetOverheadCD 5000
+# Delay between no target overhead messages.
+@setvar! NoTargetMessageCD 4000
+# Delay between overweight overhead messages.
 @setvar! OverweightMessageCD 3000
 
 # Safety / wait tuning.
@@ -84,7 +146,7 @@ endif
 @setvar! NeedtoPacify 0
 
 # =========================
-# TIMER INITIALIZATION
+# TIMERS INITIALIZATION
 # =========================
 
 if not timerexists "AttackCommandTimer"
@@ -161,7 +223,7 @@ endif
 # Song buff timers.
 if not timerexists "SongBuffDelay"
     createtimer "SongBuffDelay"
-    settimer "SongBuffDelay" 11000
+    settimer "SongBuffDelay" 12000
 endif
 
 if not timerexists "DiscordanceTimer"
@@ -179,7 +241,7 @@ if not timerexists "ProvocationTimer"
     settimer "ProvocationTimer" 11000
 endif
 
-# Target effect timers. These are conservative markers only;
+# Target effect timers. These are conservative markers only.
 # labels are still the main source of truth.
 if not timerexists "Discorded"
     createtimer "Discorded"
@@ -206,12 +268,8 @@ endif
 # =========================
 
 if usePets = 1 and timer "PetGuardCommandTimer" > PetGuardCommandCD
-    if useWarmode = 1 and not warmode
-        # Guard command follows warmode settings
-    else
-        say "all guard me"
-        settimer "PetGuardCommandTimer" 0
-    endif
+    say "all guard me"
+    settimer "PetGuardCommandTimer" 0
 endif
 
 # =========================
@@ -241,7 +299,7 @@ while poisoned
     else
         overhead "[ NO CURE POTS! ]" 337
     endif
-
+    
     # If HP becomes too low, leave cure loop and let other logic run.
     if diffhits > diffHitsToHeal
         break
@@ -252,10 +310,29 @@ endwhile
 if useStaminaPots = 1 and diffstam >= 5
     if findtype "Red Potion" self
         dclicktype "Red Potion"
-        overhead "[ REFRESH POTION ]" 37
         wait 250
     else
         overhead "[ NO REFRESH POTS! ]" 337
+    endif
+endif
+
+# Strenght potion.
+if useStrengthPots = 1 and not findbuff "Strength"
+    if findtype "White Potion" self
+        dclicktype "White Potion"
+        wait 250
+    else
+        overhead "[ NO STRENGTH POTS! ]" 337
+    endif
+endif
+
+# Agility potion.
+if useAgilityPots = 1 and not findbuff "Agility"
+    if findtype "Blue Potion" self
+        dclicktype "Blue Potion"
+        wait 250
+    else
+        overhead "[ NO AGILITY POTS! ]" 337
     endif
 endif
 
@@ -263,7 +340,6 @@ endif
 if useMagicResistPots = 1 and not findbuff "Magic Resist"
     if findtype "Black Potion" self
         dclicktype "Black Potion"
-        overhead "[ RESIST POTION ]" 1109
         wait 250
     else
         overhead "[ NO RESIST POTS! ]" 337
@@ -294,7 +370,7 @@ if weight > maxweight
         overhead "OVERWEIGHT!!" 34
         settimer "OverweightMessageTimer" 0
     endif
-
+    
     if amountOfGoldToDrop != 0
         while weight > maxweight
             if findtype "gold coin" backpack as item
@@ -315,9 +391,9 @@ if weight > maxweight
 endif
 
 # Eat food if not satisfied.
-if not findbuff "food satisfaction" and findtype "tray" self
+if eatFood = 1 and not findbuff "food satisfaction" and findtype "tray" self
     if findtype "tray" self as Food
-        overhead "[ EATING FOOD... ]" 88
+        overhead "[ EATING FOOD ]" 88
         dclick Food
         wait 500
     endif
@@ -330,7 +406,7 @@ endif
 # They are throttled by Musicianship + SongBuffDelay.
 
 if useSongBuffs = 1
-
+    
     if not findbuff "Song Of Peacemaking" and timer "Musicianship" > 5000 and timer "PeacemakingTimer" > 11000 and timer "SongBuffDelay" > 10500
         skill "Peacemaking"
         wait 150
@@ -350,7 +426,7 @@ if useSongBuffs = 1
             settimer "SongBuffDelay" 0
         endif
     endif
-
+    
     if not findbuff "Song Of Discordance" and timer "Musicianship" > 5000 and timer "DiscordanceTimer" > 11000 and timer "SongBuffDelay" > 10500
         skill "Discordance"
         wft 1500
@@ -370,7 +446,7 @@ if useSongBuffs = 1
             settimer "SongBuffDelay" 0
         endif
     endif
-
+    
     if not findbuff "Song of Provocation" and timer "Musicianship" > 5000 and timer "ProvocationTimer" > 11000 and timer "SongBuffDelay" > 10500
         skill "Provocation"
         wft 1500
@@ -404,7 +480,9 @@ endif
 # TARGET ACQUISITION
 # =========================
 # Only search for a new primary target when currentTarget is missing,
-# dead, or out of range.
+# dead, or out of range. targetSelectionMode (see USER SETTINGS) controls
+# how the new target is picked: automatically, automatically-but-only-in-
+# warmode, or manually.
 
 if foundTarget = 1
     if dead currentTarget
@@ -419,46 +497,109 @@ if foundTarget = 1
 endif
 
 if foundTarget = 0 and timer "TargetSearchTimer" > TargetSearchCD
-
-    if targetexists
-        hotkey "cancel current target"
+    
+    @setvar! newPrimaryTarget 0
+    
+    if targetSelectionMode = 1
+        # --------------------------------------------
+        # MANUAL: script actively prompts you for a target.
+        # This opens a target cursor - click a creature, or press ESC
+        # to skip this cycle. No client-side hotkey setup needed.
+        # --------------------------------------------
+        overhead "[ Pick your target ]" 88
+        hotkey "Set Last Target"
+        wait 200
+        while targetexists
+            wait 50
+        endwhile
+        
+        if lasttarget != 0 and not dead lasttarget and find lasttarget ground -1 -1 TargetSearchRange
+            @setvar! newPrimaryTarget lasttarget
+        endif
+        
+        if newPrimaryTarget = 0
+            if timer "NoTargetMessageTimer" > NoTargetMessageCD
+                overhead "[ No target ]" 33
+                settimer "NoTargetMessageTimer" 0
+            endif
+        endif
+        
+    else
+        # --------------------------------------------
+        # AUTOMATIC: grab the closest grey monster, skipping anything
+        # on the ignore list or, optionally, other players'
+        # summoned/bonded/tamed creatures.
+        # --------------------------------------------
+        if targetexists
+            hotkey "cancel current target"
+        endif
+        
+        hotkey "target closest grey monster"
+        wait 150
+        
+        for 5
+            @setvar! candidatePrimaryTarget lasttarget
+            
+            if candidatePrimaryTarget = 0 or dead candidatePrimaryTarget or not find candidatePrimaryTarget ground -1 -1 TargetSearchRange
+                break
+            endif
+            
+            getlabel candidatePrimaryTarget candidatePrimaryLabel
+            
+            if inlist TargetIgnoreList candidatePrimaryLabel
+                @ignore candidatePrimaryTarget
+            elseif ignoreSummonedBondedTamed = 1 and "(summoned" in candidatePrimaryLabel
+                @ignore candidatePrimaryTarget
+            elseif ignoreSummonedBondedTamed = 1 and "(bonded" in candidatePrimaryLabel
+                @ignore candidatePrimaryTarget
+            elseif ignoreSummonedBondedTamed = 1 and "(tame" in candidatePrimaryLabel
+                @ignore candidatePrimaryTarget
+            elseif "battle trainer" in candidatePrimaryLabel
+                @ignore candidatePrimaryTarget
+            else
+                @setvar! newPrimaryTarget candidatePrimaryTarget
+                break
+            endif
+            
+            # The rejected candidate is now ignored, so this cycles to a different one.
+            hotkey "Next Grey Monster Target"
+            wait 150
+        endfor
+        
+        if newPrimaryTarget = 0
+            if timer "NoTargetMessageTimer" > NoTargetMessageCD
+                overhead "[ No target ]" 33
+                settimer "NoTargetMessageTimer" 0
+            endif
+        endif
     endif
-
-    hotkey "target closest grey monster"
-    wait 150
-
-    if find lasttarget ground -1 -1 TargetSearchRange and not dead lasttarget
-        @setvar! currentTarget lasttarget
+    
+    if newPrimaryTarget != 0
+        @setvar! currentTarget newPrimaryTarget
         @setvar! previousTarget currentTarget
         @setvar! foundTarget 1
         @setvar! secondaryTarget 0
-
+        
         getlabel currentTarget currentLabel
-        overhead "¼ TARGET ¼" 69 currentTarget
         sysmsg "Target: {{currentLabel}}" 55
-
+        
         # Attack immediately on acquisition.
         attack currentTarget
         settimer "AttackCommandTimer" 0
-
+        
         # Pets attack immediately on target change, then only on cooldown.
         if usePets = 1
-            say "all kill"
+            say "all kill" 34
             wft 150
             target currentTarget
             settimer "PetKillCommandTimer" 0
         endif
-    else
-        if timer "NoTargetMessageTimer" > NoTargetMessageCD
-            overhead "[ NO TARGET ]" 33
-            settimer "NoTargetMessageTimer" 0
-        endif
     endif
-
+    
     if targetexists
         hotkey "cancel current target"
     endif
-
+    
     settimer "TargetSearchTimer" 0
 endif
 
@@ -469,9 +610,19 @@ endif
 # The loop ends naturally when the target dies/leaves range or player HP is too low.
 
 while foundTarget = 1 and not dead currentTarget and find currentTarget ground -1 -1 TargetSearchRange and diffhits < diffHitsToHeal
-
+    
+    # Exit combat loop if warmode has been disabled.
+    if useWarmode = 1 and not warmode
+        replay
+    endif
+    
+    if usePets = 1 and timer "PetGuardCommandTimer" > PetGuardCommandCD
+        say "all guard me"
+        settimer "PetGuardCommandTimer" 0
+    endif
+    
     cooldown "Auto Bard" 6000
-
+    
     # Keep attacking.
     if timer "AttackCommandTimer" > AttackCommandCD
         if find currentTarget ground -1 -1 TargetAttackRange
@@ -479,23 +630,23 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
             settimer "AttackCommandTimer" 0
         endif
     endif
-
+    
     # Pet kill command is intentionally slower than attack.
     if usePets = 1 and timer "PetKillCommandTimer" > PetKillCommandCD
         if find currentTarget ground -1 -1 TargetAttackRange
-            say "all kill"
+            say "all kill" 34
             wft 150
             target currentTarget
             settimer "PetKillCommandTimer" 0
         endif
     endif
-
+    
     # Show current target marker occasionally only.
     if timer "TargetOverheadTimer" > TargetOverheadCD
         overhead "¼ TARGET ¼" 69 currentTarget
         settimer "TargetOverheadTimer" 0
     endif
-
+    
     # Re-run critical survival checks inside the combat loop.
     if diffhits >= diffHitsToHeal
         if findtype "Yellow Potion" backpack as HealPotLoop
@@ -510,7 +661,7 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
         @setvar! foundTarget 0
         replay
     endif
-
+    
     while poisoned
         if findtype "Orange Potion" self
             dclicktype "Orange Potion"
@@ -522,7 +673,7 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
             break
         endif
     endwhile
-
+    
     if skill "Veterinary" >= 50 and timer "VetKitTimer" >= VetKitTimerCD
         if not bandaging and findtype 25750 backpack as item
             dclick item
@@ -530,7 +681,7 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
         endif
         settimer "VetKitTimer" 0
     endif
-
+    
     if useStaminaPots = 1 and diffstam >= 5
         if findtype "Red Potion" self
             dclicktype "Red Potion"
@@ -538,54 +689,69 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
             wait 250
         endif
     endif
-
+    
     if paralyzed
         if findtype "pouch" self
             yell "[pouch"
             wait 250
         endif
     endif
-
+    
     # --------------------------------------------
     # SECONDARY TARGET SEARCH
     # --------------------------------------------
     # Only needed for Provocation. Search occasionally and keep the result stable.
-
-    if EnableProvocation = 1 and skill "Provocation" >= 50 and timer "SecondaryTargetSearchTimer" > SecondaryTargetSearchCD
-
+    
+    if enableProvocation = 1 and skill "Provocation" >= 50 and timer "SecondaryTargetSearchTimer" > SecondaryTargetSearchCD
+        
         @setvar! secondaryTarget 0
-
+        
         if targetexists
             hotkey "cancel current target"
         endif
-
+        
         # Try a few candidates, but do not do this every loop pass.
+        # Skip anything on the ignore list or other players pets, same as
+        # primary target acquisition.
         for 4
             hotkey "Next Grey Monster Target"
             wait 150
             @setvar! candidateTarget lasttarget
-
+            
             if find candidateTarget ground -1 -1 TargetSearchRange and candidateTarget != currentTarget and not dead candidateTarget
-                @setvar! secondaryTarget candidateTarget
-                getlabel secondaryTarget secondaryLabel
-
-                if "Paragon" in secondaryLabel
-                    overhead "¼ PARAGON PROVO TARGET ¼" 12 secondaryTarget
+                getlabel candidateTarget candidateLabel
+                
+                if inlist TargetIgnoreList candidateLabel
+                    @ignore candidateTarget
+                elseif ignoreSummonedBondedTamed = 1 and "(summoned" in candidateLabel
+                    @ignore candidateTarget
+                elseif ignoreSummonedBondedTamed = 1 and "(bonded" in candidateLabel
+                    @ignore candidateTarget
+                elseif ignoreSummonedBondedTamed = 1 and "(tame" in candidateLabel
+                    @ignore candidateTarget
+                elseif "battle trainer" in candidatePrimaryLabel
+                    @ignore candidatePrimaryTarget
                 else
-                    overhead "¼ PROVO TARGET ¼" 2117 secondaryTarget
+                    @setvar! secondaryTarget candidateTarget
+                    
+                    if "Paragon" in candidateLabel
+                        overhead "¼ PARAGON PROVO TARGET ¼" 12 secondaryTarget
+                    else
+                        overhead "¼ PROVO TARGET ¼" 2117 secondaryTarget
+                    endif
+                    
+                    break
                 endif
-
-                break
             endif
         endfor
-
+        
         if targetexists
             hotkey "cancel current target"
         endif
-
+        
         settimer "SecondaryTargetSearchTimer" 0
     endif
-
+    
     # If the stored secondary target is no longer valid, clear it.
     if secondaryTarget != 0
         if dead secondaryTarget
@@ -594,33 +760,43 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
             @setvar! secondaryTarget 0
         endif
     endif
-
+    
     # --------------------------------------------
     # BARD STATE CHECK
     # --------------------------------------------
-
+    
     if timer "BardStateCheckTimer" > BardStateCheckCD
-
+        
         @setvar! NeedtoDiscord 0
         @setvar! NeedtoProvoke 0
         @setvar! NeedtoPacify 0
-
+        
         getlabel currentTarget currentLabel
-
-        # Priority 1: current target must be discorded first.
-        if EnableDiscordance = 1 and skill "Discordance" >= 50
+        
+        # ==================================================
+        # PRIORITY 1
+        # Discord CURRENT target first (if enabled)
+        # ==================================================
+        
+        if enableDiscordance = 1 and skill "Discordance" >= 50
             if "discord" in currentLabel
                 @setvar! NeedtoDiscord 0
             else
                 @setvar! NeedtoDiscord 1
             endif
         endif
-
-        # Priority 2: only consider Provocation AFTER current target is discorded.
-        if NeedtoDiscord = 0 and EnableProvocation = 1 and skill "Provocation" >= 50 and secondaryTarget != 0
+        
+        # ==================================================
+        # PRIORITY 2
+        # Provoke SECONDARY against CURRENT
+        #
+        # Only after CURRENT is already discorded (if enabled)
+        # ==================================================
+        
+        if NeedtoDiscord = 0 and enableProvocation = 1 and skill "Provocation" >= 50 and secondaryTarget != 0
             if find secondaryTarget ground -1 -1 TargetSearchRange and currentTarget != secondaryTarget
                 getlabel secondaryTarget secondaryLabel
-
+                
                 if "provoked" in currentLabel
                     @setvar! NeedtoProvoke 0
                 elseif "provoked" in secondaryLabel
@@ -630,9 +806,16 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
                 endif
             endif
         endif
-
-        # Priority 3: Peacemaking only if Discordance is done and Provocation is not needed.
-        if NeedtoDiscord = 0 and NeedtoProvoke = 0 and EnablePeacemaking = 1 and skill "Peacemaking" >= 50
+        
+        # ==================================================
+        # PRIORITY 3
+        # Peace CURRENT
+        #
+        # Only when:
+        #   - current is discorded (if enabled)
+        #   - secondary is provoked (if enabled)
+        # ==================================================
+        if NeedtoDiscord = 0 and NeedtoProvoke = 0 and enablePeacemaking = 1 and skill "Peacemaking" >= 50
             if "pacified" in currentLabel
                 @setvar! NeedtoPacify 0
             elseif "provoked" in currentLabel
@@ -642,19 +825,19 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
                 @setvar! NeedtoPacify 1
             endif
         endif
-
+        
         settimer "BardStateCheckTimer" 0
     endif
-
+    
     # --------------------------------------------
     # BARD EXECUTION - ONE ACTION PER CYCLE
     # --------------------------------------------
-
-    if NeedtoDiscord = 1 and EnableDiscordance = 1 and skill "Discordance" >= 50 and timer "Discordance" > 11000 and timer "Musicianship" > 5000
+    
+    if NeedtoDiscord = 1 and enableDiscordance = 1 and skill "Discordance" >= 50 and timer "Discordance" > 11000 and timer "Musicianship" > 5000
         clearsysmsg
         skill "Discordance"
         wft 1500
-
+        
         if insysmsg "What instrument shall you play?"
             if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
                 target Instrument
@@ -663,17 +846,17 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
                 overhead "[ NO INSTRUMENT! ]" 337
             endif
         endif
-
+        
         if not insysmsg "This is not a musical instrument"
             target currentTarget
             wait 250
         endif
-
+        
         if insysmsg "Target cannot be seen"
-            overhead "[ DISCORD: CANNOT SEE TARGET ]" 337 currentTarget
+            overhead "[ DISCORD: Cannot see target ]" 337 currentTarget
             settimer "Discordance" 0
         elseif insysmsg "That is too far away."
-            overhead "[ DISCORD: TOO FAR ]" 337 currentTarget
+            overhead "[ DISCORD: Too far ]" 337 currentTarget
             settimer "Discordance" 0
         elseif insysmsg "You must wait"
             wait 500
@@ -687,10 +870,10 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
             overhead "[ DISCORD FAIL ]" 337 currentTarget
             settimer "Discordance" 5500
         endif
-
-    elseif NeedtoProvoke = 1 and EnableProvocation = 1 and skill "Provocation" >= 50 and timer "Provocation" > 11000 and timer "Musicianship" > 5000
+        
+    elseif NeedtoProvoke = 1 and enableProvocation = 1 and skill "Provocation" >= 50 and timer "Provocation" > 11000 and timer "Musicianship" > 5000
         clearsysmsg
-
+        
         if secondaryTarget = 0
             @setvar! NeedtoProvoke 0
         elseif not find secondaryTarget ground -1 -1 TargetSearchRange
@@ -698,7 +881,7 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
         else
             skill "Provocation"
             wft 1000
-
+            
             if insysmsg "What instrument shall you play?"
                 if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
                     target Instrument
@@ -707,18 +890,18 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
                     overhead "[ NO INSTRUMENT! ]" 337
                 endif
             endif
-
+            
             if not insysmsg "This is not a musical instrument"
                 target secondaryTarget
                 wait 150
             endif
-
+            
             if insysmsg "Target cannot be seen"
-                overhead "[ PROVO: CANNOT SEE TARGET ]" 339 secondaryTarget
+                overhead "[ PROVO: Cannot see target ]" 339 secondaryTarget
                 @setvar! NeedtoProvoke 0
                 settimer "Provocation" 0
             elseif insysmsg "That is too far away."
-                overhead "[ PROVO: TOO FAR ]" 339 secondaryTarget
+                overhead "[ PROVO: Too far ]" 339 secondaryTarget
                 @setvar! NeedtoProvoke 0
                 settimer "Provocation" 0
             elseif insysmsg "You must wait"
@@ -726,7 +909,7 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
             else
                 target currentTarget
                 wait 250
-
+                
                 if insysmsg "You play successfully, provoking"
                     overhead "[ j PROVOKED! j ]" 2117 currentTarget
                     overhead "[ j PROVOKED! j ]" 2117 secondaryTarget
@@ -739,8 +922,8 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
                     overhead "[ PROVO FAIL ]" 337
                     settimer "Provocation" 5500
                 elseif insysmsg "The creatures you are trying to provoke are too far away from each"
-                    overhead "[ PROVO: TOO FAR APART ]" 153 currentTarget
-                    overhead "[ PROVO: TOO FAR APART ]" 153 secondaryTarget
+                    overhead "[ PROVO: Too far apart ]" 153 currentTarget
+                    overhead "[ PROVO: Too far apart ]" 153 secondaryTarget
                     @setvar! NeedtoProvoke 0
                     settimer "Provocation" 0
                 elseif insysmsg "tell someone to attack themselves!"
@@ -749,12 +932,12 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
                 endif
             endif
         endif
-
-    elseif NeedtoPacify = 1 and EnablePeacemaking = 1 and skill "Peacemaking" >= 50 and timer "Peacemaking" > 11000 and timer "Musicianship" > 5000
+        
+    elseif NeedtoPacify = 1 and enablePeacemaking = 1 and skill "Peacemaking" >= 50 and timer "Peacemaking" > 11000 and timer "Musicianship" > 5000
         clearsysmsg
         skill "Peacemaking"
         wft 1500
-
+        
         if insysmsg "What instrument shall you play?"
             if findtype "standing harp|sackbut|bamboo flute|tambourine|drum|lute|lap harp|gemshorn|hurdy gurdy|psaltery|shawm|vielle" as Instrument
                 target Instrument
@@ -763,17 +946,17 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
                 overhead "[ NO INSTRUMENT! ]" 337
             endif
         endif
-
+        
         if not insysmsg "This is not a musical instrument"
             target currentTarget
             wait 250
         endif
-
+        
         if insysmsg "Target cannot be seen"
-            overhead "[ PEACE: CANNOT SEE TARGET ]" 337 currentTarget
+            overhead "[ PEACE: Cannot see target ]" 337 currentTarget
             settimer "Peacemaking" 0
         elseif insysmsg "That is too far away."
-            overhead "[ PEACE: TOO FAR ]" 337 currentTarget
+            overhead "[ PEACE: Too far ]" 337 currentTarget
             settimer "Peacemaking" 0
         elseif insysmsg "You must wait"
             wait 500
@@ -788,7 +971,7 @@ while foundTarget = 1 and not dead currentTarget and find currentTarget ground -
             settimer "Peacemaking" 5500
         endif
     endif
-
+    
     # Small loop wait. This keeps responsiveness while avoiding frantic looping.
     wait 100
 endwhile

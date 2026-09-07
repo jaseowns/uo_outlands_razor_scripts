@@ -1,0 +1,267 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/7644f5ab-51ad-435a-9ec1-3ec286721123 for latest
+# Automation by Jaseowns
+## Script: Paragon Chest Bot
+## Created by: .phisn#0
+#############################################
+
+# =============================================================================
+# Paragon Chest Bot by Chinga
+# =============================================================================
+#
+# Requirements & Setup:
+# 1. Sealed chests only: Completed/unlocked chests returned to the source
+#    container are tracked in a persistent list and ignored so they are never
+#    retrieved a second time.
+# 2. Continuous Lockpicking & Continuous Remove Trap checked in the 
+#    Lockpicking Gump menu (Gump ID 736038070).
+# 3. On first run, target the container where sealed Paragon Chests are stored.
+#    (To reset container memory, toggle WARMODE ON before starting script).
+# 4. Script ends with `loop` to continuously monitor the source container
+#    for new sealed chests deposited by players.
+#
+# =============================================================================
+
+# --- Variable & List Reset Check (WARMODE ON) ---
+if warmode
+    @unsetvar "paragonSourceContainer"
+    if listexists "completedChestsList"
+        clearlist "completedChestsList"
+    endif
+    overhead "Paragon Container Memory & Lists Wiped!" 38
+    warmode off
+    pause 1000
+endif
+
+# Initialize tracking list for completed chests
+if not listexists "completedChestsList"
+    createlist "completedChestsList"
+endif
+
+# --- Source/Destination Container Selection ---
+if not varexist paragonSourceContainer
+    overhead "Select the Container holding Paragon Chests..." 88
+    hotkey "Cancel Current Target"
+    hotkey "Set Last Target"
+    wft 5000
+    while targetexists
+        overhead "Target container for Paragon Chests" 45
+        pause 1000
+    endwhile
+    @setvar "paragonSourceContainer" lasttarget
+    overhead "Container Saved Successfully!" 69
+    pause 600
+endif
+
+# --- Main Core Loop ---
+while not dead
+    clearsysmsg
+    
+    # Re-apply ignore flags to already completed chests
+    foreach cChest in "completedChestsList"
+        @ignore cChest
+    endfor
+    
+    # Retrieve tools from source container if present
+    while findtype "lockpicks|drill|trap removal tool|trap removal|5371|2473|25750" paragonSourceContainer as sourceTool
+        overhead "Retrieving Tool from container..." 69
+        drop backpack
+        lift sourceTool 60000
+        drop backpack
+        while queued
+            // Wait for transfer
+        endwhile
+        getlabel backpack ping
+    endwhile
+    
+    # 1. Search for sealed Paragon Chest in source container
+    if findtype "3712|3648|3650|3708|metal chest|3649|29833|29832" paragonSourceContainer as targetChest
+        
+        # Check 1: Is this chest already recorded as completed?
+        if inlist "completedChestsList" targetChest
+            @ignore targetChest
+            continue
+        endif
+        
+        # Check 2: Inspect chest label inside container before retrieving
+        getlabel targetChest chestDesc
+        if "unlocked" in chestDesc or "cleared" in chestDesc or "opened" in chestDesc or "open" in chestDesc
+            overhead "Skipping unlocked chest..." 38
+            if not inlist "completedChestsList" targetChest
+                pushlist "completedChestsList" targetChest
+            endif
+            @ignore targetChest
+            continue
+        endif
+        
+        overhead "Sealed Paragon Chest Found! Retrieving..." 88
+        
+        # Lift chest and bring to backpack
+        drop backpack
+        lift targetChest 1
+        drop backpack
+        
+        while queued
+            // Wait for movement action to complete
+        endwhile
+        getlabel backpack ping
+        
+        # Verify chest is now in backpack
+        if findtype "3712|3648|3650|3708|metal chest|3649|29833|29832" backpack as activeChest
+            
+            # Tool Verification: Return chest to container if missing trap tools or lockpicks
+            if not findtype "drill|trap removal|2473|25750" backpack
+                overhead "ERROR: No Trap Tools in backpack!" 38
+                say "I need Trap Tools!" 38
+                overhead "Returning chest to container..." 53
+                drop backpack
+                lift activeChest 1
+                drop paragonSourceContainer -1 -1 0
+                while queued
+                endwhile
+                getlabel backpack ping
+                stop
+            endif
+            
+            if not findtype "lockpicks|5371" backpack
+                overhead "ERROR: No Lockpicks in backpack!" 38
+                say "I need Lockpicks!" 38
+                overhead "Returning chest to container..." 53
+                drop backpack
+                lift activeChest 1
+                drop paragonSourceContainer -1 -1 0
+                while queued
+                endwhile
+                getlabel backpack ping
+                stop
+            endif
+            
+            # Open lockpicking & untrap gump
+            gumpclose 736038070
+            dclick activeChest
+            waitforgump 736038070 2000
+            
+            # --- Phase 1: Disarm / Remove Traps ---
+            if gumpexists 736038070 and not ingump "Cleared Of Traps" 736038070
+                overhead "Disarming Traps..." 43
+                
+                # Trigger Disarm button
+                while gumpexists 736038070 and not ingump "Cleared Of Traps" 736038070
+                    gumpresponse 7
+                    waitforgump 736038070 1000
+                    
+                    if insysmsg "You attempt to remove traps" or insysmsg "That appears to be devoid"
+                        break
+                    endif
+                endwhile
+                
+                # Wait for trap removal to complete
+                while not dead and gumpexists 736038070
+                    if not findtype "drill|trap removal|2473|25750" backpack
+                        overhead "WARNING: Out of Trap Tools!" 38
+                        say "I ran out of Trap Tools!" 38
+                        overhead "Returning chest to container..." 53
+                        gumpclose 736038070
+                        drop backpack
+                        lift activeChest 1
+                        drop paragonSourceContainer -1 -1 0
+                        while queued
+                        endwhile
+                        getlabel backpack ping
+                        stop
+                    endif
+                    
+                    if insysmsg "You make some progress towards clearing it of traps"
+                        say "*clink*" 810
+                    endif
+                    
+                    if insysmsg "You have successfully cleared it of traps" or ingump "Cleared Of Traps" 736038070
+                        overhead "Chest Cleared of Traps!" 69
+                        break
+                    endif
+                    
+                    pause 250
+                endwhile
+                
+                waitforgump 736038070 1000
+            endif
+            
+            # --- Phase 2: Lockpicking ---
+            if gumpexists 736038070 and ingump "Cleared Of Traps" 736038070
+                overhead "Picking Lock..." 43
+                
+                # Trigger Pick Lock button
+                while gumpexists 736038070
+                    gumpresponse 4
+                    waitforgump 736038070 1000
+                    
+                    if insysmsg "You attempt to pick the lock" or insysmsg "It appears to be unlocked"
+                        break
+                    endif
+                endwhile
+                
+                # Wait for lockpicking to complete
+                while not dead
+                    if not findtype "lockpicks|5371" backpack
+                        overhead "WARNING: Out of Lockpicks!" 38
+                        say "I ran out of Lockpicks!" 38
+                        overhead "Returning chest to container..." 53
+                        gumpclose 736038070
+                        drop backpack
+                        lift activeChest 1
+                        drop paragonSourceContainer -1 -1 0
+                        while queued
+                        endwhile
+                        getlabel backpack ping
+                        stop
+                    endif
+                    
+                    if insysmsg "You make some progress on the lock"
+                        say "*click*" 810
+                    endif
+                    
+                    if insysmsg "You successfully pick the lock" or insysmsg "It appears to be unlocked"
+                        overhead "Paragon Chest Unlocked!" 69
+                        break
+                    endif
+                    
+                    pause 250
+                endwhile
+                
+                gumpclose 736038070
+            endif
+            
+            # --- Phase 3: Return Unlocked Chest to Container ---
+            overhead "Returning unlocked chest to container..." 53
+            drop backpack
+            lift activeChest 1
+            drop paragonSourceContainer -1 -1 0
+            
+            while queued
+                // Wait for drop to finalize
+            endwhile
+            getlabel backpack ping
+            
+            # Add to persistent completed chests tracking list & ignore
+            if not inlist "completedChestsList" activeChest
+                pushlist "completedChestsList" activeChest
+            endif
+            @ignore activeChest
+            
+        else
+            overhead "Could not pick up chest (too heavy or permissions)." 38
+            @ignore targetChest
+        endif
+        
+    else
+        overhead "Scanning..." 53
+        # Clear temporary ignore list and immediately re-ignore completed chests
+        @clearignore
+        foreach cChest in "completedChestsList"
+            @ignore cChest
+        endfor
+        pause 2000
+    endif
+    
+    pause 500
+endwhile
+loop

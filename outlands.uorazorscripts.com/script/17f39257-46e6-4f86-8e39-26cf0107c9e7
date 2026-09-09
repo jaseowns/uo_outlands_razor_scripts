@@ -666,7 +666,7 @@ while not dead
         if SpellInterrupted = 0
             target 'self'
         endif
-    elseif skill 'magery' >= 40 and diffhits >= CastHealHPdiff and diffhits <= CastGreaterHealHPdiff and mana >= 4 and EnableCastHeal = 1 and not casting and missingHealRegs != 1
+    elseif skill 'magery' >= 40 and diffhits >= CastGreaterHealHPdiff and diffhits <= CastHealHPdiff and mana >= 4 and EnableCastHeal = 1 and not casting and missingHealRegs != 1
         @setvar! SpellInterrupted 0
         cast 'heal'
         getlabel backpack backpacklabel
@@ -756,6 +756,52 @@ while not dead
                 settimer RedPotionMessageTimer 0
             endif
         endif
+    endif
+
+    if EnableCurePotion = 1 or EnableCastCure = 1
+        while poisoned
+            if findtype "Orange Potion" self
+                dclicktype "Orange Potion"
+                if EnableOverheadMessages = 1 and timer 'OrangePotionMessageTimer' > 3500
+                    if insysmsg "potion satchel used"
+                        overhead '[ FREE CURE POTION ]' 44
+                    else
+                        overhead '[ CURE POTION ]' 44
+                    endif
+                    clearsysmsg
+                    settimer 'OrangePotionMessageTimer' 0
+                endif
+                wait 500
+            else
+                if timer 'OrangePotionMessageTimer' > 5000 and EnableOverheadMessages = 1
+                    overhead '[ NO CURE POTS! ]' 337
+                    settimer 'OrangePotionMessageTimer' 0
+                endif
+
+                if diffhits >= 50 or not findtype 3972 self or not findtype 3973 self
+                    break
+                endif
+
+                if skill 'magery' >= 40 and mana >= 6 and EnableCastCure = 1 and not casting
+                    cast 'cure'
+                    getlabel backpack backpacklabel
+                    settimer AntiStallTimer 0
+
+                    while not targetexists and timer AntiStallTimer < 1500
+                        if timer AntiStallTimer > 1500
+                            settimer AntiStallTimer 0
+                            break
+                        endif
+                        wait 100
+                    endwhile
+                    wft 1000
+                    target 'self'
+                    wait 500
+                else
+                    break
+                endif
+            endif
+        endwhile
     endif
 
     if EnableCurePotion = 1
@@ -989,7 +1035,7 @@ while not dead
     endif
 
     if EnableEatMagicMushrooms = 1
-        if diffmana > EatMushroomManadiff and MakeMushroomAmount > 0 and timer MushroomTimer > MagicMushroomCooldown
+        if diffmana > EatMushroomManadiff and timer MushroomTimer > MagicMushroomCooldown
             if counttype 29012 backpack
 
                 dclicktype 29012 backpack

@@ -1,0 +1,89 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/e2b5a28c-967a-4ea8-b31d-00f0a4f601ad for latest
+# Automation by Jaseowns
+## Script: Invisibility & Magery Trainer (Scrolls or Spellbook) with Mushroom Logic
+## Created by: neous_#0
+#############################################
+
+# Title: Invisibility & Magery Trainer (Scrolls or Spellbook) with Mushroom Logic
+# Description: Automatically uses Invisibility scrolls from a selected bag to train Magery. Falls back to your Spellbook when out of scrolls. Automeditates or eats magic mushrooms when low on mana.
+
+# ----------------------------------------------------
+# SETUP & CONFIGURATION
+# ----------------------------------------------------
+
+# Initializes the mushroom cooldown timer (61000ms ensures it starts ready)
+if not timerexists 'cogu_timer'
+    createtimer 'cogu_timer'
+    settimer 'cogu_timer' 61000
+endif
+
+# This clears any old bag saved in memory and prompts you to click your training container
+unsetvar targetBag
+overhead 'SELECT YOUR SCROLL POUCH/BAG' 88
+setvar targetBag
+
+# Automatically opens your selected bag so Razor can find the scrolls inside
+if find targetBag backpack
+    dclick targetBag
+    pause 600
+endif
+
+# Change 100 to whatever skill level you want to stop training at (e.g., 105, 115, 120)
+@setvar! maxInvSkill 100
+
+# ----------------------------------------------------
+# MAIN TRAINING LOOP
+# ----------------------------------------------------
+while skill "Magery" < maxInvSkill and not dead
+    
+    # MANA CHECK: If mana drops below 30, it tries a mushroom first, then meditates
+    if mana < 30
+        overhead '*pant... pant...* My mana runs dry!' 38
+        
+        # Tries to eat a magic mushroom (graphic 29012) if the 60s cooldown passed
+        if timer 'cogu_timer' > 60000 and findtype '29012' backpack
+            overhead '*CHOMP* Yum... Delicious!' 68
+            dclicktype '29012'
+            settimer 'cogu_timer' 0
+            pause 1000
+        else
+            # Fallback overheads if mushrooms are unavailable or on cooldown
+            if timer 'cogu_timer' <= 60000
+                overhead 'The magical fungi needs time to sprout!' 43
+            else
+                overhead 'Alas! My satchel is devoid of mushrooms!' 33
+            endif
+            
+            overhead 'Ommmmm... *Focusing internal energies*' 55
+            while mana < maxmana and not dead
+                useskill 'Meditation'
+                pause 2000
+            endwhile
+            overhead '*Yummmm* The ether flows through me once more!' 68
+        endif
+    endif
+
+    # SCROLL CHECK: Searches for Invisibility scrolls (ID: 8024) inside your backpack/bags
+    if findtype 8024 backpack as scrollTarget
+        overhead 'Anlor Reg... Fade into the ether!' 68
+        useobject scrollTarget
+        waitfortarget 2000
+        target self
+        pause 1000
+    # SPELLBOOK FALLBACK: If no scrolls are found, it casts directly from your spellbook
+    else
+        overhead 'Unleashing raw spellcraft!' 99
+        cast "Invisibility"
+        waitfortarget 2000
+        target self
+        pause 1500
+    endif
+    
+    # Small delay between cycles to prevent lag or macro stuttering
+    pause 400
+endwhile
+
+# ----------------------------------------------------
+# TRAINING COMPLETE
+# ----------------------------------------------------
+overhead "The arcane secrets are fully mastered!" 88

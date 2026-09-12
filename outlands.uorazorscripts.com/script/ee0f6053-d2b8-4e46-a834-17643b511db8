@@ -1,0 +1,455 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/ee0f6053-d2b8-4e46-a834-17643b511db8 for latest
+# Automation by Jaseowns
+## Script: Artemis Auto Dexxer
+## Created by: abianche#0
+#############################################
+
+# ------------------------------------------------------------
+# AutoDexxer v1.4
+# Made by @abianche on Discord (Artemis)
+#
+# Description
+# Background survival script for pure dexxers. It watches your health, stamina, and status effects during combat
+# and automatically handles healing, potions, food, and other upkeep so you can focus on fighting.
+#
+# Features:
+# - Self-bandages wounds automatically (Healing skill 50+)
+# - Drinks Strength, Agility, Magic Resist, Cure, Heal, and Refresh potions based on buffs/thresholds
+# - Uses the Panacea ability on bleed/disease
+# - Throws explosion potions on an acquired target (use at your own risk!)
+# - Eats food automatically, warns if you are out
+# - Escapes paralyze using a trapped pouch
+# - Drops gold automatically when overweight
+# - Optional weapon special ability on a cooldown (3 modes)
+# - Throttled warning messages when supplies run out
+# - Configurable via a settings block at the top
+#
+# ------------------------------------------------------------
+
+# =========================
+# USER SETTINGS
+# =========================
+
+# Bandages. 1 = enabled, 0 = disabled.
+@setvar! useBandages 1
+
+# Potions. 1 = enabled, 0 = disabled.
+@setvar! drinkStr 1
+@setvar! strengthLowerThan 101
+
+@setvar! drinkAgility 1
+@setvar! drinkMagicResist 1
+
+@setvar! drinkHeal 1
+@setvar! drinkCure 1
+@setvar! drinkRefresh 1
+@setvar! staminaLowerThan 90
+
+@setvar! activateAutoHealDiff 1
+@setvar! drinkHealPotDiff 35
+
+# Panacea ability. 1 = enabled, 0 = disabled.
+@setvar! panaceaAbility 1
+
+# Note that this works via a target acquisition system. 1 = enabled, 0 = disabled.
+@setvar! useExplosionPot 1
+# The range in tiles to look for a target to throw the explosion pot at. 0-12 (range).
+@setvar! explosionTargetRange 12
+
+# Whether to auto-attack the target acquired by the explosion pot system. 1 = enabled, 0 = disabled.
+@setvar! autoAttackTarget 1
+
+# Weapon ability. 0 = disabled, 1 = primary, 2 = secondary, 3 = tertiary.
+@setvar! useWeaponAbility 0
+
+# How much gold to drop at a time when overweight.
+@setvar! amountOfGoldToDrop 1000
+
+# =========================
+# DO NOT EDIT BELOW UNLESS YOU KNOW THE SCRIPT
+# =========================
+
+@setvar! maxwaittimeinms 650
+
+@setvar! overweightMessageCD 3000
+settimer overweightMessageTimer overweightMessageCD
+
+@setvar! pouchMessageCD 5000
+settimer pouchMessageTimer pouchMessageCD
+
+@setvar! aidsMessageCD 4000
+settimer aidsMessageTimer aidsMessageCD
+
+@setvar! whiteMessageCD 3000
+settimer whiteMessageTimer whiteMessageCD
+
+@setvar! blueMessageCD 3000
+settimer blueMessageTimer blueMessageCD
+
+@setvar! blackMessageCD 2500
+settimer blackMessageTimer blackMessageCD
+
+@setvar! orangeMessageCD 2000
+settimer orangeMessageTimer orangeMessageCD
+
+@setvar! yellowMessageCD 1500
+settimer yellowMessageTimer yellowMessageCD
+
+@setvar! redMessageCD 1000
+settimer redMessageTimer redMessageCD
+
+@setvar! foodMessageCD 3333
+settimer foodMessageTimer foodMessageCD
+
+@setvar! targetSearchCD 3000
+settimer targetSearchTimer targetSearchCD
+
+@setvar! noTargetMessageCD 3000
+settimer noTargetMessageTimer noTargetMessageCD
+
+@setvar! weaponAbilityCD 10000
+settimer weaponAbilityTimer weaponAbilityCD
+
+say "[AbilitiesHotbar"
+
+if not varexist currentTarget
+    @setvar! currentTarget 0
+endif
+
+if not varexist foundTarget
+    @setvar! foundTarget 0
+endif
+
+# Max distance to look for/keep a target.
+@setvar! targetSearchRange 12
+
+while not dead
+    
+    if not cooldown "Auto Heal"
+        cooldown "Auto Heal" 3000
+    endif
+    
+    # --- Eating food --- #
+    
+    if not findbuff "food"
+        if findtype "tray" backpack as fody
+            overhead "Eating food..." 48
+            dclick fody
+            wait 200
+        else
+            if timer foodMessageTimer > foodMessageCD
+                overhead "NO FOOD!!" 34
+                settimer foodMessageTimer 0
+            endif
+        endif
+    endif
+    
+    # --- Overweight --- #
+    
+    if weight > maxweight
+        if timer overweightMessageTimer > overweightMessageCD
+            overhead "OVERWEIGHT!!" 34
+            settimer overweightMessageTimer 0
+        endif
+        
+        if 0 != amountOfGoldToDrop
+            while weight > maxweight
+                if findtype "gold coin" backpack as item
+                    lift item amountOfGoldToDrop
+                    droprelloc 0 0
+                    getlabel backpack xxx
+                    wait 200
+                    if insysmsg "cannot drop anything"
+                        drop backpack -1 -1 -1
+                    endif
+                    wait maxwaittimeinms
+                    overhead "* Gold dropped *" 55
+                endif
+            endwhile
+        endif
+    endif
+    
+    # --- Panacea Ability --- #
+    
+    if panaceaAbility = 1
+        if findbuff "bleed" or findbuff "diseased"
+            if not findbuff "panacea potion cooldown"
+                if findtype "Orange Potion" self
+                    dclicktype "Orange Potion"
+                    wait 200
+                    if findbuff "panacea potion cooldown"
+                        overhead "Panacea Activated!" 55
+                        sysmsg "Panacea Activated!" 55
+                    endif
+                endif
+            endif
+        endif
+    endif
+    
+    #--- Trapped ---#
+    
+    if paralyzed
+        if findtype "pouch" backpack 38
+            yell "[pouch"
+            wait 200
+        else
+            if timer pouchMessageTimer > pouchMessageCD
+                overhead "NO POUCHES!!" 34
+                settimer pouchMessageTimer 0
+            endif
+        endif
+    endif
+    
+    #--- Self bandage ---#
+    
+    if useBandages = 1 and diffhits >= 1 and not bandaging
+        if skill 'healing' >= 50
+            if findtype 'clean bandage%s%' backpack
+                if targetexists
+                    hotkey 'cancel current target'
+                endif
+                dclicktype 'clean bandage%s%'
+                waitfortarget maxwaittimeinms
+                target 'self'
+                wait 200
+            else
+                if timer aidsMessageTimer > aidsMessageCD
+                    overhead "NO BANDAGES!!" 34
+                    settimer aidsMessageTimer 0
+                endif
+            endif
+        endif
+    endif
+    
+    #--- Drink str pot ---#
+    
+    if drinkStr = 1 and str < strengthLowerThan
+        if not findbuff "Strength"
+            if findtype "White Potion" self
+                dclicktype "White Potion"
+                #cooldown "Strength Pot" 120000
+                wait 200
+            else
+                if timer whiteMessageTimer > whiteMessageCD
+                    overhead "NO STR POT!!" 34
+                    settimer whiteMessageTimer 0
+                endif
+            endif
+        endif
+    endif
+    
+    #--- Drink agility pot ---#
+    
+    if drinkAgility = 1
+        if not findbuff "Agility"
+            if findtype "Blue Potion" self
+                dclicktype "Blue Potion"
+                #cooldown "Agility Pot" 120000
+                wait 200
+            else
+                if timer blueMessageTimer > blueMessageCD
+                    overhead "NO DEX POT!!" 34
+                    settimer blueMessageTimer 0
+                endif
+            endif
+        endif
+    endif
+    
+    #--- Drink magic resist pot ---#
+    
+    if drinkMagicResist = 1
+        if not findbuff "Magic Resist"
+            if findtype "Black Potion" self
+                dclicktype "Black Potion"
+                #cooldown "Magic Res Pot" 1000
+                wait 200
+            else
+                if timer blackMessageTimer > blackMessageCD
+                    overhead "NO MR POT!!" 34
+                    settimer blackMessageTimer 0
+                endif
+            endif
+        endif
+    endif
+    
+    #--- Poisoned ---#
+    
+    if 1 = drinkCure
+        while poisoned
+            if findtype "Orange Potion" self
+                dclicktype "Orange Potion"
+                cooldown "Cure Pot" 1000
+                wait 200
+            else
+                if timer orangeMessageTimer > orangeMessageCD
+                    overhead "NO CURE POT!!" 34
+                    settimer orangeMessageTimer 0
+                endif
+                
+                if diffhits >= 30 or not findtype 3972 self or not findtype 3973 self
+                    replay
+                endif
+            endif
+        endwhile
+    endif
+    
+    #--- Drink Heal Pot ---#
+    
+    if diffhits >= drinkHealPotDiff and 1 = drinkHeal
+        if findtype "Yellow Potion" self as hPot
+            getlabel hPot potLabel
+            if "(" in potLabel
+                # do nothing
+            else
+                dclicktype 3852
+                getlabel backpack xxx
+                cooldown "Heal Pot" 7000
+            endif
+        else
+            if timer yellowMessageTimer > yellowMessageCD
+                overhead "NO HEAL POT!!" 34
+                settimer yellowMessageTimer 0
+            endif
+        endif
+    endif
+    
+    #--- Drink red pot ---#
+    
+    if stam < staminaLowerThan and 1 = drinkRefresh and diffstam > 1
+        if findtype "Red Potion" self
+            dclicktype "Red Potion"
+            #cooldown "Refresh Pot" 1000
+            wait 200
+        else
+            if timer redMessageTimer > redMessageCD
+                overhead "NO STAM POT!!" 34
+                settimer redMessageTimer 0
+            endif
+        endif
+    endif
+    
+    #--- Use explosion pot ---#
+    
+    if 1 = useExplosionPot and foundTarget = 1 and not dead currentTarget and find currentTarget ground -1 -1 explosionTargetRange and skill 'Alchemy' >= 80 and not cooldown "Purple Pot" and findtype "Purple Potion" self as pot
+        dclick pot
+        wft
+        target currentTarget
+        
+        if 1 = autoAttackTarget
+            attack currentTarget
+        endif
+    endif
+    
+    #--- Use weapon ability ---#
+    
+    if useWeaponAbility != 0
+        if timer weaponAbilityTimer > weaponAbilityCD
+            
+            if useWeaponAbility = 1
+                gumpresponse 11 3954121934
+                getlabel backpack xxx
+                wait 100
+                gumpresponse 10 3954121934
+                
+                getlabel backpack xxx
+                # wait 200
+                if insysmsg "You cannot perform that ability yet"
+                    sysmsg "Ability cooldown" 44
+                    settimer weaponAbilityTimer 0
+                else
+                    sysmsg "Ability activated" 44
+                endif
+                
+            elseif useWeaponAbility = 2 and mana < useAbilityWhenManaLowerThan
+                gumpresponse 10 3954121934
+                getlabel backpack xxx
+                wait 100
+                gumpresponse 11 3954121934
+                
+                getlabel backpack xxx
+                # wait 200
+                if insysmsg "You cannot perform that ability yet"
+                    sysmsg "Ability cooldown" 44
+                    settimer weaponAbilityTimer 0
+                else
+                    sysmsg "Ability activated" 44
+                endif
+                
+            elseif useWeaponAbility = 3
+                gumpresponse 11 3954121934
+                getlabel backpack xxx
+                wait 100
+                gumpresponse 12 3954121934
+                
+                getlabel backpack xxx
+                # wait 200
+                if insysmsg "You cannot perform that ability yet"
+                    sysmsg "Ability cooldown" 44
+                    settimer weaponAbilityTimer 0
+                else
+                    sysmsg "Ability activated" 44
+                endif
+                
+            endif
+        endif
+    endif
+    
+    # =========================
+    # TARGET ACQUISITION
+    # =========================
+    
+    # Currently only explosion pot requires target acquisition system.
+    if 1 = useExplosionPot
+        if foundTarget = 1
+            if dead currentTarget
+                @setvar! foundTarget 0
+                @setvar! currentTarget 0
+            elseif not find currentTarget ground -1 -1 targetSearchRange
+                @setvar! foundTarget 0
+                @setvar! currentTarget 0
+            endif
+        endif
+        
+        if foundTarget = 0 and timer "targetSearchTimer" > targetSearchCD
+            @setvar! newPrimaryTarget 0
+            
+            overhead "[ Pick your target ]" 88
+            hotkey "Set Last Target"
+            wait 200
+            while targetexists
+                wait 50
+            endwhile
+            
+            if lasttarget != 0 and not dead lasttarget and find lasttarget ground -1 -1 targetSearchRange
+                @setvar! newPrimaryTarget lasttarget
+            endif
+            
+            if newPrimaryTarget = 0
+                if timer "noTargetMessageTimer" > noTargetMessageCD
+                    overhead "[ No target ]" 33
+                    settimer "noTargetMessageTimer" 0
+                endif
+            endif
+            
+            if newPrimaryTarget != 0
+                @setvar! currentTarget newPrimaryTarget
+                @setvar! foundTarget 1
+                
+                getlabel currentTarget currentLabel
+                sysmsg "Target: {{currentLabel}}" 55
+                
+                if 1 = autoAttackTarget
+                    attack currentTarget
+                endif
+            endif
+            
+            if targetexists
+                hotkey "cancel current target"
+            endif
+            
+            settimer "targetSearchTimer" 0
+            
+        endif
+    endif
+    
+endwhile

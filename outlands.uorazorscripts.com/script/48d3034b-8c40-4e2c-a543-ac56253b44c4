@@ -1,0 +1,80 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/48d3034b-8c40-4e2c-a543-ac56253b44c4 for latest
+# Automation by Jaseowns
+## Script: [80-120] Magery Trainer - Flamestrike (Scrolls or Spellbook) + Mushroom 
+## Created by: neous_#0
+#############################################
+
+# Title: Flamestrike Magery Trainer (Fixed Target) with Mushroom Logic
+# Description: Casts Flamestrike at a target you select once at startup to train Magery. Automeditates or eats magic mushrooms when low on mana.
+
+# ----------------------------------------------------
+# SETUP & CONFIGURATION
+# ----------------------------------------------------
+
+# Initializes the mushroom cooldown timer (61000ms ensures it starts ready)
+if not timerexists 'cogu_timer'
+    createtimer 'cogu_timer'
+    settimer 'cogu_timer' 61000
+endif
+
+# This clears any old target saved in memory and prompts you to click your training dummy/mob
+unsetvar trainTarget
+overhead 'SELECT YOUR TRAINING TARGET' 88
+setvar trainTarget
+
+# Change 120 to whatever skill level you want to stop training at (e.g., 100, 110, 115)
+@setvar! maxMagSkill 120
+
+# ----------------------------------------------------
+# MAIN TRAINING LOOP
+# ----------------------------------------------------
+while skill "Magery" < maxMagSkill and not dead
+
+    # MANA CHECK: If mana drops below 40, it tries a mushroom first, then meditates
+    if mana < 40
+        overhead '*pant... pant...* The flames drain me!' 38
+
+        # Tries to eat a magic mushroom (graphic 29012) if the 60s cooldown passed
+        if timer 'cogu_timer' > 60000 and findtype '29012' backpack
+            overhead '*CHOMP* Yum... Delicious!' 68
+            dclicktype '29012'
+            settimer 'cogu_timer' 0
+            pause 1000
+        else
+            # Fallback overheads if mushrooms are unavailable or on cooldown
+            if timer 'cogu_timer' <= 60000
+                overhead 'The magical fungi needs time to sprout!' 43
+            else
+                overhead 'Alas! My satchel is devoid of mushrooms!' 33
+            endif
+
+            overhead 'Ommmmm... *Focusing internal energies*' 55
+            while mana < maxmana and not dead
+                useskill 'Meditation'
+                pause 2000
+            endwhile
+            overhead '*Yummmm* The ether flows through me once more!' 68
+        endif
+    endif
+
+    # FOOD CHECK: keep the food satisfaction buff up for the regen bonus
+    if not findbuff "food satisfaction" and findtype "tray" backpack as food
+        overhead 'A quick bite before the next casting.' 58
+        dclick food
+        pause 500
+    endif
+
+    # CASTING: hurl Flamestrike at the locked-in target
+    overhead 'Feel the wrath of the inferno!' 32
+    cast "Flamestrike"
+    waitfortarget 5000
+    target trainTarget
+
+    # Small delay between cycles to prevent lag or macro stuttering
+    pause 400
+endwhile
+
+# ----------------------------------------------------
+# TRAINING COMPLETE
+# ----------------------------------------------------
+overhead "The flames have forged a true archmage!" 88

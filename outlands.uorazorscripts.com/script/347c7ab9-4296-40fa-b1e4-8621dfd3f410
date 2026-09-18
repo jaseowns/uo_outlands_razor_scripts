@@ -1,0 +1,106 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/347c7ab9-4296-40fa-b1e4-8621dfd3f410 for latest
+# Automation by Jaseowns
+## Script: [80-120] Hiding and Stealth Trainer with Break (in Town)
+## Created by: neous_#0
+#############################################
+
+# Name: Thief-Mage Hiding and Stealth Trainer with Break Stealth (Town)
+# Author: Neous
+# UO Outlands
+# Description: Trains Hiding and/or Stealth, each independently toggleable with its own cap. RPG-flavored overheads throughout, runs break_stealth automatically on success. Checks hidden state before every action to avoid wasted attempts.
+# Requirements: None
+# Hotkey: Any, meant to run continuously in a loop
+# Hint: Make sure only ONE copy is running at a time. Do not be in a house or inn room. Caps use "<", default 101 means "train up to 100.0".
+#
+# VERSION: 1.3
+# CHANGELOG
+# 09/16/2026 (later still):
+# - Added 1 second cooldown at the very end of every loop cycle to smooth out server lag
+# 09/16/2026 (later):
+# - Hiding block now skips useskill if already hidden
+# - Stealth block now hides first if not already hidden, before attempting stealth
+# - Break stealth taunt block now only fires if still hidden after the stealth attempt (confirms it actually succeeded)
+# 09/16/2026:
+# - Hiding cooldown changed from 10000 to 12000 (11-12s needed due to server lag)
+# - Removed stealth steps remaining overhead system (moving to Display/Counters or Skills tab instead)
+# 09/15/2026:
+# - Initial version with toggles, caps, and break_stealth integration
+
+@setvar! hideEnabled 1
+@setvar! stealthEnabled 1
+@setvar! hidingCap 101
+@setvar! stealthCap 101
+
+while not dead
+    if hideEnabled = 0 and stealthEnabled = 0
+        overhead 'My thieving days here are done. Off to the next score.' 177
+        stop
+    endif
+
+    if hideEnabled = 1
+        if skill 'hiding' < hidingCap
+            if not hidden
+                clearsysmsg
+                overhead 'Melting into the shadows...' 90
+                useskill 'Hiding'
+                wait 12000
+
+                if insysmsg 'fail to hide'
+                    overhead 'The shadows dont want me yet. Again.' 33
+                else
+                    overhead 'Gone. Not even my own shadow saw that.' 68
+                endif
+            else
+                overhead 'Already cloaked.' 63
+            endif
+        else
+            @setvar! hideEnabled 0
+            overhead 'Hiding mastered.' 63
+        endif
+    endif
+
+    if stealthEnabled = 1
+        if skill 'stealth' < stealthCap
+            if not hidden
+                clearsysmsg
+                overhead 'Need cover before I can vanish...' 90
+                useskill 'Hiding'
+                wait 12000
+            endif
+
+            if hidden
+                clearsysmsg
+                overhead 'Weaving a whisper of silence into my steps...' 90
+                useskill 'Stealth'
+                wait 10000
+
+                if insysmsg 'must hide first' or insysmsg 'fail in your attempt to move unnoticed'
+                    overhead 'Blew my own cover like an amateur. Again.' 33
+                elseif hidden
+                    overhead 'A perfect ghost-step. The city never saw me.' 68
+
+                    random 4
+                    if insysmsg 'Random: 1'
+                        say 'Boo!!!'
+                    elseif insysmsg 'Random: 2'
+                        say 'Surprise Motherf*ck*r'
+                    elseif insysmsg 'Random: 3'
+                        say "Don't run baby"
+                    elseif insysmsg 'Random: 4'
+                        say 'Trick or treat!'
+                    endif
+                else
+                    overhead 'Got made somehow. No taunt earned this round.' 33
+                endif
+            else
+                overhead 'Couldnt find cover, skipping stealth this round' 33
+            endif
+        else
+            @setvar! stealthEnabled 0
+            overhead 'Stealth mastered. Even the wind envies my step.' 63
+        endif
+    endif
+
+    overhead 'Back to the shadows for another round...' 43
+    wait 1000
+endwhile

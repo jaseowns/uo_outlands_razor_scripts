@@ -95,7 +95,6 @@
 
         # gardeningSpecialSeedList: changes to the list items are only necessary if you set gardeningAutoPlantNewSeed to 2 or 3
         # Comment out seed types you do not want to be handled as rare (select line/s -> right click -> comment, or put a # at the beginning of the line):
-        pushlist gardeningSpecialSeedList "zucchini seeds"
         pushlist gardeningSpecialSeedList "stalag seed"
         pushlist gardeningSpecialSeedList "dungeon seed"
         pushlist gardeningSpecialSeedList "mushroom spore"
@@ -135,8 +134,9 @@
 //////////////////////////////
 // 
 // Changelog
-// - Update 19-Sep-2026:      Add zucchini seeds
-// - Update 12-Jul-2026:      Add stalag seeds
+// - 26-Sep-2026: Remove zucchini seeds, add warning message when system message filter active
+// - 19-Sep-2026: Add zucchini seeds
+// - 12-Jul-2026: Add stalag seeds
 //
 //////////////////////////////
 
@@ -144,12 +144,13 @@ setvar! gardeningPlantGumpID 3224608375
 setvar! gardeningMinWaitForServerResponse 200
 setvar! gardeningMaxWaitForServerResponse 1000
 setvar! gardeningWaitForObjectDelay 600
+setvar! gardeningTimeout 5000
 
-setvar! cGreen 68
-setvar! cLightBlue 100
+setvar! cGreen        68
+setvar! cLightBlue   100
 setvar! cLightOrange 145
-setvar! cRed 33
-setvar! cYellow 55
+setvar! cRed          33
+setvar! cYellow       55
 
 if gardeningDebugMode > 0
     settimer gardeningRunTimer 0
@@ -168,9 +169,9 @@ if not varexist gardeningDone or gardeningDone = 1
 else
     settimer gardeningRestartTimer 0
     overhead "|* Resuming gardening *|" cGreen
-    sysmsg "|* Resuming gardening *|" cGreen
+    sysmsg   "|* Resuming gardening *|" cGreen
     overhead "|* Replay to start fresh *|" cLightOrange
-    sysmsg "|* Replay within 10s to start fresh *|" cLightOrange
+    sysmsg   "|* Replay within 10s to start fresh *|" cLightOrange
 endif
 
 while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|6328|4551|6327|4550 ground -1 -1 gardeningRange
@@ -279,7 +280,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
             //Seed already planted
         elseif gardeningAutoPlantNewSeed >= 4
             //Leave pot empty
-        elseif gumpexists gardeningPlantGumpID and findtype "seed of renewal|bag of seeds|dungeon seed|mushroom spore|stalag seed|zucchini seeds" backpack and not insysmsg! "That plant bowl is too far away."
+        elseif gumpexists gardeningPlantGumpID and findtype "seed of renewal|bag of seeds|dungeon seed|mushroom spore|stalag seed" backpack and not insysmsg! "That plant bowl is too far away."
             //Set seed to plant
             if gardeningDebugMode > 0 
                 sysmsg "[Gardening] Trying to plant new seed (gardeningAutoPlantNewSeed: {{gardeningAutoPlantNewSeed}}, Timer: {{gardeningRunTimer}} ms)" cLightBlue
@@ -336,10 +337,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                         setvar! gardeningSpecialPlanter 0
                     endif
                     if gardeningSpecialPlanter = 1
-                        if inlist gardeningSpecialSeedList "zucchini seeds" and findtype "zucchini seeds" backpack as myNewSeed
-                            //Set zucchini seed (event)
-                            setvar! gardeningSeedToPlant myNewSeed
-                        elseif inlist gardeningSpecialSeedList "stalag seed" and findtype "stalag seed" backpack as myNewSeed
+                        if inlist gardeningSpecialSeedList "stalag seed" and findtype "stalag seed" backpack as myNewSeed
                             //Set stalag seed (event)
                             setvar! gardeningSeedToPlant myNewSeed
                         elseif inlist gardeningSpecialSeedList "dungeon seed" and findtype 51098 backpack as myNewSeed
@@ -384,10 +382,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                         endif   
                     else
                         //low tier planter, plant low tier seed
-                        if not inlist gardeningSpecialSeedList "zucchini seeds" and findtype "zucchini seeds" backpack as myNewSeed
-                            //Set zucchini seed (event)
-                            setvar! gardeningSeedToPlant myNewSeed                        
-                        elseif not inlist gardeningSpecialSeedList "stalag seed" and findtype "stalag seed" backpack as myNewSeed
+                        if not inlist gardeningSpecialSeedList "stalag seed" and findtype "stalag seed" backpack as myNewSeed
                             //Set stalag seed (event)
                             setvar! gardeningSeedToPlant myNewSeed                        
                         elseif not inlist gardeningSpecialSeedList "dungeon seed" and findtype 51098 backpack as myNewSeed
@@ -440,10 +435,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                 //Seed already set
             elseif gardeningAutoPlantNewSeed = 3 and gardeningSpecialPlanter = 1 or gardeningAutoPlantNewSeed = 1
                 //Select all types of seeds
-                if findtype "zucchini seeds" backpack as myNewSeed
-                    //Set zucchini seed (event)
-                    setvar! gardeningSeedToPlant myNewSeed                
-                elseif findtype "stalag seed" backpack as myNewSeed
+                if findtype "stalag seed" backpack as myNewSeed
                     //Set stalag seed
                     setvar! gardeningSeedToPlant myNewSeed
                 elseif findtype 51098 backpack as myNewSeed
@@ -507,6 +499,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
         
         if "% grown" in myFlowerPotLabel or insysmsg "You plant a seed."
             if gumpexists gardeningPlantGumpID and not insysmsg! "That plant bowl is too far away."            
+                
                 //Add water and soil
                 if findtype 25570|56416|56417 backpack
                     setvar! gardeningWaterDone 0
@@ -524,11 +517,14 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                         sysmsg "[Gardening] No soil found (Timer: {{gardeningRunTimer}} ms)" cLightBlue
                     endif
                 endif
+                
                 //Heat
                 if gardeningIgnoreHeatLevel = 0 and findtype 29868 backpack and gumpexists gardeningPlantGumpID and not insysmsg! "That plant bowl is too far away."
                     gumpresponse 3 gardeningPlantGumpID
                     waitforgump gardeningPlantGumpID gardeningMaxWaitForServerResponse
                 endif
+                
+                settimer gardeningSafetyTimer 0
                 while gardeningWaterDone != 1 or gardeningSoilDone != 1
                     if gardeningDebugMode > 0
                         sysmsg "[Gardening] Optimizing Soil&Water (Loop-Index: {{index}}, WaterDone: {{gardeningWaterDone}}, SoilDone: {{gardeningSoilDone}}, Timer: {{gardeningRunTimer}} ms)" cLightBlue
@@ -641,6 +637,12 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                             endif
                             setvar! gardeningSoilDone 1
                         endif
+                        if timer gardeningSafetyTimer > gardeningTimeout
+                            overhead "Optimization is taking long" cRed
+                            overhead "Make sure repeating system"  cYellow
+                            overhead "messages are not filtered"   cYellow
+                            settimer gardeningSafetyTimer 0
+                        endif
                     else
                         if gardeningDebugMode > 1
                             sysmsg "[Gardening] Soil&Water ... plant gump not found break (Timer: {{gardeningRunTimer}} ms)" cLightBlue
@@ -648,6 +650,7 @@ while findtype 6341|56413|56415|56408|56410|28987|6338|6335|6337|6333|6334|6330|
                         break
                     endif
                 endwhile
+
                 //Work buffs and debuffs
                 if findtype 6187|6193|29343|20500|20499|20498|28719|11942|28741|29217|19403|4154|20503|20502|20501 backpack and not insysmsg! "That is not a plant seed." and not insysmsg! "That plant bowl is too far away."
                     //Remove debuffs
@@ -1341,6 +1344,7 @@ removetimer gardeningOverheadTimer
 removetimer gardeningRunTimer
 removetimer gardeningMinWaitTimer
 removetimer gardeningRestartTimer
+removetimer gardeningSafetyTimer
 removelist gardeningSelectiveBuffList
 removelist gardeningSpecialSeedList
 removelist gardeningSpecialPlanterList

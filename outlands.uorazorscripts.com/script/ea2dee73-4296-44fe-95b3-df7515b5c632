@@ -1,0 +1,97 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/ea2dee73-4296-44fe-95b3-df7515b5c632 for latest
+# Automation by Jaseowns
+## Script: Chivalry-Gate Escape
+## Created by: nev0r#0
+#############################################
+
+//////////////////////////////////////////
+//
+// Chivalry-Gate Escape 
+//
+// - Opens and/or uses a chivalry gate to your custom destination
+// - 'READ BEFORE USE:' server system messages are needed to determine necessary actions, make sure they are not filtered for scripts: 
+//      Razor -> Filters -> Text&Messages ->
+//      - 'Uncheck Filter repeating system messages'
+//      - 'Enable text filter' and 'Filter system messages' (list entry sub-menu) can be checked, however 'Ignore filtered messages in overhead and scripts' (list entry sub-menu) has to be unchecked
+//
+//////////////////////////////////////////
+
+//Set variables
+setvar! chivDestinationGump  1482653814
+setvar! gateConfirmGump      3899019871
+
+setvar!  chivOverheadCD 1000
+settimer chivOverheadTimer chivOverheadCD
+
+setvar! globalWait 500
+
+setvar! cError    37
+setvar! cWarning  53
+setvar! cInfo    100
+
+//Prerequisite validation
+if skill "Chivalry" < 95 or skill "Tactics" < 90
+   setvar! chivCantGate 1
+elseif not findtype "paladin spellbook" backpack
+   @clearignore 
+   if not findtype "paladin spellbook" backpack
+      setvar! chivCantGate 2
+   endif
+else
+   setvar! chivCantGate 0
+endif
+
+if mounted
+    setvar! chivGateSearchRange 12
+else
+    setvar! chivGateSearchRange 6
+endif
+
+//Clear relevant system messages from our log
+if insysmsg "before you may use that ability again" or insysmsg "You do not have enough holy symbols for that ability." or insysmsg "You receive a Sacred Journey damage bonus of" or insysmsg "You have been in combat too recently to use that ability." or insysmsg "A mysterious force prevents your spell from working here."
+endif
+gumpclose gateConfirmGump
+
+//Go for it
+while not dead
+   if insysmsg "You receive a Sacred Journey damage bonus of"
+      break
+   elseif findtype "moongate" ground 2091 -1 1 as myChivGate and gumpexists gateConfirmGump
+      gumpresponse 2 gateConfirmGump
+   elseif findtype "moongate" ground 2091 -1 1 as myChivGate
+      dclick myChivGate
+   elseif chivCantGate > 0 and findtype "moongate" ground 2091 -1 18 as myChivGate or findtype "moongate" ground 2091 -1 chivGateSearchRange as myChivGate
+      if timer chivOverheadTimer > chivOverheadCD 
+        overhead "Go to gate" cInfo
+        overhead " Gate"      cInfo myChivGate
+        overhead "  ¼  "      cInfo myChivGate
+        settimer chivOverheadTimer 0
+      endif
+   elseif chivCantGate = 1
+      overhead "Skill too low to use Sacred Journey" cError
+      break
+   elseif chivCantGate = 2
+      overhead "We need a chiv book!" cError
+      break
+   elseif gumpexists chivDestinationGump
+      gumpresponse 4 chivDestinationGump
+   elseif insysmsg "You must wait another 30 seconds before you may use that ability again"
+      //Prevent wrong overhead info
+   elseif insysmsg "before you may use that ability again" or insysmsg "You do not have enough holy symbols for that ability."
+      overhead "Sacred Journey not ready" cWarning
+      wait globalWait
+   elseif insysmsg "You have been in combat too recently to use that ability."
+      overhead "You have been in combat too recently to use Sacred Journey. Wait..." cWarning
+      wait globalWait
+   elseif insysmsg "A mysterious force prevents your spell from working here."
+      overhead "A mysterious force prevents your spell from working here. Move..." cWarning
+      wait globalWait
+   else
+      hotkey "Sacred Journey"
+      getlabel backpack waitForPing
+   endif
+endwhile
+
+//Clean up
+waitforgump gateConfirmGump globalWait
+gumpclose gateConfirmGump

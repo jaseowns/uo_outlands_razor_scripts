@@ -8,7 +8,7 @@
 #
 # "WARNING"  It is important to name this script correctly - Bapeths Noxy Background
 #
-# July 4th - Fixed spell queues for mages
+# Oct 5th: Removed Cleansing Brew Routine
 #
 ##########################################################################################################################################################################
 # "What it does"
@@ -18,7 +18,7 @@
 # Poison Weapon
 # Bandage
 # Recycle (Use container ID wand and open "Party Menu" to activate)
-# Utility (Buff pots, Red Pots, Cleansing Brew [Warmode], Pop Pouch when paralyzed, Cure Potion, Warn when reflect/reactive needed, Eat Food)
+# Utility (Buff pots, Red Pots, Pop Pouch when paralyzed, Cure Potion, Warn when reflect/reactive needed, Eat Food)
 # Heal Potion (Muse be set to on below)
 # Equip Hands
 # "Bane" when ticks are above 3
@@ -92,7 +92,7 @@
 @setvar! "MissingHitPoints" 35
 #
 # (0 = off 1 = on)
-@setvar! "AutoHealPotion" 0
+@setvar! "AutoHealPotion" 1
 #
 ##########################################################################################################################################################################
 #
@@ -161,7 +161,19 @@
 # AUTO EXPLODE POTION
 @setvar! "AutoExplodePotion" 1
 #
-#########################################################################################################################################
+###########################################################################################################################################################################
+#
+# "Select Weapon Abilty"
+#
+# Select one of the following weapon abilities to auto use while in active combat (warmode on)
+# Place a 1 next to the ability you want to use - default is Weapon Ability 2 (pooner scourge)
+# Make sure you only set one of the abilities to a value of 1 - the others must be 0
+# 
+# AUTO WEAPON ABILITY
+@setvar! "WeaponAbilityOne" 0
+@setvar! "WeaponAbilityTwo" 0
+@setvar! "WeaponAbilityThree" 1
+##############################################################################################################################################################################################################
 #
 # "Auto-Recycler"
 # This feature will auto recycle bad items and keep the good ones - To use this feature:
@@ -174,51 +186,14 @@
 # To toggle this feature on/off (default is off) "Double click a Wizard Grimoire"
 #
 # Script starts here...
-
 if casting 
     while casting 
         //donothing
     endwhile
 endif
 
-// Auto Purple Potion
-if find "Manual Override" ground -1 -1 12 and not casting and not targetexists and not cooldown "Explosion Potion" and "AutoExplodePotion" = 1 and skill "Alchemy" >= 80 and findtype "Purple Potion" self as bapurp
-    clearsysmsg 
-    hotkey "Cancel Current Target"
-    skill "Begging"
-    wft 500
-    target "Manual Override"
-    getlabel "Manual Override" potdesc
-    if insysmsg "Target cannot be seen"
-        //donothing
-    elseif "Boss" in potdesc
-        hotkey "Cancel Current Target"
-        dclick bapurp
-        wft 500
-        target "Manual Override"
-        hotkey "Cancel Current Target"
-    elseif "Summoned by" in potdesc
-        hotkey "Cancel Current Target"
-        dclick bapurp
-        wft 500
-        target "Manual Override"
-        hotkey "Cancel Current Target"
-    endif
-endif
-// End of Auto Purple Potion
-
-//Auto Healing Potion Routine
-if "AutoHealPotion" = 1 and not cooldown "Heal Bandolier" and diffhits > "MissingHitPoints" and findtype "Yellow Potion" backpack as BapHealPot
-    while queued
-        //dn
-    endwhile
-    dclick BapHealPot
-    getlabel backpack ping
-endif
-//End of Auto Healing Potion Routine
-
 //Necro Routine
-if skill "Necromancy" >= 50
+if skill "Necromancy" >= 75
     if not findbuff "Mind Rot" 
         say "[mindrot"
         getlabel backpack ping
@@ -226,28 +201,8 @@ if skill "Necromancy" >= 50
 endif
 // End of Necro Routine
 
-// Auto Craft Gheal Pot Routine (Dex Only)
-if skill "Alchemy" >= 90 and skill "Magery" <= 20 and counttype 3854 >= 25 and counttype "Ginseng" >= 150 and findtype 3739 backpack as bapmortor
-    if not timerexists bapgrindreg
-        createtimer bapgrindreg
-        settimer bapgrindreg 3000
-    endif
-    if timer bapgrindreg >= 3000
-        settimer bapgrindreg 0
-        dclick bapmortor
-        waitforgump 949095101 500
-        gumpresponse 100 949095101
-        waitforgump 949095101 500
-        gumpresponse 205 949095101
-    endif
-endif
-if gumpexists 949095101
-    gumpclose 949095101
-endif
-// End of Auto Craft Gheal Pot Routine (Dex Only)
-
 //Auto Poison Cast Routine
-if warmode and skill "Magery" >= 50 and skill "Poisoning" >= 80
+if warmode and skill "Magery" >= 50 and skill "Poisoning" >= 101
     while not dead
         for 99 
             if not targetexists 
@@ -266,7 +221,16 @@ if warmode and skill "Magery" >= 50 and skill "Poisoning" >= 80
                 elseif "summoned" in desc
                     break
                 else
-                    wft 1400
+                    while casting 
+                        if not warmode 
+                            if casting 
+                                hotkey '> Interrupt'
+                            endif
+                            hotkey "Cancel Current Target"
+                            replay
+                        endif        
+                    endwhile
+                    wft 500
                     target noxtarget
                     pause 150
                     break
@@ -303,6 +267,177 @@ if warmode and skill "Magery" >= 50 and skill "Poisoning" >= 80
 endif
 // End of Auto Poison Cast Routine
 
+if skill "Chivalry" >= 80 and not gumpexists 1387930325
+    say [chivalryhotbar
+    getlabel backpack ping
+endif
+
+if skill "Chivalry" >= 80 and not timerexists chivab
+    if ingump '20/' 1387930325
+        createtimer chivab
+    elseif ingump '19/' 1387930325
+        createtimer chivab
+    elseif ingump '18/' 1387930325
+        createtimer chivab
+    elseif ingump '17/' 1387930325
+        createtimer chivab
+    elseif ingump '16/' 1387930325
+        createtimer chivab
+    elseif ingump '15/' 1387930325
+        createtimer chivab
+    elseif ingump '14/' 1387930325
+        createtimer chivab
+    elseif ingump '13/' 1387930325
+        createtimer chivab
+    elseif ingump '12/' 1387930325
+        createtimer chivab
+    elseif ingump '11/' 1387930325
+        createtimer chivab
+    endif
+endif
+if skill "Chivalry" >= 80 and timerexists chivab and find "Manual Override" ground -1 -1 3
+    if not hidden and not findbuff "Enemy of One"
+        say '[EnemyofOne'
+        pause 550
+    endif
+    removetimer chivab
+endif
+if skill "Chivalry" >= 80 and find "Manual Override" ground -1 -1 3
+    if not hidden and not findbuff "Divine Fury"
+        say '[DivineFury'
+        pause 550
+    endif
+
+    if not hidden and not findbuff "Consecrate Weapon"
+        say '[ConsecrateWeapon'
+        pause 550
+    endif
+    removetimer chivab
+endif
+if skill "Chivalry" >= 80 and not timerexists chivab
+    if ingump '20/' 1387930325
+        createtimer chivab
+    elseif ingump '19/' 1387930325
+        createtimer chivab
+    elseif ingump '18/' 1387930325
+        createtimer chivab
+    elseif ingump '17/' 1387930325
+        createtimer chivab
+    elseif ingump '16/' 1387930325
+        createtimer chivab
+    elseif ingump '15/' 1387930325
+        createtimer chivab
+    elseif ingump '14/' 1387930325
+        createtimer chivab
+    elseif ingump '13/' 1387930325
+        createtimer chivab
+    elseif ingump '12/' 1387930325
+        createtimer chivab
+    elseif ingump '11/' 1387930325
+        createtimer chivab
+    endif
+endif
+if skill "Chivalry" >= 80 and timerexists chivab and find "BapStabTarget" ground -1 -1 3
+    if not hidden and not findbuff "Enemy of One"
+        say '[EnemyofOne'
+        pause 550
+    endif
+    removetimer chivab
+endif
+if skill "Chivalry" >= 80 and find "BapStabTarget" ground -1 -1 3
+    if not hidden and not findbuff "Divine Fury"
+        say '[DivineFury'
+        pause 550
+    endif
+
+    if not hidden and not findbuff "Consecrate Weapon"
+        say '[ConsecrateWeapon'
+        pause 550
+    endif
+    removetimer chivab
+endif
+
+// Auto Purple Potion
+if find "Manual Override" ground -1 -1 12 and not casting and not targetexists and not cooldown "Explosion Potion" and "AutoExplodePotion" = 1 and skill "Alchemy" >= 80 and findtype "Purple Potion" self as bapurp
+    clearsysmsg 
+    hotkey "Cancel Current Target"
+    skill "Begging"
+    wft 500
+    target "Manual Override"
+    getlabel "Manual Override" potdesc
+    if insysmsg "Target cannot be seen"
+        //donothing
+    elseif "Boss" in potdesc
+        hotkey "Cancel Current Target"
+        dclick bapurp
+        wft 500
+        target "Manual Override"
+        hotkey "Cancel Current Target"
+    elseif "Summoned by" in potdesc
+        hotkey "Cancel Current Target"
+        dclick bapurp
+        wft 500
+        target "Manual Override"
+        hotkey "Cancel Current Target"
+    endif
+endif
+// End of Auto Purple Potion
+
+//Auto Healing Potion Routine
+if not findbuff "Actively Meditating" and not hidden and not targetexists and "AutoHealPotion" = 1 and not cooldown "Heal Potion" and diffhits > "MissingHitPoints" and findtype "Yellow Potion" backpack as BapHealPot
+    while queued
+        //dn
+    endwhile
+    dclick BapHealPot
+    getlabel backpack ping
+endif
+//End of Auto Healing Potion Routine
+
+
+// Auto Craft Gheal Pot Routine (Dex Only)
+if skill "Alchemy" >= 90 and skill "Magery" <= 20 and counttype 3854 >= 25 and counttype "Ginseng" >= 150 and findtype 3739 backpack as bapmortor
+    if not timerexists bapgrindreg
+        createtimer bapgrindreg
+        settimer bapgrindreg 3000
+    endif
+    if timer bapgrindreg >= 3000
+        settimer bapgrindreg 0
+        dclick bapmortor
+        waitforgump 949095101 500
+        gumpresponse 100 949095101
+        waitforgump 949095101 500
+        gumpresponse 205 949095101
+    endif
+endif
+if gumpexists 949095101
+    gumpclose 949095101
+endif
+// End of Auto Craft Gheal Pot Routine (Dex Only)
+
+//Wep Ability Routine
+if skill "Poisoning" >= 80 and skill "Tactics" >= 80
+    //do nothing
+else
+    if cooldown "Weapon Ability Ready"
+        createtimer BapWepAbilityReady
+        cooldown "Weapon Ability Ready" 0
+    endif
+
+    if timerexists BapWepAbilityReady
+        if "WeaponAbilityOne" = 1
+            say "[WeaponAbility1"
+        endif
+        if "WeaponAbilityTwo" = 1
+            say "[WeaponAbility2"
+        endif
+        if "WeaponAbilityThree" = 1
+            say "[WeaponAbility3"
+        endif
+        removetimer BapWepAbilityReady
+    endif
+endif
+//End of Wep Ability Routine
+
 // Poison Weapon Routine
 if skill "Fencing" >= 80 or skill "Swordsmanship" >= 80 or skill "Dual Wielding" >= 80
     if not timerexists BapCheckWeaponCoating
@@ -313,7 +448,13 @@ if skill "Fencing" >= 80 or skill "Swordsmanship" >= 80 or skill "Dual Wielding"
         settimer BapCheckWeaponCoating 0
         if findlayer self righthand as rhand
             getlabel rhand desc
-            if "lethal" in desc
+            if "(0." in desc
+                skill "Poisoning"
+                wft 500
+                target noxpot
+                wft 500
+                target rhand
+            elseif "lethal" in desc
                 //donothing
             else
                 skill "Poisoning"
@@ -324,14 +465,20 @@ if skill "Fencing" >= 80 or skill "Swordsmanship" >= 80 or skill "Dual Wielding"
             endif
         elseif findlayer self lefthand as lhand
             getlabel lhand desc
-            if "lethal" in desc
+            if "(0." in desc
+                skill "Poisoning"
+                wft 500
+                target noxpot
+                wft 500
+                target rhand
+            elseif "lethal" in desc
                 //donothing
             else
                 skill "Poisoning"
                 wft 500
                 target noxpot
                 wft 500
-                target lhand
+                target rhand
             endif
         endif
     endif
@@ -457,6 +604,12 @@ if "DisarmEquip" = 1
         pause 500
         getlabel backpack ping
     endif
+    if not find "mylefthanditem" self
+        @unsetvar "mylefthanditem"
+    endif
+    if not find "myrighthanditem" self
+        @unsetvar "myrighthanditem"
+    endif
 endif
 // End of Auto Re-equip after disarm routine
 
@@ -527,7 +680,6 @@ if skill "Parrying" >= 80
                         say "[ShieldsStance5"
                     endif
                     getlabel backpack ping
-                    say "[ShieldsFinisher1" 45
                 endif
             elseif "Testudo" in desc
                 overhead "--Testudo Stance--" 2503
@@ -570,7 +722,6 @@ if skill "Parrying" >= 80
         createtimer bleedbuffcheck
         say "[ShieldsStance2" 45
         getlabel backpack ping
-        say "[ShieldsFinisher2" 45
     elseif timerexists bleedbuffcheck and not findbuff "Bleed" and not findbuff "Diseased" and mana >= 3
         removetimer bleedbuffcheck
         pause 800
@@ -585,14 +736,12 @@ if skill "Parrying" >= 80
             say "[ShieldsStance5"
         endif
         getlabel backpack ping
-        say "[ShieldsFinisher1" 45
     endif
     if not timerexists diseasebuffcheck and findbuff "Diseased" and not findbuff "Bleed" and mana >= 3
         removetimer bullwarkactive
         createtimer diseasebuffcheck
         say "[ShieldsStance2" 45
         getlabel backpack ping
-        say "[ShieldsFinisher2" 45
     elseif timerexists diseasebuffcheck and not findbuff "Diseased" and not findbuff "Bleed" and mana >= 3
         removetimer diseasebuffcheck
         pause 800
@@ -607,7 +756,6 @@ if skill "Parrying" >= 80
             say "[ShieldsStance5"
         endif
         getlabel backpack ping
-        say "[ShieldsFinisher1" 45
     endif
     if timerexists baptrapbullwark and mana >= 3
         if not findbuff "Diseased" and not findbuff "Bleed" and not timerexists defaultstance and timer baptrapbullwark <= 10000
@@ -694,34 +842,6 @@ if skill "Magery" >= 40
         createtimer protection
     endif
 endif
-if warmode and not hidden and not timerexists brew and not targetexists and findbuff "Bleed" and findtype 50675 backpack as cbrew
-    if insysmsg "Weapon Ability Ready"
-        createtimer BapWepAbilityReady
-    endif    
-    clearsysmsg 
-    while queued
-        //donothing
-    endwhile
-    dclick cbrew
-    getlabel backpack ping
-    if insysmsg "You drink a cleansing brew"
-        createtimer brew
-    endif
-elseif warmode and not hidden and not timerexists brew and not targetexists and findbuff "Diseased" and findtype 50675 backpack as cbrew
-    while queued
-        //donothing
-    endwhile
-    dclick cbrew
-    getlabel backpack ping
-    if insysmsg "You drink a cleansing brew"
-        createtimer brew
-    endif
-endif
-if timerexists brew
-    if timer brew >= 120000
-        removetimer brew
-    endif
-endif
 if not hidden and not casting and findbuff "Weaken" and not targetexists and findtype "White Potion" backpack as stpot
     while queued
         //donothing
@@ -798,13 +918,15 @@ if not hidden and paralyzed and not targetexists and findtype "pouch" backpack 3
     say "[Pouch"
     pause 500
 endif
-if not hidden and poisoned and not targetexists and findtype "Orange Potion" self as curepot
-    while queued
-        //donothing
-    endwhile
-    dclick curepot
-    pause 500
-endif
+while poisoned
+    if not hidden and not targetexists and findtype "Orange Potion" self as curepot
+        while queued
+            //donothing
+        endwhile
+        dclick curepot
+        pause 500
+    endif
+endwhile    
 if not targetexists and not casting and not findbuff "Food Satisfaction"
     if findtype 2429|28885|29774|29773|28880|28888|28881|28883|28886|28879 backpack as food
         while queued
@@ -824,9 +946,6 @@ if gumpexists 3527489586 and findtype "3997|4148|4032|7864" backpack as breakdow
         @setvar! "ContainerIDWand" contIDwand
     endif
     if skill "Item ID" = 120 or find "ContainerIDWand" backpack
-        if insysmsg "Weapon Ability Ready"
-            createtimer BapWepAbilityReady
-        endif        
         clearsysmsg 
         while queued
             //donothing
@@ -1024,11 +1143,9 @@ if not timerexists newstabtarget
     createtimer newstabtarget
     settimer newstabtarget 600
 endif
-if not targetexists and not find "Manual Override" and timer newstabtarget >= 600 and skill "Fencing" >= 80
+
+if skill "Magery" <= 50 and not cooldown "PvP" and not targetexists and not find "Manual Override" and timer newstabtarget >= 600
     settimer newstabtarget 0
-    if insysmsg "Weapon Ability Ready"
-        createtimer BapWepAbilityReady
-    endif
     clearsysmsg 
     hotkey 'Target Closest Grey Monster'
     if insysmsg "No one matching"
@@ -1045,7 +1162,7 @@ endif
 if not timerexists baprangecheck
     createtimer baprangecheck
     settimer baprangecheck 1200
-elseif timer baprangecheck >= 1200 and skill "Fencing" >= 80
+elseif timer baprangecheck >= 1200
     settimer baprangecheck 0
     if find "Manual Override" ground
         if find "Manual Override" ground -1 -1 1
@@ -1128,7 +1245,7 @@ endif
 // End of Target Range Overhead Routine
 
 // Auto Attack + Weapon Ability Routine
-if skill "Swordsmanship" >= 80 or skill "fencing" >= 80 or skill "dual wielding" >= 80
+if skill "fencing" >= 80
     if not gumpexists 3954121934
         say '[abilityhotbar'
         waitforgump 3954121934 500
@@ -1139,12 +1256,6 @@ if skill "Swordsmanship" >= 80 or skill "fencing" >= 80 or skill "dual wielding"
         gumpclose 3954121934
     endif
     
-    if find "Manual Override" ground -1 -1 3
-        attack "Manual Override"
-    elseif find "BapStabTarget" ground -1 -1 3
-        attack "BapStabTarget"
-    endif
-    
     if not timerexists OTWepAbility
         createtimer OTWepAbility
         createtimer BapWepAbilityReady
@@ -1153,9 +1264,6 @@ if skill "Swordsmanship" >= 80 or skill "fencing" >= 80 or skill "dual wielding"
     if cooldown "Weapon Ability Ready"
         createtimer BapWepAbilityReady
         cooldown "Weapon Ability Ready" 0
-    endif
-    if insysmsg "Weapon Ability Ready"
-        createtimer BapWepAbilityReady
     endif
     
     if timerexists BapWepAbilityReady
@@ -1216,15 +1324,236 @@ if skill "Swordsmanship" >= 80 or skill "fencing" >= 80 or skill "dual wielding"
         endif    
     endif
 endif
+
+if find "Manual Override" ground -1 -1 18
+    attack "Manual Override"
+elseif find "BapStabTarget" ground -1 -1 3
+    attack "BapStabTarget"
+endif
+
+if skill "Necromancy" >= 55
+    if not timerexists bappoisonstrike
+        createtimer bappoisonstrike
+        settimer bappoisonstrike 31000
+    endif
+    if timer bappoisonstrike > 31000
+        if find "Manual Override" ground -1 -1 3
+            getlabel "Manual Override" noxdesc
+            if "[10" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "Manual Override" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[9" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "Manual Override" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[8" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "Manual Override" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[7" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "Manual Override" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[6" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "Manual Override" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[5" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "Manual Override" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[4" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "Manual Override" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[3" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "Manual Override" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            endif
+        elseif find "BapStabTarget" ground -1 -1 3
+            getlabel "BapStabTarget" noxdesc
+            if "[10" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "BapStabTarget" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[9" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "BapStabTarget" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[8" in noxdesc 
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "BapStabTarget" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[7" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "BapStabTarget" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[6" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "BapStabTarget" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[5" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "BapStabTarget" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[4" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "BapStabTarget" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            elseif "[3" in noxdesc
+                hotkey "Cancel Current Target"
+                say "[PoisonStrike"    
+                wft 500
+                target "BapStabTarget" 
+                getlabel backpack ping
+                settimer bappoisonstrike 0
+            endif        
+        endif    
+    endif
+endif
+
+
+if skill "swordsmanship" >= 80
+    if not gumpexists 3954121934
+        say '[abilityhotbar'
+        waitforgump 3954121934 500
+    endif
+    if ingump "Rend" 3954121934
+        // do nothing
+    else 
+        gumpclose 3954121934
+    endif
+endif
+if skill "fishing" >= 80
+    if not gumpexists 3954121934
+        say '[abilityhotbar'
+        waitforgump 3954121934 500
+    endif
+    if ingump "Scourge" 3954121934
+        // do nothing
+    else 
+        gumpclose 3954121934
+    endif
+endif
+if skill "macing" >= 80
+    if not gumpexists 3954121934
+        say '[abilityhotbar'
+        waitforgump 3954121934 500
+    endif
+    if ingump "Stun" 3954121934
+        // do nothing
+    else 
+        gumpclose 3954121934
+    endif
+endif
+if skill "Dual Wielding" >= 80
+    if not gumpexists 3954121934
+        say '[abilityhotbar'
+        waitforgump 3954121934 500
+    endif
+    if ingump "Knave" 3954121934
+        // do nothing
+    else 
+        gumpclose 3954121934
+    endif
+endif
+if skill "throwing" >= 80
+    if not gumpexists 3954121934
+        say '[abilityhotbar'
+        waitforgump 3954121934 500
+    endif
+    if ingump "Blitz" 3954121934
+        // do nothing
+    else 
+        gumpclose 3954121934
+    endif
+endif
+if skill "wrestling" >= 80
+    if not gumpexists 3954121934
+        say '[abilityhotbar'
+        waitforgump 3954121934 500
+    endif
+    if ingump "Brawl" 3954121934
+        // do nothing
+    else 
+        gumpclose 3954121934
+    endif
+endif
+if skill "archery" >= 80
+    if not gumpexists 3954121934
+        say '[abilityhotbar'
+        waitforgump 3954121934 500
+    endif
+    if ingump "Skirmish" 3954121934
+        // do nothing
+    else 
+        gumpclose 3954121934
+    endif
+endif
+if skill "arcane" >= 80
+    if not gumpexists 3954121934
+        say '[abilityhotbar'
+        waitforgump 3954121934 500
+    endif
+    if ingump "Seeking" 3954121934
+        // do nothing
+    else 
+        gumpclose 3954121934
+    endif
+endif
 // End of Auto Attack + Weapon Ability Routine
 
 if skill "Arms Lore" >= 80 and not timerexists disarmcheck
     createtimer disarmcheck
     settimer disarmcheck 90000
 elseif skill "Arms Lore" >= 80 and timerexists disarmcheck
-    if insysmsg "Weapon Ability Ready"
-        createtimer BapWepAbilityReady
-    endif
     clearsysmsg 
     for 4
         if timer disarmcheck >= 90000
@@ -1244,4 +1573,6 @@ if dead
     createtimer BapWepAbilityReady
     stop
 endif
+
+// End of Peace or Provo Mode overhead indicators
 loop

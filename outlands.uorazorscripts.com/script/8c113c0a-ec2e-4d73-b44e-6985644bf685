@@ -1,13 +1,13 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/8c113c0a-ec2e-4d73-b44e-6985644bf685 for latest
 # Automation by Jaseowns
-## Script: Lord Glacier's Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v3.0.0
+## Script: Lord Glacier's Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v3.0.1
 ## Created by: danstock._98439#0
 #############################################
 
 /////////
-////////                                          Lord Glaciers Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 3.0.0
+////////                                          Lord Glaciers Chill SUMMONER AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 3.0.1
 ///////
-//////                                                  UO Outlands Razor script - Released Sept 17, 2025 - Last updated October 8, 2026
+//////                                                  UO Outlands Razor script - Released Sept 17, 2025 - Last updated October 9, 2026
 /////                                                       Compiled by DanStock. (aka. Lord Glacier)
 ////
 ///
@@ -63,6 +63,8 @@
     //'    CHANGE LOG:    '//
     /////////////////////////
 
+#       Oct 09 2026 - version 3.0.1:  There is always something to improve... Added checks for LootBag and Escape Runebook outside of script setup/reset and will now prompt to target new if not found
+#                                     Also added summon detection check to Auto Recall Dispel Summons (will only cast if followers are found - in case your summons do not recall properly)
 #       Oct 08 2026 - version 3.0.0:  BIG UPDATE: Completely reworked the summoning system (detection, naming and combat improvements), improved Crook detection/activation and simplified variables
 #                                     Also totally overhauled the offensive magery options with new Opening spells and Large, Medium and Small Damage loops based on mana/variable settings
 #                                     Improved targeting and attacking responsiveness as well as defensive efficiency improvements to improve safety (everything just works better)
@@ -84,7 +86,7 @@
 #       May 20 2026 - version 1.1.7:  Fixed bug when filling pots from kegs if one of the types was set to '0'
 #       Jan 05 2026 - version 1.1.6:  Minor updates to the reagent splitter and potion keg sections and more summon creature tweaks
 #       Jan 04 2026 - version 1.1.5:  Added poison potion option to keg filling and added skinning to dungeon escape loop
-#       Jan 03 2026 - version 1.1.4:  Fixed a coding error (double "if" on line 6185 of 1.1.3) and added a Storage Tome Container variable to the Auto Recall section
+#       Jan 03 2026 - version 1.1.4:  Fixed a coding error (double 'if' on line 6185 of 1.1.3) and added a Storage Tome Container variable to the Auto Recall section
 #       Dec 12 2025 - version 1.1.3:  Everything seems to work now!  One final tweak to the escape loop and I think it is done... email any bugs to dan@danstockman.com
 #       Dec 11 2025 - version 1.1.2:  Still having issues with advanced Summon Creature loop.  Hoping it is better now (also fixed timing issues with g.heal spell)
 #       Dec 10 2025 - version 1.1.1:  Last update was a mess... tons of errors.  I think I sorted it all out.
@@ -107,11 +109,12 @@
     //'    TIPS:    '//
     ///////////////////
 
-#         IMPT: FIRST RUN OF SCRIPT SHOULD BE DONE IN HOUSE/INN ROOM AND TAKES ROUGHLY 15 SECONDS TO COMPLETE INITIAL (ONE TIME) SETUP!
-#             Initial setup can be redone by setting 'ResetScriptPermanentVariables' variable to '1' below!
-#             Or you can re-target script variables individually in the 'Options' tab above the script
+#       IMPT! (IF USING AUTO RECALL): FIRST RUN OF SCRIPT SHOULD BE DONE IN HOUSE/INN ROOM AND TAKES ROUGHLY 15 SECONDS TO COMPLETE INITIAL (ONE TIME) SETUP!
+#           Initial setup can be redone by setting 'ResetScriptPermanentVariables' variable to '1' below!
+#           Or you can re-target script variables individually in the 'Options' tab above the script
 #
-#       This script will automatically maintain your SUMMONS based on your variable settings below (up to maximum of 5 control slots)
+#
+#       This script will automatically summon and maintain your SUMMONS based on your variable settings below (up to maximum of 5 control slots)
 #       Summons can be either standard elementals or undead summons (based on 'EnableNecroVengefulSpirit' setting below)
 #       Script will automatically detect if your summons have died, been dispelled or timed out and will resummon, rename, etc.
 #       Summons will GUARD by default, KILL when valid target is within attack range or FOLLOW when DUNGEON ESCAPE is triggered (manual or weight)
@@ -163,10 +166,10 @@
 
 
 
-     ###################################################
-    ###    OPTIONAL COOLDOWNS TO ADD IN UO CLIENT:    ###
-    ###               (case sensitive!)               ###
-     ###################################################
+     #####################################################
+    ###'    OPTIONAL COOLDOWNS TO ADD IN UO CLIENT:    '###
+    ###'               (case sensitive!)               '###
+     #####################################################
 
 #         Mushroom
 #         Healing Potion
@@ -194,18 +197,18 @@
 
 
 
-     ###############################
-    ###      USER VARIABLES:      ###
-     ###############################
+     #################################
+    ###'      USER VARIABLES:      '###
+     #################################
 
 
 //////////////////////
 //'   SUMMONING:   '//
 //////////////////////
 
-    ########################
-    #   SET YOUR SUMMONS:  #
-    ########################
+    ##########################
+    #'   SET YOUR SUMMONS:  '#
+    #########################
 
 // Number of summoned pets ('0' '1' or '2' each, etc.):
     @setvar! SummonEarthElemental_or_AncientMummy 0
@@ -221,9 +224,9 @@
         # 'MAXIMUM OF 5 CONTROL SLOTS TOTAL!'
 
 
-    ########################
-    #  NAME YOUR SUMMONS:  #
-    ########################
+    ##########################
+    #'  NAME YOUR SUMMONS:  '#
+    ##########################
 
     @setvar! NameSummonedPets 0
         # If enabled, pets will be named (based on lists below) upon summoning
@@ -413,7 +416,7 @@
 ////////////////////
 
 //  TARGET ATTACKING:  //
-    @setvar! TargetAttackRange 10
+    @setvar! TargetAttackRange 12
         # Set your target auto attack range (1-12 tiles)
         # Targeted grey MOBs within this range will be engaged
         # Grey MOBs will still be targeted and analyzed outside of attack range (up to 12 tiles), but not attacked
@@ -595,7 +598,6 @@
     @setvar! PurplePotionCooldown 15000
     # Uses 'Telekinesis' spell to make new target MOBs sticky first (if Alchemy skill < 80)
 
-
     @setvar! EnableUsePotionKegs 0
         # Will auto fill empty bottles from potion kegs if counts drop below set amounts:
         # Requires potion kegs and empty bottles (pack extra if using explosion potions!)
@@ -608,7 +610,7 @@
             @setvar! StrengthPotionAmount 1
             @setvar! AgilityPotionAmount 1
             @setvar! ResistPotionAmount 1
-            @setvar! ExplosionPotionAmount 5
+            @setvar! ExplosionPotionAmount 1
             @setvar! PoisonPotionAmount 0
         endif
 
@@ -689,7 +691,7 @@
 ///////////////////////////
 
 ##########################
-#      PK TRIGGERS:      #
+#'     PK TRIGGERS:     '#
 ##########################
 
 //  RED RECALL/ESCAPE (w/ TRACKING SKILL):  //
@@ -747,7 +749,7 @@ elseif skill 'Tracking' < 50
 endif
 
 ############################
-#     WEIGHT TRIGGERS:     #
+#'    WEIGHT TRIGGERS:    '#
 ############################
 
     if EnableWeightWarningMessage = 1
@@ -763,17 +765,17 @@ endif
     # Auto Recall or Auto Dungeon Gating will be triggered if 'RedWeightLimitDiffWeight' is reached (set above)
     # Auto Recall can also be triggered (optionally) upon successful dungeon gate exit via 'EnableRecallAfterDungeonGate'
 
-############################
-#  RESURRECTION TRIGGERS:  #
-############################
+##############################
+#'  RESURRECTION TRIGGERS:  '#
+##############################
 
     @setvar! EnableRecallAfterResurrection 0
         # Must have [blessed] runebook charged w/ scrolls to recall after resurrection!
 
 
-#########################################################
-####  YOU CAN TRIGGER YOUR OWN RAZOR RECALL SCRIPT:  ####
-#########################################################
+###########################################################
+####'  YOU CAN TRIGGER YOUR OWN RAZOR RECALL SCRIPT:  '####
+###########################################################
 
 # Enable use of your own Razor script for Auto Recall (otherwise script will prompt for a Runebook and use built-in auto recall):
     @setvar! EnableDIYRecallScript 0
@@ -783,9 +785,9 @@ endif
             pushlist DIYRecallScriptList " YOUR RECALL SCRIPT NAME "
 
 
-    ##########################################################
-    ####  OR USE THE BUILT-IN AUTO RECALL/ESCAPE SCRIPT:  ####
-    ##########################################################
+    ############################################################
+    ####'  OR USE THE BUILT-IN AUTO RECALL/ESCAPE SCRIPT:  '####
+    ############################################################
 
         @setvar! EnableCastRecall 1
             # '0' for 'Scrolls in charged Runebook to "first" rune'
@@ -815,7 +817,7 @@ endif
             @setvar! EnableAutoRecallOverheadMessages 1
                 # Controls overhead messages for recall section only
 
-                @setvar! EnableDispelSummonsAfterRecall 1
+                @setvar! EnableDispelSummonsAfterRecall 0
                     # Casts Mass Dispel on your summons after Recall success
                 @setvar! EnableSafeDeposit 0
                     # Will deposit all gold and doubloons found in inventory
@@ -951,9 +953,9 @@ pushlist animalsIgnoreList "ADD MOBS TO IGNORE HERE"
 pushlist animalsIgnoreList "ADD MOBS TO IGNORE HERE"
 
 
-/////////////////////////
-//  END OF VARIABLES!  //
-/////////////////////////
+///////////////////////////
+//'  END OF VARIABLES!  '//
+///////////////////////////
 
 
 
@@ -1763,9 +1765,9 @@ if not dead and diffhits < CastGreaterHealHPdiff and FirstRunSummoner != 1
     if not varexist SummonerAutoPilot
         overhead "Lord Glacier's Chill Summoner Auto Pilot Script" 2234
         # '
-        overhead "version 3.0.0" 88
+        overhead "version 3.0.1" 88
         wait 1500
-        overhead "Last Updated: October 8, 2026" 2663
+        overhead "Last Updated: October 9, 2026" 2663
         wait 2500
         overhead "Thank you for trying my Summoner AUTO PILOT script!  It appears this may be your first time running it..." 0
         wait 4000
@@ -1837,7 +1839,7 @@ if not dead and diffhits < CastGreaterHealHPdiff and FirstRunSummoner != 1
             endif
         endif
 
-        if EnableLootBag = 1 and IHAVEDIED != 1
+        if EnableLootBag = 1
             if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
                 if not varexist LootBag
                     wait 500
@@ -1872,14 +1874,69 @@ if not dead and diffhits < CastGreaterHealHPdiff and FirstRunSummoner != 1
             setvar FirstRunSummoner 1
         endif
 
-        hotkey 'Toggle War Only'
-
         if FirstRunSummoner = 1
+            hotkey 'Toggle War Only'
             break
         endif
     endwhile
 endif
 
+if EnableDIYRecallScript != 1
+    if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
+        if not varexist AutoRecallChargedRunebook
+            wait 500
+            overhead "You have enabled Auto Recall (PK or Weight) and must select a runebook to continue!" 0
+            wait 1500
+            overhead "Select your escape runebook..." 253
+            setvar AutoRecallChargedRunebook
+            wait 500
+            while targetexists
+                wait 100
+            endwhile
+            sysmsg "Will cast to 'default rune' in Runebook (if 'casting' enabled) or uses scrolls to 'first location' in Runebook (if no Magery skill)" 153
+            wait 1500
+        endif
+        if not find AutoRecallChargedRunebook self
+            overhead "[ NO RUNEBOOK FOUND! ]" 337
+            wait 1500
+            overhead "Select your new escape runebook..." 253
+            wait 500
+            setvar AutoRecallChargedRunebook
+            wait 250
+            while targetexists
+                wait 100
+            endwhile
+        endif
+    endif
+endif
+        
+if EnableLootBag = 1 and IHAVEDIED != 1
+    if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
+        if not varexist LootBag
+            wait 500
+            overhead "Please select your loot bag..." 253
+            wait 1000
+            overhead "This should be whatever is set as your 'Grab Bag' and will be opened when unloading loot after recalling..." 0
+            setvar LootBag
+            wait 500
+            while targetexists
+                wait 100
+            endwhile
+        endif
+        if not find LootBag self
+            overhead "[ NO LOOT BAG ]" 337
+            wait 1500
+            overhead "Select your new loot bag..." 253
+            wait 500
+            setvar LootBag
+            wait 250
+            while targetexists
+                wait 100
+            endwhile
+        endif
+    endif
+endif
+        
 
 
 
@@ -2777,7 +2834,6 @@ while not dead
                     clearsysmsg
 
                     if skill 'magery' >= 60 and diffhits >= CastGreaterHealHPdiff and diffhits <= CastHealHPdiff and mana >= 11 and EnableCastGreaterHeal = 1 and not casting and missingGreaterHealRegs != 1
-                        say 'All guard me' 2234
                         @setvar! SpellInterrupted 0
                         cast 'greater heal'
                         getlabel backpack backpacklabel
@@ -2797,7 +2853,6 @@ while not dead
                             target 'self'
                         endif
                     elseif skill 'magery' >= 40 and diffhits >= CastHealHPdiff and diffhits < CastEmergencyHealHPdiff and mana >= 4 and EnableCastHeal = 1 and not casting and missingHealRegs != 1
-                        say 'All guard me' 2234
                         @setvar! SpellInterrupted 0
                         cast 'heal'
                         getlabel backpack backpacklabel
@@ -2817,7 +2872,6 @@ while not dead
                             target 'self'
                         endif
                     elseif skill 'magery' >= 40 and diffhits >= CastEmergencyHealHPdiff and mana >= 4 and EnableCastHeal = 1 and not casting and missingHealRegs != 1
-                        say 'All guard me' 2234
                         while diffhits > CastGreaterHealHPdiff and mana >= 4 and findtype 3972 self and findtype 3973 self and findtype 3974 self and not dead
                             if targetexists
                                 hotkey 'Cancel current target'
@@ -3355,21 +3409,28 @@ while not dead
         endif
 
         if EnableDispelSummonsAfterRecall = 1 and skill "Magery" >= 70 and mana >= 40 and findtype '3962' self and findtype '3972' self and findtype '3974' self and findtype '3980' self and IHAVEDIED != 1 and followers > 0
-            wait 500
-            cast "Mass Dispel"
-            settimer AntiStallTimer 0
-            while not targetexists and timer AntiStallTimer < 2500
-                if timer AntiStallTimer > 2500
-                    settimer AntiStallTimer 0
-                    break
+            if findtype '3|158|14|740|16|306|13|24|15|9|722|727|730|215|211|302|317|225|212|202|213|716|729|51|74|214|206|776|737|718|739|718|29|776|317|302|39|56|26|3|57|50|382|717|736|270|a primordial whelp|an aegis rat|a scorpion|a wolf|a grizzly bear|a brown bear|a corpse eater|a familiar|a rock guar|a flamehound|a swamp spider|a firebat|a sand crab|a black bear|shallow water|a monitor hatchling|a muck|a cougar|a polar bear|a searing lizard|a monitor|a fire salamander|a fire ant|a winter wolf|a jaguar|an aegis mongbat|a silverback|a cave bat|Imp|a primordial|an asp|a cave bear|a giant swamp slug|a minion|an aegis slime|a trapdoor spider|a chameleon|a searing imp|a dragon whelp|a drake whelp|a blood ape|a devilbat|a wolfhound|an army ant|a ruby smallshell|a molten mongbat|an aquamarine smallshell|a stinger|a rime guar|an aegis scorpion|a skulker|a komodo|a shade wolf|a husk crab|a spitting viper|an aegis imp|a vampire bat|a fire minion|a snowdrift|a vampire|a skeleton|a zombie|a skeletal knight|a ghoul|a skeletal mage|a ghost|a skeletal marksman|a rotting flesh ground' -1 -1 2 as MyPet
+                wait 500
+                cast "Mass Dispel"
+                settimer AntiStallTimer 0
+                while not targetexists and timer AntiStallTimer < 2500
+                    if timer AntiStallTimer > 2500
+                        settimer AntiStallTimer 0
+                        break
+                    endif
+                    wait 100
+                endwhile
+                if EnableAutoRecallOverheadMessages = 1
+                    overhead '[ RELEASING SUMMONS... ]' 22
                 endif
-                wait 100
-            endwhile
-            if EnableAutoRecallOverheadMessages = 1
-                overhead '[ RELEASING SUMMONS... ]' 22
-            endif
-            target self
-            wait 500
+                target self
+                wait 500
+            else 
+                if EnableAutoRecallOverheadMessages = 1
+                    overhead '[ NO FOLLOWERS DETECTED! ]' 337
+                endif
+                wait 500
+            endif 
         endif
 
         if HideAtHomeorInn = 1

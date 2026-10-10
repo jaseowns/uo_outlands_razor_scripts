@@ -1,0 +1,872 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/75fdd84f-df5e-4e5b-a2fc-926e6e801af5 for latest
+# Automation by Jaseowns
+## Script: Shagrath BardTamer Helper v1.0
+## Created by: shagrath_x#0
+#############################################
+
+#####################################################################
+# SHAGRATH BARDTAMER HELPER  v1.0
+# Author: Shagrath
+# Shard: UO Outlands - Razor (ClassicUO)
+#
+# Helper for a tamer + bard (tribard) template.
+# Build: Animal Lore 120, Animal Taming 120, Herding 120, Veterinary 120,
+#        Provocation 80, Discordance 80, Peacemaking 80
+#
+# WHAT IT DOES
+# Always on:
+#   vet supplies, potions, food buff, red pouch, weight warning,
+#   bard songs upkeep, keeps the shepherd crook activated,
+#   emergency area peace when your HP drops
+# In war mode only:
+#   auto target, pets re-attack, provocation, discordance, peacemaking
+#
+# SUITE (optional mouse keys, same folder):
+#   sbt_discord, sbt_peace, sbt_peace_area, sbt_provo, sbt_provo_auto
+#   Razor runs one script at a time: each key stops this helper,
+#   plays the skill, then restarts the helper.
+#
+# INSTALL
+#   Save in Scripts\PVM\Bard as shagrath_bardtamer_helper.razor
+#   Another folder: edit the pushlist sbt_Main line after the settings.
+#   After editing: stop the script, reload it, check the version
+#   shown over your head.
+#####################################################################
+
+#####################################################################
+# SETTINGS - change only the values in this section
+# Switches: 1 = on, 0 = off.  Times are in milliseconds.
+#####################################################################
+
+# --- Script ---
+@setvar! sbt_StopWhenHidden 1
+@setvar! sbt_Debug 0
+
+# --- Healing and items ---
+@setvar! sbt_UseVetSupplies 1
+@setvar! sbt_VetSuppliesCD 5000
+@setvar! sbt_UseItemCD 750
+
+# --- Potions ---
+@setvar! sbt_UseCurePotion 1
+@setvar! sbt_CureHpDiff 1
+@setvar! sbt_UseHealPotion 1
+@setvar! sbt_HealHpDiff 35
+@setvar! sbt_UseRefreshPotion 1
+@setvar! sbt_RefreshStamDiff 50
+# Strength and Magic Resist are used only in war mode
+@setvar! sbt_UseStrengthPotion 1
+@setvar! sbt_UseMagicResistPotion 1
+
+# --- Food buff (eats from a tray in the backpack) ---
+@setvar! sbt_UseFood 1
+
+# --- Red pouch ---
+@setvar! sbt_UseRedPouch 1
+@setvar! sbt_PouchThiefAlert 1
+
+# --- Weight ---
+@setvar! sbt_WeightWarn 1
+@setvar! sbt_WeightWarnAtDiff 10
+@setvar! sbt_WeightWarnCD 5000
+# Drops gold on a corpse or on the ground when overweight
+@setvar! sbt_WeightDropGold 1
+@setvar! sbt_WeightDropGoldAmount 200
+
+# --- Weapon ---
+# Re-equips a disarmed weapon. Shepherd crooks are always skipped.
+@setvar! sbt_ReEquipWeapon 1
+
+# --- Bard songs upkeep ---
+@setvar! sbt_SongDiscord 1
+@setvar! sbt_SongPeace 1
+@setvar! sbt_SongProvo 1
+@setvar! sbt_SongRetryCD 10000
+
+# --- Herding ---
+@setvar! sbt_KeepCrookActive 1
+@setvar! sbt_CrookCheckCD 3000
+
+# --- Targeting (war mode) ---
+@setvar! sbt_TargetRange 5
+@setvar! sbt_ReissueAttack 1
+@setvar! sbt_ReissueAttackCD 5000
+@setvar! sbt_ShowTargetMarker 1
+@setvar! sbt_TargetMarkerCD 2000
+
+# --- Barding (war mode) ---
+@setvar! sbt_UseDiscord 1
+@setvar! sbt_UsePeace 1
+@setvar! sbt_UseProvo 1
+# Shared delay between two barding skills
+@setvar! sbt_BardSkillCD 5000
+# Retry delay after You must wait a few moments
+@setvar! sbt_MustWaitRetryCD 1000
+# Do not repeat the same skill on the same creature for this long
+@setvar! sbt_DiscordHoldCD 20000
+@setvar! sbt_PeaceHoldCD 15000
+@setvar! sbt_ProvoHoldCD 20000
+
+# --- Provocation partner search ---
+# Max distance from you of both creatures
+@setvar! sbt_ProvoRange 8
+# Wait this long before searching again when no partner is found
+@setvar! sbt_ProvoRetryCD 3000
+# Creatures out of sight or not provokable are skipped for this long
+@setvar! sbt_ProvoSkipClearCD 20000
+# Number of search tries: edit the number in the line  for 10  below
+
+# --- Emergency area peace (always on) ---
+@setvar! sbt_UseEmergencyPeace 1
+# Triggers when you have lost at least this many hit points
+@setvar! sbt_EmergencyPeaceDiffHits 60
+
+#####################################################################
+# END OF SETTINGS
+#####################################################################
+
+# --- Version banner ---
+@setvar! sbt_Version 10
+if not varexist sbt_ShownVersion
+    @setvar! sbt_ShownVersion 0
+endif
+if sbt_ShownVersion != sbt_Version
+    overhead "Shagrath BardTamer Helper v1.0" 76
+    @setvar! sbt_ShownVersion sbt_Version
+endif
+
+# --- Restart list used by the bard keys ---
+removelist sbt_Main
+createlist sbt_Main
+# If you saved the helper in another folder, edit the path on the next line
+pushlist sbt_Main "Play Script: PVM\Bard\shagrath_bardtamer_helper"
+
+# --- Clean start ---
+@clearignore
+clearsysmsg
+
+# --- Timers (created once, kept when a bard key restarts the helper) ---
+if not timerexists sbt_UseItemTimer
+    settimer sbt_UseItemTimer sbt_UseItemCD
+endif
+if not timerexists sbt_VetSuppliesTimer
+    settimer sbt_VetSuppliesTimer sbt_VetSuppliesCD
+endif
+if not timerexists sbt_WeightWarnTimer
+    settimer sbt_WeightWarnTimer sbt_WeightWarnCD
+endif
+if not timerexists sbt_SongTimer
+    settimer sbt_SongTimer sbt_SongRetryCD
+endif
+if not timerexists sbt_CrookCheckTimer
+    settimer sbt_CrookCheckTimer sbt_CrookCheckCD
+endif
+if not timerexists sbt_ReissueAttackTimer
+    settimer sbt_ReissueAttackTimer sbt_ReissueAttackCD
+endif
+if not timerexists sbt_TargetMarkerTimer
+    settimer sbt_TargetMarkerTimer sbt_TargetMarkerCD
+endif
+if not timerexists sbt_BardSkillTimer
+    settimer sbt_BardSkillTimer sbt_BardSkillCD
+endif
+if not timerexists sbt_BardWaitTimer
+    settimer sbt_BardWaitTimer sbt_MustWaitRetryCD
+endif
+if not timerexists sbt_ProvoRetryTimer
+    settimer sbt_ProvoRetryTimer sbt_ProvoRetryCD
+endif
+if not timerexists sbt_DiscordedTimer
+    settimer sbt_DiscordedTimer sbt_DiscordHoldCD
+endif
+if not timerexists sbt_PacifiedTimer
+    settimer sbt_PacifiedTimer sbt_PeaceHoldCD
+endif
+if not timerexists sbt_ProvokedTimer
+    settimer sbt_ProvokedTimer sbt_ProvoHoldCD
+endif
+settimer sbt_ProvoSkipClearTimer 0
+
+# --- State (kept when a bard key restarts the helper) ---
+if not varexist sbt_BOT_TARGET
+    @setvar! sbt_BOT_TARGET 0
+endif
+# Last target set by the helper itself, so it is never taken as your choice
+if not varexist sbt_BOT_LT
+    @setvar! sbt_BOT_LT 0
+endif
+if not varexist sbt_DiscordedT
+    @setvar! sbt_DiscordedT 0
+endif
+if not varexist sbt_PacifiedT
+    @setvar! sbt_PacifiedT 0
+endif
+if not varexist sbt_ProvokedT
+    @setvar! sbt_ProvokedT 0
+endif
+if not varexist sbt_NotoShown
+    @setvar! sbt_NotoShown 0
+endif
+@setvar! sbt_RedPouchCountTotal 0
+@setvar! sbt_CurrentRightHandWeapon 0
+@setvar! sbt_CurrentLeftHandWeapon 0
+@setvar! sbt_SeenRight 0
+@setvar! sbt_SeenLeft 0
+@setvar! sbt_BARD_TARGET1 0
+@setvar! sbt_BARD_TARGET2 0
+removelist sbt_IGNORE_CREATURES
+createlist sbt_IGNORE_CREATURES
+removelist sbt_PROVO_SKIP
+createlist sbt_PROVO_SKIP
+
+#####################################################################
+# MAIN LOOP
+#####################################################################
+while not dead
+
+    # --- Stop when hidden ---
+    if sbt_StopWhenHidden = 1 and hidden
+        overhead "Hidden - stopping the helper" 34
+        warmode off
+        stop
+    endif
+
+    # --- Veterinary supplies ---
+    if sbt_UseVetSupplies = 1 and not bandaging and findtype 25750 backpack 0 as sbt_VetSupply
+        if timer sbt_VetSuppliesTimer >= sbt_VetSuppliesCD or hp < maxhp
+            if timer sbt_UseItemTimer >= sbt_UseItemCD
+                while insysmsg "You begin using veterinary supplies" or insysmsg "You or your nearby followers do not require healing"
+                endwhile
+                dclick sbt_VetSupply
+                settimer sbt_UseItemTimer 0
+                getlabel backpack sbt_Ping
+                if insysmsg "You begin using veterinary supplies" or insysmsg "You or your nearby followers do not require healing"
+                    settimer sbt_VetSuppliesTimer 0
+                endif
+            endif
+        endif
+    endif
+
+    # --- Cure potion ---
+    if sbt_UseCurePotion = 1 and not queued and poisoned and diffhits >= sbt_CureHpDiff and findtype 3847 self as sbt_Potion
+        if timer sbt_UseItemTimer >= sbt_UseItemCD
+            dclick sbt_Potion
+            settimer sbt_UseItemTimer 0
+        endif
+    endif
+
+    # --- Heal potion (skipped while on cooldown) ---
+    if sbt_UseHealPotion = 1 and diffhits >= sbt_HealHpDiff and findtype 3852 self as sbt_Potion
+        if timer sbt_UseItemTimer >= sbt_UseItemCD
+            getlabel sbt_Potion sbt_PotionDesc
+            if "next usable in" in sbt_PotionDesc
+                // on cooldown
+            else
+                dclick sbt_Potion
+                settimer sbt_UseItemTimer 0
+            endif
+        endif
+    endif
+
+    # --- Refresh potion ---
+    if sbt_UseRefreshPotion = 1 and not queued and diffstam >= sbt_RefreshStamDiff and findtype 3851 self as sbt_Potion
+        if timer sbt_UseItemTimer >= sbt_UseItemCD
+            dclick sbt_Potion
+            settimer sbt_UseItemTimer 0
+        endif
+    endif
+
+    # --- Strength potion (war mode) ---
+    if sbt_UseStrengthPotion = 1 and warmode and not queued and not findbuff "Strength" and findtype 3849 self as sbt_Potion
+        if timer sbt_UseItemTimer >= sbt_UseItemCD
+            dclick sbt_Potion
+            settimer sbt_UseItemTimer 0
+        endif
+    endif
+
+    # --- Magic Resist potion (war mode) ---
+    if sbt_UseMagicResistPotion = 1 and warmode and not queued and not findbuff "Magic Resist" and findtype 3846 self as sbt_Potion
+        if timer sbt_UseItemTimer >= sbt_UseItemCD
+            dclick sbt_Potion
+            settimer sbt_UseItemTimer 0
+        endif
+    endif
+
+    # --- Food buff ---
+    if sbt_UseFood = 1 and not queued and not findbuff "food" and findtype "tray" backpack as sbt_FoodItem
+        if timer sbt_UseItemTimer >= sbt_UseItemCD
+            dclick sbt_FoodItem
+            settimer sbt_UseItemTimer 0
+        endif
+    endif
+
+    # --- Red pouch: break paralyze ---
+    if sbt_UseRedPouch = 1 and paralyzed and findtype "pouch" backpack 38 as sbt_RedPouch
+        dclick sbt_RedPouch
+        getlabel backpack sbt_Ping
+        if counttype 3705 backpack 38 as sbt_RedPouchCount
+            @setvar! sbt_RedPouchCountTotal sbt_RedPouchCount
+        endif
+    endif
+
+    # --- Red pouch: thief alert ---
+    if sbt_PouchThiefAlert = 1 and counttype 3705 backpack 38 as sbt_RedPouchCount
+        if sbt_RedPouchCountTotal != 0 and sbt_RedPouchCountTotal != sbt_RedPouchCount
+            overhead "THIEF - a red pouch is missing!" 34
+        else
+            @setvar! sbt_RedPouchCountTotal sbt_RedPouchCount
+        endif
+    endif
+
+    # --- Weight warning ---
+    if sbt_WeightWarn = 1 and timer sbt_WeightWarnTimer >= sbt_WeightWarnCD
+        if diffweight <= sbt_WeightWarnAtDiff or weight >= maxweight
+            overhead "Weight limit reached" 34
+            settimer sbt_WeightWarnTimer 0
+        endif
+    endif
+
+    # --- Weight: drop gold when overweight ---
+    if sbt_WeightDropGold = 1 and weight > maxweight and timer sbt_UseItemTimer >= sbt_UseItemCD
+        if findtype "gold coin" backpack as sbt_GoldStack
+            lift sbt_GoldStack sbt_WeightDropGoldAmount
+            if findtype 8198 ground -1 -1 2 as sbt_Corpse
+                drop sbt_Corpse -1 -1 -1
+            else
+                droprelloc 0 0
+            endif
+            getlabel backpack sbt_Ping
+            if insysmsg "cannot drop anything"
+                drop backpack -1 -1 -1
+            endif
+            settimer sbt_UseItemTimer 0
+        else
+            overhead "Overweight - nothing to drop" 34
+        endif
+    endif
+
+    # --- Re-equip a disarmed weapon ---
+    # A crook is never re-equipped: double click on a crook in the
+    # backpack toggles herding instead of equipping it.
+    if sbt_ReEquipWeapon = 1 and not casting
+        if findlayer self righthand as sbt_RightHandWeapon
+            if sbt_RightHandWeapon != sbt_SeenRight
+                @setvar! sbt_SeenRight sbt_RightHandWeapon
+                getlabel sbt_RightHandWeapon sbt_WeapDesc
+                if "crook" in sbt_WeapDesc
+                    @setvar! sbt_CurrentRightHandWeapon 0
+                else
+                    @setvar! sbt_CurrentRightHandWeapon sbt_RightHandWeapon
+                endif
+            endif
+        endif
+        if findlayer self lefthand as sbt_LeftHandWeapon
+            if sbt_LeftHandWeapon != sbt_SeenLeft
+                @setvar! sbt_SeenLeft sbt_LeftHandWeapon
+                getlabel sbt_LeftHandWeapon sbt_WeapDesc
+                if "crook" in sbt_WeapDesc
+                    @setvar! sbt_CurrentLeftHandWeapon 0
+                else
+                    @setvar! sbt_CurrentLeftHandWeapon sbt_LeftHandWeapon
+                endif
+            endif
+        endif
+        if not queued and sbt_CurrentRightHandWeapon != 0 and find sbt_CurrentRightHandWeapon backpack and timer sbt_UseItemTimer >= sbt_UseItemCD
+            dclick sbt_CurrentRightHandWeapon
+            settimer sbt_UseItemTimer 0
+        elseif not queued and sbt_CurrentLeftHandWeapon != 0 and find sbt_CurrentLeftHandWeapon backpack and timer sbt_UseItemTimer >= sbt_UseItemCD
+            dclick sbt_CurrentLeftHandWeapon
+            settimer sbt_UseItemTimer 0
+        endif
+    endif
+
+    # --- Bard songs upkeep (played on your backpack) ---
+    if not targetexists and not queued
+        if sbt_SongDiscord = 1 and not findbuff "song of discordance" and timer sbt_SongTimer >= sbt_SongRetryCD
+            while insysmsg "What instrument"
+            endwhile
+            useskill 'Discordance'
+            wft 500
+            if insysmsg "What instrument"
+                if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
+                    target sbt_Instrument
+                else
+                    overhead "No instrument!" 34
+                endif
+                wft 500
+            endif
+            target backpack
+            settimer sbt_SongTimer 0
+        endif
+
+        if sbt_SongPeace = 1 and not findbuff "song of peacemaking" and timer sbt_SongTimer >= sbt_SongRetryCD
+            while insysmsg "What instrument"
+            endwhile
+            useskill 'Peacemaking'
+            wft 500
+            if insysmsg "What instrument"
+                if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
+                    target sbt_Instrument
+                else
+                    overhead "No instrument!" 34
+                endif
+                wft 500
+            endif
+            target backpack
+            settimer sbt_SongTimer 0
+        endif
+
+        if sbt_SongProvo = 1 and not findbuff "song of provocation" and timer sbt_SongTimer >= sbt_SongRetryCD
+            while insysmsg "What instrument"
+            endwhile
+            useskill 'Provocation'
+            wft 500
+            if insysmsg "What instrument"
+                if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
+                    target sbt_Instrument
+                else
+                    overhead "No instrument!" 34
+                endif
+                wft 500
+            endif
+            target backpack
+            settimer sbt_SongTimer 0
+        endif
+    endif
+
+    # --- Herding: keep one shepherd crook activated ---
+    # deactivated is checked before activated because it contains it.
+    # At most one double click per check.
+    if sbt_KeepCrookActive = 1 and followers > 0 and timer sbt_CrookCheckTimer >= sbt_CrookCheckCD
+        settimer sbt_CrookCheckTimer 0
+        @setvar! sbt_CrookOn 0
+        @setvar! sbt_CrookOff 0
+        @clearignore
+        while findtype 3713 self as sbt_Crook
+            getlabel sbt_Crook sbt_CrookDesc
+            if 'deactivated' in sbt_CrookDesc
+                @setvar! sbt_CrookOff sbt_Crook
+            elseif 'activated' in sbt_CrookDesc
+                @setvar! sbt_CrookOn sbt_Crook
+                break
+            else
+                @setvar! sbt_CrookOff sbt_Crook
+            endif
+            @ignore sbt_Crook
+        endwhile
+        @clearignore
+        if sbt_CrookOn = 0 and sbt_CrookOff != 0
+            dclick sbt_CrookOff
+            getlabel backpack sbt_Ping
+            overhead "Crook activated" 68
+        endif
+    endif
+
+    # --- Targeting (war mode) ---
+    @setvar! sbt_TargetValid 0
+    @setvar! sbt_Fight 0
+    if warmode
+        @setvar! sbt_Fight 1
+    endif
+
+    if sbt_Fight = 1 and not findbuff PVP
+        # Pause while you are aiming a new Last Target with the Razor hotkey
+        if insysmsg "Target a new 'Last Target'"
+            overhead "Set your target" 88
+            while insysmsg "Target a new 'Last Target'"
+            endwhile
+            while targetexists
+                wait 50
+            endwhile
+        endif
+
+        # Your own choice: a last target that was NOT set by the helper
+        @setvar! sbt_UserLT lasttarget
+        if sbt_UserLT != 0 and sbt_UserLT != sbt_BOT_LT and sbt_UserLT != sbt_BOT_TARGET and not dead sbt_UserLT and find sbt_UserLT ground -1 -1 sbt_TargetRange
+            if noto sbt_UserLT = "hostile" or noto sbt_UserLT = "criminal" or noto sbt_UserLT = "murderer" or noto sbt_UserLT = "enemy"
+                @setvar! sbt_BOT_TARGET sbt_UserLT
+                overhead "- your target -" 88 sbt_BOT_TARGET
+            endif
+        endif
+
+        # Pick the closest monster when the current target is gone
+        if not find sbt_BOT_TARGET ground -1 -1 sbt_TargetRange or dead sbt_BOT_TARGET
+            while insysmsg "No one matching"
+            endwhile
+            hotkey "Target Closest Non-Friendly Monster"
+            getlabel backpack sbt_Ping
+            @setvar! sbt_BOT_LT lasttarget
+            if insysmsg "No one matching"
+                @setvar! sbt_BOT_TARGET 0
+            else
+                @setvar! sbt_BOT_TARGET lasttarget
+            endif
+        endif
+
+        # Validate the target: no pets, no blue, green or yellow
+        if sbt_BOT_TARGET != 0 and not dead sbt_BOT_TARGET and find sbt_BOT_TARGET ground -1 -1 sbt_TargetRange
+            if inlist sbt_IGNORE_CREATURES sbt_BOT_TARGET
+                @setvar! sbt_BOT_TARGET 0
+            elseif noto sbt_BOT_TARGET = "friend" or noto sbt_BOT_TARGET = "innocent" or noto sbt_BOT_TARGET = "invulnerable"
+                @setvar! sbt_BOT_TARGET 0
+            else
+                getlabel sbt_BOT_TARGET sbt_TargetDesc
+                if "(summoned" in sbt_TargetDesc or "(bonded" in sbt_TargetDesc or "(tame" in sbt_TargetDesc
+                    overhead "Player pet - ignored" 77 sbt_BOT_TARGET
+                    pushlist sbt_IGNORE_CREATURES sbt_BOT_TARGET
+                    @setvar! sbt_BOT_TARGET 0
+                else
+                    @setvar! sbt_TargetValid 1
+                endif
+            endif
+        else
+            @setvar! sbt_BOT_TARGET 0
+        endif
+
+        # Debug: notoriety of each new target, shown once
+        if sbt_Debug = 1 and sbt_TargetValid = 1 and sbt_BOT_TARGET != sbt_NotoShown
+            @setvar! sbt_NotoShown sbt_BOT_TARGET
+            if noto sbt_BOT_TARGET = "murderer"
+                overhead "[dbg] noto murderer" 33 sbt_BOT_TARGET
+            elseif noto sbt_BOT_TARGET = "hostile"
+                overhead "[dbg] noto hostile" 946 sbt_BOT_TARGET
+            elseif noto sbt_BOT_TARGET = "criminal"
+                overhead "[dbg] noto criminal" 946 sbt_BOT_TARGET
+            elseif noto sbt_BOT_TARGET = "enemy"
+                overhead "[dbg] noto enemy" 43 sbt_BOT_TARGET
+            else
+                overhead "[dbg] noto other" 68 sbt_BOT_TARGET
+            endif
+        endif
+    endif
+
+    # --- Pets re-attack the current target ---
+    if sbt_ReissueAttack = 1 and sbt_TargetValid = 1 and timer sbt_ReissueAttackTimer >= sbt_ReissueAttackCD
+        attack sbt_BOT_TARGET
+        settimer sbt_ReissueAttackTimer 0
+    endif
+
+    # --- Target marker ---
+    if sbt_ShowTargetMarker = 1 and timer sbt_TargetMarkerTimer >= sbt_TargetMarkerCD
+        if sbt_TargetValid = 1
+            overhead "²" 89 sbt_BOT_TARGET
+            settimer sbt_TargetMarkerTimer 0
+        elseif sbt_Fight = 1
+            overhead "Ä Searching for a target º" 34
+            settimer sbt_TargetMarkerTimer 0
+        endif
+    endif
+
+    # --- Bard Reset: needs a client cooldown bar named Bard Reset ---
+    if cooldown "Bard Reset"
+        settimer sbt_BardSkillTimer sbt_BardSkillCD
+        cooldown "Bard Reset" 0
+    endif
+
+    # --- Clear the provo skip list now and then ---
+    if timer sbt_ProvoSkipClearTimer >= sbt_ProvoSkipClearCD
+        removelist sbt_PROVO_SKIP
+        createlist sbt_PROVO_SKIP
+        settimer sbt_ProvoSkipClearTimer 0
+    endif
+
+    # --- Barding ready check ---
+    @setvar! sbt_BardReady 0
+    if not targetexists and timer sbt_BardSkillTimer >= sbt_BardSkillCD and timer sbt_BardWaitTimer >= sbt_MustWaitRetryCD
+        @setvar! sbt_BardReady 1
+    endif
+
+    # --- Emergency area peace (first, also during a fight) ---
+    if sbt_UseEmergencyPeace = 1 and sbt_BardReady = 1 and diffhits >= sbt_EmergencyPeaceDiffHits
+        @setvar! sbt_BardReady 0
+        while insysmsg "What instrument" or insysmsg "You play successfully" or insysmsg "You fail to" or insysmsg "You must wait a few moments"
+        endwhile
+        overhead "- area peace -" 34
+        useskill 'Peacemaking'
+        wft 500
+        if insysmsg "What instrument"
+            if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
+                target sbt_Instrument
+            else
+                overhead "No instrument!" 34
+            endif
+            wft 500
+        endif
+        if targetexists
+            hotkey "Target Self"
+            @setvar! sbt_Res 0
+            for 10
+                if insysmsg "You play successfully"
+                    @setvar! sbt_Res 1
+                    break
+                elseif insysmsg "You fail to"
+                    @setvar! sbt_Res 2
+                    break
+                elseif insysmsg "You must wait a few moments"
+                    @setvar! sbt_Res 3
+                    break
+                endif
+                wait 100
+            endfor
+            if sbt_Res = 3
+                settimer sbt_BardWaitTimer 0
+            else
+                settimer sbt_BardSkillTimer 0
+            endif
+        endif
+        if targetexists
+            hotkey "Cancel Current Target"
+        endif
+    endif
+
+    if sbt_TargetValid = 1
+        # --- What was already done on this target ---
+        @setvar! sbt_SkipDiscord 0
+        @setvar! sbt_SkipPeace 0
+        @setvar! sbt_SkipProvo 0
+        if sbt_BOT_TARGET = sbt_DiscordedT
+            if timer sbt_DiscordedTimer < sbt_DiscordHoldCD
+                @setvar! sbt_SkipDiscord 1
+            endif
+        endif
+        if sbt_BOT_TARGET = sbt_PacifiedT
+            if timer sbt_PacifiedTimer < sbt_PeaceHoldCD
+                @setvar! sbt_SkipPeace 1
+            endif
+        endif
+        if sbt_BOT_TARGET = sbt_ProvokedT
+            if timer sbt_ProvokedTimer < sbt_ProvoHoldCD
+                @setvar! sbt_SkipPeace 1
+                @setvar! sbt_SkipProvo 1
+            endif
+        endif
+
+        # --- Provocation ---
+        if sbt_UseProvo = 1 and sbt_SkipProvo = 0 and sbt_BardReady = 1 and timer sbt_ProvoRetryTimer >= sbt_ProvoRetryCD
+            @setvar! sbt_BARD_TARGET1 sbt_BOT_TARGET
+            @setvar! sbt_BARD_TARGET2 0
+            # Search a partner: cycle Next until a valid one is found
+            for 10
+                hotkey "Next Non-Friendly Monster Target"
+                getlabel backpack sbt_Ping
+                @setvar! sbt_BOT_LT lasttarget
+                @setvar! sbt_Try lasttarget
+                if sbt_Try != 0 and sbt_Try != sbt_BARD_TARGET1 and not dead sbt_Try and find sbt_Try ground -1 -1 sbt_ProvoRange
+                    if inlist sbt_PROVO_SKIP sbt_Try or inlist sbt_IGNORE_CREATURES sbt_Try
+                        // skipped
+                    elseif noto sbt_Try = "friend" or noto sbt_Try = "innocent" or noto sbt_Try = "invulnerable"
+                        // not attackable
+                    else
+                        getlabel sbt_Try sbt_TryDesc
+                        if "(summoned" in sbt_TryDesc or "(bonded" in sbt_TryDesc or "(tame" in sbt_TryDesc
+                            pushlist sbt_IGNORE_CREATURES sbt_Try
+                        elseif "provo" in sbt_TryDesc
+                            // already provoked
+                        else
+                            @setvar! sbt_BARD_TARGET2 sbt_Try
+                            break
+                        endif
+                    endif
+                endif
+            endfor
+
+            if sbt_BARD_TARGET2 = 0
+                settimer sbt_ProvoRetryTimer 0
+                if sbt_Debug = 1
+                    overhead "[dbg] no provo partner" 946
+                endif
+            else
+                @setvar! sbt_BardReady 0
+                while insysmsg "What instrument" or insysmsg "You play successfully" or insysmsg "You fail to" or insysmsg "You must wait a few moments" or insysmsg "incite that" or insysmsg "The creatures" or insysmsg "Target cannot be seen" or insysmsg "too far away"
+                endwhile
+                overhead "- provoking -" 43 sbt_BARD_TARGET1
+                overhead "- provoking -" 43 sbt_BARD_TARGET2
+                useskill 'Provocation'
+                wft 500
+                if insysmsg "What instrument"
+                    if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
+                        target sbt_Instrument
+                    else
+                        overhead "No instrument!" 34
+                    endif
+                    wft 500
+                endif
+                @setvar! sbt_Stage 0
+                if targetexists
+                    target sbt_BARD_TARGET1
+                    @setvar! sbt_Stage 1
+                    wft 500
+                    if targetexists
+                        target sbt_BARD_TARGET2
+                        @setvar! sbt_Stage 2
+                    endif
+                endif
+                @setvar! sbt_Res 0
+                for 10
+                    if insysmsg "You play successfully"
+                        @setvar! sbt_Res 1
+                        break
+                    elseif insysmsg "You fail to"
+                        @setvar! sbt_Res 2
+                        break
+                    elseif insysmsg "You must wait a few moments"
+                        @setvar! sbt_Res 3
+                        break
+                    elseif insysmsg "Target cannot be seen" or insysmsg "too far away"
+                        @setvar! sbt_Res 4
+                        break
+                    elseif insysmsg "The creatures" or insysmsg "incite that"
+                        @setvar! sbt_Res 5
+                        break
+                    endif
+                    wait 100
+                endfor
+
+                if sbt_Res = 1
+                    overhead "PROVO >" 43 sbt_BARD_TARGET1
+                    overhead "< PROVO" 43 sbt_BARD_TARGET2
+                    @setvar! sbt_ProvokedT sbt_BARD_TARGET1
+                    settimer sbt_ProvokedTimer 0
+                    settimer sbt_BardSkillTimer 0
+                elseif sbt_Res = 2
+                    settimer sbt_BardSkillTimer 0
+                elseif sbt_Res = 3
+                    settimer sbt_BardWaitTimer 0
+                elseif sbt_Res = 4
+                    if sbt_Stage = 2
+                        # Partner out of sight: skip it for a while
+                        pushlist sbt_PROVO_SKIP sbt_BARD_TARGET2
+                        if sbt_Debug = 1
+                            overhead "[dbg] out of sight" 33 sbt_BARD_TARGET2
+                        endif
+                    else
+                        # Your target is out of sight: no provo for a while
+                        settimer sbt_ProvoRetryTimer 0
+                    endif
+                elseif sbt_Res = 5
+                    pushlist sbt_PROVO_SKIP sbt_BARD_TARGET2
+                    if sbt_Debug = 1
+                        overhead "[dbg] cannot provoke" 33 sbt_BARD_TARGET2
+                    endif
+                else
+                    settimer sbt_ProvoRetryTimer 0
+                endif
+            endif
+            if targetexists
+                hotkey "Cancel Current Target"
+            endif
+        endif
+
+        # --- Discordance ---
+        if sbt_UseDiscord = 1 and sbt_SkipDiscord = 0 and sbt_BardReady = 1
+            @setvar! sbt_BardReady 0
+            while insysmsg "What instrument" or insysmsg "You play successfully" or insysmsg "You fail to" or insysmsg "You must wait a few moments" or insysmsg "Target cannot be seen" or insysmsg "too far away"
+            endwhile
+            overhead "- discording -" 68 sbt_BOT_TARGET
+            useskill 'Discordance'
+            wft 500
+            if insysmsg "What instrument"
+                if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
+                    target sbt_Instrument
+                else
+                    overhead "No instrument!" 34
+                endif
+                wft 500
+            endif
+            if targetexists
+                target sbt_BOT_TARGET
+                @setvar! sbt_Res 0
+                for 10
+                    if insysmsg "You play successfully"
+                        @setvar! sbt_Res 1
+                        break
+                    elseif insysmsg "You fail to"
+                        @setvar! sbt_Res 2
+                        break
+                    elseif insysmsg "You must wait a few moments"
+                        @setvar! sbt_Res 3
+                        break
+                    elseif insysmsg "Target cannot be seen" or insysmsg "too far away"
+                        @setvar! sbt_Res 4
+                        break
+                    endif
+                    wait 100
+                endfor
+                if sbt_Res = 1
+                    @setvar! sbt_DiscordedT sbt_BOT_TARGET
+                    settimer sbt_DiscordedTimer 0
+                    settimer sbt_BardSkillTimer 0
+                elseif sbt_Res = 3
+                    settimer sbt_BardWaitTimer 0
+                elseif sbt_Res = 4
+                    // out of reach now, retry next loop
+                else
+                    settimer sbt_BardSkillTimer 0
+                endif
+            endif
+            if targetexists
+                hotkey "Cancel Current Target"
+            endif
+        endif
+
+        # --- Peacemaking ---
+        if sbt_UsePeace = 1 and sbt_SkipPeace = 0 and sbt_BardReady = 1
+            @setvar! sbt_BardReady 0
+            while insysmsg "What instrument" or insysmsg "You play successfully" or insysmsg "You fail to" or insysmsg "You must wait a few moments" or insysmsg "Target cannot be seen" or insysmsg "too far away"
+            endwhile
+            overhead "- peacing -" 89 sbt_BOT_TARGET
+            useskill 'Peacemaking'
+            wft 500
+            if insysmsg "What instrument"
+                if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
+                    target sbt_Instrument
+                else
+                    overhead "No instrument!" 34
+                endif
+                wft 500
+            endif
+            if targetexists
+                target sbt_BOT_TARGET
+                @setvar! sbt_Res 0
+                for 10
+                    if insysmsg "You play successfully"
+                        @setvar! sbt_Res 1
+                        break
+                    elseif insysmsg "You fail to"
+                        @setvar! sbt_Res 2
+                        break
+                    elseif insysmsg "You must wait a few moments"
+                        @setvar! sbt_Res 3
+                        break
+                    elseif insysmsg "Target cannot be seen" or insysmsg "too far away"
+                        @setvar! sbt_Res 4
+                        break
+                    endif
+                    wait 100
+                endfor
+                if sbt_Res = 1
+                    @setvar! sbt_PacifiedT sbt_BOT_TARGET
+                    settimer sbt_PacifiedTimer 0
+                    settimer sbt_BardSkillTimer 0
+                elseif sbt_Res = 3
+                    settimer sbt_BardWaitTimer 0
+                elseif sbt_Res = 4
+                    // out of reach now, retry next loop
+                else
+                    settimer sbt_BardSkillTimer 0
+                endif
+            endif
+            if targetexists
+                hotkey "Cancel Current Target"
+            endif
+        endif
+    endif
+
+    # Small pause at the end of each loop
+    wait 100
+endwhile
+
+while dead
+    wait 1000
+endwhile
+replay

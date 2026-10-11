@@ -1,11 +1,11 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/75fdd84f-df5e-4e5b-a2fc-926e6e801af5 for latest
 # Automation by Jaseowns
-## Script: Shagrath BardTamer Helper v1.0
+## Script: Shagrath BardTamer Helper v1.2
 ## Created by: shagrath_x#0
 #############################################
 
 #####################################################################
-# SHAGRATH BARDTAMER HELPER  v1.0
+# SHAGRATH BARDTAMER HELPER  v1.2
 # Author: Shagrath
 # Shard: UO Outlands - Razor (ClassicUO)
 #
@@ -26,6 +26,17 @@
 #   Razor runs one script at a time: each key stops this helper,
 #   plays the skill, then restarts the helper.
 #
+# MESSAGES
+#   sbt_Noise 0 shows only critical messages: alerts, your own target
+#   choice, discorded and pacified. sbt_Noise 1 shows everything.
+#   sbt_Debug 1 adds diagnostic messages on top of that.
+#
+# CHANGES
+#   v1.2  standard messages and colors, sbt_Noise switch,
+#         bard results shown over the creature
+#   v1.1  provocation and discordance alternate on the same target,
+#         so a failing provo never blocks discord. Order is a setting.
+#
 # INSTALL
 #   Save in Scripts\PVM\Bard as shagrath_bardtamer_helper.razor
 #   Another folder: edit the pushlist sbt_Main line after the settings.
@@ -40,11 +51,13 @@
 
 # --- Script ---
 @setvar! sbt_StopWhenHidden 1
+# 1 = all messages, 0 = only critical messages
+@setvar! sbt_Noise 1
 @setvar! sbt_Debug 0
 
 # --- Healing and items ---
 @setvar! sbt_UseVetSupplies 1
-@setvar! sbt_VetSuppliesCD 5000
+@setvar! sbt_VetSuppliesCD 4000
 @setvar! sbt_UseItemCD 750
 
 # --- Potions ---
@@ -88,7 +101,7 @@
 @setvar! sbt_CrookCheckCD 3000
 
 # --- Targeting (war mode) ---
-@setvar! sbt_TargetRange 5
+@setvar! sbt_TargetRange 10
 @setvar! sbt_ReissueAttack 1
 @setvar! sbt_ReissueAttackCD 5000
 @setvar! sbt_ShowTargetMarker 1
@@ -98,6 +111,10 @@
 @setvar! sbt_UseDiscord 1
 @setvar! sbt_UsePeace 1
 @setvar! sbt_UseProvo 1
+# Provo and discord take turns on the same target.
+# 1 = provo first: discord then gets +25 barding skill on a provoked target
+# 0 = discord first: provo then gets +12.5 barding skill on a discorded target
+@setvar! sbt_ProvoFirst 1
 # Shared delay between two barding skills
 @setvar! sbt_BardSkillCD 5000
 # Retry delay after You must wait a few moments
@@ -126,12 +143,12 @@
 #####################################################################
 
 # --- Version banner ---
-@setvar! sbt_Version 10
+@setvar! sbt_Version 12
 if not varexist sbt_ShownVersion
     @setvar! sbt_ShownVersion 0
 endif
 if sbt_ShownVersion != sbt_Version
-    overhead "Shagrath BardTamer Helper v1.0" 76
+    overhead "Shagrath BardTamer Helper v1.2" 89
     @setvar! sbt_ShownVersion sbt_Version
 endif
 
@@ -207,6 +224,13 @@ endif
 if not varexist sbt_NotoShown
     @setvar! sbt_NotoShown 0
 endif
+# Provo or discord turn on the current target
+if not varexist sbt_TurnTarget
+    @setvar! sbt_TurnTarget 0
+endif
+if not varexist sbt_DiscordTurn
+    @setvar! sbt_DiscordTurn 0
+endif
 @setvar! sbt_RedPouchCountTotal 0
 @setvar! sbt_CurrentRightHandWeapon 0
 @setvar! sbt_CurrentLeftHandWeapon 0
@@ -226,7 +250,7 @@ while not dead
 
     # --- Stop when hidden ---
     if sbt_StopWhenHidden = 1 and hidden
-        overhead "Hidden - stopping the helper" 34
+        overhead "- hidden -" 33
         warmode off
         stop
     endif
@@ -312,7 +336,7 @@ while not dead
     # --- Red pouch: thief alert ---
     if sbt_PouchThiefAlert = 1 and counttype 3705 backpack 38 as sbt_RedPouchCount
         if sbt_RedPouchCountTotal != 0 and sbt_RedPouchCountTotal != sbt_RedPouchCount
-            overhead "THIEF - a red pouch is missing!" 34
+            overhead "- thief -" 33
         else
             @setvar! sbt_RedPouchCountTotal sbt_RedPouchCount
         endif
@@ -321,7 +345,7 @@ while not dead
     # --- Weight warning ---
     if sbt_WeightWarn = 1 and timer sbt_WeightWarnTimer >= sbt_WeightWarnCD
         if diffweight <= sbt_WeightWarnAtDiff or weight >= maxweight
-            overhead "Weight limit reached" 34
+            overhead "- weight -" 33
             settimer sbt_WeightWarnTimer 0
         endif
     endif
@@ -341,7 +365,7 @@ while not dead
             endif
             settimer sbt_UseItemTimer 0
         else
-            overhead "Overweight - nothing to drop" 34
+            overhead "- overweight -" 33
         endif
     endif
 
@@ -391,7 +415,7 @@ while not dead
                 if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
                     target sbt_Instrument
                 else
-                    overhead "No instrument!" 34
+                    overhead "- noinstrument -" 33
                 endif
                 wft 500
             endif
@@ -408,7 +432,7 @@ while not dead
                 if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
                     target sbt_Instrument
                 else
-                    overhead "No instrument!" 34
+                    overhead "- noinstrument -" 33
                 endif
                 wft 500
             endif
@@ -425,7 +449,7 @@ while not dead
                 if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
                     target sbt_Instrument
                 else
-                    overhead "No instrument!" 34
+                    overhead "- noinstrument -" 33
                 endif
                 wft 500
             endif
@@ -458,7 +482,9 @@ while not dead
         if sbt_CrookOn = 0 and sbt_CrookOff != 0
             dclick sbt_CrookOff
             getlabel backpack sbt_Ping
-            overhead "Crook activated" 68
+            if sbt_Noise = 1
+                overhead "- crook -" 68
+            endif
         endif
     endif
 
@@ -472,7 +498,7 @@ while not dead
     if sbt_Fight = 1 and not findbuff PVP
         # Pause while you are aiming a new Last Target with the Razor hotkey
         if insysmsg "Target a new 'Last Target'"
-            overhead "Set your target" 88
+            overhead "- aiming -" 89
             while insysmsg "Target a new 'Last Target'"
             endwhile
             while targetexists
@@ -485,7 +511,7 @@ while not dead
         if sbt_UserLT != 0 and sbt_UserLT != sbt_BOT_LT and sbt_UserLT != sbt_BOT_TARGET and not dead sbt_UserLT and find sbt_UserLT ground -1 -1 sbt_TargetRange
             if noto sbt_UserLT = "hostile" or noto sbt_UserLT = "criminal" or noto sbt_UserLT = "murderer" or noto sbt_UserLT = "enemy"
                 @setvar! sbt_BOT_TARGET sbt_UserLT
-                overhead "- your target -" 88 sbt_BOT_TARGET
+                overhead "- picked -" 89 sbt_BOT_TARGET
             endif
         endif
 
@@ -512,7 +538,9 @@ while not dead
             else
                 getlabel sbt_BOT_TARGET sbt_TargetDesc
                 if "(summoned" in sbt_TargetDesc or "(bonded" in sbt_TargetDesc or "(tame" in sbt_TargetDesc
-                    overhead "Player pet - ignored" 77 sbt_BOT_TARGET
+                    if sbt_Noise = 1
+                        overhead "- pet -" 946 sbt_BOT_TARGET
+                    endif
                     pushlist sbt_IGNORE_CREATURES sbt_BOT_TARGET
                     @setvar! sbt_BOT_TARGET 0
                 else
@@ -527,15 +555,15 @@ while not dead
         if sbt_Debug = 1 and sbt_TargetValid = 1 and sbt_BOT_TARGET != sbt_NotoShown
             @setvar! sbt_NotoShown sbt_BOT_TARGET
             if noto sbt_BOT_TARGET = "murderer"
-                overhead "[dbg] noto murderer" 33 sbt_BOT_TARGET
+                overhead "- murderer -" 946 sbt_BOT_TARGET
             elseif noto sbt_BOT_TARGET = "hostile"
-                overhead "[dbg] noto hostile" 946 sbt_BOT_TARGET
+                overhead "- hostile -" 946 sbt_BOT_TARGET
             elseif noto sbt_BOT_TARGET = "criminal"
-                overhead "[dbg] noto criminal" 946 sbt_BOT_TARGET
+                overhead "- criminal -" 946 sbt_BOT_TARGET
             elseif noto sbt_BOT_TARGET = "enemy"
-                overhead "[dbg] noto enemy" 43 sbt_BOT_TARGET
+                overhead "- enemy -" 946 sbt_BOT_TARGET
             else
-                overhead "[dbg] noto other" 68 sbt_BOT_TARGET
+                overhead "- other -" 946 sbt_BOT_TARGET
             endif
         endif
     endif
@@ -547,12 +575,12 @@ while not dead
     endif
 
     # --- Target marker ---
-    if sbt_ShowTargetMarker = 1 and timer sbt_TargetMarkerTimer >= sbt_TargetMarkerCD
+    if sbt_ShowTargetMarker = 1 and sbt_Noise = 1 and timer sbt_TargetMarkerTimer >= sbt_TargetMarkerCD
         if sbt_TargetValid = 1
-            overhead "²" 89 sbt_BOT_TARGET
+            overhead "- target -" 89 sbt_BOT_TARGET
             settimer sbt_TargetMarkerTimer 0
         elseif sbt_Fight = 1
-            overhead "Ä Searching for a target º" 34
+            overhead "- searching -" 946
             settimer sbt_TargetMarkerTimer 0
         endif
     endif
@@ -581,14 +609,14 @@ while not dead
         @setvar! sbt_BardReady 0
         while insysmsg "What instrument" or insysmsg "You play successfully" or insysmsg "You fail to" or insysmsg "You must wait a few moments"
         endwhile
-        overhead "- area peace -" 34
+        overhead "- areapeace -" 53
         useskill 'Peacemaking'
         wft 500
         if insysmsg "What instrument"
             if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
                 target sbt_Instrument
             else
-                overhead "No instrument!" 34
+                overhead "- noinstrument -" 33
             endif
             wft 500
         endif
@@ -608,9 +636,18 @@ while not dead
                 endif
                 wait 100
             endfor
-            if sbt_Res = 3
+            if sbt_Res = 1
+                overhead "- pacified -" 68
+                settimer sbt_BardSkillTimer 0
+            elseif sbt_Res = 3
                 settimer sbt_BardWaitTimer 0
+                if sbt_Debug = 1
+                    overhead "- cooldown -" 946
+                endif
             else
+                if sbt_Noise = 1
+                    overhead "- failed -" 946
+                endif
                 settimer sbt_BardSkillTimer 0
             endif
         endif
@@ -641,8 +678,25 @@ while not dead
             endif
         endif
 
+        # --- Whose turn: provocation or discordance ---
+        # New target: start with the skill chosen in sbt_ProvoFirst
+        if sbt_BOT_TARGET != sbt_TurnTarget
+            @setvar! sbt_TurnTarget sbt_BOT_TARGET
+            if sbt_ProvoFirst = 1
+                @setvar! sbt_DiscordTurn 0
+            else
+                @setvar! sbt_DiscordTurn 1
+            endif
+        endif
+        # A discord turn that cannot be used goes back to provo
+        if sbt_DiscordTurn = 1
+            if sbt_UseDiscord = 0 or sbt_SkipDiscord = 1
+                @setvar! sbt_DiscordTurn 0
+            endif
+        endif
+
         # --- Provocation ---
-        if sbt_UseProvo = 1 and sbt_SkipProvo = 0 and sbt_BardReady = 1 and timer sbt_ProvoRetryTimer >= sbt_ProvoRetryCD
+        if sbt_UseProvo = 1 and sbt_SkipProvo = 0 and sbt_DiscordTurn = 0 and sbt_BardReady = 1 and timer sbt_ProvoRetryTimer >= sbt_ProvoRetryCD
             @setvar! sbt_BARD_TARGET1 sbt_BOT_TARGET
             @setvar! sbt_BARD_TARGET2 0
             # Search a partner: cycle Next until a valid one is found
@@ -673,21 +727,25 @@ while not dead
             if sbt_BARD_TARGET2 = 0
                 settimer sbt_ProvoRetryTimer 0
                 if sbt_Debug = 1
-                    overhead "[dbg] no provo partner" 946
+                    overhead "- nopartner -" 946
                 endif
             else
                 @setvar! sbt_BardReady 0
                 while insysmsg "What instrument" or insysmsg "You play successfully" or insysmsg "You fail to" or insysmsg "You must wait a few moments" or insysmsg "incite that" or insysmsg "The creatures" or insysmsg "Target cannot be seen" or insysmsg "too far away"
                 endwhile
-                overhead "- provoking -" 43 sbt_BARD_TARGET1
-                overhead "- provoking -" 43 sbt_BARD_TARGET2
+                if sbt_Noise = 1
+                    overhead "- provoking -" 53 sbt_BARD_TARGET1
+                    overhead "- provoking -" 53 sbt_BARD_TARGET2
+                endif
+                # Provo attempted: next bard turn goes to discord
+                @setvar! sbt_DiscordTurn 1
                 useskill 'Provocation'
                 wft 500
                 if insysmsg "What instrument"
                     if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
                         target sbt_Instrument
                     else
-                        overhead "No instrument!" 34
+                        overhead "- noinstrument -" 33
                     endif
                     wft 500
                 endif
@@ -715,29 +773,40 @@ while not dead
                     elseif insysmsg "Target cannot be seen" or insysmsg "too far away"
                         @setvar! sbt_Res 4
                         break
-                    elseif insysmsg "The creatures" or insysmsg "incite that"
+                    elseif insysmsg "incite that"
                         @setvar! sbt_Res 5
+                        break
+                    elseif insysmsg "The creatures"
+                        @setvar! sbt_Res 6
                         break
                     endif
                     wait 100
                 endfor
 
                 if sbt_Res = 1
-                    overhead "PROVO >" 43 sbt_BARD_TARGET1
-                    overhead "< PROVO" 43 sbt_BARD_TARGET2
+                    if sbt_Noise = 1
+                        overhead "- provoked -" 68 sbt_BARD_TARGET1
+                        overhead "- provoked -" 68 sbt_BARD_TARGET2
+                    endif
                     @setvar! sbt_ProvokedT sbt_BARD_TARGET1
                     settimer sbt_ProvokedTimer 0
                     settimer sbt_BardSkillTimer 0
                 elseif sbt_Res = 2
+                    if sbt_Noise = 1
+                        overhead "- failed -" 946 sbt_BARD_TARGET1
+                    endif
                     settimer sbt_BardSkillTimer 0
                 elseif sbt_Res = 3
                     settimer sbt_BardWaitTimer 0
+                    if sbt_Debug = 1
+                        overhead "- cooldown -" 946
+                    endif
                 elseif sbt_Res = 4
                     if sbt_Stage = 2
                         # Partner out of sight: skip it for a while
                         pushlist sbt_PROVO_SKIP sbt_BARD_TARGET2
                         if sbt_Debug = 1
-                            overhead "[dbg] out of sight" 33 sbt_BARD_TARGET2
+                            overhead "- unseen -" 946 sbt_BARD_TARGET2
                         endif
                     else
                         # Your target is out of sight: no provo for a while
@@ -746,7 +815,12 @@ while not dead
                 elseif sbt_Res = 5
                     pushlist sbt_PROVO_SKIP sbt_BARD_TARGET2
                     if sbt_Debug = 1
-                        overhead "[dbg] cannot provoke" 33 sbt_BARD_TARGET2
+                        overhead "- immune -" 946 sbt_BARD_TARGET2
+                    endif
+                elseif sbt_Res = 6
+                    pushlist sbt_PROVO_SKIP sbt_BARD_TARGET2
+                    if sbt_Debug = 1
+                        overhead "- toofar -" 946 sbt_BARD_TARGET2
                     endif
                 else
                     settimer sbt_ProvoRetryTimer 0
@@ -762,14 +836,18 @@ while not dead
             @setvar! sbt_BardReady 0
             while insysmsg "What instrument" or insysmsg "You play successfully" or insysmsg "You fail to" or insysmsg "You must wait a few moments" or insysmsg "Target cannot be seen" or insysmsg "too far away"
             endwhile
-            overhead "- discording -" 68 sbt_BOT_TARGET
+            if sbt_Noise = 1
+                overhead "- discording -" 53 sbt_BOT_TARGET
+            endif
+            # Discord attempted: next bard turn goes to provo
+            @setvar! sbt_DiscordTurn 0
             useskill 'Discordance'
             wft 500
             if insysmsg "What instrument"
                 if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
                     target sbt_Instrument
                 else
-                    overhead "No instrument!" 34
+                    overhead "- noinstrument -" 33
                 endif
                 wft 500
             endif
@@ -793,14 +871,23 @@ while not dead
                     wait 100
                 endfor
                 if sbt_Res = 1
+                    overhead "- discorded -" 68 sbt_BOT_TARGET
                     @setvar! sbt_DiscordedT sbt_BOT_TARGET
                     settimer sbt_DiscordedTimer 0
                     settimer sbt_BardSkillTimer 0
                 elseif sbt_Res = 3
                     settimer sbt_BardWaitTimer 0
+                    if sbt_Debug = 1
+                        overhead "- cooldown -" 946
+                    endif
                 elseif sbt_Res = 4
-                    // out of reach now, retry next loop
+                    if sbt_Debug = 1
+                        overhead "- unseen -" 946 sbt_BOT_TARGET
+                    endif
                 else
+                    if sbt_Noise = 1
+                        overhead "- failed -" 946 sbt_BOT_TARGET
+                    endif
                     settimer sbt_BardSkillTimer 0
                 endif
             endif
@@ -814,14 +901,16 @@ while not dead
             @setvar! sbt_BardReady 0
             while insysmsg "What instrument" or insysmsg "You play successfully" or insysmsg "You fail to" or insysmsg "You must wait a few moments" or insysmsg "Target cannot be seen" or insysmsg "too far away"
             endwhile
-            overhead "- peacing -" 89 sbt_BOT_TARGET
+            if sbt_Noise = 1
+                overhead "- peacing -" 53 sbt_BOT_TARGET
+            endif
             useskill 'Peacemaking'
             wft 500
             if insysmsg "What instrument"
                 if findtype 3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016 backpack as sbt_Instrument
                     target sbt_Instrument
                 else
-                    overhead "No instrument!" 34
+                    overhead "- noinstrument -" 33
                 endif
                 wft 500
             endif
@@ -845,14 +934,23 @@ while not dead
                     wait 100
                 endfor
                 if sbt_Res = 1
+                    overhead "- pacified -" 68 sbt_BOT_TARGET
                     @setvar! sbt_PacifiedT sbt_BOT_TARGET
                     settimer sbt_PacifiedTimer 0
                     settimer sbt_BardSkillTimer 0
                 elseif sbt_Res = 3
                     settimer sbt_BardWaitTimer 0
+                    if sbt_Debug = 1
+                        overhead "- cooldown -" 946
+                    endif
                 elseif sbt_Res = 4
-                    // out of reach now, retry next loop
+                    if sbt_Debug = 1
+                        overhead "- unseen -" 946 sbt_BOT_TARGET
+                    endif
                 else
+                    if sbt_Noise = 1
+                        overhead "- failed -" 946 sbt_BOT_TARGET
+                    endif
                     settimer sbt_BardSkillTimer 0
                 endif
             endif

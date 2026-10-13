@@ -1,11 +1,11 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/75fdd84f-df5e-4e5b-a2fc-926e6e801af5 for latest
 # Automation by Jaseowns
-## Script: Shagrath BardTamer Helper v1.2
+## Script: Shagrath BardTamer Helper v1.3.1
 ## Created by: shagrath_x#0
 #############################################
 
 #####################################################################
-# SHAGRATH BARDTAMER HELPER  v1.2
+# SHAGRATH BARDTAMER HELPER  v1.3.1
 # Author: Shagrath
 # Shard: UO Outlands - Razor (ClassicUO)
 #
@@ -18,6 +18,8 @@
 #   vet supplies, potions, food buff, red pouch, weight warning,
 #   bard songs upkeep, keeps the shepherd crook activated,
 #   emergency area peace when your HP drops
+# Out of war mode only:
+#   valuables stash, moves loot of value into a red trapped pouch
 # In war mode only:
 #   auto target, pets re-attack, provocation, discordance, peacemaking
 #
@@ -26,12 +28,13 @@
 #   Razor runs one script at a time: each key stops this helper,
 #   plays the skill, then restarts the helper.
 #
-# MESSAGES
-#   sbt_Noise 0 shows only critical messages: alerts, your own target
-#   choice, discorded and pacified. sbt_Noise 1 shows everything.
-#   sbt_Debug 1 adds diagnostic messages on top of that.
-#
+
 # CHANGES
+#   v1.3.1  valuables stash fix, skips items already in the pouch,
+#           debug messages for the stash
+#   v1.3  valuables stash: every 30 s, out of war mode, moves cores,
+#         distillations, maps, arcane and skill scrolls, skill balls,
+#         MCD, survival gear and chain links into a red trapped pouch
 #   v1.2  standard messages and colors, sbt_Noise switch,
 #         bard results shown over the creature
 #   v1.1  provocation and discordance alternate on the same target,
@@ -77,6 +80,16 @@
 # --- Red pouch ---
 @setvar! sbt_UseRedPouch 1
 @setvar! sbt_PouchThiefAlert 1
+
+# --- Valuables stash (out of war mode only) ---
+# Moves valuables from the backpack into the first red trapped pouch.
+# Items: aspect and chromatic cores, aspect and chromatic distillations,
+# treasure and harvest maps, arcane scrolls, skill scrolls of any color,
+# skill balls, mastercrafting diagrams, survival gear, mastery chain
+# links and link reforging tools.
+# Note: arcane scrolls share their type with plain blank scrolls.
+@setvar! sbt_StashValuables 1
+@setvar! sbt_StashCD 30000
 
 # --- Weight ---
 @setvar! sbt_WeightWarn 1
@@ -143,12 +156,12 @@
 #####################################################################
 
 # --- Version banner ---
-@setvar! sbt_Version 12
+@setvar! sbt_Version 131
 if not varexist sbt_ShownVersion
     @setvar! sbt_ShownVersion 0
 endif
 if sbt_ShownVersion != sbt_Version
-    overhead "Shagrath BardTamer Helper v1.2" 89
+    overhead "Shagrath BardTamer Helper v1.3.1" 89
     @setvar! sbt_ShownVersion sbt_Version
 endif
 
@@ -189,6 +202,9 @@ if not timerexists sbt_BardSkillTimer
 endif
 if not timerexists sbt_BardWaitTimer
     settimer sbt_BardWaitTimer sbt_MustWaitRetryCD
+endif
+if not timerexists sbt_StashTimer
+    settimer sbt_StashTimer sbt_StashCD
 endif
 if not timerexists sbt_ProvoRetryTimer
     settimer sbt_ProvoRetryTimer sbt_ProvoRetryCD
@@ -339,6 +355,54 @@ while not dead
             overhead "- thief -" 33
         else
             @setvar! sbt_RedPouchCountTotal sbt_RedPouchCount
+        endif
+    endif
+
+    # --- Valuables stash: loot of value into a red trapped pouch ---
+    if sbt_StashValuables = 1 and timer sbt_StashTimer >= sbt_StashCD
+        settimer sbt_StashTimer 0
+        if warmode or paralyzed
+            if sbt_Debug = 1
+                overhead "[dbg] stash skip warmode" 946
+            endif
+        elseif findtype 3705 backpack 38 as sbt_StashPouch
+            if sbt_Debug = 1
+                overhead "[dbg] stash pouch ok" 946
+            endif
+            @setvar! sbt_StashMoved 0
+            while insysmsg "cannot hold more"
+            endwhile
+            @clearignore
+            # Items already in the pouch are skipped
+            while findtype 3985|4025|17686|4026|5356|70148|70151|70154|70157|3827|8826|22336|17087|37181|43206|29040 sbt_StashPouch as sbt_StashItem
+                @ignore sbt_StashItem
+            endwhile
+            while findtype 3985|4025|17686|4026|5356|70148|70151|70154|70157|3827|8826|22336|17087|37181|43206|29040 backpack as sbt_StashItem
+                @ignore sbt_StashItem
+                if sbt_Debug = 1
+                    overhead "[dbg] stash move" 946
+                endif
+                lift sbt_StashItem 60000
+                wait 300
+                drop sbt_StashPouch -1 -1 -1
+                wait 600
+                if insysmsg "cannot hold more"
+                    overhead "- pouchfull -" 33
+                    break
+                endif
+                @setvar! sbt_StashMoved 1
+                if warmode or paralyzed
+                    break
+                endif
+            endwhile
+            @clearignore
+            if sbt_StashMoved = 1 and sbt_Noise = 1
+                overhead "- stashed -" 68
+            endif
+        elseif findtype 3985|4025|17686|4026|5356|70148|70151|70154|70157|3827|8826|22336|17087|37181|43206|29040 backpack
+            overhead "- nopouch -" 33
+        elseif sbt_Debug = 1
+            overhead "[dbg] stash nothing" 946
         endif
     endif
 

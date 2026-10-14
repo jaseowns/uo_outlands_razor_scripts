@@ -1,94 +1,154 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/0dd6cc95-779d-4669-bfc4-1ab3d136139f for latest
 # Automation by Jaseowns
-## Script: Fishing frenzy V2
+## Script: Fishing frenzy V3
 ## Created by: nev0r#0
 #############################################
 
 //Script to detect and harvest fishing frenzy spots in the world of UO Outlands
 //You can input the name of your "escape script" down below ("//--->" marked area) if you want to use auto escape with tracking
 
-#   globalWaitForServerResponse: your latency in ms
-    setvar! globalWaitForServerResponse 500
-
 //Activate Tracking
 if skill "Tracking" >= 50 and not findbuff "Tracking Hunting" 
-    clearsysmsg
+    if insysmsg "now tracking"
+    endif
+    while cooldown "Skill"
+    endwhile
     while not gumpexists 4267467659
         skill "tracking"
-        wait globalWaitForServerResponse
     endwhile
     gumpresponse 6 4267467659
-    waitforgump 4267467659 globalWaitForServerResponse
+    waitforgump 4267467659 500
     gumpclose 4267467659
 endif
 
-settimer speechTimer 10000
+setvar! activeKoi 0
+
+setvar!  fishingTimerCD 3000
+settimer fishingTimer fishingTimerCD
+
+settimer overheadTimer 4000
+
+createlist labelIsCheckedList
+clearlist  labelIsCheckedList
+
 @clearignore
+if insysmsg "The fishing frenzy subsides."
+endif
 
 while not dead
-    //Tracking detection check
+    
+    // Tracking detection check
     if insysmsg "now tracking"
         overhead "|*** RED ALERT ***|" 33
+        overhead "|*** RED ALERT ***|" 33
+        overhead "|*** RED ALERT ***|" 33
 //--->  insert the name of your escape script and remove "//" below if you want to use auto escape
-//        hotkey "Play Script: EscapeScript"
+//        hotkey "Play Script: Escape Script"
         stop
-    endif
-    //Check for a fishing frenzy, standard range of sight is 18 tiles, range for fishing is 8 tiles
-    if findtype "koi" ground -1 -1 18 and not findtype "dragon flame badge" ground -1 -1 8
-        while 18 > index
-            if 0 = index 
-            elseif findtype "koi" ground -1 -1 index as myFrenzy
-                getlabel myFrenzy myFrenzyLabel
-                if "fishing frenzy" in myFrenzyLabel
-                    if 8 >= index
-                        if not findtype "fishing pole" lefthand and findtype "fishing pole" backpack as myStick
-                            while not lhandempty or not rhandempty
-                                hotkey "Magic Lock"
-                                wait globalWaitForServerResponse
-                            endwhile
-                            @drop backpack -1 -1 -1
-                            lift myStick
-                            wait globalWaitForServerResponse
-                            drop self lefthand                            
-                        elseif not findtype "fishing pole" self
-                            if timer speechTimer > 3000
-                                overhead "No fishing pole" 33
-                                settimer speechTimer 0
-                            endif
-                            break
-                        endif
-                        overhead "Fishing" 68 myFrenzy
-                        overhead "   ¼   " 68 myFrenzy
-                        dclick myFrenzy
-                        if timer speechTimer > 3000
-                            settimer speechTimer 10000
-                        endif
-                        wait 1000
-                        break
-                    else
-                        overhead "Found frenzy: {{index}} tiles" 43
-                        overhead "Move closer" 43 myFrenzy
-                        overhead "     ¼¼    " 43 myFrenzy
-                        wait 1000
-                        break
-                    endif
-                else
-                    @ignore myFrenzy
-                endif
-            endif
-        endwhile
-    endif
-    if timer speechTimer > 10000
-        if not varexist speechCycle or speechCycle = 0
-            say "Mornin`!" 100
-            setvar! speechCycle 1 
-        elseif speechCycle = 1
-            say "Nice day for fishing ain't it!" 100
-            setvar! speechCycle 2
-        elseif speechCycle = 2
-            say "Hu ha!" 100
-            setvar! speechCycle 0
+
+    // No fishing pole in inventory
+    elseif not findtype "fishing pole" self and timer overheadTimer > 3000
+
+        overhead "** No fishing pole **" 33
+        settimer overheadTimer 0
+    
+    // Frenzy done
+    elseif insysmsg "The fishing frenzy subsides."
+        
+        overhead "* Frenzy done *"
+        @ignore activeKoi
+        setvar! activeKoi 0
+        clearlist labelIsCheckedList
+        settimer overheadTimer 0
+
+    // Equip fishing pole
+    elseif find activeKoi ground -1 -1 8 and not findtype "fishing pole" lefthand and findtype "fishing pole" backpack as myStick
+
+        dclick myStick
+        wait 600
+
+    // Start fishing
+    elseif find activeKoi ground -1 -1 8 and timer fishingTimer > fishingTimerCD
+
+        overhead "* Fishing *"
+        overhead "Fishing" 68 activeKoi
+        overhead "   ¼   " 68 activeKoi
+        dclick activeKoi
+        settimer fishingTimer 0
+
+    // Fishing failed - try again
+    elseif find activeKoi ground -1 -1 8 and timer fishingTimer > 1500 and not findtype "dragon flame badge" ground -1 -1 8 and not insysmsg! "The fishing frenzy subsides."
+        
+        dclick activeKoi
+        settimer fishingTimer 0 
+
+    // Continue fishing
+    elseif find activeKoi ground -1 -1 8 and timer fishingTimer < fishingTimerCD
+
+        wait 50
+
+    // Check for a fishing frenzy, standard range of sight is 18 tiles, range for fishing is 8 tiles
+    elseif findtype "koi" ground -1 -1 8
+        
+        // Set closest frenzy as target
+        if findtype "koi" ground -1 -1 1 as localKoi
+            setvar! activeKoi localKoi
+        elseif findtype "koi" ground -1 -1 2 as localKoi
+            setvar! activeKoi localKoi
+        elseif findtype "koi" ground -1 -1 3 as localKoi
+            setvar! activeKoi localKoi
+        elseif findtype "koi" ground -1 -1 4 as localKoi
+            setvar! activeKoi localKoi
+        elseif findtype "koi" ground -1 -1 5 as localKoi
+            setvar! activeKoi localKoi
+        elseif findtype "koi" ground -1 -1 6 as localKoi
+            setvar! activeKoi localKoi
+        elseif findtype "koi" ground -1 -1 7 as localKoi
+            setvar! activeKoi localKoi
+        elseif findtype "koi" ground -1 -1 8 as localKoi
+            setvar! activeKoi localKoi
         endif
-        settimer speechTimer 0
+        
+        if not inlist labelIsCheckedList activeKoi
+            getlabel activeKoi activeKoiLabel
+            if "fishing frenzy" in activeKoiLabel
+                pushlist labelIsCheckedList activeKoi
+            else
+                @ignore activeKoi
+                setvar! activeKoi 0
+                clearlist labelIsCheckedList                
+            endif
+        endif
+
+    // Frenzy on screen but too far to use
+    elseif findtype "koi" ground -1 -1 18 as localKoi
+        
+        setvar! activeKoi 0
+        
+        if not inlist labelIsCheckedList localKoi
+            getlabel localKoi localKoiLabel
+            if "fishing frenzy" in localKoiLabel
+                pushlist labelIsCheckedList localKoi
+            else
+                @ignore localKoi
+                continue
+            endif
+            settimer overheadTimer 2000
+        endif
+        
+        if timer overheadTimer > 2000
+            overhead "* Found frenzy *" 43
+            overhead "Move closer"  43 localKoi
+            overhead "     ¼¼    "  43 localKoi
+            settimer overheadTimer 0
+        endif
+
+    // No frenzy on screen
+    elseif timer overheadTimer > 4000
+        
+        overhead "* Searching Frenzy *"
+        settimer overheadTimer 0
+
     endif
+
 endwhile

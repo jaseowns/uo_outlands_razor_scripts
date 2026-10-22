@@ -10,10 +10,10 @@
 // - Processes kettles and casks within range
 // - No mandatory setup, an optional setup section can be found below
 // - Make sure to carry all items you want to be added to your kettles and casks in your backpack
-// - WARNING: server system messages are needed to determine necessary actions, make sure they are not filtered for scripts: 
+// - 'READ BEFORE USE:' server system messages are needed to determine necessary actions, make sure they are not filtered for scripts: 
 //      Razor -> Filters -> Text&Messages ->
-//      - Uncheck "Filter repeating system messages"
-//      - "Enable text filter" and "Filter system messages" (list entry sub-menu) can be checked, however "Ignore filtered messages in overhead and scripts" (list entry sub-menu) has to be unchecked
+//      - 'Uncheck Filter repeating system messages'
+//      - 'Enable text filter' and 'Filter system messages' (list entry sub-menu) can be checked, however 'Ignore filtered messages in overhead and scripts' (list entry sub-menu) has to be unchecked
 //
 //////////////////////////////
 
@@ -38,6 +38,7 @@
 // 
 // Changelog:
 // - 09-Dec-2024: Added overhead info above unprocessed kettles and casks outside 2 tiles range, and possibility to continue brewing session in case script did not finish
+// - 22-Oct-2026: Add ignore for casks within 2 tile radius that cannot be seen
 //
 //////////////////////////////
 
@@ -82,29 +83,11 @@ createlist brewingEmptyCaskList
 
 while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
 
-    //World save
-    if insysmsg "world is saving"
-        sysmsg "Waiting for world save ..."
-        settimer globalWorldSaveTimer 0
-        while timer globalWorldSaveTimer < 10000
-            if insysmsg "save complete"
-                sysmsg "The world has been saved!"
-                settimer brewingWaitTimer 0
-                getlabel backpack pingCheck
-                while timer brewingWaitTimer < brewingMinWaitForServerResponse
-                endwhile
-                break
-            endif
-        endwhile
-    endif
-
-    if targetexists
-        target cancel
-    endif
-
     if brewingDebugMode > 0
         settimer brewingDebugTimer 0
     endif
+
+    target cancel
 
     if not timerexists brewingOverheadTimer
         overhead "|* Brewing *|" cBeer
@@ -301,7 +284,7 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
             //Transfer mixture to cask
             if gumpexists brewingKettleGumpID and "complete)" in localKettleLabel and list brewingEmptyCaskList > 0
                 if poplist brewingEmptyCaskList front as localEmptyCask
-                    if insysmsg "You transfer the mixture to a brewing cask." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item."
+                    if insysmsg "You transfer the mixture to a brewing cask." or insysmsg "You must wait for this to finish brewing." or insysmsg "You are too far away to use that item." or insysmsg "Target cannot be seen."
                     endif
                     while not targetexists
                         gumpresponse 13 brewingKettleGumpID
@@ -317,7 +300,14 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                         getlabel backpack pingCheck
                         while timer brewingWaitTimer < brewingMinWaitForServerResponse
                         endwhile
-                        if insysmsg "You transfer the mixture to a brewing cask."
+                        
+                        if insysmsg "Target cannot be seen."
+                            overhead "|* Cask not visible *|" cRed
+                            overhead "Not visible" cRed localEmptyCask
+                            overhead "    ¼¼     " cRed localEmptyCask
+                            @ignore localEmptyCask
+
+                        elseif insysmsg "You transfer the mixture to a brewing cask."
                             @unignore localEmptyCask
                             if brewingDebugMode > 0
                                 overhead "Mixture" cWhite localEmptyCask
@@ -471,7 +461,7 @@ while findtype "brewing kettle|brewing barrel" ground -1 -1 brewingRange
                     sysmsg "[Brewing] Kettle refill failed (Serial: {{localKettle}}, Timer: {{brewingDebugTimer}})" cLightBlue
                 endif
             endif
-            @ignore localKettle            
+            @ignore localKettle
 
         endif
     endif
@@ -489,7 +479,6 @@ gumpclose brewingCaskGumpID
 removetimer brewingDebugTimer
 removetimer brewingOverheadTimer
 removetimer brewingWaitTimer
-removetimer globalWorldSaveTimer
 
 removelist brewingEmptyCaskList
 

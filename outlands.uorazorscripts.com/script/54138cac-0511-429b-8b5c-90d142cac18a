@@ -6,8 +6,14 @@
 
 # Bapeths "Master Background" Ship Script
 #
-# Sept 2 2026 - fixed various bugs in targeting code, refined chiv abilities, fixed auto disembark crew bug
-# 
+# Nov 2 2026 Updates:
+    
+# Auto Fisher now auto fishes MIBs and uses HELP MENU to toggle on/off (Must be on Warmode)
+# Added Auto recycler with container ID wands, use Party Menu to activate 
+# Script now has option to keep magics loot in your pack for recycling
+// End of updates
+#
+#
 # Script is designed for Dex types (Chiv/Tamer/Archer/Pooner/Thrower/Alchy)
 #
 # What it does:
@@ -23,7 +29,6 @@
 # Sense Closest Ship with Tracking Arrow (Toggle with Atlas)
 # Auto Deposit Loot into Ship Hatch (Must use Bapeths Ocean Launch Script to Select Hatch)
 # Auto Pick-Up Bomb - This will snuff out any active bomb within 2 tiles of your character
-# Auto Net Cast at Fishing Spots (Toggle with Party Menu) + Auto Cut Fish
 # Auto Attack/All Kill closest enemy when Fray Cooldown is active - This is to ensure ship to ship combat is always happening (Be aware this will attack players)
 # Warn when Sacred Journey wears off
 #
@@ -32,7 +37,8 @@
 # Auto Use Vet Kit if using tames
 # Auto Use Optimal Chiv Abilities (Do not use the in game auto ability in the Chiv gump)
 # For Alchemy Users - Auto Explode Potion
-# Auto Net Cast at Fishing Spots (Toggle with Party Menu) + Auto Cut Fish
+# Auto Net Cast at Fishing Spots (Toggle with Help Menu) + Auto Cut Fish
+# Auto Net Cast at MIB spots if MIBs are in backpack
 # Auto Attack/All Kill closest enemy when Fray Cooldown is active
 # Auto Open Enemy Ship Hatches (Do not stand within 1 tile of enemy hatch before all enemy crew is dead)
 # Auto Use Weapon Ability
@@ -105,9 +111,12 @@
 # Only works in Peace Mode
 # Say "[Atlas" to spawn an Atlas in your pack
 #
+# "Auto Item ID and Recycle"
+# ID Items + Recycle using a "Container ID Wand or 120 Item ID Skill" and any recycle tool
+# Open the "Party Menu" while the script is playing to activate
 #
 # "Auto Net Caster"
-# Open the "Party Menu" while the script is playing to toggle this feature on/off
+# Open the "Help Menu" while the script is playing to toggle this feature on/off
 # The script will auto throw nets on fishing spots when nearby
 #
 # "Auto Loot Drop Control" <----- Important!
@@ -195,6 +204,17 @@
 @setvar! "WeaponAbilityOne" 0
 @setvar! "WeaponAbilityTwo" 1
 @setvar! "WeaponAbilityThree" 0
+#
+##########################################################################################################################################################################
+#
+# "Disable Dropping Magic Weps/Armor to Ships Hold"
+#
+# User may want to use this option so that Magics can be recycled while in backpack
+# (0 = keep items in pack)
+# (1 = drop items in hold)
+# 
+@setvar! "DropMagicsToHold" 1
+#
 ##########################################################################################################################################################################
 #
 # "Auto Mariners Fortune"
@@ -206,7 +226,7 @@
 @setvar! "AutoMarinersFortune" 0
 #
 # Set your Greater Ability Cooldown (Milliseconds)
-@setvar! "BapGreaterCooldown" 216000
+@setvar! "BapGreaterCooldown" 212000
 #
 ##########################################################################################################################################################################
 #
@@ -245,13 +265,16 @@ if "AutoCutFish" = 1 and timerexists netwait
         target bapfish
         getlabel backpack ping
     endif
-endif
-
-if "AutoMarinersFortune" = 1
-    if not cooldown "Greater Ability"
-        say "[GreaterAbility"
-        getlabel backpack ping
-        cooldown "Greater Ability" BapGreaterCooldown
+    if not findtype 1286|18824|3530|26683|39345|29410|29230|2646|18824|441|25769|39434|27641|3707|29230|25769 ground -1 -1 12
+        if findtype 9775|15107|17155|17159|17604|17637|28824|28826|28827|28831|28834|28844|44211|44212|44214|44215|44223|44224|44229|44226|44230|44239|44242|44244|44245|44254|44256|44257|47239|47242|47244|47248|47260|15106|15108|15124|17157|17606|28819|28820|28821|28822|28823|28825|28826|28828|28829|28830|28833|28835|28836|28837|28838|28839|28840|28841|28842|28843|28845|44209|44218|44221|44227|44248|44251|44260|47231|47232|47233|47234|47235|47236|47237|47238|47240|47241|47243|47245|47246|47247|47249|47251|47252|47253|47254|47255|47256|47257|47258|47259|47262|47263|47267|47268|47271|47283|47284|47285|2508|7710 as bapfish
+            while queued
+                //donthing
+            endwhile
+            dclick "BapScissors"
+            wft 500
+            target bapfish
+            getlabel backpack ping
+        endif    
     endif
 endif
 
@@ -529,23 +552,30 @@ elseif findtype "fishing net" backpack 2900 as specialnetignore
     @ignore specialnetignore
 endif
 if not timerexists autonetcast
-    if gumpexists 3527489586
-        gumpclose 3527489586
+    if gumpexists 3838850833
+        gumpclose 3838850833
         createtimer autonetcast
         overhead "--Auto Net Cast Enabled--" 2085
     endif
 endif
 if timerexists autonetcast
-    if gumpexists 3527489586
-        gumpclose 3527489586
+    if gumpexists 3838850833
+        gumpclose 3838850833
         removetimer autonetcast
         overhead "--Auto Net Cast Disabled--" 1779
     endif
 endif
-if timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|2646|18824|441|25769|39434|27641|3707|29230|25769 ground -1 -1 12
+if warmode and timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|2646|18824|441|25769|39434|27641|3707|29230|25769 ground -1 -1 12
     if not timerexists netwait
         createtimer netwait
         settimer netwait 3350
+    endif
+    if "AutoMarinersFortune" = 1
+        if not cooldown "Greater Ability"
+            say "[GreaterAbility"
+            getlabel backpack ping
+            cooldown "Greater Ability" BapGreaterCooldown
+        endif
     endif
     if not hidden and not queued and timer netwait >= 3350 and findtype "fishing net" backpack as net
         while queued
@@ -559,6 +589,32 @@ if timerexists autonetcast and findtype 1286|18824|3530|26683|39345|29410|29230|
     endif
     if insysmsg "You have completely fished out that location."
         overhead "Fishing spot depleated..." 88
+    endif
+endif
+if warmode and timerexists autonetcast and findtype "rolled map" backpack 2837
+    if not timerexists netwait
+        createtimer netwait
+        settimer netwait 3350
+    endif
+    if "AutoMarinersFortune" = 1
+        if not cooldown "Greater Ability"
+            say "[GreaterAbility"
+            getlabel backpack ping
+            cooldown "Greater Ability" BapGreaterCooldown
+        endif
+    endif
+    if not hidden and not queued and timer netwait >= 3350 and findtype "fishing net" backpack as net
+        while queued
+            //donothing
+        endwhile
+        dclick net
+        wft 500
+        target net
+        getlabel backpack ping
+        settimer netwait 0
+    endif
+    if insysmsg "You have completed the SOS"
+        overhead "SOS completed..." 88
     endif
 endif
 
@@ -749,8 +805,16 @@ if not warmode
         
     if not hidden and find "shiphold" ground -1 -1 2
         clearsysmsg 
-        // Arcane Runes removed from loot drop string
-        while findtype "chain link|29368|18660|3712|3648|3650|3708|3648|metal chest|3649|29833|29832|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|55204|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|70148|70151|70154|70157|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|54717|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|31002|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|37181|31010|30998|31172|30988|30997|31038|31141|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|30992|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|dual wield tracker knife|duel wield katana|dual wield norse axe|dual wield rapier|dual wield sabre|dual wield scimitar|chakram|francisca|hurlbat|javelin|throwing knife|throwing star|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|9917|3859|3862|3878|3865|3856|3873|3877|3834|3742|3762|3740|3763|10245|3572|3573|3571|3885|7127|4225|12686|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7708|2426|7127|3861|24343|3821" backpack as bitem
+        while findtype "3710|2473|3646|3647|3645|3644" backpack 2915  as BapMIBContainer
+            drop backpack
+            lift BapMIBContainer 60000
+            drop shiphold -1 -1 0
+            while queued
+                //dotnothing
+            endwhile
+        endwhile
+        // Loot (no armor or weps)
+        while findtype "chain link|29368|18660|3712|3648|3650|3708|3648|metal chest|3649|29833|29832|20099|31303|31165|tribal ruins|electric ankh|54230|44985|glass display|20049|Pig Iron|broken shield|blackrock fragment|gargish fragment|11753|18705|49482|53694|54570|53696|53876|50612|55420|53280|53473|54831|50278|49528|55204|54684|27612|49223|54591|54601|54718|7408|19948|58325|19959|19822|49730|49729|19944|19949|47613|47612|47611|47610|47611|3986|3966|cathedral tapestry|Darkscale tapestry|large painting|landscape painting|portrait painting|figurine|20291|44987|49730|47107|18653|45127|20103|47103|29363|47105|29361|43453|5899|47109|45250|41509|43447|18657|4025|51308|45156|51304|45214|28769|28799|28803|28765|45211|45248|51259|45220|51328|45218|3842|51327|45222|45241|51336|11858|51375|45282|54722|45255|45246|28795|44983|45235|45251|45238|51258|51314|28761|45236|51260|54718|18400|58325|45252|18656|47111|3839|45239|45242|45254|45281|45247|42241|45216|28775|51321|3838|51318|5901|5905|45259|5903|48407|51302|4248|27611|15296|43166|5359|5981|4026|3985|25359|17686|3836|17087|5356|70148|70151|70154|70157|29030|24434|22336|29036|3843|29025|51098|29034|8826|51094|576|3827|22326|45315|3891|2539|54717|31169|37181|31172|54718|58325|54717|19985|19981|19984|19982|19983|19991|19989|19986|19987|19988|19994|19995|19992|19993|19990|19980|19977|19976|19978|7154|19979|43423|7154|4225|7708|2426|7127|3861|24343|3821|31002|30992|9917|3859|3862|3878|3865|3856|3873|3877|3885|3901" backpack as bitem
             drop backpack
             lift bitem 60000
             drop shiphold -1 -1 0
@@ -758,6 +822,17 @@ if not warmode
                 //dotnothing
             endwhile
         endwhile
+        if "DropMagicsToHold" = 1
+            // Armor and Weps
+            while findtype "31047|31017|31049|31019|31055|31051|31053|31025|31027|31031|31041|31021|31011|31023|31029|31043|31003|31035|31033|31045|31037|20006|31169|31006|30999|31012|31009|30996|7109|7107|31128|31188|20014|31014|31004|31142|31001|31000|31010|30998|30988|30997|31038|31141|20008|31005|31191|31008|31007|30994|30993|31182|30989|20012|31186|31178|31015|30991|20010|20016|31184|31190|30990|30995|31176|31180|31130|5207|7031|7026|7034|7033|7027|7035|7029|5078|5063|5059|5105|5060|5138|5129|5201|5142|5143|5076|5106|7610|5139|5090|5103|5132|7177|5061|7181|7179|3920|5042|5127|5117|5185|5125|3938|5177|3937|5044|5121|3915|3909|dual wield tracker knife|duel wield katana|dual wield norse axe|dual wield rapier|dual wield sabre|dual wield scimitar|chakram|francisca|hurlbat|javelin|throwing knife|throwing star|3568|3932|5123|5144|5119|5056|5135|5187|5074|5089|3934|3913|3917|3721|5075|5046|5049|7170|5146|5205|5203|5115|5204|5040|5179|5070|5182|5085|5181|3719|7173|5131|3911|5101|7175|7169|3713|5112|22187|3834|3742|3762|3740|3763|10245|3572|3573|3571" backpack as bitem
+                drop backpack
+                lift bitem 60000
+                drop shiphold -1 -1 0
+                while queued
+                    //dotnothing
+                endwhile
+            endwhile
+        endif
         while findtype "17619|7710|17617|2508|2463" backpack as fishitem
             drop backpack
             lift fishitem 60000
@@ -1124,4 +1199,94 @@ elseif warmode
         endif
     endif
 endif
+
+// Fast container ID wand/skill recycle (use Party Menu) routine
+if gumpexists 3527489586 and findtype "3997|4148|4032|7864" backpack as breakdowntool
+    gumpclose 3527489586
+    hotkey "Cancel Current Target"
+    if not find "ContainerIDWand" and findtype 20495 backpack as contIDwand
+        @setvar! "ContainerIDWand" contIDwand
+    endif
+    if skill "Item ID" = 120 or find "ContainerIDWand" backpack
+        clearsysmsg 
+        while queued
+            //donothing
+        endwhile
+        if skill "Item ID" = 120
+            skill "Item ID"
+        elseif find "ContainerIDWand" backpack
+            dclick "ContainerIDWand"
+        endif
+        wft 500
+        overhead "Select Container to ID..." 88
+        while targetexists 
+            //donothing
+        endwhile
+        getlabel backpack ping
+        overhead "Attempting recycle..." 88
+        if insysmsg "No unidentified items found."
+            overhead "Nothing fresh to ID..." 45
+        elseif insysmsg "That is not a container." 
+            overhead "Invalid container, try again.." 45
+        elseif insysmsg "You must wait a few moments to use another skill" 
+            overhead "Skill Cooldown, Try Again.." 38
+        endif
+        while findtype 3834 backpack 0 as bbook
+            @ignore bbook
+        endwhile
+        while findtype "chakram|francisca|hurlbat|javelin|throwing knife|throwing star|dual wield tracker knife|duel wield katana|dual wield norse axe|dual wield rapier|dual wield sabre|dual wield scimitar|5056|5059|5060|5061|5063|5070|5074|5075|5076|5078|5085|5089|5090|5101|5103|5105|5106|5129|5131|5132|5135|5138|5139|5142|5143|5144|5146|5201|5203|5204|5205|5207|7169|7170|7173|7175|7177|7179|7181|7610|7947|31003|31004|31005|31006|31007|31008|31009|31010|31011|31012|31015|31191|31017|31019|31021|31023|31025|31027|31029|31031|31033|31035|31037|31038|31041|31043|31045|31047|31049|31051|31053|31055|3834|3740|3742|3762|3763|10245|20006|20008|20010|20012|20014|20016|7026|7027|7029|7031|7033|7034|7035|7107|7109|31002|31130|3920|5042|5117|30990|30993|30994|30995|31184|31186|3719|3938|5121|5123|5125|30989|30992|30996|30997|30998|31176|31188|3568|3713|3721|3932|5040|5044|5112|5127|5177|5179|5181|30991|30999|31000|31001|31014|31178|31180|31182|3909|3911|3913|3915|3917|3934|3937|5046|5049|5115|5119|5182|5185|5187|30988|31128|31190|22187|31141|31142|31169|31172" backpack as IDitem
+            getlabel IDitem desc
+            if "unidentified" in desc or "activated" in desc or "blessed" in desc or "aspect" in desc or "training" in desc or "vanquishing" in desc or "supremely" in desc or "invulnerability" in desc or "power" in desc or "exceedingly accurate force" in desc or "valorite" in desc or "valehide" in desc or "valewood" in desc or "avarite" in desc or "avarhide" in desc or "avarwood" in desc or "verite" in desc or "verehide" in desc or "verewood" in desc or "agapite" in desc or "rosehide" in desc or "rosewood" in desc or "greater beastial" in desc or "greater construct" in desc or "greater daemonic" in desc or "greater elemental" in desc or "greater humanoid" in desc or "greater monstrous" in desc or "greater nature" in desc or "greater undead" in desc or "aegis" in desc or "cavernam" in desc or "darkmire" in desc or "inferno" in desc or "petram" in desc or "nusero" in desc or "ossuary" in desc or "pulma" in desc or "mausoleum" in desc or "wilderness" in desc or "ocean" in desc or "shadowspire" in desc or "kraul" in desc or "time" in desc or "netherzone" in desc or "tidal" in desc
+                @ignore IDitem
+                overhead "*strong magic*" 2091 IDitem
+            elseif "KeepFortification" = 1 and "fortification" in desc
+                @ignore IDitem
+                overhead "*strong magic*" 2091 IDitem    
+            else
+                overhead "*trash*" 1779 IDitem
+                while not gumpexists 949095101
+                    while queued
+                        //donothing
+                    endwhile
+                    dclick breakdowntool
+                    waitforgump 949095101 1000
+                endwhile
+                while not ingump "Recycle Single Item" 949095101
+                    gumpresponse 2 949095101
+                    waitforgump 949095101 1000
+                endwhile                                
+                gumpresponse 3 949095101
+                waitforgump 949095101 1000
+                target IDitem
+                getlabel backpack ping
+                pause 250
+                if ingump "That cannot be recycled"
+                    drop backpack
+                    lift IDitem
+                    drop 0
+                    while queued
+                        //donothing
+                    endwhile
+                endif
+                gumpclose 949095101
+            endif
+            if skill "Item ID" = 120
+                //donothing
+            elseif not find "ContainerIDWand" backpack
+                break
+            endif
+        endwhile
+        if gumpexists 949095101
+            gumpclose 949095101
+        endif
+    else
+        overhead "No Container ID Wand..." 38
+    endif
+    if targetexists 
+        hotkey "Cancel Current Target"
+    endif
+    overhead "Recycle Complete." 88
+    @clearignore 
+endif
+// End of Fast container ID wand recycle routine
 loop

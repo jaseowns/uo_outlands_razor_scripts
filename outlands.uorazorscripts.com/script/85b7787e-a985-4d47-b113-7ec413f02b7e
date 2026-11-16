@@ -1,0 +1,1210 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/85b7787e-a985-4d47-b113-7ec413f02b7e for latest
+# Automation by Jaseowns
+## Script: Breeding Bro
+## Created by: nev0r#0
+#############################################
+
+// ================================= //
+// '     MOUNT   _|\ _/|_,         ' //
+// '          ,((\\``-\\\\_        ' //
+// '        ,(())      `))\        ' //
+// '      ,(()))       ,_ \        ' //
+// '     ((())´   |        \       ' //
+// '     )))))     >.__     \      ' //
+// '     (((´     /    `-. .c|     ' //
+// '     ))      /        `-`´     ' //
+// '                  BREEDING     ' //
+// '                               ' //
+// '       for UO Outlands         ' //
+// '          Version 1            ' //
+// ================================= //
+//
+// 'READ BEFORE USE':
+// This script relies on server system messages to function properly.
+// Ensure Razor does not hide them from scripts:
+//   Razor -> Filters -> Text & Messages:
+//   - Uncheck: "Filter repeating system messages"
+//   - If manual filters are enabled: Ensure "Ignore filtered messages in overhead and scripts" is UNCHECKED
+//
+// - Automatically services feeding troughs within range.
+// - No configuration required (optional settings below).
+//
+// ================================= //
+
+#######################################
+# '                                 ' #
+# '           MANUAL SETUP          ' #
+# '                                 ' #
+#######################################
+
+# Trough search range in tiles (1 - 18)
+setvar! breedScanRange 18
+
+# Interaction range in tiles to service troughs (1 - 4)
+setvar! breedUseRange 4
+
+# Serial of external restock container on the ground (set to 0 to disable, sub-containers are not supported)
+# To get the serial: type >info in-game, target your container, and copy the serial (0x...)
+setvar! breedSupplyContainer 0
+
+# Action on inactive troughs (empty, missing creature, ready, or finished)
+# 0 = Skip inactive troughs
+# 1 = Open gump and wait for input
+setvar! breedShowInactiveTrough 1
+
+# Automatically add fertility serum (0 = No, 1 = Yes)
+setvar! breedAutoAddFertilitySerum 1
+
+# Automatically add growth tablets (0 = No, 1 = Yes)
+setvar! breedAutoAddGrowthTablets 0
+
+# Trough overhead info display (0 = Hide trough overhead, 1 = Show trough overheads)
+setvar! breedShowOverheadInfo 1
+
+# Amount of aspect charges to add (0 - 6, 0 = Disabled)
+# - Cores & Distillations = 2 charges, Phylacteries = 1 charge
+# - Priority: Distillation -> Core -> Phylactery
+# - Prevents point waste (e.g., at 5/6 charges, only Phylacteries are used)
+# - Requires configuring the 'Aspect assignment' lists below
+setvar! breedMaxAspectCharges 0
+
+# Aspect assignment for horses: allow mixed body types in the same trough (e.g., 200 paired with 204)
+# 0 = Strict  (matching body types only)
+# 1 = Allowed (mixed body types)
+setvar! breedAllowMixedHorseBodies 0
+
+# =====================================================================
+# 'ASPECT ASSIGNMENTS' (Required only if breedMaxAspectCharges > 0)
+# Add desired aspect names below. Quotes are optional.
+#
+# 'Supported Aspects:'
+# Agorawave   Air    Arcane     Artisan  Blood    Command  Death
+# Discipline  Earth  Eldritch   Fire     Fortune  Frost    Gadget
+# Harvest     Holy   Lightning  Lyric    Madness  Poison   Shadow
+# Temporal    Void   Water      War
+#
+# 'Example' (priority / fallback order):
+# pushlist Horse_200 Earth
+# pushlist Horse_200 Air
+# pushlist Horse_200 Fire
+# - Priority: Earth > Air > Fire (uses the first available aspect found)
+# =====================================================================
+
+# --------- Do not edit --------- #
+
+removelist Horse_200                    
+createlist Horse_200                
+removelist Horse_204
+createlist Horse_204
+removelist Horse_226
+createlist Horse_226
+removelist Horse_228
+createlist Horse_228
+removelist DesertOstard_210
+createlist DesertOstard_210
+removelist FrenziedOstard_218
+createlist FrenziedOstard_218 
+removelist ForestOstard_219
+createlist ForestOstard_219
+removelist Llama_220
+createlist Llama_220
+
+# --------- Edit here: ---------- #
+
+# # # # # # # # # # # # # # # # # #
+# '       Horse - Body 200      ' #
+# ------------------------------- #
+
+pushlist Horse_200 ReplaceWithAspectName
+
+
+# # # # # # # # # # # # # # # # # #
+# '       Horse - Body 204      ' #
+# ------------------------------- #
+
+pushlist Horse_204 ReplaceWithAspectName
+
+
+# # # # # # # # # # # # # # # # # #
+# '       Horse - Body 226      ' #
+# ------------------------------- #
+
+pushlist Horse_226 ReplaceWithAspectName
+
+
+# # # # # # # # # # # # # # # # # #
+# '       Horse - Body 228      ' #
+# ------------------------------- #
+
+pushlist Horse_228 ReplaceWithAspectName
+
+
+# # # # # # # # # # # # # # # # # #
+# '       Desert Ostard         ' #
+# ------------------------------- #
+
+pushlist DesertOstard_210 ReplaceWithAspectName
+
+
+# # # # # # # # # # # # # # # # # #
+# '       Frenzied Ostard       ' #
+# ------------------------------- #
+
+pushlist FrenziedOstard_218 ReplaceWithAspectName
+
+
+# # # # # # # # # # # # # # # # # #
+# '        Forest Ostard        ' #
+# ------------------------------- #
+
+pushlist ForestOstard_219 ReplaceWithAspectName
+
+
+# # # # # # # # # # # # # # # # # #
+# '            Llama            ' #
+# ------------------------------- #
+
+pushlist Llama_220 ReplaceWithAspectName
+
+
+#######################################
+# '                                 ' #
+# '         END MANUAL SETUP        ' #
+# '                                 ' #
+#######################################
+
+// '            Changelog          ' //
+// ================================= //
+//
+// ================================= //
+
+// Set variables, timers and lists
+setvar! breedHue 2642
+setvar! breedGumpID 1942558613
+setvar! breedWait 500
+setvar! breedRefillStarted 0
+
+setvar! breedWaitForObjectDelay 600
+settimer breedObjectDelayTimer breedWaitForObjectDelay
+
+setvar! breedOverheadCD 3000
+settimer breedOverheadTimer breedOverheadCD
+
+setvar! cRed          33
+setvar! cYellow       55
+setvar! cGreen        68
+setvar! cLightBlue   100
+setvar! cLightOrange 145
+
+removelist breedTroughList
+createlist breedTroughList
+removelist breedCheckedList
+createlist breedCheckedList
+
+// User input validation
+if breedScanRange = 1 or breedScanRange = 2 or breedScanRange = 3 or breedScanRange = 4 or breedScanRange = 5 or breedScanRange = 6 or breedScanRange = 7 or breedScanRange = 8 or breedScanRange = 9 or breedScanRange = 10 or breedScanRange = 11 or breedScanRange = 12 or breedScanRange = 13 or breedScanRange = 14 or breedScanRange = 15 or breedScanRange = 16 or breedScanRange = 17 or breedScanRange = 18
+    // Valid
+else
+    setvar! breedScanRange 18
+    overhead "|* ScanRange invalid *|" cRed
+    overhead "|* Setting default: {{breedScanRange}} *|" cYellow
+endif
+
+if breedUseRange = 1 or breedUseRange = 2 or breedUseRange = 3 or breedUseRange = 4
+    // Valid
+else
+    setvar! breedUseRange 2
+    overhead "|* UseRange invalid *|" cRed
+    overhead "|* Setting default: {{breedUseRange}} *|" cYellow
+endif
+
+if breedScanRange = 1 and breedUseRange > 1
+    setvar! breedUseRange 1
+elseif breedScanRange = 2 and breedUseRange > 2
+    setvar! breedUseRange 2
+elseif breedScanRange = 3 and breedUseRange > 3
+    setvar! breedUseRange 3
+endif
+
+if breedShowInactiveTrough = 0 or breedShowInactiveTrough = 1
+    // Valid
+else
+    setvar! breedShowInactiveTrough 1
+    overhead "|* ShowInactiveTrough invalid *|" cRed
+    overhead "|* Setting default: {{breedShowInactiveTrough}} *|" cYellow      
+endif
+
+if breedAutoAddFertilitySerum = 0 or breedAutoAddFertilitySerum = 1
+    // Valid
+else
+    setvar! breedAutoAddFertilitySerum 0
+    overhead "|* AutoAddFertilitySerum invalid *|" cRed
+    overhead "|* Setting default: {{breedAutoAddFertilitySerum}} *|" cYellow
+endif
+
+if breedAutoAddGrowthTablets = 0 or breedAutoAddGrowthTablets = 1
+    // Valid
+else
+    setvar! breedAutoAddGrowthTablets 0
+    overhead "|* AutoAddGrowthTablets invalid *|" cRed
+    overhead "|* Setting default: {{breedAutoAddGrowthTablets}} *|" cYellow    
+endif
+
+if breedShowOverheadInfo = 0 or breedShowOverheadInfo = 1
+    // Valid
+else
+    setvar! breedShowOverheadInfo 0
+    overhead "|* ShowOverheadInfo invalid *|" cRed
+    overhead "|* Setting default: {{breedShowOverheadInfo}} *|" cYellow        
+endif
+
+if breedMaxAspectCharges = 0 or breedMaxAspectCharges = 1 or breedMaxAspectCharges = 2 or breedMaxAspectCharges = 3 or breedMaxAspectCharges = 4 or breedMaxAspectCharges = 5 or breedMaxAspectCharges = 6
+    // Valid
+    if breedAllowMixedHorseBodies = 0 or breedAllowMixedHorseBodies = 1
+        // Valid
+    else
+        setvar! breedAllowMixedHorseBodies 0
+        overhead "|* AllowMixedHorseBodies invalid *|" cRed
+        overhead "|* Setting default: {{breedAllowMixedHorseBodies}} *|" cYellow        
+    endif
+else
+    setvar! breedMaxAspectCharges 0
+    overhead "|* MaxAspectCharges invalid *|" cRed
+    overhead "|* Setting default: {{breedMaxAspectCharges}} *|" cYellow
+endif
+
+// Start breeding
+@clearignore
+if targetexists
+    target cancel
+endif
+overhead "|* Breeding Started *|" cGreen
+
+if find breedSupplyContainer ground -1 -1 2 and not findtype 3703|3707|3715|4090|5344|5453|25570|56416|56417|2452|2485|2512|2513|2514|2544|3164|3173|3174|3178|3181|3184|3186|3188|3191|3195|3199|3350|3386|5919|5923|5928|5930|20499|20500|20498|29030 breedSupplyContainer
+    dclick breedSupplyContainer
+    wait breedWaitForObjectDelay
+endif
+
+while findtype "feeder trough" ground -1 -1 breedScanRange
+    
+    setvar! breedCurrentTrough 0
+
+    // Select trough
+    if not findtype "feeder trough" ground -1 -1 breedUseRange
+
+        if timer breedOverheadTimer > breedOverheadCD
+            overhead "|* Searching feeding trough *|" cGreen
+            clearlist breedTroughList
+            while breedShowOverheadInfo = 1 and 10 > index and findtype "feeder trough" ground -1 -1 breedScanRange as localBreeder
+                overhead "Pending" cLightOrange localBreeder
+                overhead "   ¼   " cLightOrange localBreeder
+                pushlist breedTroughList localBreeder
+                @ignore localBreeder
+            endwhile
+            @unignore breedTroughList
+            clearlist breedTroughList
+            clearlist breedCheckedList
+            settimer breedOverheadTimer 0
+        endif
+        wait 250
+        continue
+    
+    elseif breedShowInactiveTrough = 0 and findtype "feeder trough" ground -1 -1 breedUseRange as localBreeder
+
+        setvar! breedCurrentTrough localBreeder
+        
+    else
+
+        @ignore breedTroughList
+        while findtype "feeder trough" ground -1 -1 breedUseRange as localBreeder
+            if not inlist breedCheckedList localBreeder
+                getlabel localBreeder localBreederLabel
+                if "progress: 100.00%)" in localBreederLabel or "progress: 0.00%)" in localBreederLabel
+                    pushlist breedTroughList localBreeder front
+                    setvar! breedRefillStarted 0
+                else 
+                    pushlist breedTroughList localBreeder back
+                    pushlist breedCheckedList localBreeder
+                endif
+            else
+                pushlist breedTroughList localBreeder back
+            endif
+            @ignore localBreeder
+        endwhile
+        @unignore breedTroughList
+
+        if list breedTroughList = 0
+            continue
+        elseif poplist breedTroughList front as localBreeder
+            setvar! breedCurrentTrough localBreeder
+        endif
+
+    endif
+
+    gumpclose breedGumpID
+    
+    // (Re)Start inactive troughs
+    if insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+    endif
+
+    while breedShowInactiveTrough = 1 and not inlist breedCheckedList breedCurrentTrough and find breedCurrentTrough ground -1 -1 breedUseRange
+        
+        if insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+            if breedShowOverheadInfo = 1
+                overhead "No line of sight" cRed breedCurrentTrough
+                overhead "       ¼        " cRed breedCurrentTrough
+            endif
+            @ignore breedCurrentTrough
+            break            
+        elseif gumpexists breedGumpID and ingump "/1,000" 1942558613
+            // Skip already working trough
+            pushlist breedCheckedList breedCurrentTrough
+            if list breedTroughList = 0
+            elseif poplist breedTroughList front as localNextTrough
+                pushlist breedTroughList localNextTrough front
+                if not inlist breedCheckedList localNextTrough
+                    pushlist breedTroughList breedCurrentTrough back
+                endif
+            endif
+            break
+        elseif not gumpexists breedGumpID
+            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+            endwhile
+            dclick breedCurrentTrough
+            settimer breedObjectDelayTimer 0
+            waitforgump breedGumpID breedWait
+            continue
+        endif
+        // Wait for user input
+        settimer breedOverheadTimer breedOverheadCD
+        while find breedCurrentTrough ground -1 -1 breedUseRange
+            if ingump "/1,000" 1942558613
+                pushlist breedCheckedList breedCurrentTrough
+                if list breedTroughList = 0
+                elseif poplist breedTroughList front as localNextTrough
+                    pushlist breedTroughList localNextTrough front
+                    if not inlist breedCheckedList localNextTrough
+                        pushlist breedTroughList breedCurrentTrough back
+                    endif
+                endif
+                break
+            elseif not gumpexists breedGumpID
+                waitforgump breedGumpID breedWait
+                if not gumpexists breedGumpID
+                    @ignore breedCurrentTrough
+                    break
+                endif
+            endif
+            if gumpexists breedGumpID and timer breedOverheadTimer > breedOverheadCD
+                if ingump "Daily Growth" 1942558613
+                    // Can be started
+                    overhead "Start breeding," cGreen
+                    if breedShowOverheadInfo = 1
+                        overhead "  Ready  "  cGreen breedCurrentTrough
+                        overhead "    ¼    " cGreen breedCurrentTrough
+                    endif                    
+                elseif ingump "Offspring" 1942558613
+                    // Breeding finished
+                    overhead "Breeding finished, restart" cGreen
+                    if breedShowOverheadInfo = 1
+                        overhead "Finished"  cGreen breedCurrentTrough
+                        overhead "    ¼    " cGreen breedCurrentTrough
+                    endif
+                elseif ingump "Fertility" 1942558613
+                    // One animal missing
+                    overhead "Add another mount," cGreen
+                    if breedShowOverheadInfo = 1
+                        overhead "Add mount" cGreen breedCurrentTrough
+                        overhead "    ¼    " cGreen breedCurrentTrough
+                    endif
+                else
+                    // Both animals missing
+                    overhead "Add mounts," cGreen
+                    if breedShowOverheadInfo = 1
+                        overhead "Add mount" cGreen breedCurrentTrough
+                        overhead "    ¼    " cGreen breedCurrentTrough
+                    endif                    
+                endif
+                overhead "or close gump to cancel" cYellow
+                settimer breedOverheadTimer 0
+            endif
+            wait 100
+        endwhile
+        break
+
+    endwhile
+    
+    if inlist breedTroughList breedCurrentTrough or not find breedCurrentTrough ground -1 -1 breedUseRange
+        // Handle troughs requiring user input first
+        continue
+    endif
+    
+    if breedRefillStarted = 0
+        overhead "|* Refilling troughs *|" cGreen
+        setvar! breedRefillStarted 1
+    else
+        overhead "|* Next trough *|" cGreen
+    endif
+    target cancel
+
+    // Add aspect items
+    if insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+    endif
+    removelist breedAspectCountList
+
+    while breedMaxAspectCharges != 0 and find breedCurrentTrough ground -1 -1 breedUseRange
+
+        if insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+            if breedShowOverheadInfo = 1
+                overhead "No line of sight" cRed breedCurrentTrough
+                overhead "       ¼        " cRed breedCurrentTrough
+            endif
+            @ignore breedCurrentTrough
+            break
+        elseif gumpexists breedGumpID and not ingump "/1,000" 1942558613
+            // Skip inactive trough
+            @ignore breedCurrentTrough
+            break
+        elseif not findtype "aspect core|flask|phylactery" backpack and not findtype "aspect core|flask|phylactery" breedSupplyContainer
+            break
+        elseif not gumpexists breedGumpID
+            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+            endwhile
+            dclick breedCurrentTrough
+            settimer breedObjectDelayTimer 0
+            waitforgump breedGumpID breedWait
+            continue
+        elseif ingump "(x6)" 1942558613
+            break
+        elseif not listexists breedAspectCountList
+            createlist breedAspectCountList
+            if ingump "(x1)" 1942558613
+                pushlist breedAspectCountList 1
+            elseif ingump "(x2)" 1942558613
+                pushlist breedAspectCountList 1
+                pushlist breedAspectCountList 1
+            elseif ingump "(x3)" 1942558613
+                pushlist breedAspectCountList 1
+                pushlist breedAspectCountList 1
+                pushlist breedAspectCountList 1
+            elseif ingump "(x4)" 1942558613
+                for 4
+                    pushlist breedAspectCountList 1
+                endfor
+            elseif ingump "(x5)" 1942558613
+                for 5
+                    pushlist breedAspectCountList 1
+                endfor
+            endif
+            continue
+        elseif list breedAspectCountList >= breedMaxAspectCharges
+            break
+        endif
+
+        pushlist breedAspectCountList 1
+        if list breedAspectCountList = breedMaxAspectCharges and not findtype "phylactery" backpack and not findtype "phylactery" breedSupplyContainer
+            break
+        endif
+        poplist breedAspectCountList back
+
+        setvar! breedAspectCoreHue 9999
+
+        if ingump "Agorawave  (" 1942558613
+            setvar! breedAspectCoreHue 4221
+            setvar! breedAspectDistHue 4221
+            setvar! breedAspectPhylHue 4221
+        elseif ingump "Air  (" 1942558613
+            setvar! breedAspectCoreHue 2263
+            setvar! breedAspectDistHue 2263
+            setvar! breedAspectPhylHue 2263
+        elseif ingump "Arcane  (" 1942558613
+            setvar! breedAspectCoreHue 1560
+            setvar! breedAspectDistHue 1560
+            setvar! breedAspectPhylHue 1560
+        elseif ingump "Artisan  (" 1942558613
+            setvar! breedAspectCoreHue 2096
+            setvar! breedAspectDistHue 2096
+            setvar! breedAspectPhylHue 2096
+        elseif ingump "Blood  (" 1942558613
+            setvar! breedAspectCoreHue 2087
+            setvar! breedAspectDistHue 2087
+            setvar! breedAspectPhylHue 2087
+        elseif ingump "Command  (" 1942558613
+            setvar! breedAspectCoreHue 1428
+            setvar! breedAspectDistHue 1782
+            setvar! breedAspectPhylHue 1428
+        elseif ingump "Death  (" 1942558613
+            setvar! breedAspectCoreHue 2155
+            setvar! breedAspectDistHue 2155
+            setvar! breedAspectPhylHue 2155
+        elseif ingump "Discipline  (" 1942558613
+            setvar! breedAspectCoreHue 2490
+            setvar! breedAspectDistHue 2490
+            setvar! breedAspectPhylHue 2490
+        elseif ingump "Earth  (" 1942558613
+            setvar! breedAspectCoreHue 2767
+            setvar! breedAspectDistHue 2767
+            setvar! breedAspectPhylHue 2767
+        elseif ingump "Eldritch  (" 1942558613
+            setvar! breedAspectCoreHue 2618
+            setvar! breedAspectDistHue 2615
+            setvar! breedAspectPhylHue 2618
+        elseif ingump "Fire  (" 1942558613
+            setvar! breedAspectCoreHue 2635
+            setvar! breedAspectDistHue 2635
+            setvar! breedAspectPhylHue 2635
+        elseif ingump "Fortune  (" 1942558613
+            setvar! breedAspectCoreHue 2843
+            setvar! breedAspectDistHue 2843
+            setvar! breedAspectPhylHue 2843
+        elseif ingump "Frost  (" 1942558613
+            setvar! breedAspectCoreHue 2234
+            setvar! breedAspectDistHue 2234
+            setvar! breedAspectPhylHue 2234
+        elseif ingump "Gadget  (" 1942558613
+            setvar! breedAspectCoreHue 2669
+            setvar! breedAspectDistHue 2669
+            setvar! breedAspectPhylHue 2669
+        elseif ingump "Harvest  (" 1942558613
+            setvar! breedAspectCoreHue 2208
+            setvar! breedAspectDistHue 2086
+            setvar! breedAspectPhylHue 2207
+        elseif ingump "Holy  (" 1942558613
+            setvar! breedAspectCoreHue 2153
+            setvar! breedAspectDistHue 2153
+            setvar! breedAspectPhylHue 2153
+        elseif ingump "Lightning  (" 1942558613
+            setvar! breedAspectCoreHue 2650
+            setvar! breedAspectDistHue 2650
+            setvar! breedAspectPhylHue 2650
+        elseif ingump "Lyric  (" 1942558613
+            setvar! breedAspectCoreHue 2241
+            setvar! breedAspectDistHue 2241
+            setvar! breedAspectPhylHue 2241
+        elseif ingump "Madness  (" 1942558613
+            setvar! breedAspectCoreHue 1060
+            setvar! breedAspectDistHue 1060
+            setvar! breedAspectPhylHue 1060
+        elseif ingump "Poison  (" 1942558613
+            setvar! breedAspectCoreHue 2897
+            setvar! breedAspectDistHue 2897
+            setvar! breedAspectPhylHue 2897
+        elseif ingump "Shadow  (" 1942558613
+            setvar! breedAspectCoreHue 1757
+            setvar! breedAspectDistHue 1790
+            setvar! breedAspectPhylHue 1757
+        elseif ingump "Temporal  (" 1942558613
+            setvar! breedAspectCoreHue 4211
+            setvar! breedAspectDistHue 4211
+            setvar! breedAspectPhylHue 4211
+        elseif ingump "Void  (" 1942558613
+            setvar! breedAspectCoreHue 2582
+            setvar! breedAspectDistHue 2599
+            setvar! breedAspectPhylHue 2582
+        elseif ingump "Water  (" 1942558613
+            setvar! breedAspectCoreHue 2592
+            setvar! breedAspectDistHue 1788
+            setvar! breedAspectPhylHue 2592
+        elseif ingump "War  (" 1942558613
+            setvar! breedAspectCoreHue 2503
+            setvar! breedAspectDistHue 2503
+            setvar! breedAspectPhylHue 2503
+        else
+
+            removelist breedMountTypeList
+            createlist breedMountTypeList
+            if ingump "Body 220" 1942558613 and listexists Llama_220
+                foreach breedAspectName in Llama_220
+                    pushlist breedMountTypeList breedAspectName
+                endfor
+            elseif ingump "Body 210" 1942558613 and listexists DesertOstard_210
+                foreach breedAspectName in DesertOstard_210
+                    pushlist breedMountTypeList breedAspectName
+                endfor
+            elseif ingump "Body 218" 1942558613 and listexists FrenziedOstard_218
+                foreach breedAspectName in FrenziedOstard_218
+                    pushlist breedMountTypeList breedAspectName
+                endfor
+            elseif ingump "Body 219" 1942558613 and listexists ForestOstard_219
+                foreach breedAspectName in ForestOstard_219
+                    pushlist breedMountTypeList breedAspectName
+                endfor
+            elseif ingump "Body 200" 1942558613 and not ingump "Body 204" 1942558613 and not ingump "Body 226" 1942558613 and not ingump "Body 228" 1942558613 and listexists Horse_200
+                foreach breedAspectName in Horse_200
+                    pushlist breedMountTypeList breedAspectName
+                endfor
+            elseif ingump "Body 204" 1942558613 and not ingump "Body 200" 1942558613 and not ingump "Body 226" 1942558613 and not ingump "Body 228" 1942558613 and listexists Horse_204
+                foreach breedAspectName in Horse_204
+                    pushlist breedMountTypeList breedAspectName
+                endfor
+            elseif ingump "Body 226" 1942558613 and not ingump "Body 200" 1942558613 and not ingump "Body 204" 1942558613  and not ingump "Body 228" 1942558613 and listexists Horse_226
+                foreach breedAspectName in Horse_226
+                    pushlist breedMountTypeList breedAspectName
+                endfor
+            elseif ingump "Body 228" 1942558613 and not ingump "Body 200" 1942558613 and not ingump "Body 204" 1942558613 and not ingump "Body 226" 1942558613 and listexists Horse_228
+                foreach breedAspectName in Horse_228
+                    pushlist breedMountTypeList breedAspectName
+                endfor
+            elseif breedAllowMixedHorseBodies = 0
+                // Skip non strict matching
+                break
+            else
+                if ingump "Body 200" 1942558613 and listexists Horse_200
+                    foreach breedAspectName in Horse_200
+                        if not inlist breedMountTypeList breedAspectName
+                            pushlist breedMountTypeList breedAspectName
+                        endif
+                    endfor
+                endif
+                if ingump "Body 204" 1942558613 and listexists Horse_204
+                    foreach breedAspectName in Horse_204
+                        if not inlist breedMountTypeList breedAspectName
+                            pushlist breedMountTypeList breedAspectName
+                        endif
+                    endfor
+                endif
+                if ingump "Body 226" 1942558613 and listexists Horse_226
+                    foreach breedAspectName in Horse_226
+                        if not inlist breedMountTypeList breedAspectName
+                            pushlist breedMountTypeList breedAspectName
+                        endif
+                    endfor
+                endif
+                if ingump "Body 228" 1942558613 and listexists Horse_228
+                    foreach breedAspectName in Horse_228
+                        if not inlist breedMountTypeList breedAspectName
+                            pushlist breedMountTypeList breedAspectName
+                        endif
+                    endfor
+                endif
+                if list breedMountTypeList = 0
+                    break
+                endif
+            endif
+
+            foreach breedAspectName in breedMountTypeList
+                
+                if "Agorawave" in breedAspectName or "agorawave" in breedAspectName
+                    setvar! breedAspectCoreHue 4221
+                    setvar! breedAspectDistHue 4221
+                    setvar! breedAspectPhylHue 4221
+                elseif "Air" in breedAspectName or "air" in breedAspectName
+                    setvar! breedAspectCoreHue 2263
+                    setvar! breedAspectDistHue 2263
+                    setvar! breedAspectPhylHue 2263
+                elseif "Arcane" in breedAspectName or "arcane" in breedAspectName
+                    setvar! breedAspectCoreHue 1560
+                    setvar! breedAspectDistHue 1560
+                    setvar! breedAspectPhylHue 1560
+                elseif "Artisan" in breedAspectName or "artisan" in breedAspectName
+                    setvar! breedAspectCoreHue 2096
+                    setvar! breedAspectDistHue 2096
+                    setvar! breedAspectPhylHue 2096
+                elseif "Blood" in breedAspectName or "blood" in breedAspectName
+                    setvar! breedAspectCoreHue 2087
+                    setvar! breedAspectDistHue 2087
+                    setvar! breedAspectPhylHue 2087
+                elseif "Command" in breedAspectName or "command" in breedAspectName
+                    setvar! breedAspectCoreHue 1428
+                    setvar! breedAspectDistHue 1782
+                    setvar! breedAspectPhylHue 1428
+                elseif "Death" in breedAspectName or "death" in breedAspectName
+                    setvar! breedAspectCoreHue 2155
+                    setvar! breedAspectDistHue 2155
+                    setvar! breedAspectPhylHue 2155
+                elseif "Discipline" in breedAspectName or "discipline" in breedAspectName
+                    setvar! breedAspectCoreHue 2490
+                    setvar! breedAspectDistHue 2490
+                    setvar! breedAspectPhylHue 2490
+                elseif "Earth" in breedAspectName or "earth" in breedAspectName
+                    setvar! breedAspectCoreHue 2767
+                    setvar! breedAspectDistHue 2767
+                    setvar! breedAspectPhylHue 2767
+                elseif "Eldritch" in breedAspectName or "eldritch" in breedAspectName
+                    setvar! breedAspectCoreHue 2618
+                    setvar! breedAspectDistHue 2615
+                    setvar! breedAspectPhylHue 2618
+                elseif "Fire" in breedAspectName or "fire" in breedAspectName
+                    setvar! breedAspectCoreHue 2635
+                    setvar! breedAspectDistHue 2635
+                    setvar! breedAspectPhylHue 2635
+                elseif "Fortune" in breedAspectName or "fortune" in breedAspectName
+                    setvar! breedAspectCoreHue 2843
+                    setvar! breedAspectDistHue 2843
+                    setvar! breedAspectPhylHue 2843
+                elseif "Frost" in breedAspectName or "frost" in breedAspectName
+                    setvar! breedAspectCoreHue 2234
+                    setvar! breedAspectDistHue 2234
+                    setvar! breedAspectPhylHue 2234
+                elseif "Gadget" in breedAspectName or "gadget" in breedAspectName
+                    setvar! breedAspectCoreHue 2669
+                    setvar! breedAspectDistHue 2669
+                    setvar! breedAspectPhylHue 2669
+                elseif "Harvest" in breedAspectName or "harvest" in breedAspectName
+                    setvar! breedAspectCoreHue 2208
+                    setvar! breedAspectDistHue 2086
+                    setvar! breedAspectPhylHue 2207
+                elseif "Holy" in breedAspectName or "holy" in breedAspectName
+                    setvar! breedAspectCoreHue 2153
+                    setvar! breedAspectDistHue 2153
+                    setvar! breedAspectPhylHue 2153
+                elseif "Lightning" in breedAspectName or "lightning" in breedAspectName
+                    setvar! breedAspectCoreHue 2650
+                    setvar! breedAspectDistHue 2650
+                    setvar! breedAspectPhylHue 2650
+                elseif "Lyric" in breedAspectName or "lyric" in breedAspectName
+                    setvar! breedAspectCoreHue 2241
+                    setvar! breedAspectDistHue 2241
+                    setvar! breedAspectPhylHue 2241
+                elseif "Madness" in breedAspectName or "madness" in breedAspectName
+                    setvar! breedAspectCoreHue 1060
+                    setvar! breedAspectDistHue 1060
+                    setvar! breedAspectPhylHue 1060
+                elseif "Poison" in breedAspectName or "poison" in breedAspectName
+                    setvar! breedAspectCoreHue 2897
+                    setvar! breedAspectDistHue 2897
+                    setvar! breedAspectPhylHue 2897
+                elseif "Shadow" in breedAspectName or "shadow" in breedAspectName
+                    setvar! breedAspectCoreHue 1757
+                    setvar! breedAspectDistHue 1790
+                    setvar! breedAspectPhylHue 1757
+                elseif "Temporal" in breedAspectName or "temporal" in breedAspectName
+                    setvar! breedAspectCoreHue 4211
+                    setvar! breedAspectDistHue 4211
+                    setvar! breedAspectPhylHue 4211
+                elseif "Void" in breedAspectName or "void" in breedAspectName
+                    setvar! breedAspectCoreHue 2582
+                    setvar! breedAspectDistHue 2599
+                    setvar! breedAspectPhylHue 2582
+                elseif "Water" in breedAspectName or "water" in breedAspectName
+                    setvar! breedAspectCoreHue 2592
+                    setvar! breedAspectDistHue 1788
+                    setvar! breedAspectPhylHue 2592
+                elseif "War" in breedAspectName or "war" in breedAspectName
+                    setvar! breedAspectCoreHue 2503
+                    setvar! breedAspectDistHue 2503
+                    setvar! breedAspectPhylHue 2503
+                elseif "ReplaceWithAspectName" in breedAspectName
+                    break
+                else
+                    overhead "|* Wrong Aspect Name *|" cRed
+                    break
+                endif
+
+                if findtype "aspect core" backpack breedAspectCoreHue or findtype "flask" backpack breedAspectDistHue or findtype "phylactery" backpack breedAspectPhylHue or findtype "aspect core" breedSupplyContainer breedAspectCoreHue or findtype "flask" breedSupplyContainer breedAspectDistHue or findtype "phylactery" breedSupplyContainer breedAspectPhylHue
+                    break                
+                else
+                    setvar! breedAspectCoreHue 9999
+                endif
+            
+            endfor
+        
+        endif
+            
+        if insysmsg "That feeding trough already has a different aspect pigment in place."
+        endif
+
+        while breedAspectCoreHue != 9999 and list breedAspectCountList < breedMaxAspectCharges and not ingump "(x6)" 1942558613
+
+            setvar! breedAspectItemToAdd  0
+            setvar! breedAspectItemType   0
+            setvar! breedAspectItemHue    0
+            setvar! breedAspectItemSource 0
+            pushlist breedAspectCountList 1
+            
+            if insysmsg "That feeding trough already has a different aspect pigment in place."
+                overhead "|* Aspect type mismatch *|" cRed
+                break
+            elseif list breedAspectCountList = breedMaxAspectCharges 
+                if findtype "phylactery" backpack breedAspectPhylHue as localAspectItem
+                    setvar! breedAspectItemToAdd  localAspectItem
+                    setvar! breedAspectItemType   576
+                    setvar! breedAspectItemHue    breedAspectPhylHue
+                    setvar! breedAspectItemSource backpack
+                elseif findtype "phylactery" breedSupplyContainer breedAspectPhylHue as localAspectItem
+                    setvar! breedAspectItemToAdd  localAspectItem
+                    setvar! breedAspectItemType   576
+                    setvar! breedAspectItemHue    breedAspectPhylHue
+                    setvar! breedAspectItemSource breedSupplyContainer
+                endif
+            elseif findtype "flask" backpack breedAspectDistHue as localAspectItem
+                setvar! breedAspectItemToAdd  localAspectItem
+                setvar! breedAspectItemType   17686
+                setvar! breedAspectItemHue    breedAspectDistHue
+                setvar! breedAspectItemSource backpack
+            elseif findtype "flask" breedSupplyContainer breedAspectDistHue as localAspectItem
+                setvar! breedAspectItemToAdd  localAspectItem
+                setvar! breedAspectItemType   17686
+                setvar! breedAspectItemHue    breedAspectDistHue
+                setvar! breedAspectItemSource breedSupplyContainer
+            elseif findtype "aspect core" backpack breedAspectCoreHue as localAspectItem
+                setvar! breedAspectItemToAdd  localAspectItem
+                setvar! breedAspectItemType   3985
+                setvar! breedAspectItemHue    breedAspectCoreHue
+                setvar! breedAspectItemSource backpack
+            elseif findtype "aspect core" breedSupplyContainer breedAspectCoreHue as localAspectItem
+                setvar! breedAspectItemToAdd  localAspectItem
+                setvar! breedAspectItemType   3985
+                setvar! breedAspectItemHue    breedAspectCoreHue
+                setvar! breedAspectItemSource breedSupplyContainer
+            elseif findtype "phylactery" backpack breedAspectPhylHue as localAspectItem
+                setvar! breedAspectItemToAdd  localAspectItem
+                setvar! breedAspectItemType   576
+                setvar! breedAspectItemHue    breedAspectPhylHue
+                setvar! breedAspectItemSource backpack
+            elseif findtype "phylactery" breedSupplyContainer breedAspectPhylHue as localAspectItem
+                setvar! breedAspectItemToAdd  localAspectItem
+                setvar! breedAspectItemType   576
+                setvar! breedAspectItemHue    breedAspectPhylHue
+                setvar! breedAspectItemSource breedSupplyContainer
+            endif
+
+            if breedAspectItemToAdd = 0
+                break
+            endif
+
+            if insysmsg "You add 1 aspect pigment charge to the trough (max of 6 charges allowed)." or insysmsg "You add 2 aspect pigment charges to the trough (max of 6 charges allowed)."
+            endif
+            gumpresponse 11 breedGumpID
+            if counttype breedAspectItemType breedAspectItemSource breedAspectItemHue as localAspectItemCount
+                setvar! breedCurrentAspectItemCount localAspectItemCount
+            endif
+            wft breedWait
+            target breedAspectItemToAdd
+            getlabel backpack waitPing
+            settimer breedObjectDelayTimer 0
+            while counttype breedAspectItemType breedAspectItemSource breedAspectItemHue as localAspectItemCount and breedCurrentAspectItemCount = localAspectItemCount and timer breedObjectDelayTimer < breedWait
+            endwhile
+            if insysmsg "You add 1 aspect pigment charge to the trough (max of 6 charges allowed)."
+                // One point already added to list
+            elseif insysmsg "You add 2 aspect pigment charges to the trough (max of 6 charges allowed)."
+                pushlist breedAspectCountList 1
+            else
+                // Timeout - recount pigments
+                clearlist breedAspectCountList
+                if ingump "(x1)" 1942558613
+                    pushlist breedAspectCountList 1
+                elseif ingump "(x2)" 1942558613
+                    pushlist breedAspectCountList 1
+                    pushlist breedAspectCountList 1
+                elseif ingump "(x3)" 1942558613
+                    pushlist breedAspectCountList 1
+                    pushlist breedAspectCountList 1
+                    pushlist breedAspectCountList 1
+                elseif ingump "(x4)" 1942558613
+                    for 4
+                        pushlist breedAspectCountList 1
+                    endfor
+                elseif ingump "(x5)" 1942558613
+                    for 5
+                        pushlist breedAspectCountList 1
+                    endfor
+                endif
+            endif
+
+        endwhile
+
+        break
+
+    endwhile
+    
+    removelist breedMountTypeList
+    removelist breedAspectCountList
+
+    // Add Fertility Serum
+    // - 20499  superior fertility serum     (+20%)
+    // - 20500  exceptional fertility serum  (+15%)
+    // - 20498  fertility serum              (+10%)
+    if insysmsg "This feeding trough already has a similar effect still in place." or insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+    endif
+
+    while breedAutoAddFertilitySerum = 1 and find breedCurrentTrough ground -1 -1 breedUseRange and not insysmsg "This feeding trough already has a similar effect still in place."
+
+        if insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+            if breedShowOverheadInfo = 1
+                overhead "No line of sight" cRed breedCurrentTrough
+                overhead "       ¼        " cRed breedCurrentTrough
+            endif
+            @ignore breedCurrentTrough
+            break
+        elseif gumpexists breedGumpID and not ingump "/1,000" 1942558613
+            // Skip inactive trough
+            @ignore breedCurrentTrough
+            break
+        elseif not findtype 20499|20500|20498 backpack breedHue and not findtype 20499|20500|20498 breedSupplyContainer breedHue
+            break
+        elseif not gumpexists breedGumpID
+            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+            endwhile
+            dclick breedCurrentTrough
+            settimer breedObjectDelayTimer 0
+            waitforgump breedGumpID breedWait
+        elseif not targetexists
+            gumpresponse 6 breedGumpID
+            wft breedWait
+        elseif findtype 20499|20500|20498 backpack breedHue as localItem
+            target localItem
+            waitforgump breedGumpID breedWait
+        elseif findtype 20499|20500|20498 breedSupplyContainer breedHue as localItem
+            target localItem
+            waitforgump breedGumpID breedWait
+        endif
+
+    endwhile
+
+    // Add Growth Tablets
+    // - 29030  growth tablets  (+50)
+    if insysmsg "This feeding trough already has a similar effect still in place." or insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+    endif
+
+    while breedAutoAddGrowthTablets = 1 and find breedCurrentTrough ground -1 -1 breedUseRange and not insysmsg "This feeding trough already has a similar effect still in place."
+
+        if insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+            if breedShowOverheadInfo = 1
+                overhead "No line of sight" cRed breedCurrentTrough
+                overhead "       ¼        " cRed breedCurrentTrough
+            endif
+            @ignore breedCurrentTrough
+            break
+        elseif gumpexists breedGumpID and not ingump "/1,000" 1942558613
+            // Skip inactive trough
+            @ignore breedCurrentTrough
+            break
+        elseif not findtype 29030 backpack breedHue and not findtype 29030 breedSupplyContainer breedHue
+            break
+        elseif not gumpexists breedGumpID
+            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+            endwhile
+            dclick breedCurrentTrough
+            settimer breedObjectDelayTimer 0
+            waitforgump breedGumpID breedWait
+        elseif not targetexists
+            gumpresponse 6 breedGumpID
+            wft breedWait
+        elseif findtype 29030 backpack breedHue as localItem
+            target localItem
+            waitforgump breedGumpID breedWait
+        elseif findtype 29030 breedSupplyContainer breedHue as localItem
+            target localItem
+            waitforgump breedGumpID breedWait
+        endif
+
+    endwhile
+
+    // Add Food
+    setvar! breedFoodAdded 0
+    if insysmsg "That feeding trough is already full of food." or insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+    endif
+    
+    while find breedCurrentTrough ground -1 -1 breedUseRange and not insysmsg! "That feeding trough is already full of food."
+
+        if insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+            if breedShowOverheadInfo = 1
+                overhead "No line of sight" cRed breedCurrentTrough
+                overhead "       ¼        " cRed breedCurrentTrough
+            endif
+            @ignore breedCurrentTrough
+            break
+        elseif gumpexists breedGumpID and not ingump "/1,000" 1942558613
+            // Skip inactive trough
+            @ignore breedCurrentTrough
+            break
+        elseif not findtype 2452|2485|2512|2513|2514|2544|3164|3173|3174|3178|3181|3184|3186|3188|3191|3195|3199|3350|3386|5919|5923|5928|5930 backpack and not findtype 2452|2485|2512|2513|2514|2544|3164|3173|3174|3178|3181|3184|3186|3188|3191|3195|3199|3350|3386|5919|5923|5928|5930 breedSupplyContainer
+            overhead "|* Not enough food *|" 33
+            break
+        elseif not gumpexists breedGumpID
+            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+            endwhile
+            dclick breedCurrentTrough
+            settimer breedObjectDelayTimer 0
+            waitforgump breedGumpID breedWait
+        elseif not targetexists
+            gumpresponse 2 breedGumpID
+            settimer breedObjectDelayTimer 0
+            while not targetexists and not insysmsg! "That feeding trough is already full of food." and timer breedObjectDelayTimer < breedWait
+            endwhile
+        elseif findtype 2452|2485|2512|2513|2514|2544|3164|3173|3174|3178|3181|3184|3186|3188|3191|3195|3199|3350|3386|5919|5923|5928|5930 backpack as localFood
+            target localFood
+            waitforgump breedGumpID breedWait
+            setvar! breedFoodAdded 1
+        elseif findtype 2452|2485|2512|2513|2514|2544|3164|3173|3174|3178|3181|3184|3186|3188|3191|3195|3199|3350|3386|5919|5923|5928|5930 breedSupplyContainer as localFood
+            target localFood
+            waitforgump breedGumpID breedWait
+            setvar! breedFoodAdded 1
+        endif
+        
+    endwhile
+
+    // Add Water
+    setvar! breedWaterAdded   0
+    setvar! breedCanIsChecked 0
+    if insysmsg "That feeding trough is already full of water." or insysmsg "You do not see any water sources nearby to fill this container from." or insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+    endif
+
+    while find breedCurrentTrough ground -1 -1 breedUseRange and not insysmsg! "That feeding trough is already full of water."
+
+        if insysmsg "That feeding trough is out of your line of sight." or insysmsg "That is out of your line of sight."
+            if breedShowOverheadInfo = 1
+                overhead "No line of sight" cRed breedCurrentTrough
+                overhead "       ¼        " cRed breedCurrentTrough
+            endif
+            @ignore breedCurrentTrough
+            break    
+        elseif gumpexists breedGumpID and not ingump "/1,000" 1942558613
+            // Skip inactive trough
+            @ignore breedCurrentTrough
+            break                            
+        elseif insysmsg "You do not see any water sources nearby to fill this container from."
+            createlist emptyWatercontainerList
+            if findtypelist emptyWatercontainerList "barrel|bucket|empty tub" backpack or findtypelist emptyWatercontainerList "barrel|bucket|empty tub" breedSupplyContainer or findtypelist emptyWatercontainerList "barrel|bucket|empty tub" ground -1 -1 2
+                @ignore emptyWatercontainerList
+            endif
+            removelist emptyWatercontainerList
+        elseif findtype "barrel|bucket|empty tub" backpack as localWater
+            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+            endwhile
+            dclick localWater
+            settimer breedObjectDelayTimer 0
+            getlabel backpack waitPing
+        elseif findtype "barrel|bucket|empty tub" breedSupplyContainer as localWater
+            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+            endwhile
+            dclick localWater
+            settimer breedObjectDelayTimer 0
+            getlabel backpack waitPing
+        elseif findtype "barrel|bucket|empty tub" ground -1 -1 2 as localWater
+            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+            endwhile
+            dclick localWater
+            settimer breedObjectDelayTimer 0
+            getlabel backpack waitPing
+        elseif breedCanIsChecked = 0
+            if findtype "watering can" backpack or findtype "watering can" breedSupplyContainer
+                createlist breedFilledWateringCanList
+                setvar! breedWaterTile 1
+                if insysmsg "You completely fill the watering can." or insysmsg "You completely fill the water container." or insysmsg "You partialy fill the watering can from what water you can find nearby."
+                endif
+
+                // Watering Can Graphic IDs
+                //  - a watering can "watering can" 25570
+                //  - a painted watering can "watering can" 56416|56417
+                // Ground does not work as source for watering cans (only in case the can is not locked down)
+                while findtype "watering can" backpack or findtype "watering can" breedSupplyContainer
+                    if findtype "watering can" backpack as localWater
+                        setvar! breedWateringCan localWater
+                    elseif findtype "watering can" breedSupplyContainer as localWater
+                        setvar! breedWateringCan localWater
+                    endif
+                    getlabel breedWateringCan breedWateringCanLabel
+                    if ": 0/250" in breedWateringCanLabel 
+                        if breedWaterTile = 1
+                            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+                            endwhile
+                            dclick breedWateringCan
+                            settimer breedObjectDelayTimer 0
+                            getlabel backpack waitPing
+                            if insysmsg "You completely fill the watering can." or insysmsg "You completely fill the water container." or insysmsg "You partialy fill the watering can from what water you can find nearby."
+                                pushlist breedFilledWateringCanList breedWateringCan
+                            else
+                                setvar! breedWaterTile 0
+                            endif
+                        endif
+                    else
+                        pushlist breedFilledWateringCanList breedWateringCan
+                    endif
+                    @ignore breedWateringCan
+                endwhile
+                @unignore breedFilledWateringCanList
+                removelist breedFilledWateringCanList
+            endif
+            setvar! breedCanIsChecked 1
+        elseif not findtype "water barrel|water tub|bucket of water|watering can" backpack and not findtype "water barrel|water tub|bucket of water|watering can" breedSupplyContainer and not findtype "water barrel|water tub|bucket of water" ground -1 -1 2
+            overhead "|* Need more water *|" 33
+            break
+        elseif not gumpexists breedGumpID
+            while timer breedObjectDelayTimer < breedWaitForObjectDelay
+            endwhile
+            dclick breedCurrentTrough
+            settimer breedObjectDelayTimer 0
+            waitforgump breedGumpID breedWait
+        elseif not targetexists
+            gumpresponse 3 breedGumpID
+            settimer breedObjectDelayTimer 0
+            while not targetexists and not insysmsg! "That feeding trough is already full of water." and timer breedObjectDelayTimer < breedWait
+            endwhile
+        elseif targetexists and findtype "water barrel|water tub|bucket of water|watering can" backpack as localWater
+            target localWater
+            waitforgump breedGumpID breedWait
+            setvar! breedWaterAdded   1
+            setvar! breedCanIsChecked 0
+        elseif targetexists and findtype "water barrel|water tub|bucket of water|watering can" breedSupplyContainer as localWater
+            target localWater
+            waitforgump breedGumpID breedWait
+            setvar! breedWaterAdded   1
+            setvar! breedCanIsChecked 0
+        elseif targetexists and findtype "water barrel|water tub|bucket of water" ground -1 -1 2 as localWater
+            target localWater
+            waitforgump breedGumpID breedWait            
+            setvar! breedWaterAdded   1
+            setvar! breedCanIsChecked 0
+        else
+            break
+        endif
+
+    endwhile
+    
+    // Check result
+    if breedShowOverheadInfo = 1
+        @unignore breedCurrentTrough
+        if not find breedCurrentTrough ground -1 -1 breedUseRange or not gumpexists breedGumpID
+            overhead "Skipped"  cLightOrange breedCurrentTrough
+            overhead "   ¼   "  cLightOrange breedCurrentTrough
+        elseif not ingump "/1,000" 1942558613
+            overhead "Inactive" cLightBlue breedCurrentTrough
+            overhead "   ¼   "  cLightBlue breedCurrentTrough
+        elseif insysmsg "That feeding trough is already full of food." and insysmsg "That feeding trough is already full of water."
+            overhead "Done" cGreen breedCurrentTrough
+            overhead " ¼ "  cGreen breedCurrentTrough
+        else
+            if breedWaterAdded = 0 or breedFoodAdded = 0
+                overhead "Resupply Failed"  cRed breedCurrentTrough
+                overhead "       ¼       "  cRed breedCurrentTrough
+            endif
+        endif
+    endif
+    @ignore breedCurrentTrough
+
+endwhile
+
+@clearignore
+gumpclose breedGumpID
+
+overhead "|* Breeding Done *|" cGreen
+
+// Mechanics
+// -----------------------
+// - Tundra Ostards can not be bred
+// - Breeding trough can be accessed and used up to 4 tiles away, but needs line of sight
+// - A stronger fertility serum cannot overrite an already existing effect
+// - There can be only be one fertility serum and growth tablet active, no possibilty to refresh until the effect is expired
+// - Feeding trough graphic id (cannot be rotated): empty 40800 (0 food or 0 water), full 40801 (food and water > 0)
+// - Check amount of Aspect Pigment present by searching breeding gump for "(x1)" up to "(x6)". Core & Distlation gives +2, Phylacterys +1. When 5 pigments are already present do not add another core or Distlation or you sacrifice 1 point.
+// - When clicking "Add Water", "Add Food", or "Add Aspect Item" you get a target cursor in case more water/food/pigments can be added, and no cursor if already at capacity
+// - Adding aspect items is only possible by using the gump button (no drag and drop). Item serials of any remaining aspect items (from stacks) of the added type are going to stay constant.
+
+// System messages:
+// ----------------
+// - No line of sight (click):              "That is out of your line of sight."
+// - No line of sight (gump info):          "That feeding trough is out of your line of sight."
+// - More than 4 tiles away:                "That feeding trough is too far away."
+// - Max. water:                            "That feeding trough is already full of water."
+// - Max. food:                             "That feeding trough is already full of food."
+// - Watering Can full:                     "This watering can is already at capacity."
+// - Can completely filled (by Bucket):     "You completely fill the watering can."
+// - Can partially filled (by Bucket):      "You partialy fill the watering can from what water you can find nearby."
+// - Can completely filled (by water tile): "You completely fill the water container."
+// - No water tile in useable range:        "You do not see any nearby water containers to fill this from."
+// - Max. Aspect Pigment:                   "That feeding trough is already at the maximum amount of aspect pigment allowed."
+// - Adding Phylactery:                     "You add 1 aspect pigment charge to the trough (max of 6 charges allowed)."
+// - Adding Core or Distlation:             "You add 2 aspect pigment charges to the trough (max of 6 charges allowed)."
+// - Wrong aspect type selected:            "That feeding trough already has a different aspect pigment in place."

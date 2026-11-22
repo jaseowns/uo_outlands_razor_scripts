@@ -1,0 +1,188 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/0891df1c-95af-4158-bd4d-3bd0d0806df7 for latest
+# Automation by Jaseowns
+## Script: JoooeMyyy's Auto Ocean Fisher
+## Created by: joooemyyy#0
+#############################################
+
+# Ocean Fishing by JoooeMyyy
+# UO Outlands
+
+# This script is designed to automatically:
+# 1. Self-bandage if any damage is taken
+# 2. Attack any grey monster within range
+# 3. Keep Mariners Fortune up as much as possible
+# 3. Cast fishing nets at fishing spots (when no nearby monsters are found)
+# 4. Cast with a fishing pole when no monsters or no fishing spots are nearby
+
+# It is currently useful for Fishing Spots and for casting MIBs (with the caveat that Mariners Fortune is not ideal for them atm).
+# I'll update it to support special fishing nets soonish.
+
+# IMPORTANT!!! This script is currently spamming some actions without regards to cooldown which can result in it making a mess
+# if you have auto-queue object delay enabled.
+# Turn that off in Razor, Options > Targeting and Queues > Uncheck Auto-Queue Object Delay
+# I would not have uploaded this in its current state if it hadnt been requested. It's still great but has some pretty rough edges.
+
+# TODO: Handle carrying multiple fishing poles
+# TODO: Improve efficiency
+# TODO: Support casting special fishing nets
+# TODO: Add warning messages when out of fishing nets or fishing poles
+# TOOD: Use a timer to reduce mariners fortune spam
+# TODO: MIB mode that avoids casting when Mariners Fortune is not active
+# TODO: Carve non-COTW fishes.
+# TODO: Drop stuff into the ships hold
+
+@setvar! "AllowHarvestArmor" 1
+@setvar! "AllowFortuneArmor" 0
+
+@setvar! "ParticipateInCombat" 1
+@setvar! "ActivateMarinersFortune" 1
+@setvar! "ThrowFishingNets" 1
+@setvar! "CastFishingPoleWhenIdle" 1
+
+# Record our prefered weapon(s).  (Note this has only been tested with a harpoon)
+if findlayer self righthand as RightHandWeapon
+    @setvar! "myrighthanditem" RightHandWeapon
+    getlabel RightHandWeapon RightHandWeaponName
+    #overhead RightHandWeaponName
+endif
+if findlayer self lefthand as LeftHandWeapon
+    @setvar! "mylefthanditem" LeftHandWeapon
+    getlabel LeftHandWeapon LeftHandWeaponName
+    #overhead LeftHandWeaponName
+    
+    if "aspect" in LeftHandWeaponName
+    else
+        overhead "WARNING! Weapon is not aspected. Please correct and restart the script"
+        stop
+    endif
+endif
+
+
+# Ensure we have harvest or fortune armor equipped
+if findlayer self innertorso as ChestArmor
+    getlabel ChestArmor desc
+
+    if "harvest" in desc
+        if "AllowHarvestArmor" = 0
+            overhead "WARNING! Harvest armor detected but is disallowed above. Pretty sure you want that var set to 1."
+            stop
+        endif
+    elseif "fortune" in desc
+        if "AllowFortuneArmor" = 0
+            overhead "WARNING! Fortune armor detected but is disallowed above. Please correct and restart the script"
+            stop
+        endif
+    else
+        overhead "WARNING! Neither harvest nor fortune armor detected. Please correct and restart the script"
+        stop
+    endif
+endif
+
+// -- State
+@setvar! "IsInCombat" 0
+
+while not dead 
+    
+    # Apply a bandage if health is not full
+    if diffhits >= 1 and not bandaging and not findbuff "Noble Sacrifice"
+        if skill 'healing' >= 50 or skill "veterinary" >= 50
+            if findtype 'clean bandage%s%' backpack
+                hotkey 'bandage self'
+                wait 200            
+            endif
+        endif
+    endif
+
+    if "ParticipateInCombat" = 1
+        # Check if there is anything nearby to fight
+    
+        hotkey "Target Closest Grey Monster"
+        wait 400
+
+        if insysmsg "no one matching"
+            @setvar! "IsInCombat" 0
+        else
+            @setvar! "IsInCombat" 1
+        endif
+    #endif
+    
+    if "IsInCombat" = 0
+        # Nothing within attack range. Time to fish!
+
+        # Use Mariners Fortune if its available
+        if "ActivateMarinersFortune" = 1
+            say "[GreaterAbility"
+        endif
+
+        @setvar! myFishingNet 0
+        if not targetexists 
+            if findtype 3530 backpack 1763 as item
+                @setvar! myFishingNet item
+            elseif findtype 3530 backpack 2219 as item
+                @setvar! myFishingNet item
+            elseif findtype 3530 backpack 2207 as item
+                @setvar! myFishingNet item
+            elseif findtype 3530 backpack 2425 as item
+                @setvar! myFishingNet item
+            elseif findtype 3530 backpack 2213 as item
+                @setvar! myFishingNet item
+            elseif findtype 3530 backpack 2413 as item
+                @setvar! myFishingNet item
+            elseif findtype 3530 backpack 2419 as item
+                @setvar! myFishingNet item
+            elseif findtype 3530 backpack 0 as item
+                @setvar! myFishingNet item
+            endif
+        endif
+
+        if myFishingNet != 0
+            dclick myFishingNet
+            wft 500
+            
+            if targetexists 
+                hotkey "Target Self"
+            endif
+            wait 400
+            
+            if insysmsg "anything nearby that requires a fishing net"
+                # No fishing spot nearby. Switch to the pole
+                
+                # Equip the pole if we find it in your bag
+                if find "fishing pole" backpack as FishingPole
+                    dclick FishingPole
+                wait 500
+                endif
+        
+                // Cast the line
+                dclicktype 'fishing pole'
+                wait 5000
+
+            else
+                wait 3500
+            
+                if insysmsg "Something emerges from the water!"
+                    overhead "Time to fight!" 34
+                endif
+            endif
+        endif
+    else
+        
+        // -- Something is in range to fight. Ensure weapons are equipped.
+        
+        # Auto re-equip weapons if they are not equipped
+        if find "mylefthanditem" backpack and not casting and not targetexists
+            dclick "mylefthanditem"
+            pause 500
+        endif
+        if find "myrighthanditem" backpack and not casting and not targetexists
+            dclick "myrighthanditem"
+            pause 500
+        endif
+        # End of Auto Re-equip
+
+        attack lasttarget
+        
+        wait 500
+    endif
+
+endwhile

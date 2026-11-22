@@ -1,0 +1,315 @@
+# This is an automated backup - check out https://outlands.uorazorscripts.com/script/2dc64318-0d03-4c7d-93e4-ca4cd087cd87 for latest
+# Automation by Jaseowns
+## Script: Lord Glacier's Chill RECYCLE n' STOCKPILE - UO OUTLANDS RAZOR SCRIPT - v1.0.0
+## Created by: danstock._98439#0
+#############################################
+
+/////////
+////////                                          Lord Glaciers Chill RECYCLE n STOCKPILE - UO OUTLANDS RAZOR SCRIPT - version 1.0.0
+///////
+//////                                                 UO Outlands Razor script - Released November 22, 2026
+/////                                                     Compiled by DanStock. (aka. Lord Glacier)
+////
+///
+//
+
+
+
+
+    ///////////////////////
+    //    CHANGE LOG:    //
+    ///////////////////////
+
+    #         Nov 22 2026 - version 1.0.0:  Public script release!
+
+
+
+
+    /////////////////
+    //    TIPS:    //
+    /////////////////
+
+    #     This one is another basic QOL script which will help you to manage your charged Magic Item Recycler with one click
+    #     Requires you to be WITHIN 2 TILES OF MAGIC ITEM RECYCLER and will automatically IDENTIFY items before RECYCLING (per your recycler settings)
+    #     The Magic Item Recycler MUST HAVE ID CHARGES AVAILABLE and you MUST SET YOUR RECYCLER SETTINGS AHEAD OF TIME (ie. which types to save or recycle)
+    #     After items are identified and recycled the script can OPTIONALLY move and consume ARCANE ESSENCE and/or STOCKPILE the created resources (set below)
+    #     If consuming ARCANE ESSENCE is enabled, you MUST SELECT YOUR BACKPACK ON YOUR PAPERDOLL when prompted (first time use only)
+    #     If you need to re-target your backpack (or make a mistake) you can reset the variable in the options tab above the script (variable: 'MyBackpackSerialID')
+    #     If stockpile is enabled, you MUST ALSO BE WITHIN 2 TILES OF RESOURCE STOCKPILE when running the script
+    #     Optional overhead messages can be disabled if desired (turned on by default)
+
+
+
+
+    ###############################
+   ###      USER VARIABLES:      ###
+    ###############################
+
+    @setvar! EnableOverheadRecyclerMessages 1
+        # Will display my standard overhead messages if enabled
+        
+    @setvar! EnableAddUnidentifiedItemsFirst 0
+        # Will add any unidentified magic items found in your inventory to the Recycler first
+
+    @setvar! EnableConsumeEssence 0
+        # Will move ARCANE ESSENCE from Recycler to your BACKPACK and then consume it
+        # Requires that you SELECT YOUR BACKPACK WHEN PROMPTED (first run only)
+
+    @setvar! EnableStockpileResources 0
+        # Will add resources in Magic Recycler to Resource Stockpile (must be within 2 tiles)
+
+
+/////////////////////////
+//  END OF VARIABLES!  //
+/////////////////////////
+
+
+
+
+
+################  EDIT BELOW THIS LINE AT YOUR OWN RISK!  #####  EDIT BELOW THIS LINE AT YOUR OWN RISK!  #####  EDIT BELOW THIS LINE AT YOUR OWN RISK!  #####  EDIT BELOW THIS LINE AT YOUR OWN RISK!  ################
+
+
+
+
+
+
+///////////////////////
+//   TIMER SETUPS:   //
+///////////////////////
+
+if not timerexists ArcaneEssenceTimeoutTimer
+    createtimer ArcaneEssenceTimeoutTimer
+    settimer ArcaneEssenceTimeoutTimer 5000
+endif 
+
+if not timerexists BackpackOverheadMessageTimer
+    createtimer BackpackOverheadMessageTimer
+    settimer BackpackOverheadMessageTimer 0
+endif 
+
+if not timerexists BackpackSelectTimeoutTimer
+    createtimer BackpackSelectTimeoutTimer
+    settimer BackpackSelectTimeoutTimer 10000
+endif
+
+if not timerexists VariableSetTimeoutTimer
+    createtimer VariableSetTimeoutTimer
+    settimer VariableSetTimeoutTimer 10000
+endif
+
+
+////////////////////////
+//   SCRIPT START:    //
+////////////////////////
+
+if findtype 'ornate elven chest' ground -1 -1 2 as MyMagicRecycler and not dead
+    clearsysmsg 
+    if EnableAddUnidentifiedItemsFirst = 1
+        menu MyMagicRecycler 0
+        wait 250
+        if insysmsg '0 recyclable items'
+            if EnableOverheadRecyclerMessages = 1
+                overhead '[ NO MAGIC ITEMS FOUND! ]' 333
+            endif 
+        endif
+        wait 500
+    endif
+    dclick MyMagicRecycler
+    waitforgump 4045111101 2000
+    gumpresponse 7
+    getlabel backpack backpacklabel
+    wait 250
+
+    if insysmsg 'No items found requiring'
+        if EnableOverheadRecyclerMessages = 1
+            overhead '[ NOTHING TO RECYCLE... ]' 333
+        endif
+        wait 500
+    else
+        if EnableOverheadRecyclerMessages = 1
+            overhead '[ RECYCLING JUNK... ]' 77
+        endif
+        gumpresponse 6
+        getlabel backpack backpacklabel
+        wait 100
+        gumpresponse 6
+        getlabel backpack backpacklabel
+        wait 100
+    endif
+
+    gumpclose
+    wait 1000
+
+    if EnableStockpileResources = 1
+        @setvar PileMyResources 1
+    else
+        @setvar PileMyResources 0
+    endif
+
+    if EnableConsumeEssence = 1
+        if findtype 'arcane essence' MyMagicRecycler as EssenceToMove
+            if not varexist MyBackpackSerialID or not find MyBackpackSerialID self
+                settimer VariableSetTimeoutTimer 0
+                while not varexist MyBackpackSerialID or not find MyBackpackSerialID self
+                    @setvar MyBackpackSerialID
+                    wft 1500
+                    settimer BackpackSelectTimeoutTimer 0
+                    settimer BackpackOverheadMessageTimer 4000
+                    while targetexists and timer BackpackSelectTimeoutTimer < 10000
+                        if timer BackpackOverheadMessageTimer > 3800
+                            overhead '[ SELECT BACKPACK TO CONTINUE... ]' 153
+                            settimer BackpackOverheadMessageTimer 0
+                            sysmsg 'You must select your backpack on your paperdoll to continue...' 153
+                        endif
+                        if timer BackpackSelectTimeoutTimer > 10000
+                            break
+                        endif
+                    endwhile
+                    if timer VariableSetTimeoutTimer > 10000
+                        break
+                    endif
+                endwhile
+            endif 
+
+            if varexist MyBackpackSerialID and find MyBackpackSerialID self
+                lift EssenceToMove 9999
+                getlabel backpack backpacklabel
+                wait 500
+                drop MyBackpackSerialID -1 -1 0
+                getlabel backpack backpacklabel
+                wait 250
+            else 
+                if EnableOverheadRecyclerMessages = 1
+                    overhead '[ BACKPACK SELECTION FAILED! ]' 333
+                endif
+                sysmsg 'Backpack selection has failed - please restart script and try again!' 153
+                wait 1500
+                overhead '[ STOPPING SCRIPT! ]' 88
+                stop
+            endif 
+ 
+            if findtype 'arcane essence' self as EssenceToDrink
+                clearsysmsg
+                settimer ArcaneEssenceTimeoutTimer 0
+                while findtype 'arcane essence' self as EssenceToDrink and timer ArcaneEssenceTimeoutTimer < 5000
+                    dclick EssenceToDrink
+                    wft 1000
+                    target self
+                    wait 500
+                    if EnableOverheadRecyclerMessages = 1
+                        if insysmsg 'You consume'
+                            overhead '[ CONSUMING ESSENCE... ]' 11
+                            clearsysmsg
+                        endif
+                    endif
+                    if timer ArcaneEssenceTimeoutTimer > 5000 or not findtype 'arcane essence' self
+                        break
+                    endif
+                    wait 500
+                endwhile
+            else
+                if EnableOverheadRecyclerMessages = 1
+                    overhead '[ NO ESSENCE FOUND! ]' 333
+                endif
+                @setvar PileMyResources 0
+                wait 500
+            endif
+        elseif findtype 'arcane essence' self as EssenceToDrink
+            clearsysmsg
+            settimer ArcaneEssenceTimeoutTimer 0
+            while findtype 'arcane essence' self as EssenceToDrink and timer ArcaneEssenceTimeoutTimer < 5000
+                dclick EssenceToDrink
+                wft 1000
+                target self
+                wait 500
+                if EnableOverheadRecyclerMessages = 1
+                    if insysmsg 'You consume'
+                        overhead '[ CONSUMING ESSENCE... ]' 11
+                        clearsysmsg
+                    endif
+                endif
+                if timer ArcaneEssenceTimeoutTimer > 5000 or not findtype 'arcane essence' self
+                    break
+                endif
+                wait 500
+            endwhile
+        else
+            if EnableOverheadRecyclerMessages = 1
+                overhead '[ NO ESSENCE FOUND! ]' 333
+            endif
+            wait 500
+            @setvar PileMyResources 0
+        endif
+    else
+        wait 500
+    endif
+
+    if EnableStockpileResources = 1
+        if PileMyResources = 0
+            if EnableOverheadRecyclerMessages = 1
+                overhead '[ NOTHING TO STOCKPILE... ]' 333
+            endif
+            wait 500
+        elseif findtype 'resource container' ground -1 -1 2 as MyStockpile and PileMyResources = 1
+            if EnableOverheadRecyclerMessages = 1
+                overhead '[ PILING RESOURCES... ]' 66
+            endif
+            menu MyStockpile 0
+            wft 1000
+            if findtype 'ornate elven chest' ground -1 -1 2 as MyMagicRecycler and targetexists
+                target MyMagicRecycler
+            endif
+            wait 500
+        else
+            if EnableOverheadRecyclerMessages = 1
+                overhead '[ NO STOCKPILE FOUND! ]' 337
+            endif
+            wait 500
+            sysmsg 'You must be within 2 tiles of your Resource Stockpile to store resources!' 153
+            wait 500
+        endif
+    else
+        wait 500
+    endif
+else
+    if dead
+        if EnableOverheadRecyclerMessages = 1
+            overhead '[ R.I.P. ]' 37
+        endif
+        wait 500
+        sysmsg 'You must be alive to run this script!' 153
+        wait 1000
+    else
+        if EnableOverheadRecyclerMessages = 1
+            overhead '[ NO MAGIC RECYCLER FOUND! ]' 337
+        endif
+        wait 500
+        sysmsg 'You must be within 2 tiles of your Magic Recycler to run this script!' 153
+        wait 1000
+    endif
+endif
+
+wait 500
+if not dead 
+    overhead '[ SCRIPT COMPLETE! ]' 88
+else 
+    overhead '[ STOPPING SCRIPT! ]' 88
+endif
+stop
+
+
+////////////////////
+//   SCRIPT END   //
+////////////////////
+
+
+
+
+    // Thank you for using my scripts!  I can be contacted via email here: dan@danstockman.com
+    // Good luck out there and say hello if you see me in Avadon (Lord Glacier) - please don't PK me lol
+
+    
+    
+    
+    

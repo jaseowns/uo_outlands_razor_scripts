@@ -1,13 +1,13 @@
 # This is an automated backup - check out https://outlands.uorazorscripts.com/script/47716944-772c-422f-b3db-034d9a88ae76 for latest
 # Automation by Jaseowns
-## Script: Lord Glacier's Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v3.0.1
+## Script: Lord Glacier's Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT - v3.0.2
 ## Created by: danstock._98439#0
 #############################################
 
 /////////
-////////                                          Lord Glaciers Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 3.0.1
+////////                                          Lord Glaciers Chill ARCANE MAGE AUTO PILOT - UO OUTLANDS RAZOR SCRIPT version 3.0.2
 ///////
-//////                                                  UO Outlands Razor script - Released May 16, 2025 - Last updated October 9, 2026
+//////                                                  UO Outlands Razor script - Released May 16, 2025 - Last updated November 22, 2026
 /////                                                     Compiled by DanStock. (aka. Lord Glacier)
 ////
 ///
@@ -62,8 +62,9 @@
     //'    CHANGE LOG:    '//
     /////////////////////////
 
-#       Oct 09 2026 - version 3.0.1   Added checks for LootBag and Escape Runebook outside of script setup/reset and will now prompt to target new if not found
-#       Sep 30 2026 - version 3.0.0   Another significant update! Reworked the script again to further improve on speed, safety and other efficiencies
+#       Nov 22 2026 - version 3.0.2:  Update to add Quick Resume support to interface with my Rope/Teleport/Resume script or for quicker response in certain script scenarios
+#       Oct 09 2026 - version 3.0.1:  Added checks for LootBag and Escape Runebook outside of script setup/reset and will now prompt to target new if not found
+#       Sep 30 2026 - version 3.0.0:  Another significant update! Reworked the script again to further improve on speed, safety and other efficiencies
 #                                     Updated to new storage tome IDs, updated loot securing to latest version, improved healing and general combat/efficiency fixes
 #                                     Added separate large, medium and small damage spell loops based on mana levels to greatly improve speed and response
 #                                     The improvements are significant enough to call this a whole new version - email any bugs to dan@danstockman.com
@@ -92,6 +93,22 @@
 #       May 18 2025 - version 1.0.1:  Added optional cooldown trigger for Mana Thief proc
 #       May 16 2025 - version 1.0.0:  Public script release!
 
+
+    /////////////////////
+    //  QUICK RESUME:  //
+    /////////////////////
+
+# Quick Resume is a new feature which can skip the entire setup section (variables, timers, first run, etc.) before jumping into the script loops
+# This allows for much faster engagement when the script needs to be restarted while it has already been running
+# An example of this would be using my 'Rope-Teleport-Resume' script, which can throw an adventurers rope and then launch directly back into this script
+# Without Quick Resume this can cause a delay of 1-2 seconds while the script sets itself back up - this is not necessary if it was already running
+# To achieve this from your own scripts, just add '@setvar! QuickResumeActive 1' prior to launching the Chill Dexxer script (command: 'script YourChillDexxerScriptName')
+# Do NOT modify this section!
+
+if not varexist QuickResumeActive
+    @setvar! QuickResumeActive 0
+endif
+if QuickResumeActive != 1
 
 
     ///////////////////
@@ -877,741 +894,743 @@ pushlist animalsIgnoreList "ADD MOBS TO IGNORE HERE"
 
 
 
-///////////////////////
-//   SCRIPT RESET:   //
-///////////////////////
-
-
-if ResetScriptPermanentVariables = 1
-    @setvar! IHAVEDIED 0
-    @setvar! TimeToGo 0
-    @setvar! DungeonGateThenTimeToGo 0
-    @setvar! ResThenTimeToGo 0
-    @setvar! RecallScrollsOnly 0
-    @setvar! RedTargetFound 0
-    @setvar! RECALLTIME 0
-    @setvar! WarModeToggledWhileFighting 0
-    unsetvar AutoRecallChargedRunebook
-    unsetvar FirstRunArcaneMage
-    unsetvar ArcaneMageAutoPilot
-    unsetvar LootBag
-    unsetvar LootChest
-    overhead "[ SCRIPT VARIABLES RESET... ]" 333
-    sysmsg "Please return 'ResetScriptPermanentVariables' to '0' to continue!" 153
-    stop
-endif
-
-
-///////////////////////
-//   TIMER SETUPS:   //
-///////////////////////
-
-if TimeToGo != 1 and AutoRecallTime != 1
-    if not timerexists 'PotionKegPVPCooldown'
-        createtimer 'PotionKegPVPCooldown'
-        settimer 'PotionKegPVPCooldown' 30000
-    endif
-
-    if not timerexists 'WorldSaveTimer'
-        createtimer 'WorldSaveTimer'
-        settimer 'WorldSaveTimer' 0
-    endif
-
-    if not timerexists 'LootTimer'
-        createtimer 'LootTimer'
-        settimer 'LootTimer' 0
-    endif
-
-    if not timerexists 'PurplePotionTimer'
-        createtimer 'PurplePotionTimer'
-        settimer 'PurplePotionTimer' 0
-    endif
-
-    if not timerexists 'FlamestrikeCooldownTimer'
-        createtimer 'FlamestrikeCooldownTimer'
-        settimer 'FlamestrikeCooldownTimer' FlamestrikeCooldown
-    endif
-
-    if not timerexists 'ExplosionCooldownTimer'
-        createtimer 'ExplosionCooldownTimer'
-        settimer 'ExplosionCooldownTimer' ExplosionCooldown
-    endif
-
-    if not timerexists 'EnergyBoltCooldownTimer'
-        createtimer 'EnergyBoltCooldownTimer'
-        settimer 'EnergyBoltCooldownTimer' EnergyBoltCooldown
-    endif
-
-    if not timerexists 'MindBlastCooldownTimer'
-        createtimer 'MindBlastCooldownTimer'
-        settimer 'MindBlastCooldownTimer' MindBlastCooldown
-    endif
-
-    if not timerexists 'WeightTimer'
-        createtimer 'WeightTimer'
-        settimer 'WeightTimer' 0
-    endif
-
-    if not timerexists 'PKRadar'
-        createtimer 'PKRadar'
-        settimer 'PKRadar' 0
-    endif
-
-    if not timerexists 'DungeonEscape'
-        createtimer 'DungeonEscape'
-        settimer 'DungeonEscape' 0
-    endif
-
-    if not timerexists 'TargetChecker'
-        createtimer 'TargetChecker'
-        settimer 'TargetChecker' 0
-    endif
-
-    if not timerexists 'TauntingTimer'
-        createtimer 'TauntingTimer'
-        settimer 'TauntingTimer' 0
-    endif
-
-    if not timerexists 'WeaponCodexTimer'
-        createtimer 'WeaponCodexTimer'
-        settimer 'WeaponCodexTimer' 0
-    endif
-
-    if not timerexists 'WeaponCodexCheckTimer'
-        createtimer 'WeaponCodexCheckTimer'
-        settimer 'WeaponCodexCheckTimer' 2000
-    endif
-
-    if not timerexists 'ShieldCodexTimer'
-        createtimer 'ShieldCodexTimer'
-        settimer 'ShieldCodexTimer' 0
-    endif
-
-    if not timerexists 'ShieldCodexCheckTimer'
-        createtimer 'ShieldCodexCheckTimer'
-        settimer 'ShieldCodexCheckTimer' 2000
-    endif
-
-    if not timerexists 'DungeonCleanup'
-        createtimer 'DungeonCleanup'
-        settimer 'DungeonCleanup' 0
-    endif
-
-    if not timerexists 'DungeonCleanupRadar'
-        createtimer 'DungeonCleanupRadar'
-        settimer 'DungeonCleanupRadar' 0
-    endif
-
-    if not timerexists 'ArcaneStaffCheck'
-        createtimer 'ArcaneStaffCheck'
-        settimer 'ArcaneStaffCheck' 4500
-    endif
-
-    if not timerexists 'TargetTimer'
-        createtimer 'TargetTimer'
-        settimer 'TargetTimer' 4500
-    endif
-
-    if not timerexists 'MissingRegsTimer'
-        createtimer 'MissingRegsTimer'
-        settimer 'MissingRegsTimer' 4500
-    endif
-
-    if not timerexists 'ManaOverheadTimer'
-        createtimer 'ManaOverheadTimer'
-        settimer 'ManaOverheadTimer' 4500
-    endif
-
-    if not timerexists 'REDALERT'
-        createtimer 'REDALERT'
-        settimer 'REDALERT' 0
-    endif
-
-    if not timerexists 'MANAWAIT'
-        createtimer 'MANAWAIT'
-        settimer 'MANAWAIT' 4500
-    endif
-
-    if not timerexists 'GETCLOSER'
-        createtimer 'GETCLOSER'
-        settimer 'GETCLOSER' 4500
-    endif
-
-    if not timerexists 'GATEHERE'
-        createtimer 'GATEHERE'
-        settimer 'GATEHERE' 4500
-    endif
-
-    if not timerexists 'RECALLDELAY'
-        createtimer 'RECALLDELAY'
-        settimer 'RECALLDELAY' 4500
-    endif
-
-    if not timerexists 'RUNAWAY'
-        createtimer 'RUNAWAY'
-        settimer 'RUNAWAY' 6000
-    endif
-
-    if not timerexists 'STORELOOT'
-        createtimer 'STORELOOT'
-        settimer 'STORELOOT' 5000
-    endif
-
-    if not timerexists 'OverweightMessageTimer'
-        createtimer 'OverweightMessageTimer'
-        settimer 'OverweightMessageTimer' 4500
-    endif
-
-    if not timerexists 'InventoryCheck'
-        createtimer 'InventoryCheck'
-        settimer 'InventoryCheck' 5000
-    endif
-
-    if not timerexists 'FoodMessageTimer'
-        createtimer 'FoodMessageTimer'
-        settimer 'FoodMessageTimer' 4500
-    endif
-
-    if not timerexists 'PouchMessageTimer'
-        createtimer 'PouchMessageTimer'
-        settimer 'PouchMessageTimer' 4500
-    endif
-
-    if not timerexists 'PotionKegTimer'
-        createtimer 'PotionKegTimer'
-        settimer 'PotionKegTimer' 3500
-    endif
-
-    if not timerexists 'HealPotionTimer'
-        createtimer 'HealPotionTimer'
-        settimer 'HealPotionTimer' 11000
-    endif
-
-    if not timerexists 'TelekinesisTimer'
-        createtimer 'TelekinesisTimer'
-        settimer 'TelekinesisTimer' 60000
-    endif
-
-    if not timerexists 'OrganizerAgentTimer'
-        createtimer 'OrganizerAgentTimer'
-        settimer 'OrganizerAgentTimer' 15000
-    endif
-
-    if not timerexists 'MeditationOverheadTimer'
-        createtimer 'MeditationOverheadTimer'
-        settimer 'MeditationOverheadTimer' 5000
-    endif
-
-    if not timerexists 'SkinningTimer'
-        createtimer 'SkinningTimer'
-        settimer 'SkinningTimer' 5000
-    endif
-
-    if not timerexists 'MeditationTimer'
-        createtimer 'MeditationTimer'
-        settimer 'MeditationTimer' 10500
-    endif
-
-    if not timerexists 'ArcaneWeaponAbilityTimer'
-        createtimer 'ArcaneWeaponAbilityTimer'
-        settimer 'ArcaneWeaponAbilityTimer' 10500
-    endif
-
-    if not timerexists 'MagicReflectTimer'
-        createtimer 'MagicReflectTimer'
-        settimer 'MagicReflectTimer' 15000
-    endif
-
-    if not timerexists 'EvilOmenTimer'
-        createtimer 'EvilOmenTimer'
-        settimer 'EvilOmenTimer' 30000
-    endif
-
-    if not timerexists 'CorpseSkinTimer'
-        createtimer 'CorpseSkinTimer'
-        settimer 'CorpseSkinTimer' 30000
-    endif
-
-    if not timerexists 'PainSpikeTimer'
-        createtimer 'PainSpikeTimer'
-        settimer 'PainSpikeTimer' 30000
-    endif
-
-    if not timerexists 'PainSpikeDelayTimer'
-        createtimer 'PainSpikeDelayTimer'
-        settimer 'PainSpikeDelayTimer' 10000
-    endif
-
-    if not timerexists 'StrangleTimer'
-        createtimer 'StrangleTimer'
-        settimer 'StrangleTimer' 30000
-    endif
-
-    if not timerexists 'MindRotTimer'
-        createtimer 'MindRotTimer'
-        settimer 'MindRotTimer' 30000
-    endif
-
-    if not timerexists 'EatManaSnackCooldownTimer'
-        createtimer 'EatManaSnackCooldownTimer'
-        settimer 'EatManaSnackCooldownTimer' EatManaSnackCooldown
-    endif
-
-    if not timerexists 'EatHealSnackCooldownTimer'
-        createtimer 'EatHealSnackCooldownTimer'
-        settimer 'EatHealSnackCooldownTimer' EatHealSnackCooldown
-    endif
-
-    if not timerexists 'WizardSatchelTimer'
-        createtimer 'WizardSatchelTimer'
-        settimer 'WizardSatchelTimer' 60000
-    endif
-
-    if not timerexists 'PotionSatchelTimer'
-        createtimer 'PotionSatchelTimer'
-        settimer 'PotionSatchelTimer' 60000
-    endif
-
-    if not timerexists 'CurseTimer'
-        createtimer 'CurseTimer'
-        settimer 'CurseTimer' 60000
-    endif
-
-    if not timerexists 'ManaDrainTimer'
-        createtimer 'ManaDrainTimer'
-        settimer 'ManaDrainTimer' 60000
-    endif
-
-    if not timerexists 'MagicArrowTimer'
-        createtimer 'MagicArrowTimer'
-        settimer 'MagicArrowTimer' MagicArrowCooldown
-    endif
-
-    if not timerexists 'HarmTimer'
-        createtimer 'HarmTimer'
-        settimer 'HarmTimer' HarmCooldown
-    endif
-
-    if not timerexists 'FireballTimer'
-        createtimer 'FireballTimer'
-        settimer 'FireballTimer' FireballCooldown
-    endif
-
-    if not timerexists 'LightningTimer'
-        createtimer 'LightningTimer'
-        settimer 'LightningTimer' LightningCooldown
-    endif
-
-    if not timerexists 'MushroomTimer'
-        createtimer 'MushroomTimer'
-        settimer 'MushroomTimer' 60000
-    endif
-
-    if not timerexists 'WeightMessageTimer'
-        createtimer 'WeightMessageTimer'
-        settimer 'WeightMessageTimer' 5000
-    endif
-
-    if not timerexists 'PKRadarTimer'
-        createtimer 'PKRadarTimer'
-        settimer 'PKRadarTimer' 1500
-    endif
-
-    if not timerexists 'GoldRadar'
-        createtimer 'GoldRadar'
-        settimer 'GoldRadar' 5000
-    endif
-
-    if not timerexists 'AnalyzingTargetsTimer'
-        createtimer 'AnalyzingTargetsTimer'
-        settimer 'AnalyzingTargetsTimer' 5000
-    endif
-
-    if not timerexists 'CannotSeeTargetTimer'
-        createtimer 'CannotSeeTargetTimer'
-        settimer 'CannotSeeTargetTimer' 5000
-    endif
-
-    if not timerexists 'ReactiveArmorTimer'
-        createtimer 'ReactiveArmorTimer'
-        settimer 'ReactiveArmorTimer' 5000
-    endif
-
-    if not timerexists 'AttackTargetTimer'
-        createtimer 'AttackTargetTimer'
-        settimer 'AttackTargetTimer' 5000
-    endif
-
-    if not timerexists 'HealPotionMessageTimer'
-        createtimer 'HealPotionMessageTimer'
-        settimer 'HealPotionMessageTimer' 5000
-    endif
-
-    if not timerexists 'BluePotionMessageTimer'
-        createtimer 'BluePotionMessageTimer'
-        settimer 'BluePotionMessageTimer' 4500
-    endif
-
-    if not timerexists 'PurplePotionMessageTimer'
-        createtimer 'PurplePotionMessageTimer'
-        settimer 'PurplePotionMessageTimer' 15000
-    endif
-
-    if not timerexists 'CurePotionMessageTimer'
-        createtimer 'CurePotionMessageTimer'
-        settimer 'CurePotionMessageTimer' 4500
-    endif
-    if not timerexists 'WhitePotionMessageTimer'
-        createtimer 'WhitePotionMessageTimer'
-        settimer 'WhitePotionMessageTimer' 5000
-    endif
-
-    if not timerexists 'BlackPotionMessageTimer'
-        createtimer 'BlackPotionMessageTimer'
-        settimer 'BlackPotionMessageTimer' 5000
-    endif
-
-    if not timerexists 'RedPotionMessageTimer'
-        createtimer 'RedPotionMessageTimer'
-        settimer 'RedPotionMessageTimer' 5000
-    endif
-
-    if not timerexists 'CorpseSkinDiseaseTimer'
-        createtimer 'CorpseSkinDiseaseTimer'
-        settimer 'CorpseSkinDiseaseTimer' 30000
-    endif
-
-    if not timerexists 'PoisonStrikeTimer'
-        createtimer 'PoisonStrikeTimer'
-        settimer 'PoisonStrikeTimer' 30000
-    endif
-
-    if not timerexists 'MeditationMessageTimer'
-        createtimer 'MeditationMessageTimer'
-        settimer 'MeditationMessageTimer' 5000
-    endif
-
-    if not timerexists 'NothingToTargetMessageTimer'
-        createtimer 'NothingToTargetMessageTimer'
-        settimer 'NothingToTargetMessageTimer' 5000
-    endif
-
-    if not timerexists 'LootStorageTimer'
-        createtimer 'LootStorageTimer'
-        settimer 'LootStorageTimer' 5000
-    endif
-
-    if not timerexists 'SwapTargetsTimer'
-        createtimer 'SwapTargetsTimer'
-        settimer 'SwapTargetsTimer' 5000
-    endif
-
-    if not timerexists 'AutoHealOverheadTimer'
-        createtimer 'AutoHealOverheadTimer'
-        settimer 'AutoHealOverheadTimer' 5000
-    endif
-
-    if not timerexists 'TargetIsTooFarTimer'
-        createtimer 'TargetIsTooFarTimer'
-        settimer 'TargetIsTooFarTimer' 5000
-    endif
-
-    if not timerexists 'AntiStallTimer'
-        createtimer 'AntiStallTimer'
-        settimer 'AntiStallTimer' 3500
-    endif
-
-    if not timerexists 'SkinningTimeoutTimer'
-        createtimer 'SkinningTimeoutTimer'
-        settimer 'SkinningTimeoutTimer' 3500
-    endif
-
-    if not timerexists 'spellTimer'
-        createtimer 'spellTimer'
-        settimer 'spellTimer' 0
-    endif
-
-    if not timerexists 'WaitingToRecallTimer'
-        createtimer 'WaitingToRecallTimer'
-        settimer 'WaitingToRecallTimer' 4500
-    endif
-
-    if not timerexists 'MushroomMakerTimer'
-        createtimer 'MushroomMakerTimer'
-       settimer 'MushroomMakerTimer' 4500
-    endif
-
-    if not timerexists 'IgnoreMOBtimer'
-        createtimer 'IgnoreMOBtimer'
-        settimer 'IgnoreMOBtimer' 3000
-    endif
-
-    if not timerexists 'NoHealRegsTimer'
-        createtimer 'NoHealRegsTimer'
-        settimer 'NoHealRegsTimer' 4500
-    endif
-
-    if not timerexists 'PopPouchMessageTimer'
-        createtimer 'PopPouchMessageTimer'
-        settimer 'PopPouchMessageTimer' 4500
-    endif
-
-    if not timerexists 'EatFoodMessageTimer'
-        createtimer 'EatFoodMessageTimer'
-        settimer 'EatFoodMessageTimer' 4500
-    endif
-
-    if not timerexists 'RepairTimer'
-        createtimer 'RepairTimer'
-        settimer 'RepairTimer' 0
-    endif
-
-    if not timerexists 'WaitingForHealerTimer'
-        createtimer 'WaitingForHealerTimer'
-        settimer 'WaitingForHealerTimer' 4500
-    endif
-
-    if not timerexists 'GateIndicatorTimer'
-        createtimer 'GateIndicatorTimer'
-        settimer 'GateIndicatorTimer' 4500
-    endif
-
-    if not timerexists 'CleansingBrewTimer'
-        createtimer 'CleansingBrewTimer'
-        settimer 'CleansingBrewTimer' 120000
-    endif
-
-    if not timerexists 'CleansingBrewOverhead'
-        createtimer 'CleansingBrewOverhead'
-        settimer 'CleansingBrewOverhead' 15000
-    endif
-
-    if not timerexists 'ArcaneRuneTimer'
-        createtimer 'ArcaneRuneTimer'
-        settimer 'ArcaneRuneTimer' ArcaneRunePlacementCooldown
-    endif
-
-    if not timerexists 'NecroCooldownTimer'
-        createtimer 'NecroCooldownTimer'
-        settimer 'NecroCooldownTimer' 5000
-    endif
-
-    if not timerexists 'BandageMessageTimer'
-        createtimer 'BandageMessageTimer'
-        settimer 'BandageMessageTimer' 1500
-    endif
-
-    if not timerexists 'NoTargetTimer'
-        createtimer 'NoTargetTimer'
-        settimer 'NoTargetTimer' 5000
-    endif
-
-    if not varexist AutoRecallTime
-        @setvar! AutoRecallTime 0
-    endif
-
-    if not varexist previousTarget
-        @setvar! previousTarget 0
-    endif
-
-    if not varexist FirstRunArcaneMage
-        setvar FirstRunArcaneMage 0
-    endif
-
-    if not varexist TargetSwap
-        @setvar! TargetSwap 0
-    endif
-
-    if not varexist ClosestTarget
-        @setvar! ClosestTarget 0
-    endif
-
-    if not varexist TargetToAnalyze
-        @setvar! TargetToAnalyze 0
-    endif
-
-    if not varexist AttackModeActive
-        @setvar! AttackModeActive 0
-    endif
-
-    if not varexist TargetToCheck
-        @setvar! TargetToCheck 0
-    endif
-
-    if not varexist AutoWeightRecall
-        @setvar! AutoWeightRecall 0
-    endif
-
-    if not varexist SpellInterrupted
-        @setvar! SpellInterrupted 0
-    endif
-
-    if not varexist DisableVacuums
-        @setvar! DisableVacuums 0
-    endif
-
-    if not varexist NoLockbox
-        @setvar! NoLockbox 0
-    endif
-
-    @ignore MyBlessedSpellbook
-
-    if WILDERNESSMODE = 1 and DUNGEONMODE = 1
-        overhead '[ INVALID SCRIPT MODE! ]' 37
-        sysmsg 'Both DUNGEONMODE and WILDERNESSMODE are enabled - please select only ONE AT A TIME at top of script!' 153
-        wait 1500
-        overhead '[ STOPPING SCRIPT ]' 88
-        stop
-    elseif WILDERNESSMODE = 0 and DUNGEONMODE = 0
-        overhead '[ INVALID SCRIPT MODE! ]' 37
-        sysmsg 'Both DUNGEONMODE and WILDERNESSMODE are disabled - please select your desired mode at top of script!' 153
-        wait 1500
-        overhead '[ STOPPING SCRIPT ]' 88
+    ///////////////////////
+    //   SCRIPT RESET:   //
+    ///////////////////////
+
+
+    if ResetScriptPermanentVariables = 1
+        @setvar! IHAVEDIED 0
+        @setvar! TimeToGo 0
+        @setvar! DungeonGateThenTimeToGo 0
+        @setvar! ResThenTimeToGo 0
+        @setvar! RecallScrollsOnly 0
+        @setvar! RedTargetFound 0
+        @setvar! RECALLTIME 0
+        @setvar! WarModeToggledWhileFighting 0
+        unsetvar AutoRecallChargedRunebook
+        unsetvar FirstRunArcaneMage
+        unsetvar ArcaneMageAutoPilot
+        unsetvar LootBag
+        unsetvar LootChest
+        overhead "[ SCRIPT VARIABLES RESET... ]" 333
+        sysmsg "Please return 'ResetScriptPermanentVariables' to '0' to continue!" 153
         stop
     endif
 
-    @setvar! EnableUseEmotes 0
-    @setvar! SetEmoteCooldown 120000
-    # Requires the following emotes to be unlocked: [Awoo, [HighFive, [Yes and [Whistle
-    # Requires 'EnableOverheadMessages' set to '1'
-    # Will use Emotes when Aspect, Codex or Chain Links are leveled up and when entering the Auto Heal loop
-    # Also uses Emotes when certain finishers are performed (W.I.P.) and when target is eliminated
-    # Cooldown defaults to 2 minutes but can be reduced via customizations in-game (375k gold reduces it to 30 seconds)
-    # Add optional cooldown in UO client:  'Emote Cooldown'  (case sensitive)
 
-    if not timerexists "EmoteCooldownTimer"
-        createtimer "EmoteCooldownTimer"
-        settimer "EmoteCooldownTimer" SetEmoteCooldown
-    endif
-endif
+    ///////////////////////
+    //   TIMER SETUPS:   //
+    ///////////////////////
 
-
-//////////////////////
-//  INITIAL SETUP:  //
-//////////////////////
-
-if not dead and TimeToGo != 1 and AutoRecallTime != 1
-    if not varexist ArcaneMageAutoPilot or ArcaneMageAutoPilot != 1
-        overhead "Lord Glacier's Chill Arcane Mage Auto Pilot Script" 2234
-        # '
-        overhead "version 3.0.1" 2234
-        wait 1500
-        overhead "Last Updated: October 9, 2026" 88
-        wait 2500
-        overhead "Thank you for trying my Arcane Mage AUTO PILOT script!  It appears this may be your first time running it..." 0
-        wait 4000
-        overhead "IMPT: Please make sure to check and adjust your VARIABLES!" 153
-        wait 4500
-        overhead "Please read the TIPS section at the beginning of the script for more info" 88
-        wait 3000
-        setvar ArcaneMageAutoPilot 1
-        sysmsg "Beginning Lord Glacier's Chill Arcane Mage Auto Pilot script.......... " 0
-        # '
-        wait 1000
-    endif
-
-    while FirstRunArcaneMage != 1
-        if EnableDIYRecallScript != 1
-            if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
-                if not varexist AutoRecallChargedRunebook or not find AutoRecallChargedRunebook self
-                    wait 500
-                    overhead "You have enabled Auto Recall (PK or Weight) and must select a runebook to continue!" 0
-                    wait 1500
-                    overhead "Select your escape runebook..." 253
-                    setvar AutoRecallChargedRunebook
-                    wait 500
-                    while targetexists
-                        wait 100
-                    endwhile
-                    sysmsg "Will cast to 'default rune' in Runebook (if 'casting' enabled) or uses scrolls to 'first location' in Runebook (if no Magery skill)" 153
-                    wait 1500
-                endif
-            endif
+    if TimeToGo != 1 and AutoRecallTime != 1
+        if not timerexists 'PotionKegPVPCooldown'
+            createtimer 'PotionKegPVPCooldown'
+            settimer 'PotionKegPVPCooldown' 30000
         endif
 
-        if EnableLootChest = 1
-             if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
-                if not varexist LootChest
-                    wait 500
-                    overhead "Select a secure container to store your Loot..." 253
-                    sysmsg "Can be disabled under script variables section." 0
-                    wait 1000
-                    overhead "Anything that will not go into a Resource Stockpile, Storage Shelf, Tomes or Magic Recycler" 0
-                    overhead "(ie. Skill Orbs, Research Mats, Paragon chests, etc.)"
-                    setvar LootChest
-                    wait 500
-                    while targetexists
-                        wait 100
-                    endwhile
-                    sysmsg "Use Razor Organizer Agents 06 - 09 for the Loot Chest and its contents - organize to your own liking!" 0
-                    wait 1500
-                endif
-            endif
+        if not timerexists 'WorldSaveTimer'
+            createtimer 'WorldSaveTimer'
+            settimer 'WorldSaveTimer' 0
         endif
 
-        if EnableStorageTomeContainer = 1
-            if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
-                if not varexist TomeContainer
-                    wait 500
-                    overhead "Please select a secure container to store your Tomes..." 253
-                    sysmsg "Can be disabled under script variables section." 0
-                    wait 1000
-                    overhead "This will cause script to look in this container for any Storage Tomes when unloading loot..." 0
-                    setvar TomeContainer
-                    wait 500
-                    while targetexists
-                        wait 100
-                    endwhile
-                    sysmsg "Turn this variable off if your tomes are stored on the ground in your home/inn room" 0
-                    wait 1500
-                endif
-            endif
+        if not timerexists 'LootTimer'
+            createtimer 'LootTimer'
+            settimer 'LootTimer' 0
         endif
 
-        if EnableLootBag = 1 and IHAVEDIED != 1
-            if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
-                if not varexist LootBag
-                    wait 500
-                    overhead "Please select your loot bag..." 253
-                    wait 1000
-                    overhead "This should be whatever is set as your 'Grab Bag' and will be opened when unloading loot after recalling..." 0
-                    setvar LootBag
-                    wait 500
-                    while targetexists
-                        wait 100
-                    endwhile
-                endif
-
-                if not find LootBag self
-                    overhead "[ NO LOOT BAG ]" 337
-                    wait 1500
-                    overhead "Select your new loot bag..." 253
-                    wait 500
-                    setvar LootBag
-                    wait 250
-                    while targetexists
-                        wait 100
-                    endwhile
-                endif
-            endif
+        if not timerexists 'PurplePotionTimer'
+            createtimer 'PurplePotionTimer'
+            settimer 'PurplePotionTimer' 0
         endif
 
-        if not varexist FirstRunArcaneMage or FirstRunArcaneMage != 1
-            wait 1000
-            overhead "Good luck out there!" 2234
-            overhead "         - Dan (aka. Glacier)" 2234
+        if not timerexists 'FlamestrikeCooldownTimer'
+            createtimer 'FlamestrikeCooldownTimer'
+            settimer 'FlamestrikeCooldownTimer' FlamestrikeCooldown
+        endif
+
+        if not timerexists 'ExplosionCooldownTimer'
+            createtimer 'ExplosionCooldownTimer'
+            settimer 'ExplosionCooldownTimer' ExplosionCooldown
+        endif
+
+        if not timerexists 'EnergyBoltCooldownTimer'
+            createtimer 'EnergyBoltCooldownTimer'
+            settimer 'EnergyBoltCooldownTimer' EnergyBoltCooldown
+        endif
+
+        if not timerexists 'MindBlastCooldownTimer'
+            createtimer 'MindBlastCooldownTimer'
+            settimer 'MindBlastCooldownTimer' MindBlastCooldown
+        endif
+
+        if not timerexists 'WeightTimer'
+            createtimer 'WeightTimer'
+            settimer 'WeightTimer' 0
+        endif
+
+        if not timerexists 'PKRadar'
+            createtimer 'PKRadar'
+            settimer 'PKRadar' 0
+        endif
+
+        if not timerexists 'DungeonEscape'
+            createtimer 'DungeonEscape'
+            settimer 'DungeonEscape' 0
+        endif
+
+        if not timerexists 'TargetChecker'
+            createtimer 'TargetChecker'
+            settimer 'TargetChecker' 0
+        endif
+
+        if not timerexists 'TauntingTimer'
+            createtimer 'TauntingTimer'
+            settimer 'TauntingTimer' 0
+        endif
+
+        if not timerexists 'WeaponCodexTimer'
+            createtimer 'WeaponCodexTimer'
+            settimer 'WeaponCodexTimer' 0
+        endif
+
+        if not timerexists 'WeaponCodexCheckTimer'
+            createtimer 'WeaponCodexCheckTimer'
+            settimer 'WeaponCodexCheckTimer' 2000
+        endif
+
+        if not timerexists 'ShieldCodexTimer'
+            createtimer 'ShieldCodexTimer'
+            settimer 'ShieldCodexTimer' 0
+        endif
+
+        if not timerexists 'ShieldCodexCheckTimer'
+            createtimer 'ShieldCodexCheckTimer'
+            settimer 'ShieldCodexCheckTimer' 2000
+        endif
+
+        if not timerexists 'DungeonCleanup'
+            createtimer 'DungeonCleanup'
+            settimer 'DungeonCleanup' 0
+        endif
+
+        if not timerexists 'DungeonCleanupRadar'
+            createtimer 'DungeonCleanupRadar'
+            settimer 'DungeonCleanupRadar' 0
+        endif
+
+        if not timerexists 'ArcaneStaffCheck'
+            createtimer 'ArcaneStaffCheck'
+            settimer 'ArcaneStaffCheck' 4500
+        endif
+
+        if not timerexists 'TargetTimer'
+            createtimer 'TargetTimer'
+            settimer 'TargetTimer' 4500
+        endif
+
+        if not timerexists 'MissingRegsTimer'
+            createtimer 'MissingRegsTimer'
+            settimer 'MissingRegsTimer' 4500
+        endif
+
+        if not timerexists 'ManaOverheadTimer'
+            createtimer 'ManaOverheadTimer'
+            settimer 'ManaOverheadTimer' 4500
+        endif
+
+        if not timerexists 'REDALERT'
+            createtimer 'REDALERT'
+            settimer 'REDALERT' 0
+        endif
+
+        if not timerexists 'MANAWAIT'
+            createtimer 'MANAWAIT'
+            settimer 'MANAWAIT' 4500
+        endif
+
+        if not timerexists 'GETCLOSER'
+            createtimer 'GETCLOSER'
+            settimer 'GETCLOSER' 4500
+        endif
+
+        if not timerexists 'GATEHERE'
+            createtimer 'GATEHERE'
+            settimer 'GATEHERE' 4500
+        endif
+
+        if not timerexists 'RECALLDELAY'
+            createtimer 'RECALLDELAY'
+            settimer 'RECALLDELAY' 4500
+        endif
+
+        if not timerexists 'RUNAWAY'
+            createtimer 'RUNAWAY'
+            settimer 'RUNAWAY' 6000
+        endif
+
+        if not timerexists 'STORELOOT'
+            createtimer 'STORELOOT'
+            settimer 'STORELOOT' 5000
+        endif
+
+        if not timerexists 'OverweightMessageTimer'
+            createtimer 'OverweightMessageTimer'
+            settimer 'OverweightMessageTimer' 4500
+        endif
+
+        if not timerexists 'InventoryCheck'
+            createtimer 'InventoryCheck'
+            settimer 'InventoryCheck' 5000
+        endif
+
+        if not timerexists 'FoodMessageTimer'
+            createtimer 'FoodMessageTimer'
+            settimer 'FoodMessageTimer' 4500
+        endif
+
+        if not timerexists 'PouchMessageTimer'
+            createtimer 'PouchMessageTimer'
+            settimer 'PouchMessageTimer' 4500
+        endif
+
+        if not timerexists 'PotionKegTimer'
+            createtimer 'PotionKegTimer'
+            settimer 'PotionKegTimer' 3500
+        endif
+
+        if not timerexists 'HealPotionTimer'
+            createtimer 'HealPotionTimer'
+            settimer 'HealPotionTimer' 11000
+        endif
+
+        if not timerexists 'TelekinesisTimer'
+            createtimer 'TelekinesisTimer'
+            settimer 'TelekinesisTimer' 60000
+        endif
+
+        if not timerexists 'OrganizerAgentTimer'
+            createtimer 'OrganizerAgentTimer'
+            settimer 'OrganizerAgentTimer' 15000
+        endif
+
+        if not timerexists 'MeditationOverheadTimer'
+            createtimer 'MeditationOverheadTimer'
+            settimer 'MeditationOverheadTimer' 5000
+        endif
+
+        if not timerexists 'SkinningTimer'
+            createtimer 'SkinningTimer'
+            settimer 'SkinningTimer' 5000
+        endif
+
+        if not timerexists 'MeditationTimer'
+            createtimer 'MeditationTimer'
+            settimer 'MeditationTimer' 10500
+        endif
+
+        if not timerexists 'ArcaneWeaponAbilityTimer'
+            createtimer 'ArcaneWeaponAbilityTimer'
+            settimer 'ArcaneWeaponAbilityTimer' 10500
+        endif
+
+        if not timerexists 'MagicReflectTimer'
+            createtimer 'MagicReflectTimer'
+            settimer 'MagicReflectTimer' 15000
+        endif
+
+        if not timerexists 'EvilOmenTimer'
+            createtimer 'EvilOmenTimer'
+            settimer 'EvilOmenTimer' 30000
+        endif
+
+        if not timerexists 'CorpseSkinTimer'
+            createtimer 'CorpseSkinTimer'
+            settimer 'CorpseSkinTimer' 30000
+        endif
+
+        if not timerexists 'PainSpikeTimer'
+            createtimer 'PainSpikeTimer'
+            settimer 'PainSpikeTimer' 30000
+        endif
+
+        if not timerexists 'PainSpikeDelayTimer'
+            createtimer 'PainSpikeDelayTimer'
+            settimer 'PainSpikeDelayTimer' 10000
+        endif
+
+        if not timerexists 'StrangleTimer'
+            createtimer 'StrangleTimer'
+            settimer 'StrangleTimer' 30000
+        endif
+
+        if not timerexists 'MindRotTimer'
+            createtimer 'MindRotTimer'
+            settimer 'MindRotTimer' 30000
+        endif
+
+        if not timerexists 'EatManaSnackCooldownTimer'
+            createtimer 'EatManaSnackCooldownTimer'
+            settimer 'EatManaSnackCooldownTimer' EatManaSnackCooldown
+        endif
+
+        if not timerexists 'EatHealSnackCooldownTimer'
+            createtimer 'EatHealSnackCooldownTimer'
+            settimer 'EatHealSnackCooldownTimer' EatHealSnackCooldown
+        endif
+
+        if not timerexists 'WizardSatchelTimer'
+            createtimer 'WizardSatchelTimer'
+            settimer 'WizardSatchelTimer' 60000
+        endif
+
+        if not timerexists 'PotionSatchelTimer'
+            createtimer 'PotionSatchelTimer'
+            settimer 'PotionSatchelTimer' 60000
+        endif
+
+        if not timerexists 'CurseTimer'
+            createtimer 'CurseTimer'
+            settimer 'CurseTimer' 60000
+        endif
+
+        if not timerexists 'ManaDrainTimer'
+            createtimer 'ManaDrainTimer'
+            settimer 'ManaDrainTimer' 60000
+        endif
+
+        if not timerexists 'MagicArrowTimer'
+            createtimer 'MagicArrowTimer'
+            settimer 'MagicArrowTimer' MagicArrowCooldown
+        endif
+
+        if not timerexists 'HarmTimer'
+            createtimer 'HarmTimer'
+            settimer 'HarmTimer' HarmCooldown
+        endif
+
+        if not timerexists 'FireballTimer'
+            createtimer 'FireballTimer'
+            settimer 'FireballTimer' FireballCooldown
+        endif
+
+        if not timerexists 'LightningTimer'
+            createtimer 'LightningTimer'
+            settimer 'LightningTimer' LightningCooldown
+        endif
+
+        if not timerexists 'MushroomTimer'
+            createtimer 'MushroomTimer'
+            settimer 'MushroomTimer' 60000
+        endif
+
+        if not timerexists 'WeightMessageTimer'
+            createtimer 'WeightMessageTimer'
+            settimer 'WeightMessageTimer' 5000
+        endif
+
+        if not timerexists 'PKRadarTimer'
+            createtimer 'PKRadarTimer'
+            settimer 'PKRadarTimer' 1500
+        endif
+
+        if not timerexists 'GoldRadar'
+            createtimer 'GoldRadar'
+            settimer 'GoldRadar' 5000
+        endif
+
+        if not timerexists 'AnalyzingTargetsTimer'
+            createtimer 'AnalyzingTargetsTimer'
+            settimer 'AnalyzingTargetsTimer' 5000
+        endif
+
+        if not timerexists 'CannotSeeTargetTimer'
+            createtimer 'CannotSeeTargetTimer'
+            settimer 'CannotSeeTargetTimer' 5000
+        endif
+
+        if not timerexists 'ReactiveArmorTimer'
+            createtimer 'ReactiveArmorTimer'
+            settimer 'ReactiveArmorTimer' 5000
+        endif
+
+        if not timerexists 'AttackTargetTimer'
+            createtimer 'AttackTargetTimer'
+            settimer 'AttackTargetTimer' 5000
+        endif
+
+        if not timerexists 'HealPotionMessageTimer'
+            createtimer 'HealPotionMessageTimer'
+            settimer 'HealPotionMessageTimer' 5000
+        endif
+
+        if not timerexists 'BluePotionMessageTimer'
+            createtimer 'BluePotionMessageTimer'
+            settimer 'BluePotionMessageTimer' 4500
+        endif
+
+        if not timerexists 'PurplePotionMessageTimer'
+            createtimer 'PurplePotionMessageTimer'
+            settimer 'PurplePotionMessageTimer' 15000
+        endif
+
+        if not timerexists 'CurePotionMessageTimer'
+            createtimer 'CurePotionMessageTimer'
+            settimer 'CurePotionMessageTimer' 4500
+        endif
+        if not timerexists 'WhitePotionMessageTimer'
+            createtimer 'WhitePotionMessageTimer'
+            settimer 'WhitePotionMessageTimer' 5000
+        endif
+
+        if not timerexists 'BlackPotionMessageTimer'
+            createtimer 'BlackPotionMessageTimer'
+            settimer 'BlackPotionMessageTimer' 5000
+        endif
+
+        if not timerexists 'RedPotionMessageTimer'
+            createtimer 'RedPotionMessageTimer'
+            settimer 'RedPotionMessageTimer' 5000
+        endif
+
+        if not timerexists 'CorpseSkinDiseaseTimer'
+            createtimer 'CorpseSkinDiseaseTimer'
+            settimer 'CorpseSkinDiseaseTimer' 30000
+        endif
+
+        if not timerexists 'PoisonStrikeTimer'
+            createtimer 'PoisonStrikeTimer'
+            settimer 'PoisonStrikeTimer' 30000
+        endif
+
+        if not timerexists 'MeditationMessageTimer'
+            createtimer 'MeditationMessageTimer'
+            settimer 'MeditationMessageTimer' 5000
+        endif
+
+        if not timerexists 'NothingToTargetMessageTimer'
+            createtimer 'NothingToTargetMessageTimer'
+            settimer 'NothingToTargetMessageTimer' 5000
+        endif
+
+        if not timerexists 'LootStorageTimer'
+            createtimer 'LootStorageTimer'
+            settimer 'LootStorageTimer' 5000
+        endif
+
+        if not timerexists 'SwapTargetsTimer'
+            createtimer 'SwapTargetsTimer'
+            settimer 'SwapTargetsTimer' 5000
+        endif
+
+        if not timerexists 'AutoHealOverheadTimer'
+            createtimer 'AutoHealOverheadTimer'
+            settimer 'AutoHealOverheadTimer' 5000
+        endif
+
+        if not timerexists 'TargetIsTooFarTimer'
+            createtimer 'TargetIsTooFarTimer'
+            settimer 'TargetIsTooFarTimer' 5000
+        endif
+
+        if not timerexists 'AntiStallTimer'
+            createtimer 'AntiStallTimer'
+            settimer 'AntiStallTimer' 3500
+        endif
+
+        if not timerexists 'SkinningTimeoutTimer'
+            createtimer 'SkinningTimeoutTimer'
+            settimer 'SkinningTimeoutTimer' 3500
+        endif
+
+        if not timerexists 'spellTimer'
+            createtimer 'spellTimer'
+            settimer 'spellTimer' 0
+        endif
+
+        if not timerexists 'WaitingToRecallTimer'
+            createtimer 'WaitingToRecallTimer'
+            settimer 'WaitingToRecallTimer' 4500
+        endif
+
+        if not timerexists 'MushroomMakerTimer'
+            createtimer 'MushroomMakerTimer'
+           settimer 'MushroomMakerTimer' 4500
+        endif
+
+        if not timerexists 'IgnoreMOBtimer'
+            createtimer 'IgnoreMOBtimer'
+            settimer 'IgnoreMOBtimer' 3000
+        endif
+
+        if not timerexists 'NoHealRegsTimer'
+            createtimer 'NoHealRegsTimer'
+            settimer 'NoHealRegsTimer' 4500
+        endif
+
+        if not timerexists 'PopPouchMessageTimer'
+            createtimer 'PopPouchMessageTimer'
+            settimer 'PopPouchMessageTimer' 4500
+        endif
+
+        if not timerexists 'EatFoodMessageTimer'
+            createtimer 'EatFoodMessageTimer'
+            settimer 'EatFoodMessageTimer' 4500
+        endif
+
+        if not timerexists 'RepairTimer'
+            createtimer 'RepairTimer'
+            settimer 'RepairTimer' 0
+        endif
+
+        if not timerexists 'WaitingForHealerTimer'
+            createtimer 'WaitingForHealerTimer'
+            settimer 'WaitingForHealerTimer' 4500
+        endif
+
+        if not timerexists 'GateIndicatorTimer'
+            createtimer 'GateIndicatorTimer'
+            settimer 'GateIndicatorTimer' 4500
+        endif
+
+        if not timerexists 'CleansingBrewTimer'
+            createtimer 'CleansingBrewTimer'
+            settimer 'CleansingBrewTimer' 120000
+        endif
+
+        if not timerexists 'CleansingBrewOverhead'
+            createtimer 'CleansingBrewOverhead'
+            settimer 'CleansingBrewOverhead' 15000
+        endif
+
+        if not timerexists 'ArcaneRuneTimer'
+            createtimer 'ArcaneRuneTimer'
+            settimer 'ArcaneRuneTimer' ArcaneRunePlacementCooldown
+        endif
+
+        if not timerexists 'NecroCooldownTimer'
+            createtimer 'NecroCooldownTimer'
+            settimer 'NecroCooldownTimer' 5000
+        endif
+
+        if not timerexists 'BandageMessageTimer'
+            createtimer 'BandageMessageTimer'
+            settimer 'BandageMessageTimer' 1500
+        endif
+
+        if not timerexists 'NoTargetTimer'
+            createtimer 'NoTargetTimer'
+            settimer 'NoTargetTimer' 5000
+        endif
+
+        if not varexist AutoRecallTime
+            @setvar! AutoRecallTime 0
+        endif
+
+        if not varexist previousTarget
+            @setvar! previousTarget 0
+        endif
+
+        if not varexist FirstRunArcaneMage
+            setvar FirstRunArcaneMage 0
+        endif
+
+        if not varexist TargetSwap
+            @setvar! TargetSwap 0
+        endif
+
+        if not varexist ClosestTarget
+            @setvar! ClosestTarget 0
+        endif
+
+        if not varexist TargetToAnalyze
+            @setvar! TargetToAnalyze 0
+        endif
+
+        if not varexist AttackModeActive
+            @setvar! AttackModeActive 0
+        endif
+
+        if not varexist TargetToCheck
+            @setvar! TargetToCheck 0
+        endif
+
+        if not varexist AutoWeightRecall
+            @setvar! AutoWeightRecall 0
+        endif
+
+        if not varexist SpellInterrupted
+            @setvar! SpellInterrupted 0
+        endif
+
+        if not varexist DisableVacuums
+            @setvar! DisableVacuums 0
+        endif
+
+        if not varexist NoLockbox
+            @setvar! NoLockbox 0
+        endif
+
+        @ignore MyBlessedSpellbook
+
+        if WILDERNESSMODE = 1 and DUNGEONMODE = 1
+            overhead '[ INVALID SCRIPT MODE! ]' 37
+            sysmsg 'Both DUNGEONMODE and WILDERNESSMODE are enabled - please select only ONE AT A TIME at top of script!' 153
             wait 1500
-            setvar FirstRunArcaneMage 1
-            getlabel backpack backpacklabel
+            overhead '[ STOPPING SCRIPT ]' 88
+            stop
+        elseif WILDERNESSMODE = 0 and DUNGEONMODE = 0
+            overhead '[ INVALID SCRIPT MODE! ]' 37
+            sysmsg 'Both DUNGEONMODE and WILDERNESSMODE are disabled - please select your desired mode at top of script!' 153
+            wait 1500
+            overhead '[ STOPPING SCRIPT ]' 88
+            stop
         endif
 
-        if FirstRunArcaneMage = 1
-            hotkey 'Toggle War Only'
-            break
+        @setvar! EnableUseEmotes 0
+        @setvar! SetEmoteCooldown 120000
+        # Requires the following emotes to be unlocked: [Awoo, [HighFive, [Yes and [Whistle
+        # Requires 'EnableOverheadMessages' set to '1'
+        # Will use Emotes when Aspect, Codex or Chain Links are leveled up and when entering the Auto Heal loop
+        # Also uses Emotes when certain finishers are performed (W.I.P.) and when target is eliminated
+        # Cooldown defaults to 2 minutes but can be reduced via customizations in-game (375k gold reduces it to 30 seconds)
+        # Add optional cooldown in UO client:  'Emote Cooldown'  (case sensitive)
+
+        if not timerexists "EmoteCooldownTimer"
+            createtimer "EmoteCooldownTimer"
+            settimer "EmoteCooldownTimer" SetEmoteCooldown
         endif
-    endwhile
+    endif
+
+
+    //////////////////////
+    //  INITIAL SETUP:  //
+    //////////////////////
+
+    if not dead and TimeToGo != 1 and AutoRecallTime != 1
+        if not varexist ArcaneMageAutoPilot or ArcaneMageAutoPilot != 1
+            overhead "Lord Glacier's Chill Arcane Mage Auto Pilot Script" 2234
+            # '
+            overhead "version 3.0.2" 2234
+            wait 1500
+            overhead "Last Updated: November 22, 2026" 88
+            wait 2500
+            overhead "Thank you for trying my Arcane Mage AUTO PILOT script!  It appears this may be your first time running it..." 0
+            wait 4000
+            overhead "IMPT: Please make sure to check and adjust your VARIABLES!" 153
+            wait 4500
+            overhead "Please read the TIPS section at the beginning of the script for more info" 88
+            wait 3000
+            setvar ArcaneMageAutoPilot 1
+            sysmsg "Beginning Lord Glacier's Chill Arcane Mage Auto Pilot script.......... " 0
+            # '
+            wait 1000
+        endif
+
+        while FirstRunArcaneMage != 1
+            if EnableDIYRecallScript != 1
+                if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
+                    if not varexist AutoRecallChargedRunebook or not find AutoRecallChargedRunebook self
+                        wait 500
+                        overhead "You have enabled Auto Recall (PK or Weight) and must select a runebook to continue!" 0
+                        wait 1500
+                        overhead "Select your escape runebook..." 253
+                        setvar AutoRecallChargedRunebook
+                        wait 500
+                        while targetexists
+                            wait 100
+                        endwhile
+                        sysmsg "Will cast to 'default rune' in Runebook (if 'casting' enabled) or uses scrolls to 'first location' in Runebook (if no Magery skill)" 153
+                        wait 1500
+                    endif
+                endif
+            endif
+
+            if EnableLootChest = 1
+                 if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
+                    if not varexist LootChest
+                        wait 500
+                        overhead "Select a secure container to store your Loot..." 253
+                        sysmsg "Can be disabled under script variables section." 0
+                        wait 1000
+                        overhead "Anything that will not go into a Resource Stockpile, Storage Shelf, Tomes or Magic Recycler" 0
+                        overhead "(ie. Skill Orbs, Research Mats, Paragon chests, etc.)"
+                        setvar LootChest
+                        wait 500
+                        while targetexists
+                            wait 100
+                        endwhile
+                        sysmsg "Use Razor Organizer Agents 06 - 09 for the Loot Chest and its contents - organize to your own liking!" 0
+                        wait 1500
+                    endif
+                endif
+            endif
+
+            if EnableStorageTomeContainer = 1
+                if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
+                    if not varexist TomeContainer
+                        wait 500
+                        overhead "Please select a secure container to store your Tomes..." 253
+                        sysmsg "Can be disabled under script variables section." 0
+                        wait 1000
+                        overhead "This will cause script to look in this container for any Storage Tomes when unloading loot..." 0
+                        setvar TomeContainer
+                        wait 500
+                        while targetexists
+                            wait 100
+                        endwhile
+                        sysmsg "Turn this variable off if your tomes are stored on the ground in your home/inn room" 0
+                        wait 1500
+                    endif
+                endif
+            endif
+
+            if EnableLootBag = 1 and IHAVEDIED != 1
+                if EnableAutoRedRecall = 1 or EnableAutoWeightRecall = 1 or EnableRecallAfterResurrection = 1 or EnableRecallAfterDungeonGate = 1
+                    if not varexist LootBag
+                        wait 500
+                        overhead "Please select your loot bag..." 253
+                        wait 1000
+                        overhead "This should be whatever is set as your 'Grab Bag' and will be opened when unloading loot after recalling..." 0
+                        setvar LootBag
+                        wait 500
+                        while targetexists
+                            wait 100
+                        endwhile
+                    endif
+
+                    if not find LootBag self
+                        overhead "[ NO LOOT BAG ]" 337
+                        wait 1500
+                        overhead "Select your new loot bag..." 253
+                        wait 500
+                        setvar LootBag
+                        wait 250
+                        while targetexists
+                            wait 100
+                        endwhile
+                    endif
+                endif
+            endif
+
+            if not varexist FirstRunArcaneMage or FirstRunArcaneMage != 1
+                wait 1000
+                overhead "Good luck out there!" 2234
+                overhead "         - Dan (aka. Glacier)" 2234
+                wait 1500
+                setvar FirstRunArcaneMage 1
+                getlabel backpack backpacklabel
+            endif
+
+            if FirstRunArcaneMage = 1
+                hotkey 'Toggle War Only'
+                break
+            endif
+        endwhile
+    endif
 endif
 
+@setvar! QuickResumeActive 0
 
 
 
@@ -6705,6 +6724,8 @@ while not dead
                                         settimer "AttackTargetTimer" 0
                                     endif
 
+                                    @setvar! QuickResumeActive 0
+                                    @setvar! SkipCheckSection 0
                                     @setvar! AttackModeActive 1
                                     @setvar! NoTargetMode 0
                                     @setvar! TargetSwap 0
@@ -17640,9 +17661,6 @@ replay
 
     // Thank you for using my scripts!  I can be contacted via email here: dan@danstockman.com
     // Good luck out there and say hello if you see me in Avadon (Lord Glacier) - please don't PK me lol
-
-
-
 
 
 
